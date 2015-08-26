@@ -10,7 +10,7 @@ manager = Manager(app)
 manager.add_command("shell", Shell(make_context=lambda: {'app': app}), use_ipython=True)
 
 # run the app
-manager.add_command("startserver", Server(port=(os.getenv('FLASK_PORT') or 5000), host='0.0.0.0'))
+manager.add_command("runserver", Server(port=(os.getenv('FLASK_PORT') or 5000), host='0.0.0.0'))
 
 
 if __name__ == '__main__':
