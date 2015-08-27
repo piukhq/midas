@@ -1,0 +1,74 @@
+from app.agents.base import Miner
+from app.utils import extract_decimal, open_browser
+from urllib.parse import urlsplit
+from app.agents.exceptions import MinerError
+import arrow
+
+
+class Tesco(Miner):
+    @staticmethod
+    def digit_index(field):
+        return int(field.select("span")[0].contents[0]) - 1
+
+    def login(self, credentials):
+        self.browser.open("https://secure.tesco.com/register/")
+
+        if self.browser.response.status_code != 200:
+            raise MinerError('AGENT_DOWN')
+
+        signup_form = self.browser.get_form(id='fSignin')
+        signup_form['loginID'].value = credentials['user_name']
+        signup_form['password'].value = credentials['password']
+
+        self.browser.submit_form(signup_form)
+
+        if urlsplit(self.browser.url).path == "/register/default.aspx":
+            # TODO: update state
+            message = self.browser.select('#fSignin > fieldset > div > div > p')
+            if message and message[0].contents[0].startswith("Sorry the email and/or password"):
+                raise MinerError('STATUS_LOGIN_FAILED')
+            raise MinerError('UNKNOWN')
+
+        # cant just go strait to url as its just a meta refresh
+        self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
+
+        digit_form = self.browser.get_form(id='aspnetForm')
+
+        fields = self.browser.select(".security_questions .textfield")
+        card_number = credentials['card_number']
+        digit_form['ctl00$PageContainer$txtSecurityAnswer1'].value = card_number[self.digit_index(fields[0])]
+        digit_form['ctl00$PageContainer$txtSecurityAnswer2'].value = card_number[self.digit_index(fields[1])]
+        digit_form['ctl00$PageContainer$txtSecurityAnswer3'].value = card_number[self.digit_index(fields[2])]
+
+        self.browser.submit_form(digit_form)
+
+        if urlsplit(self.browser.url).path == "/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx":
+            message = self.browser.select("#ctl00_PageContainer_spnError")
+            # TODO: update state
+            if message and message[0].contents[0].startswith("The details you have entered do not"):
+                raise MinerError('INVALID_MFA_INFO')
+            raise MinerError('UNKNOWN')
+
+    def balance(self):
+        balances = self.browser.select(".pointsbox h4")
+
+        return {
+            "amount": extract_decimal(balances[0].contents[0].strip()),
+            "value": extract_decimal(balances[1].contents[2].strip())
+        }
+
+    @staticmethod
+    def parse_transaction(row):
+        items = row.find_all("td")
+        return {
+            "date": arrow.get(items[1].contents[0].strip(), 'DD/MM/YYYY'),
+            "title": items[2].contents[0].strip(),
+            "value": extract_decimal(items[3].contents[0].strip()),
+            "points": extract_decimal(items[4].contents[0].strip()),
+        }
+
+    def transactions(self):
+        self.browser.open("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
+        rows = self.browser.select("table.tbl tr")[1:-1]
+        return [self.hashed_transaction(row) for row in rows]
+
