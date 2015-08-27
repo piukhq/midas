@@ -36,4 +36,3 @@ class Init(Resource):
         return response_data
 
 api.add_resource(Init, '/')
-
