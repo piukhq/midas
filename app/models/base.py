@@ -1,9 +1,12 @@
+from robobrowser import RoboBrowser
+
 
 class Miner(object):
-    def __init__(self):
-        self.browser = self.login()
+    def __init__(self, credentials):
+        self.browser = RoboBrowser(parser="lxml")
+        self.login(credentials)
 
-    def login(self):
+    def login(self, credentials):
         raise NotImplementedError()
 
     def balance(self):
