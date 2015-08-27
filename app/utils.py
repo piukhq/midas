@@ -19,5 +19,5 @@ def open_browser(b):
     lxml.html.open_in_browser(html)
 
 
-def generate_random_key():
-    Random.get_random_bytes(128)
+def generate_random_key(n):
+    return Random.get_random_bytes(n)
