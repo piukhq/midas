@@ -1,7 +1,6 @@
 import hashlib
 from robobrowser import RoboBrowser
 from app.agents.exceptions import MinerError
-from app import redis
 
 
 class Miner(object):
