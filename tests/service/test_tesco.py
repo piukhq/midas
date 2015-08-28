@@ -11,7 +11,7 @@ class TestTesco(unittest.TestCase):
             'password': 'NSHansbrics5',
             'card_number': '634004024051328070',
         }
-        self.b = Tesco(credentials)
+        self.b = Tesco(credentials, 1)
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
