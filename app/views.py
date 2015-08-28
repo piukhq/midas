@@ -1,6 +1,10 @@
 from app import app, active
 from flask import request, url_for
 from flask_restful import Resource, Api
+from app.agents.tesco import Tesco
+from app.agents.exceptions import LoginError, MinerError
+from app import retry
+
 api = Api(app)
 
 
@@ -35,4 +39,24 @@ class Init(Resource):
         response_data = {'agents': agents}
         return response_data
 
+
 api.add_resource(Init, '/')
+
+def example():
+    credentials = {
+        'user_name': 'julie.gormley100@gmail.com',
+        'password': 'NSHansbrics5',
+        'card_number': '634004024051328070',
+    }
+    key = retry.get_key('tesos', credentials['user_name'])
+    exists, retry_count = retry.get_count(key)
+
+    try:
+        b = Tesco(credentials, retry_count)
+    except LoginError as e:
+        retry.inc_count(key, retry_count, exists)
+    except MinerError as e:
+        pass
+
+
+api.add_resource(Balance, '/balance')
