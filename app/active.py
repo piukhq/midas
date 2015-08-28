@@ -22,3 +22,8 @@ AGENTS = [
     # ('debenhams', 'Debenhams'),
 ]
 
+CREDENTIALS = {
+    "tesco": {'user_name': 'julie.gormley100@gmail.com',
+              'password': 'NSHansbrics5',
+              'card_number': '634004024051328070',}
+}
