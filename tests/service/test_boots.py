@@ -10,7 +10,7 @@ class TestBoots(unittest.TestCase):
             'user_name': 'julie.gormley100@gmail.com',
             'password': 'RAHansbrics5'
         }
-        self.b = Boots(credentials)
+        self.b = Boots(credentials, 1)
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

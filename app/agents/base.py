@@ -1,11 +1,19 @@
 import hashlib
 from robobrowser import RoboBrowser
+from app.agents.exceptions import MinerError
+from app import redis
 
 
 class Miner(object):
-    def __init__(self, credentials):
-        self.browser = RoboBrowser(parser="lxml")
-        self.login(credentials)
+    retry_limit = 2
+
+    def __init__(self, credentials, retry_count):
+        self.browser = RoboBrowser(parser="lxml", history=False)
+
+        if retry_count <= self.retry_limit:
+            self.login(credentials)
+        else:
+            raise MinerError("RETRY_LIMIT_REACHED")
 
     def login(self, credentials):
         raise NotImplementedError()

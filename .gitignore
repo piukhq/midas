@@ -2,3 +2,5 @@
 .idea
 aes
 *.ipynb
+.coverage
+

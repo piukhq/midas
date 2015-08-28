@@ -1,14 +1,12 @@
 from app.agents.base import Miner
 from app.utils import extract_decimal, open_browser
 from urllib.parse import urlsplit
-from app.agents.exceptions import MinerError
+from app.agents.exceptions import MinerError, LoginError
 import arrow
 
 
 class Tesco(Miner):
-    @staticmethod
-    def digit_index(field):
-        return int(field.select("span")[0].contents[0]) - 1
+    retry_limit = 3
 
     def login(self, credentials):
         self.browser.open("https://secure.tesco.com/register/")
@@ -23,11 +21,10 @@ class Tesco(Miner):
         self.browser.submit_form(signup_form)
 
         if urlsplit(self.browser.url).path == "/register/default.aspx":
-            # TODO: update state
             message = self.browser.select('#fSignin > fieldset > div > div > p')
             if message and message[0].contents[0].startswith("Sorry the email and/or password"):
-                raise MinerError('STATUS_LOGIN_FAILED')
-            raise MinerError('UNKNOWN')
+                raise LoginError('STATUS_LOGIN_FAILED')
+            raise LoginError('UNKNOWN')
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
@@ -46,8 +43,12 @@ class Tesco(Miner):
             message = self.browser.select("#ctl00_PageContainer_spnError")
             # TODO: update state
             if message and message[0].contents[0].startswith("The details you have entered do not"):
-                raise MinerError('INVALID_MFA_INFO')
-            raise MinerError('UNKNOWN')
+                raise LoginError('INVALID_MFA_INFO')
+            raise LoginError('UNKNOWN')
+
+    @staticmethod
+    def digit_index(field):
+        return int(field.select("span")[0].contents[0]) - 1
 
     def balance(self):
         balances = self.browser.select(".pointsbox h4")
