@@ -6,32 +6,36 @@ from app import retry
 from app.active import CREDENTIALS
 from app.agents.exceptions import LoginError, MinerError
 from app.agents.tesco import Tesco
+from app.utils import resolve_agent
 from flask import url_for, make_response
-from flask_restful import Resource, Api
-
-
-
-
+from flask_restful import Resource, Api, abort
 
 api = Api(app)
 
 
 class Balance(Resource):
-    # noinspection PyUnboundLocalVariable
 
-    #agent_class = resolve_class(agent)
     # args = request.args
     # credentials = args['credentials']
     # api_key = args['api_key']
 
+    # noinspection PyUnboundLocalVariable
     def get(self, agent):
         if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
             # We can do some pretty printing or rendering in here
             pass
+        try:
+            credentials = CREDENTIALS[agent]
+        except KeyError:
+            abort(404, message='Credentials not present.')
 
-        credentials = CREDENTIALS[agent]
         key = retry.get_key('tescos', credentials['user_name'])
         exists, retry_count = retry.get_count(key)
+
+        try:
+            agent_class = resolve_agent(agent)
+        except KeyError:
+            abort(404, message='No such agent')
 
         # TODO: HANDLE THESE ERROR BY RETURNING ERROR CODES
 

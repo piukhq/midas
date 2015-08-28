@@ -1,4 +1,4 @@
-from flask.ext.restful import abort
+import importlib
 import lxml.html
 import re
 from Crypto import Random
@@ -24,8 +24,9 @@ def open_browser(b):
 def generate_random_key(n):
     return Random.get_random_bytes(n)
 
+
 def resolve_agent(name):
-    try:
-        return AGENTS[name]
-    except IndexError:
-        abort(404, message='Agent does not exist')
+    class_path = AGENTS[name]
+    module_name, class_name = class_path.split(".")
+    module = importlib.import_module('app.agents.{}'.format(module_name))
+    return getattr(module, class_name)
