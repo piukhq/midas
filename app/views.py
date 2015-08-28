@@ -1,16 +1,30 @@
 from app import app, active
 from flask import request, url_for
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, abort
+from app.active import AGENTS
+import settings
+
 api = Api(app)
 
 
 class Balance(Resource):
+    # noinspection PyUnboundLocalVariable
     def get(self, agent):
-        args = request.args
-        credentials = args['credentials']
-        api_key = args['api_key']
+        if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
+            print(True)
+        try:
+            agent_class = AGENTS[agent](credentials={})
+        except IndexError:
+            abort(404, message='Agent does not exist')
 
-        return {'hello': id}
+        points_balance = agent_class.points()
+        return {'points': points_balance}
+
+        #agent_class = resolve_class(agent)
+        # args = request.args
+        # credentials = args['credentials']
+        # api_key = args['api_key']
+
 
 
 api.add_resource(Balance, '/<string:agent>/balance/', endpoint="api.points_balance")

@@ -1,11 +1,16 @@
 # We possibly don't need the class path but we'll see
-from app import agents
+from app.agents.boots import Boots
+from app.agents.tesco import Tesco
 
-AGENTS = [
+#These could be strings, if we end up with too many imports
+AGENTS = {
+    "tesco": Tesco,
+    "boots": Boots
+}
     # ('slug', 'class name')
     # ('tesco', 'agents.Tesco'),
     # ('nectar', 'Nectar'),
-    ('boots', 'Boots'),
+    #{'boots', 'boots.Boots'),
     # ('superdrug', 'Superdrug'),
     # ('shell', 'Shell'),
     # ('starbucks', 'Starbucks'),
@@ -20,5 +25,4 @@ AGENTS = [
     # ('mothercare', 'Mothercare'),
     # ('house-of-fraser', 'HouseOfFraser'),
     # ('debenhams', 'Debenhams'),
-]
 
