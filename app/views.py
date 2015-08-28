@@ -1,13 +1,17 @@
-from flask import request, url_for, make_response
-from flask_restful import Resource, Api, abort
-from app.active import AGENTS, CREDENTIALS
 import settings
-from flask_restful import Resource, Api
-from app.agents.tesco import Tesco
-from app import app, active
-from app.agents.exceptions import LoginError, MinerError
-from app import retry
 import simplejson
+
+from app import app, active
+from app import retry
+from app.active import CREDENTIALS
+from app.agents.exceptions import LoginError, MinerError
+from app.agents.tesco import Tesco
+from flask import url_for, make_response
+from flask_restful import Resource, Api
+
+
+
+
 
 api = Api(app)
 
@@ -24,12 +28,6 @@ class Balance(Resource):
         if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
             # We can do some pretty printing or rendering in here
             pass
-
-        # TODO: Resolve class in function
-        try:
-            agent_class = AGENTS[agent]
-        except IndexError:
-            abort(404, message='Agent does not exist')
 
         credentials = CREDENTIALS[agent]
         key = retry.get_key('tescos', credentials['user_name'])

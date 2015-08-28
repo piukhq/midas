@@ -1,9 +1,10 @@
+from flask.ext.restful import abort
 import lxml.html
 import re
 from Crypto import Random
 from decimal import Decimal
 from urllib.parse import urlsplit
-
+from app.active import AGENTS
 
 
 def extract_decimal(s):
@@ -22,3 +23,9 @@ def open_browser(b):
 
 def generate_random_key(n):
     return Random.get_random_bytes(n)
+
+def resolve_agent(name):
+    try:
+        return AGENTS[name]
+    except IndexError:
+        abort(404, message='Agent does not exist')
