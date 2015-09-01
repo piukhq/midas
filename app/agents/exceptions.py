@@ -1,5 +1,7 @@
 # based on https://developer.yodlee.com/FAQs/Error_Codes
 
+STATUS_ACCOUNT_LOCKED = "STATUS_ACCOUNT_LOCKED"
+
 errors = {
     "STATUS_LOGIN_FAILED": {"code": 402,
                             "message": "We could not update your account because your username and/or password were"
@@ -11,7 +13,7 @@ errors = {
                    "message": "The agent is currently down for maintenance."},
     "RETRY_LIMIT_REACHED": {"code": 236,
                             "message": "You have reached your maximum amount of login tries please wait 20 minutes."},
-    "STATUS_ACCOUNT_LOCKED": {"code": 407,
+    STATUS_ACCOUNT_LOCKED: {"code": 407,
                               "message": "We could not update your account because it appears your <SITE_NAME> account"
                                          "has been locked. This usually results from too many unsuccessful login"
                                          "attempts in a short period of time. Please visit the site or contact its"
