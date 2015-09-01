@@ -38,9 +38,11 @@ class Balance(Resource):
         except KeyError:
             abort(404, message='No such agent')
 
+        agent_class_instance = agent_class(1)
+
         # TODO: HANDLE THESE ERROR BY RETURNING ERROR CODES
         try:
-            agent_class_instance = agent_class(credentials, 1)
+            agent_class_instance.attempt_login(credentials)
         except LoginError as e:
             retry.inc_count(key, retry_count, exists)
         except MinerError as e:
@@ -76,9 +78,11 @@ class Transactions(Resource):
         except KeyError:
             abort(404, message='No such agent')
 
+        agent_class_instance = agent_class(1)
+
         # TODO: HANDLE THESE ERROR BY RETURNING ERROR CODES
         try:
-            agent_class_instance = agent_class(credentials, 1)
+            agent_class_instance.attempt_login(credentials)
         except LoginError as e:
             retry.inc_count(key, retry_count, exists)
         except MinerError as e:
@@ -89,6 +93,47 @@ class Transactions(Resource):
         return make_response(simplejson.dumps(response_data, cls=ArrowEncoder), 200)
 
 api.add_resource(Transactions, '/<string:agent>/transactions/', endpoint="api.transactions")
+
+
+class AccountOverview(Resource):
+
+    # args = request.args
+    # credentials = args['credentials']
+    # api_key = args['api_key']
+
+    # noinspection PyUnboundLocalVariable
+    def get(self, agent):
+        if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
+            # We can do some pretty printing or rendering in here
+            pass
+        try:
+            credentials = CREDENTIALS[agent]
+        except KeyError:
+            abort(404, message='Credentials not present.')
+
+        key = retry.get_key('tescos', credentials['user_name'])
+        exists, retry_count = retry.get_count(key)
+
+        try:
+            agent_class = resolve_agent(agent)
+        except KeyError:
+            abort(404, message='No such agent')
+
+        agent_class_instance = agent_class(1)
+
+        # TODO: HANDLE THESE ERROR BY RETURNING ERROR CODES
+        try:
+            agent_class_instance.attempt_login(credentials)
+        except LoginError as e:
+            retry.inc_count(key, retry_count, exists)
+        except MinerError as e:
+            pass
+
+        response_data = agent_class_instance.account_overview()
+        #TODO: ARROW IS NOT SERIALIZABLE
+        return make_response(simplejson.dumps(response_data, cls=ArrowEncoder), 200)
+
+api.add_resource(AccountOverview, '/<string:agent>/account_overview/', endpoint="api.account_overview")
 
 
 class Init(Resource):
@@ -111,7 +156,7 @@ class Init(Resource):
         return response_data
 
 
-api.add_resource(Init, '/')
+api.add_resource(Init, '/agents/')
 
 
 def example():
