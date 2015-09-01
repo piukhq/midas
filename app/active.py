@@ -24,6 +24,8 @@ AGENTS = {
     # ('house-of-fraser', 'HouseOfFraser'),
     # ('debenhams', 'Debenhams'),
 
+# remove for production release
+
 CREDENTIALS = {
     "tesco": {'user_name': 'julie.gormley100@gmail.com',
               'password': 'NSHansbrics5',

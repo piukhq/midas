@@ -1,7 +1,5 @@
 from app.agents.base import Miner
 from app.utils import extract_decimal, open_browser
-from urllib.parse import urlsplit
-from app.agents.exceptions import MinerError, LoginError
 import arrow
 
 
@@ -9,10 +7,7 @@ class Tesco(Miner):
     retry_limit = 3
 
     def login(self, credentials):
-        self.browser.open("https://secure.tesco.com/register/")
-
-        if self.browser.response.status_code != 200:
-            raise MinerError('AGENT_DOWN')
+        self.open_url("https://secure.tesco.com/register/")
 
         signup_form = self.browser.get_form(id='fSignin')
         signup_form['loginID'].value = credentials['user_name']
@@ -20,11 +15,8 @@ class Tesco(Miner):
 
         self.browser.submit_form(signup_form)
 
-        if urlsplit(self.browser.url).path == "/register/default.aspx":
-            message = self.browser.select('#fSignin > fieldset > div > div > p')
-            if message and message[0].contents[0].startswith("Sorry the email and/or password"):
-                raise LoginError('STATUS_LOGIN_FAILED')
-            raise LoginError('UNKNOWN')
+        self.path_error_check("/register/default.aspx", '#fSignin > fieldset > div > div > p',
+                              (("STATUS_LOGIN_FAILED",  "Sorry the email and/or password"), ))
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
@@ -39,12 +31,9 @@ class Tesco(Miner):
 
         self.browser.submit_form(digit_form)
 
-        if urlsplit(self.browser.url).path == "/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx":
-            message = self.browser.select("#ctl00_PageContainer_spnError")
-            # TODO: update state
-            if message and message[0].contents[0].startswith("The details you have entered do not"):
-                raise LoginError('INVALID_MFA_INFO')
-            raise LoginError('UNKNOWN')
+        self.path_error_check("/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx",
+                              "#ctl00_PageContainer_spnError",
+                              (("INVALID_MFA_INFO", "The details you have entered do not"), ))
 
     @staticmethod
     def digit_index(field):
@@ -69,7 +58,7 @@ class Tesco(Miner):
         }
 
     def transactions(self):
-        self.browser.open("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
+        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
         rows = self.browser.select("table.tbl tr")[1:-1]
         return [self.hashed_transaction(row) for row in rows]
 

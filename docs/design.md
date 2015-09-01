@@ -119,7 +119,7 @@ At the moment we are returning JSON, however there may be value in using a data 
 
 For a range of reasons including:
 
-* code-generation for static clients
+* Code-generation for static clients
 * Better data types
 * Performance
 * Schema evolution processes

@@ -11,6 +11,11 @@ def get_count(key):
     return False, 0
 
 
+def max_out_count(key, max_retries):
+    redis.set(key, max_retries)
+    redis.expire(key, 60*15)
+
+
 def inc_count(key, retry_count, exists):
     redis.set(key, retry_count + 1)
     if not exists:

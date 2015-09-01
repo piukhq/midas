@@ -116,13 +116,19 @@ api.add_resource(Init, '/')
 
 def example():
     credentials = active.CREDENTIALS['tesco']
-    key = retry.get_key('tescos', credentials['user_name'])
+    key = retry.get_key('tesco', credentials['user_name'])
+
     exists, retry_count = retry.get_count(key)
 
+    b = Tesco(retry_count)
+
     try:
-        b = Tesco(credentials, retry_count)
+        b.attempt_login(credentials)
     except LoginError as e:
-        retry.inc_count(key, retry_count, exists)
+        if e.name == "STATUS_ACCOUNT_LOCKED":
+            retry.max_out_count(key, b.retry_limit)
+        else:
+            retry.inc_count(key, retry_count, exists)
     except MinerError as e:
         pass
 

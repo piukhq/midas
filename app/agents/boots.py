@@ -1,13 +1,14 @@
 from app.agents.base import Miner
-import arrow
 from app.utils import extract_decimal
+import arrow
 
 
 class Boots(Miner):
     def login(self, credentials):
         url = "https://www.boots.com/webapp/wcs/stores/servlet/ADCAccountSummary?" \
               "storeId=10052&langId=-1&catalogId=10552"
-        self.browser.open(url)
+        self.open_url(url)
+
         signup_form = self.browser.get_form(id='Logon')
         signup_form['logonId'].value = credentials['user_name']
         signup_form['logonPassword'].value = credentials['password']
@@ -15,6 +16,13 @@ class Boots(Miner):
         # we need to change the action url or else it uses javascript
         signup_form.action = "https://www.boots.com/webapp/wcs/stores/servlet/LoginRequestDispatcher"
         self.browser.submit_form(signup_form)
+
+        errors = (
+            ("STATUS_LOGIN_FAILED", "The email address and password you entered has not been recognised"),
+            ("STATUS_ACCOUNT_LOCKED", "You have exceeded the maximum number of attempts to log in")
+        )
+        self.path_error_check("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
+                              "#formErrorContainer > div > div > ul > li > a", errors)
 
     def balance(self):
         return {
@@ -34,5 +42,3 @@ class Boots(Miner):
     def transactions(self):
         rows = self.browser.select(".transactionsList tr")[1:]
         return [self.hashed_transaction(row) for row in rows]
-
-

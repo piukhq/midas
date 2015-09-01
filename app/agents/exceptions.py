@@ -11,6 +11,12 @@ errors = {
                    "message": "The agent is currently down for maintenance."},
     "RETRY_LIMIT_REACHED": {"code": 236,
                             "message": "You have reached your maximum amount of login tries please wait 20 minutes."},
+    "STATUS_ACCOUNT_LOCKED": {"code": 407,
+                              "message": "We could not update your account because it appears your <SITE_NAME> account"
+                                         "has been locked. This usually results from too many unsuccessful login"
+                                         "attempts in a short period of time. Please visit the site or contact its"
+                                         "customer support to resolve this issue.  Once done, please update your"
+                                         "account credentials in case they are changed."},
     "UNKNOWN": {"code": 666,
                 "message": "We have know the idea what went wrong the team is on to it."}
 

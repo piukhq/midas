@@ -11,7 +11,8 @@ class TestTesco(unittest.TestCase):
             'password': 'NSHansbrics5',
             'card_number': '634004024051328070',
         }
-        self.b = Tesco(credentials, 1)
+        self.b = Tesco(retry_count=1)
+        self.b.attempt_login(credentials)
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
