@@ -1,4 +1,5 @@
 import hashlib
+from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
@@ -30,7 +31,7 @@ class Miner(object):
 
         try:
             self.browser.response.raise_for_status()
-        except self.browser.response.exceptions.HTTPError as e:
+        except HTTPError as e:
             raise MinerError('AGENT_DOWN') from e
 
     def login(self, credentials):
@@ -57,14 +58,15 @@ class Miner(object):
         Given a path the browser shouldn't be on test for a list of error messages.
         Raise the appropriate error.
         """
-        if urlsplit(self.browser.url).path == incorrect_path:
-            message = self.browser.select(error_selector)
+        if urlsplit(self.browser.url).path != incorrect_path:
+            return
 
-            for error in error_causes:
-                error_name, error_match = error
-                if message and message[0].contents[0].strip().startswith(error_match):
-                    raise LoginError(error_name)
-            raise LoginError('UNKNOWN')
+        message = self.browser.select(error_selector)
+        for error in error_causes:
+            error_name, error_match = error
+            if message and message[0].contents[0].strip().startswith(error_match):
+                raise LoginError(error_name)
+        raise LoginError('UNKNOWN')
 
     def view(self):
         """
