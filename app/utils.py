@@ -4,7 +4,6 @@ import lxml.html
 import re
 from Crypto import Random
 from decimal import Decimal
-from urllib.parse import urlsplit
 import simplejson
 from app.active import AGENTS
 
@@ -32,7 +31,6 @@ def resolve_agent(name):
 
 
 class ArrowEncoder(simplejson.JSONEncoder):
-
     def default(self, obj):
         if isinstance(obj, Arrow):
             return obj.format('YYYY-MM-DD HH:mm:ss ZZ')

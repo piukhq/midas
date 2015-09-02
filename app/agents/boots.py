@@ -1,4 +1,5 @@
 from app.agents.base import Miner
+from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 import arrow
 
@@ -18,11 +19,11 @@ class Boots(Miner):
         self.browser.submit_form(signup_form)
 
         errors = (
-            ("STATUS_LOGIN_FAILED", "The email address and password you entered has not been recognised"),
-            ("STATUS_ACCOUNT_LOCKED", "You have exceeded the maximum number of attempts to log in")
+            (STATUS_LOGIN_FAILED, "The email address and password you entered has not been recognised"),
+            (STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts to log in")
         )
-        self.path_error_check("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
-                              "#formErrorContainer > div > div > ul > li > a", errors)
+        self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
+                         "#formErrorContainer > div > div > ul > li > a", errors)
 
     def balance(self):
         return {
