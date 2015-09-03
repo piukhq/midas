@@ -8,6 +8,7 @@ transactions = Schema([{
     Required('title'): str,
     Required('points'): Decimal,
     Optional('value'): Decimal,
+    Optional('location'): str,
     Required('hash'): str,
 }])
 
