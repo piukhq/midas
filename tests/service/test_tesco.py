@@ -2,17 +2,13 @@ import unittest
 from app.agents.tesco import Tesco
 from urllib.parse import urlsplit
 from app.agents import schemas
+from tests.service.logins import CREDENTIALS
 
 
 class TestTesco(unittest.TestCase):
     def setUp(self):
-        credentials = {
-            'user_name': 'julie.gormley100@gmail.com',
-            'password': 'NSHansbrics5',
-            'card_number': '634004024051328070',
-        }
         self.b = Tesco(retry_count=1)
-        self.b.attempt_login(credentials)
+        self.b.attempt_login(CREDENTIALS["tesco"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

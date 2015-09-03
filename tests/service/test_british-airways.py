@@ -2,16 +2,13 @@ import unittest
 from urllib.parse import urlsplit
 from app.agents import schemas
 from app.agents.british_airways import BritishAirways
+from tests.service.logins import CREDENTIALS
 
 
 class TestBritishAirways(unittest.TestCase):
     def setUp(self):
-        credentials = {
-            'card_number': 38198503,
-            'password': 'Buster69'
-        }
         self.b = BritishAirways(retry_count=1)
-        self.b.attempt_login(credentials)
+        self.b.attempt_login(CREDENTIALS["british-airways"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

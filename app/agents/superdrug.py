@@ -4,6 +4,7 @@ from app.utils import extract_decimal
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 
+
 class SuperDrug(Miner):
     def login(self, credentials):
         self.open_url("https://www.superdrug.com/login")
