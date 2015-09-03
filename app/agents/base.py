@@ -10,7 +10,7 @@ class Miner(object):
     retry_limit = 2
 
     def __init__(self, retry_count):
-        self.browser = RoboBrowser(parser="lxml", history=False)
+        self.browser = RoboBrowser(parser="lxml", history=False, user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36')
         self.retry_count = retry_count
 
     def attempt_login(self, credentials):
