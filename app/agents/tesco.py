@@ -1,6 +1,9 @@
 from app.agents.base import Miner
-from app.utils import extract_decimal, open_browser
+from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO
+from app.utils import extract_decimal
 import arrow
+
+# TODO: add STATUS_ACCOUNT_LOCKED
 
 
 class Tesco(Miner):
@@ -15,8 +18,8 @@ class Tesco(Miner):
 
         self.browser.submit_form(signup_form)
 
-        self.path_error_check("/register/default.aspx", '#fSignin > fieldset > div > div > p',
-                              (("STATUS_LOGIN_FAILED",  "Sorry the email and/or password"), ))
+        self.check_error("/register/default.aspx", '#fSignin > fieldset > div > div > p',
+                         ((STATUS_LOGIN_FAILED,  "Sorry the email and/or password"), ))
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
@@ -31,9 +34,8 @@ class Tesco(Miner):
 
         self.browser.submit_form(digit_form)
 
-        self.path_error_check("/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx",
-                              "#ctl00_PageContainer_spnError",
-                              (("INVALID_MFA_INFO", "The details you have entered do not"), ))
+        self.check_error("/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx", "#ctl00_PageContainer_spnError",
+                         ((INVALID_MFA_INFO, "The details you have entered do not"), ))
 
     @staticmethod
     def digit_index(field):
@@ -44,7 +46,7 @@ class Tesco(Miner):
 
         return {
             "amount": extract_decimal(balances[0].contents[0].strip()),
-            "value": extract_decimal(balances[1].contents[2].strip())
+            "voucher_value": extract_decimal(balances[1].contents[2].strip())
         }
 
     @staticmethod
@@ -53,7 +55,6 @@ class Tesco(Miner):
         return {
             "date": arrow.get(items[1].contents[0].strip(), 'DD/MM/YYYY'),
             "title": items[2].contents[0].strip(),
-            "value": extract_decimal(items[3].contents[0].strip()),
             "points": extract_decimal(items[4].contents[0].strip()),
         }
 

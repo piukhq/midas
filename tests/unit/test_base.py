@@ -32,24 +32,24 @@ class TestBase(TestCase):
         m.attempt_login(credentials={})
         self.assertTrue(mocked_login.called)
 
-    def test_path_error_check(self):
+    def test_check_error(self):
         mock_instance = mock.create_autospec(Miner)
         browser = mock.MagicMock()
         browser.url = "http://www.test.com/test.aspx?sdf=34"
         mock_instance.browser = browser
 
         # the method should do nothing when called
-        Miner.path_error_check(mock_instance, "/HomeSecurityLayer.aspx", "", ())
+        Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx", "", ())
 
-    def test_path_error_check_exception(self):
+    def test_path_check_error_exception(self):
         mock_instance = mock.create_autospec(Miner)
         browser = mock.MagicMock()
         browser.url = "http://www.test.com/HomeSecurityLayer.aspx"
         mock_instance.browser = browser
 
         with self.assertRaises(LoginError):
-            Miner.path_error_check(mock_instance, "/HomeSecurityLayer.aspx",
-                                   "", (("INVALID_MFA_INFO", "The details"), ))
+            Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx",
+                              "", (("INVALID_MFA_INFO", "The details"), ))
 
 
 class TestOpenURL(TestCase):

@@ -3,21 +3,23 @@ from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
-from app.agents.exceptions import MinerError, LoginError
+from app.agents.exceptions import MinerError, LoginError, AGENT_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
 
 
 class Miner(object):
     retry_limit = 2
 
     def __init__(self, retry_count):
-        self.browser = RoboBrowser(parser="lxml", history=False, user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36')
+
+        self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
+                                                             "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
 
     def attempt_login(self, credentials):
         if self.retry_count <= self.retry_limit:
             self.login(credentials)
         else:
-            raise MinerError("RETRY_LIMIT_REACHED")
+            raise MinerError(RETRY_LIMIT_REACHED)
 
     def open_url(self, url):
         """
@@ -32,7 +34,7 @@ class Miner(object):
         try:
             self.browser.response.raise_for_status()
         except HTTPError as e:
-            raise MinerError('AGENT_DOWN') from e
+            raise MinerError(AGENT_DOWN) from e
 
     def login(self, credentials):
         raise NotImplementedError()
@@ -53,12 +55,9 @@ class Miner(object):
         transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
         return transaction
 
-    def path_error_check(self, incorrect_path, error_selector, error_causes):
-        """
-        Given a path the browser shouldn't be on test for a list of error messages.
-        Raise the appropriate error.
-        """
-        if urlsplit(self.browser.url).path != incorrect_path:
+    def check_error(self, incorrect, error_selector, error_causes, url_part="path"):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
             return
 
         message = self.browser.select(error_selector)
@@ -66,7 +65,7 @@ class Miner(object):
             error_name, error_match = error
             if message and message[0].contents[0].strip().startswith(error_match):
                 raise LoginError(error_name)
-        raise LoginError('UNKNOWN')
+        raise LoginError(UNKNOWN)
 
     def view(self):
         """
