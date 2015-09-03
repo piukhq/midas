@@ -1,5 +1,6 @@
 import arrow
 from app.agents.base import Miner
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
@@ -13,8 +14,10 @@ class Nectar(Miner):
         login_form = self.browser.get_form(id='loginform')
         login_form['username'].value = credentials['card_number']
         login_form['password'].value = credentials['password']
-        #login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
+
+        self.check_error("/login", '.login-error > p > strong',
+                         ((STATUS_LOGIN_FAILED,  "Sorry"), ))
 
     def balance(self):
         points_container = self.browser.find("div", {'class': "points-summary"}).select(".fr-reg")
