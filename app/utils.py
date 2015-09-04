@@ -9,7 +9,7 @@ from app.active import AGENTS
 
 
 def extract_decimal(s):
-    return Decimal(re.sub(r'[^\d.]+', '', s.strip()))
+    return Decimal(re.search(r'-?\d*\.{0,1}\d+', s).group(0))
 
 
 def open_browser(html, base_href):
