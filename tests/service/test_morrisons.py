@@ -17,6 +17,11 @@ class TestMorrisons(unittest.TestCase):
         balance = self.b.balance()
         schemas.balance(balance)
 
+    def test_transactions(self):
+        transactions = self.b.transactions()
+        self.assertTrue(transactions)
+        schemas.transactions(transactions)
+
 
 class TestMorrisonsFail(unittest.TestCase):
     def test_login_fail(self):

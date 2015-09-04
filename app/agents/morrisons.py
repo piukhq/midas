@@ -2,6 +2,9 @@ from decimal import Decimal
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from urllib.parse import parse_qs, urlsplit
+import arrow
+from app.utils import extract_decimal
+
 # TODO: add STATUS_ACCOUNT_LOCKED
 
 
@@ -36,3 +39,18 @@ class Morrisons(Miner):
             'balance': self.balance(),
             'transactions': None
         }
+
+    @staticmethod
+    def parse_transaction(row):
+        return {
+            "date": arrow.get(row["dateTime"]),
+            "title": "transaction",
+            "location": row["siteName"].strip(),
+            "points": Decimal(row["points"]),
+        }
+
+    def transactions(self):
+        self.open_url("https://api.morrisons.com/card/v1/cards/{0}/transactions?"
+                      "pageLength=50&pageNumber=1&includeLinkedCards=true".format(self.card_number))
+        rows = self.browser.response.json()["transactions"]
+        return [self.hashed_transaction(row) for row in rows]
