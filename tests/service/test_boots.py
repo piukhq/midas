@@ -16,6 +16,7 @@ class TestBoots(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.b.transactions()
+        self.assertTrue(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):

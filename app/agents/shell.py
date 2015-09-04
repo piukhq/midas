@@ -18,9 +18,10 @@ class Shell(Miner):
 
         self.browser.submit_form(signup_form)
 
-        self.check_error("/smart/login", "#error_message_container_u49",
-                         ((STATUS_LOGIN_FAILED, "The password is incorrect"),
-                          (STATUS_LOGIN_FAILED, "This account does not exist"), ))
+        selector = "#error_message_container_u49"
+        self.check_error("/smart/login",
+                         ((selector, STATUS_LOGIN_FAILED, "The password is incorrect"),
+                          (selector, STATUS_LOGIN_FAILED, "This account does not exist"), ))
 
     def balance(self):
         return {

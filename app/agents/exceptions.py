@@ -13,17 +13,17 @@ errors = {
                                      "reported to be incorrect. Please re-verify your username and password."},
     INVALID_MFA_INFO: {"code": 234,
                        "message": "We're sorry, the authentication information you  provided is incorrect. "
-                                    "Please try again."},
+                                  "Please try again."},
     AGENT_DOWN: {"code": 235,
                  "message": "The agent is currently down for maintenance."},
     RETRY_LIMIT_REACHED: {"code": 236,
-                            "message": "You have reached your maximum amount of login tries please wait 20 minutes."},
+                          "message": "You have reached your maximum amount of login tries please wait 20 minutes."},
     STATUS_ACCOUNT_LOCKED: {"code": 407,
                             "message": "We could not update your account because it appears your <SITE_NAME> account"
-                                         "has been locked. This usually results from too many unsuccessful login"
-                                         "attempts in a short period of time. Please visit the site or contact its"
-                                         "customer support to resolve this issue.  Once done, please update your"
-                                         "account credentials in case they are changed."},
+                                       "has been locked. This usually results from too many unsuccessful login"
+                                       "attempts in a short period of time. Please visit the site or contact its"
+                                       "customer support to resolve this issue.  Once done, please update your"
+                                       "account credentials in case they are changed."},
     UNKNOWN: {"code": 666,
               "message": "We have know the idea what went wrong the team is on to it."}
 
@@ -42,3 +42,6 @@ class MinerError(Exception):
 class LoginError(MinerError):
     pass
 
+
+class CredentialsError(MinerError):
+    pass

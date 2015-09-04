@@ -18,12 +18,10 @@ class Boots(Miner):
         signup_form.action = "https://www.boots.com/webapp/wcs/stores/servlet/LoginRequestDispatcher"
         self.browser.submit_form(signup_form)
 
-        errors = (
-            (STATUS_LOGIN_FAILED, "The email address and password you entered has not been recognised"),
-            (STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts to log in")
-        )
+        selector = "#formErrorContainer > div > div > ul > li > a"
         self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
-                         "#formErrorContainer > div > div > ul > li > a", errors)
+                         ((selector, STATUS_LOGIN_FAILED, "The email address and password you entered has not been"),
+                          (selector, STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts")))
 
     def balance(self):
         return {

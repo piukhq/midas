@@ -25,12 +25,16 @@ CREDENTIALS = {
             'password': 'KRHansbrics5',
     },
     "nectar": {
-            'card_prefix': '98263000',
-            'card_number': '30842203013',
+            'card_number': '9826300030842203013',
             'password': 'QMHansbrics6',
     },
     "bad": {
             'user_name': '234234@bad.com',
             'password': '234234',
+    },
+    "cooperative": {
+            'card_number': '633174911212875989',
+            'post_code': 'BH23 1HT',
+            'place_of_birth': "cheltenham",
     }
 }
