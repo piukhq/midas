@@ -5,7 +5,6 @@ from urllib.parse import urlsplit
 from tests.service.logins import CREDENTIALS
 
 
-
 class TestNectar(unittest.TestCase):
     def setUp(self):
         self.b = Nectar(retry_count=1)
@@ -17,6 +16,7 @@ class TestNectar(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.b.transactions()
+        self.assertTrue(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):

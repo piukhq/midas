@@ -10,7 +10,6 @@ class Miner(object):
     retry_limit = 2
 
     def __init__(self, retry_count):
-
         self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                                              "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
@@ -55,15 +54,15 @@ class Miner(object):
         transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
         return transaction
 
-    def check_error(self, incorrect, error_selector, error_causes, url_part="path"):
+    def check_error(self, incorrect, error_causes, url_part="path"):
         parts = urlsplit(self.browser.url)
         if getattr(parts, url_part) != incorrect:
             return
 
-        message = self.browser.select(error_selector)
         for error in error_causes:
-            error_name, error_match = error
-            if message and message[0].contents[0].strip().startswith(error_match):
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
                 raise LoginError(error_name)
         raise LoginError(UNKNOWN)
 

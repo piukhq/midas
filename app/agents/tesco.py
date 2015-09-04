@@ -18,8 +18,9 @@ class Tesco(Miner):
 
         self.browser.submit_form(signup_form)
 
-        self.check_error("/register/default.aspx", '#fSignin > fieldset > div > div > p',
-                         ((STATUS_LOGIN_FAILED,  "Sorry the email and/or password"), ))
+        self.check_error("/register/default.aspx",
+                         (('#fSignin > fieldset > div > div > p', STATUS_LOGIN_FAILED,
+                           "Sorry the email and/or password"), ))
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
@@ -34,8 +35,8 @@ class Tesco(Miner):
 
         self.browser.submit_form(digit_form)
 
-        self.check_error("/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx", "#ctl00_PageContainer_spnError",
-                         ((INVALID_MFA_INFO, "The details you have entered do not"), ))
+        self.check_error("/Clubcard/MyAccount/SecurityStage/HomeSecurityLayer.aspx",
+                         (("#ctl00_PageContainer_spnError", INVALID_MFA_INFO, "The details you have entered do not"), ))
 
     @staticmethod
     def digit_index(field):

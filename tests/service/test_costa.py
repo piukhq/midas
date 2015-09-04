@@ -15,12 +15,15 @@ class TestCosta(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.b.transactions()
+        self.assertTrue(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
 
+
+class TestCostaFail(unittest.TestCase):
     def test_login_fail(self):
         b = Costa(retry_count=1)
         with self.assertRaises(LoginError) as e:

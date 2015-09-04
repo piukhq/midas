@@ -19,8 +19,9 @@ class Costa(Miner):
         submit = signup_form.submit_fields["ctl00$ctl00$ctl00$ContentPlaceHolderDefault$ContentPlaceHolderBody$LoginRegister_9$btnCCLogin"]
         self.browser.submit_form(signup_form, submit=submit)
 
-        self.check_error("/coffee-club/login/", "#ResponseMessage p",
-                         ((STATUS_LOGIN_FAILED, "Sorry, your username and password are incorrect"), ))
+        self.check_error("/coffee-club/login/", (
+            ("#ResponseMessage p", STATUS_LOGIN_FAILED, "Sorry, your username and password are incorrect"),
+            ("#lblCaptcha", STATUS_LOGIN_FAILED, "reCAPTCHA selection is invalid"), ))
 
     def balance(self):
         return {
