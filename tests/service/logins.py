@@ -40,5 +40,9 @@ CREDENTIALS = {
     "morrisons": {
         "user_name": "chris.gormley2@me.com",
         'password': 'RLHansbrics9',
+    },
+    "kfc": {
+        "user_name": "chris.gormley2@me.com",
+        "password": "BJHansbrics3",
     }
 }
