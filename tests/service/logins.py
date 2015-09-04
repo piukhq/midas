@@ -36,5 +36,9 @@ CREDENTIALS = {
             'card_number': '633174911212875989',
             'post_code': 'BH23 1HT',
             'place_of_birth': "cheltenham",
+    },
+    "morrisons": {
+        "user_name": "chris.gormley2@me.com",
+        'password': 'RLHansbrics9',
     }
 }

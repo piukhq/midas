@@ -8,6 +8,7 @@ from app.agents.exceptions import MinerError, LoginError, AGENT_DOWN, UNKNOWN, R
 
 class Miner(object):
     retry_limit = 2
+    headers = {}
 
     def __init__(self, retry_count):
         self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
@@ -28,7 +29,7 @@ class Miner(object):
         connect_timeout = 1
         read_timeout = 5
 
-        self.browser.open(url, timeout=(connect_timeout, read_timeout))
+        self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
 
         try:
             self.browser.response.raise_for_status()
