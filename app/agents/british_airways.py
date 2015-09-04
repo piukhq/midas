@@ -34,7 +34,6 @@ class BritishAirways(Miner):
         self.browser.session.headers['Upgrade-Insecure-Requests'] = "1"
         self.browser.session.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36"
         self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb")
-        self.view()
         time.sleep(5)
         self.browser.session.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
         self.browser.session.headers['Accept-Encoding'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
@@ -46,7 +45,6 @@ class BritishAirways(Miner):
         self.browser.session.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36"
         #print(self.browser.url)
         self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705b")
-        self.view()
 
 
         html = self.browser.response.text
