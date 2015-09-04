@@ -3,7 +3,7 @@ import simplejson
 
 from app import app, active
 from app import retry
-from app.active import CREDENTIALS
+from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED
 from app.utils import resolve_agent, ArrowEncoder
 from flask import url_for, make_response

@@ -2,17 +2,14 @@ import unittest
 from app.agents import schemas
 from app.agents.nectar import Nectar
 from urllib.parse import urlsplit
+from tests.service.logins import CREDENTIALS
+
 
 
 class TestNectar(unittest.TestCase):
     def setUp(self):
-        credentials = {
-            'card_prefix': '98263000',
-            'card_number': '30842203013',
-            'password': 'QMHansbrics6',
-        }
         self.b = Nectar(retry_count=1)
-        self.b.attempt_login(credentials)
+        self.b.attempt_login(CREDENTIALS["nectar"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
