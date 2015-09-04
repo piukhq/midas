@@ -15,13 +15,13 @@ class TestNectar(unittest.TestCase):
         self.assertEqual(self.b.browser.response.status_code, 200)
         self.assertEqual(urlsplit(self.b.browser.url).path, '/')
 
-    # def test_transactions(self):
-    #     transactions = self.b.transactions()
-    #     schemas.transactions(transactions)
-    #
-    # def test_balance(self):
-    #     balance = self.b.balance()
-    #     schemas.balance(balance)
+    def test_transactions(self):
+        transactions = self.b.transactions()
+        schemas.transactions(transactions)
+
+    def test_balance(self):
+        balance = self.b.balance()
+        schemas.balance(balance)
 
 if __name__ == '__main__':
     unittest.main()
