@@ -5,7 +5,7 @@ CREDENTIALS = {
         'card_number': '634004024051328070'
     },
     "british-airways": {
-        'card_number':"38198503",
+        'card_number': "38198503",
         'password': 'Buster69'
     },
     "boots": {

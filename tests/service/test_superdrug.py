@@ -1,6 +1,6 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.superdrug import SuperDrug
+from app.agents.superdrug import Superdrug
 from urllib.parse import urlsplit
 from app.agents import schemas
 from tests.service.logins import CREDENTIALS
@@ -8,7 +8,7 @@ from tests.service.logins import CREDENTIALS
 
 class TestSuperDrug(unittest.TestCase):
     def setUp(self):
-        self.b = SuperDrug(retry_count=1)
+        self.b = Superdrug(retry_count=1)
         self.b.attempt_login(CREDENTIALS["superdrug"])
 
     def test_login(self):
@@ -22,7 +22,7 @@ class TestSuperDrug(unittest.TestCase):
 
 class TestSuperDrugFail(unittest.TestCase):
     def test_login_fail(self):
-        b = SuperDrug(retry_count=1)
+        b = Superdrug(retry_count=1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

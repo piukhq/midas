@@ -36,7 +36,7 @@ class Morrisons(Miner):
     def account_overview(self):
         return {
             'balance': self.balance(),
-            'transactions': None
+            'transactions': self.transactions()
         }
 
     @staticmethod

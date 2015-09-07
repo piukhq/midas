@@ -15,7 +15,7 @@ class Kfc(Miner):
         self.browser.open("https://www.kfc.co.uk/ccapi/oauth/v2/token", method='post', json=data)
 
         if self.browser.response.status_code != 200:
-            if self.browser.response.json()['error'] == 'invalid_grant':
+            if self.browser.response.json().get('error') == 'invalid_grant':
                 raise LoginError(STATUS_LOGIN_FAILED)
             raise LoginError(UNKNOWN)
 
@@ -26,4 +26,10 @@ class Kfc(Miner):
         self.open_url("https://www.kfc.co.uk/ccapi/api/me?scope=user_full,card_full,account_full")
         return {
             "amount": Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
+        }
+
+    def account_overview(self):
+        return {
+            'balance': self.balance(),
+            'transactions': None
         }

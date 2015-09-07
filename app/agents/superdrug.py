@@ -5,7 +5,7 @@ from app.utils import extract_decimal
 # TODO: add STATUS_ACCOUNT_LOCKED
 
 
-class SuperDrug(Miner):
+class Superdrug(Miner):
     def login(self, credentials):
         self.open_url("https://www.superdrug.com/login")
         signup_form = self.browser.get_form(id='loginForm')
