@@ -13,13 +13,20 @@ api = Api(app)
 
 # We could create some sort of base request as balance and transactions are almost identical
 
+
 class Balance(Resource):
     def get(self, agent_slug):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
         agent_instance = agent_login(agent_class, credentials)
 
-        return create_response(agent_instance.balance())
+        try:
+            return create_response(agent_instance.balance())
+        except MinerError as e:
+            abort(400, message=str(e))
+        except Exception as e:
+            abort(400, message=str(e))
+
 
 api.add_resource(Balance, '/<string:agent>/balance/', endpoint="api.points_balance")
 
@@ -28,11 +35,15 @@ class Transactions(Resource):
     def get(self, agent_slug):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
-
         agent_instance = agent_login(agent_class, credentials)
-        response_data = agent_instance.transactions()
 
-        return create_response(response_data)
+        try:
+            return create_response(agent_instance.transactions())
+        except MinerError as e:
+            abort(400, message=str(e))
+        except Exception as e:
+            abort(400, message=str(e))
+
 
 api.add_resource(Transactions, '/<string:agent>/transactions/', endpoint="api.transactions")
 
@@ -42,9 +53,13 @@ class AccountOverview(Resource):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
         agent_instance = agent_login(agent_class, credentials)
-        response_data = agent_instance.account_overview()
 
-        return create_response(response_data)
+        try:
+            return create_response(agent_instance.account_overview())
+        except MinerError as e:
+            abort(400, message=str(e))
+        except Exception as e:
+            abort(400, message=str(e))
 
 
 api.add_resource(AccountOverview, '/<string:agent_slug>/account_overview/', endpoint="api.account_overview")
@@ -96,7 +111,8 @@ def get_credentials(agent_slug):
 
 
 def agent_login(agent_class, credentials):
-    key = retry.get_key('tesco', credentials.get('user_name') or credentials.get('card_number'))
+    user_name = credentials.get('user_name') or credentials.get('card_number')
+    key = retry.get_key(agent_class.__name__, user_name)
     exists, retry_count = retry.get_count(key)
 
     agent_instance = agent_class(retry_count)
@@ -105,13 +121,12 @@ def agent_login(agent_class, credentials):
     except LoginError as e:
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
-            abort(429, message=e.name)
-
+            abort(429, message=str(e))
         retry.inc_count(key, retry_count, exists)
-        abort(400, message=e.name)
-    except MinerError as e:
-        abort(400, message=e.name)
+        abort(400, message=str(e))
     except Exception as e:
         abort(400, message=str(e))
 
     return agent_instance
+
+

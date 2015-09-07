@@ -49,6 +49,12 @@ class Miner(object):
     def parse_transaction(row):
         raise NotImplementedError()
 
+    def account_overview(self):
+        return {
+            'balance': self.balance(),
+            'transactions': self.transactions()
+        }
+
     def hashed_transaction(self, transaction):
         transaction = self.parse_transaction(transaction)
         s = "{0}{1}{2}".format(transaction['date'], transaction['description'], transaction['points'])

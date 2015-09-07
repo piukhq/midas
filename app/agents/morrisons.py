@@ -33,12 +33,6 @@ class Morrisons(Miner):
             "amount": Decimal(self.browser.response.json()['currentPoints'])
         }
 
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }
-
     @staticmethod
     def parse_transaction(row):
         return {

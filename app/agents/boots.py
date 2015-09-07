@@ -42,8 +42,3 @@ class Boots(Miner):
         rows = self.browser.select(".transactionsList tr")[1:]
         return [self.hashed_transaction(row) for row in rows]
 
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }

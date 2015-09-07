@@ -16,8 +16,8 @@ errors = {
                                   "Please try again."},
     AGENT_DOWN: {"code": 235,
                  "message": "The agent is currently down for maintenance."},
-    RETRY_LIMIT_REACHED: {"code": 236,
-                          "message": "You have reached your maximum amount of login tries please wait 20 minutes."},
+    RETRY_LIMIT_REACHED: {"code": 429,
+                          "message": "You have reached your maximum amount of login tries please wait 15 minutes."},
     STATUS_ACCOUNT_LOCKED: {"code": 407,
                             "message": "We could not update your account because it appears your <SITE_NAME> account"
                                        "has been locked. This usually results from too many unsuccessful login"
@@ -26,7 +26,6 @@ errors = {
                                        "account credentials in case they are changed."},
     UNKNOWN: {"code": 666,
               "message": "We have know the idea what went wrong the team is on to it."}
-
 }
 
 
@@ -39,7 +38,7 @@ class MinerError(Exception):
         self.code = errors[name]['code']
 
     def __str__(self):
-        pass
+        return "{0}: {1} code: {2}".format(self.name, self.message, self.code)
 
 
 class LoginError(MinerError):
