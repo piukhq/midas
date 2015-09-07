@@ -3,7 +3,6 @@ from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from urllib.parse import parse_qs, urlsplit
 import arrow
-from app.utils import extract_decimal
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 

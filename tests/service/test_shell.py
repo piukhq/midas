@@ -1,4 +1,5 @@
 import unittest
+from app.agents.exceptions import LoginError
 from app.agents.shell import Shell
 from app.agents import schemas
 from tests.service.logins import CREDENTIALS
@@ -20,6 +21,14 @@ class TestShell(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+
+
+class TestShellFail(unittest.TestCase):
+    def test_login_fail(self):
+        b = Shell(retry_count=1)
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(CREDENTIALS["bad"])
+        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
 
 if __name__ == '__main__':
     unittest.main()
