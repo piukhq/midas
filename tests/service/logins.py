@@ -9,8 +9,8 @@ CREDENTIALS = {
         'password': 'RZHansbrics5',
     },
     "british-airways": {
-        'card_number': "38198503",
-        'password': 'Buster69'
+        'card_number': "49932498",
+        'password': 'RAHansbrics14'
     },
     "boots": {
             'user_name': 'julie.gormley100@gmail.com',
