@@ -4,6 +4,10 @@ CREDENTIALS = {
         'password': 'NSHansbrics5',
         'card_number': '634004024051328070'
     },
+    "avios": {
+        'username': 'chris.gormley2@me.com',
+        'password': 'RZHansbrics5',
+    },
     "british-airways": {
         'card_number':"38198503",
         'password': 'Buster69'

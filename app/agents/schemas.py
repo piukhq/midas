@@ -5,7 +5,7 @@ from decimal import Decimal
 
 transactions = Schema([{
     Required('date'): Arrow,
-    Required('title'): str,
+    Required('description'): str,
     Required('points'): Decimal,
     Optional('value'): Decimal,
     Optional('location'): str,

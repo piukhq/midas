@@ -55,7 +55,7 @@ class Tesco(Miner):
         items = row.find_all("td")
         return {
             "date": arrow.get(items[1].contents[0].strip(), 'DD/MM/YYYY'),
-            "title": items[2].contents[0].strip(),
+            "description": items[2].contents[0].strip(),
             "points": extract_decimal(items[4].contents[0].strip()),
         }
 

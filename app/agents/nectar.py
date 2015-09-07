@@ -45,7 +45,7 @@ class Nectar(Miner):
         status = row.select('.status')[0].text.strip()
         process_date = extra_details.select('.date')[0].text
 
-        transaction_data['title'] = 'partner:{}, collector:{},'.format(partner, collector)
+        transaction_data['description'] = 'partner:{}, collector:{},'.format(partner, collector)
 
         return transaction_data
 
