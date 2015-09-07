@@ -3,12 +3,14 @@ from app.agents.tesco import Tesco
 from urllib.parse import urlsplit
 from app.agents import schemas
 from tests.service.logins import CREDENTIALS
+from app.agents.exceptions import LoginError
 
 
 class TestTesco(unittest.TestCase):
-    def setUp(self):
-        self.b = Tesco(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["tesco"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Tesco(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["tesco"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
@@ -22,6 +24,23 @@ class TestTesco(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+
+
+class TestTescoFail(unittest.TestCase):
+    def test_login_fail(self):
+        b = Tesco(retry_count=1)
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(CREDENTIALS["bad"])
+        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+
+    def test_login_mfa_fail(self):
+        b = Tesco(retry_count=1)
+        credentials = CREDENTIALS["tesco"]
+        credentials['card_number'] = '634004024855326070'
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(credentials)
+        self.assertEqual(e.exception.name, "INVALID_MFA_INFO")
+
 
 if __name__ == '__main__':
     unittest.main()

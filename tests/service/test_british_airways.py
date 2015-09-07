@@ -6,9 +6,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestBritishAirways(unittest.TestCase):
-    def setUp(self):
-        self.b = BritishAirways(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["british-airways"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = BritishAirways(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["british-airways"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

@@ -1,32 +1,27 @@
 import unittest
-from app.agents.exceptions import LoginError
-from app.agents.shell import Shell
+from app.agents.kfc import Kfc
 from app.agents import schemas
+from app.agents.exceptions import LoginError
 from tests.service.logins import CREDENTIALS
 
 
-class TestShell(unittest.TestCase):
+class TestKfc(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Shell(retry_count=1)
-        cls.b.attempt_login(CREDENTIALS["shell"])
+        cls.b = Kfc(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["kfc"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-
-    def test_transactions(self):
-        transactions = self.b.transactions()
-        self.assertTrue(transactions)
-        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
 
 
-class TestShellFail(unittest.TestCase):
+class TestKfcFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Shell(retry_count=1)
+        b = Kfc(retry_count=1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

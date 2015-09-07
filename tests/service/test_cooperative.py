@@ -7,9 +7,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestCooperative(unittest.TestCase):
-    def setUp(self):
-        self.b = Cooperative(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["cooperative"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Cooperative(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["cooperative"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

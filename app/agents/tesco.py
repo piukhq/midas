@@ -10,7 +10,7 @@ class Tesco(Miner):
     retry_limit = 3
 
     def login(self, credentials):
-        self.open_url("https://secure.tesco.com/register/")
+        self.open_url("https://secure.tesco.com/register/default.aspx")
 
         signup_form = self.browser.get_form(id='fSignin')
         signup_form['loginID'].value = credentials['user_name']

@@ -20,8 +20,7 @@ class Shell(Miner):
 
         selector = "#error_message_container_u49"
         self.check_error("/smart/login",
-                         ((selector, STATUS_LOGIN_FAILED, "The password is incorrect"),
-                          (selector, STATUS_LOGIN_FAILED, "This account does not exist"), ))
+                         ((selector, STATUS_LOGIN_FAILED, "We do not recognise the details you have input"), ))
 
     def balance(self):
         return {

@@ -9,7 +9,7 @@ CREDENTIALS = {
         'password': 'RZHansbrics5',
     },
     "british-airways": {
-        'card_number':"38198503",
+        'card_number': "38198503",
         'password': 'Buster69'
     },
     "boots": {
@@ -40,5 +40,13 @@ CREDENTIALS = {
             'card_number': '633174911212875989',
             'post_code': 'BH23 1HT',
             'place_of_birth': "cheltenham",
+    },
+    "morrisons": {
+        "user_name": "chris.gormley2@me.com",
+        'password': 'RLHansbrics9',
+    },
+    "kfc": {
+        "user_name": "chris.gormley2@me.com",
+        "password": "BJHansbrics3",
     }
 }

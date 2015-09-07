@@ -6,9 +6,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestNectar(unittest.TestCase):
-    def setUp(self):
-        self.b = Nectar(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["nectar"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Nectar(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["nectar"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
