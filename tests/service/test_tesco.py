@@ -7,9 +7,10 @@ from app.agents.exceptions import LoginError
 
 
 class TestTesco(unittest.TestCase):
-    def setUp(self):
-        self.b = Tesco(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["tesco"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Tesco(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["tesco"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

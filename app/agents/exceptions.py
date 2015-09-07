@@ -38,6 +38,9 @@ class MinerError(Exception):
         self.message = errors[name]['message']
         self.code = errors[name]['code']
 
+    def __str__(self):
+        pass
+
 
 class LoginError(MinerError):
     pass

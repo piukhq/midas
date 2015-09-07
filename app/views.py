@@ -92,7 +92,7 @@ def get_credentials(agent_slug):
     try:
         return CREDENTIALS[agent_slug]
     except KeyError:
-        abort(404, message='Credentials not present.')
+        abort(400, message='Credentials not present.')
 
 
 def agent_login(agent_class, credentials):
@@ -100,15 +100,18 @@ def agent_login(agent_class, credentials):
     exists, retry_count = retry.get_count(key)
 
     agent_instance = agent_class(retry_count)
-    # TODO: HANDLE THESE ERROR BY RETURNING ERROR CODES
     try:
         agent_instance.attempt_login(credentials)
     except LoginError as e:
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
-        else:
-            retry.inc_count(key, retry_count, exists)
+            abort(429, message=e.name)
+
+        retry.inc_count(key, retry_count, exists)
+        abort(400, message=e.name)
     except MinerError as e:
-        pass
+        abort(400, message=e.name)
+    except Exception as e:
+        abort(400, message=str(e))
 
     return agent_instance

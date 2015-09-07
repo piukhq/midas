@@ -6,9 +6,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestShell(unittest.TestCase):
-    def setUp(self):
-        self.b = Shell(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["shell"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Shell(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["shell"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

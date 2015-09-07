@@ -6,9 +6,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestMorrisons(unittest.TestCase):
-    def setUp(self):
-        self.b = Morrisons(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["morrisons"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Morrisons(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["morrisons"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

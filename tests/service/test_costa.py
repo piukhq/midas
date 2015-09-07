@@ -6,9 +6,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestCosta(unittest.TestCase):
-    def setUp(self):
-        self.b = Costa(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["costa"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Costa(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["costa"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

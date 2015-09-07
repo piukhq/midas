@@ -7,9 +7,10 @@ from tests.service.logins import CREDENTIALS
 
 
 class TestBoots(unittest.TestCase):
-    def setUp(self):
-        self.b = Boots(retry_count=1)
-        self.b.attempt_login(CREDENTIALS["boots"])
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Boots(retry_count=1)
+        cls.b.attempt_login(CREDENTIALS["boots"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
