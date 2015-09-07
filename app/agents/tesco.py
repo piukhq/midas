@@ -64,12 +64,5 @@ class Tesco(Miner):
         rows = self.browser.select("table.tbl tr")[1:-1]
         return [self.hashed_transaction(row) for row in rows]
 
-    def account_overview(self):
-        overview = {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }
-        return overview
-
 
 

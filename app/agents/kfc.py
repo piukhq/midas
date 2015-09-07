@@ -28,8 +28,5 @@ class Kfc(Miner):
             "amount": Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
         }
 
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': None
-        }
+    def transactions(self):
+        return None

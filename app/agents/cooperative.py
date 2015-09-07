@@ -53,9 +53,3 @@ class Cooperative(Miner):
         self.open_url("https://www.secure.membership.coop/MemberTransactions.aspx")
         rows = self.browser.select("#gridViewMemberTransactions tr")[1:]
         return [self.hashed_transaction(row) for row in rows]
-
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }

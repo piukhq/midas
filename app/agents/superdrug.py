@@ -24,8 +24,5 @@ class Superdrug(Miner):
             "value": extract_decimal(self.browser.select(".greybg")[0].contents[0]),
         }
 
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': None
-        }
+    def transactions(self):
+        return None

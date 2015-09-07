@@ -39,7 +39,7 @@ class TestBase(TestCase):
         mock_instance.browser = browser
 
         # the method should do nothing when called
-        Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx", "", ())
+        Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx", ())
 
     def test_path_check_error_exception(self):
         mock_instance = mock.create_autospec(Miner)
@@ -49,7 +49,7 @@ class TestBase(TestCase):
 
         with self.assertRaises(LoginError):
             Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx",
-                              "", (("INVALID_MFA_INFO", "The details"), ))
+                              (("", "INVALID_MFA_INFO", "The details"), ))
 
 
 class TestOpenURL(TestCase):
