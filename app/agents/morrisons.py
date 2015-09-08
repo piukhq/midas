@@ -37,7 +37,7 @@ class Morrisons(Miner):
     def parse_transaction(row):
         return {
             "date": arrow.get(row["dateTime"]),
-            "title": "transaction",
+            "description": "transaction",
             "location": row["siteName"].strip(),
             "points": Decimal(row["points"]),
         }
