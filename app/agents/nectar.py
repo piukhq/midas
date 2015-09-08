@@ -23,7 +23,7 @@ class Nectar(Miner):
         points = points_container[0].text.lstrip('You have:').rstrip(' PTS').replace(',', '')
         value = points_container[1].text.lstrip('You can spend:£')
         return {
-            "amount": extract_decimal(points),
+            "points": extract_decimal(points),
             "value": extract_decimal(value)
         }
 

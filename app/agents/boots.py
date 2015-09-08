@@ -25,7 +25,7 @@ class Boots(Miner):
 
     def balance(self):
         return {
-            "amount": extract_decimal(self.browser.select(".pointsValue")[0].contents[0]),
+            "points": extract_decimal(self.browser.select(".pointsValue")[0].contents[0]),
             "value": extract_decimal(self.browser.select(".pointsValue")[1].contents[0])
         }
 

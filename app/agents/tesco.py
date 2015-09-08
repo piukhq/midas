@@ -46,8 +46,8 @@ class Tesco(Miner):
         balances = self.browser.select(".pointsbox h4")
 
         return {
-            "amount": extract_decimal(balances[0].contents[0].strip()),
-            "voucher_value": extract_decimal(balances[1].contents[2].strip())
+            "points": extract_decimal(balances[0].contents[0].strip()),
+            "value": extract_decimal(balances[1].contents[2].strip())
         }
 
     @staticmethod

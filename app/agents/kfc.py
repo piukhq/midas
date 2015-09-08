@@ -25,7 +25,7 @@ class Kfc(Miner):
     def balance(self):
         self.open_url("https://www.kfc.co.uk/ccapi/api/me?scope=user_full,card_full,account_full")
         return {
-            "amount": Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
+            "points": Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
         }
 
     def transactions(self):

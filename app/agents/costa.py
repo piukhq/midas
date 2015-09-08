@@ -25,7 +25,7 @@ class Costa(Miner):
 
     def balance(self):
         return {
-            "amount": extract_decimal(self.browser.find(id="txtCounterValue").attrs["value"]),
+            "points": extract_decimal(self.browser.find(id="txtCounterValue").attrs["value"]),
         }
 
     @staticmethod

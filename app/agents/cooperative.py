@@ -35,7 +35,7 @@ class Cooperative(Miner):
     def balance(self):
         self.open_url("https://www.secure.membership.coop/MemberPointsSearch.aspx")
         return {
-            "amount": extract_decimal(
+            "points": extract_decimal(
                 self.browser.find(id="ctl00_ContentPlaceHolder1_labelCurrentYearPoints").contents[0]),
         }
 

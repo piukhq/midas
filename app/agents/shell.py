@@ -24,7 +24,7 @@ class Shell(Miner):
 
     def balance(self):
         return {
-            "amount": extract_decimal(self.browser.select("#detail_point_amount")[0].contents[0]),
+            "points": extract_decimal(self.browser.select("#detail_point_amount")[0].contents[0]),
         }
 
     @staticmethod

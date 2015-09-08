@@ -22,10 +22,9 @@ class BritishAirways(Miner):
     def balance(self):
         points_span = self.browser.select('.nowrap')[0]
         points = points_span.text.strip('My Avios:  |').strip().replace(',', '')
-        points_amount = Decimal(points)
 
         return {
-            "amount": points_amount
+            "points": Decimal(points)
         }
 
     def transactions(self):

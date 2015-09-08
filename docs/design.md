@@ -19,7 +19,7 @@ Example request:
 
 Response Schema:
     
-    { Required('amount'): Decimal,
+    { Required('points'): Decimal,
       Optional('value'): Decimal, }
 
 ### Transactions
@@ -56,7 +56,7 @@ Example request:
 
 Response Schema:
 
-    {"balance": { Required('amount'): Decimal,
+    {"balance": { Required('points'): Decimal,
                   Optional('value'): Decimal, }
                   
      "transactions": [{

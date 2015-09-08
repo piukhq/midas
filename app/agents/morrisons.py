@@ -30,7 +30,7 @@ class Morrisons(Miner):
     def balance(self):
         self.open_url("https://api.morrisons.com/card/v1/cards/{0}/balance".format(self.card_number))
         return {
-            "amount": Decimal(self.browser.response.json()['currentPoints'])
+            "points": Decimal(self.browser.response.json()['currentPoints'])
         }
 
     @staticmethod

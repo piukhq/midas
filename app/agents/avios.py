@@ -26,7 +26,7 @@ class Avios(Miner):
     def balance(self):
         points = self.browser.find('div', {'id': 'acc-status'}).find('strong').text
         return {
-            "amount": extract_decimal(points)
+            "points": extract_decimal(points)
         }
 
     @staticmethod

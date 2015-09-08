@@ -20,7 +20,7 @@ class Superdrug(Miner):
 
     def balance(self):
         return {
-            "amount": extract_decimal(self.browser.select(".bc_points")[0].contents[0]),
+            "points": extract_decimal(self.browser.select(".bc_points")[0].contents[0]),
             "value": extract_decimal(self.browser.select(".greybg")[0].contents[0]),
         }
 
