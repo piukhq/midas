@@ -33,7 +33,7 @@ class Costa(Miner):
         items = row.find_all("td")
         return {
             "date": arrow.get(items[0].contents[0], 'DD-MM-YYYY'),
-            "title": "{0} - {1}".format(items[1].contents[0], items[2].contents[0]),
+            "description": "{0} - {1}".format(items[1].contents[0], items[2].contents[0]),
             "points": extract_decimal(items[3].contents[0].strip()),
         }
 

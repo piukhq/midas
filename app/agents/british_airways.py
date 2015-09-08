@@ -1,6 +1,9 @@
-from decimal import Decimal
-import time
+import arrow
+import re
 from app.agents.base import Miner
+from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
+from decimal import Decimal
 
 class BritishAirways(Miner):
     # TODO: REPLACE WITH REAL LIMIT
@@ -14,6 +17,7 @@ class BritishAirways(Miner):
         login_form['password'].value = credentials['password']
         login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
+        self.check_error("/travel/loginr/public/en_gb", (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"), ))
 
     def balance(self):
         points_span = self.browser.select('.nowrap')[0]
@@ -25,34 +29,22 @@ class BritishAirways(Miner):
         }
 
     def transactions(self):
-        self.browser.session.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        self.browser.session.headers['Accept-Encoding'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        self.browser.session.headers['Accept-Language'] = "en-US,en;q=0.8"
-        self.browser.session.headers['Connection'] = "keep-alive"
-        self.browser.session.headers['Host'] = "www.britishairways.com"
-        self.browser.session.headers['Referer'] = "https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705"
-        self.browser.session.headers['Upgrade-Insecure-Requests'] = "1"
-        self.browser.session.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36"
-        self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb")
-        time.sleep(5)
-        self.browser.session.headers['Accept'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        self.browser.session.headers['Accept-Encoding'] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-        self.browser.session.headers['Accept-Language'] = "en-US,en;q=0.8"
-        self.browser.session.headers['Connection'] = "keep-alive"
-        self.browser.session.headers['Host'] = "www.britishairways.com"
-        self.browser.session.headers['Referer'] = "https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705"
-        self.browser.session.headers['Upgrade-Insecure-Requests'] = "1"
-        self.browser.session.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36"
-        #print(self.browser.url)
-        self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705b")
+        self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705")
+        self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705")
 
-
-        html = self.browser.response.text
-        table = self.browser.find("table", {"id": "recentTransTbl"})
-        rows = self.browser.select("#recentTransTbl")#[1:-1]
-        print(rows)
+        table_body = self.browser.find("table", {"id": "recentTransTbl"}).find('tbody')
+        rows = table_body.select('tr')[:-1]  # The last row is a summary row
         return [self.hashed_transaction(row) for row in rows]
 
     @staticmethod
     def parse_transaction(row):
-        pass
+        columns = row.select('td')
+        if columns[4].text.strip() == '-':
+            points = extract_decimal('0')
+        else:
+            points = extract_decimal(columns[4].text)
+        return {
+            'date': arrow.get(columns[0].text.strip(), 'DD-MMM-YY'),
+            'description': re.sub(r'\s+', ' ', columns[2].text).strip(),
+            'points': points
+        }

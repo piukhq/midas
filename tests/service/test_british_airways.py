@@ -13,7 +13,7 @@ class TestBritishAirways(unittest.TestCase):
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-        #self.assertEqual(urlsplit(self.b.browser.url).path, '/webapp/wcs/stores/servlet/ADCAccountSummary')
+        self.assertEqual(urlsplit(self.b.browser.url).path, '/travel/viewaccount/execclub/_gf/en_gb')
 
     def test_transactions(self):
         transactions = self.b.transactions()

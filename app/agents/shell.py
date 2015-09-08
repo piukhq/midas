@@ -32,7 +32,7 @@ class Shell(Miner):
         items = row.find_all("td")
         return {
             "date": arrow.get(items[0].select("span")[0].contents[0].strip(), 'DD/MM/YYYY'),
-            "title": items[1].select("span")[0].contents[0].strip(),
+            "description": items[1].select("span")[0].contents[0].strip(),
             "points": extract_decimal(items[2].select("span")[0].contents[0].strip()),
         }
 

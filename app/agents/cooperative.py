@@ -44,7 +44,7 @@ class Cooperative(Miner):
         items = row.find_all("td")
         return {
             "date": arrow.get(items[2].contents[0].strip(), 'DD MMMM YYYY'),
-            "title": items[0].contents[0].strip(),
+            "description": items[0].contents[0].strip(),
             "location": items[1].contents[0].strip(),
             "points": extract_decimal(items[3].contents[0].strip()),
         }

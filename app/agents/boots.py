@@ -34,7 +34,7 @@ class Boots(Miner):
         items = row.find_all("td")
         return {
             "date": arrow.get(items[0].contents[0], 'DD/MM/YYYY'),
-            "title": items[1].contents[0],
+            "description": items[1].contents[0],
             "points": extract_decimal(items[3].contents[0]),
         }
 

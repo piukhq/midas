@@ -57,7 +57,7 @@ class Miner(object):
 
     def hashed_transaction(self, transaction):
         transaction = self.parse_transaction(transaction)
-        s = "{0}{1}{2}".format(transaction['date'], transaction['title'], transaction['points'])
+        s = "{0}{1}{2}".format(transaction['date'], transaction['description'], transaction['points'])
         transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
         return transaction
 
