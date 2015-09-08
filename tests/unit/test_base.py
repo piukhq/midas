@@ -10,7 +10,7 @@ class TestBase(TestCase):
     def test_hashed_transaction(self, mocked_parse_transaction):
         transaction = {
             "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
-            "title": "Clothes purchase",
+            "description": "Clothes purchase",
             "points": 44
         }
         mocked_parse_transaction.return_value = transaction
