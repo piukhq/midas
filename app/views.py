@@ -4,17 +4,20 @@ import simplejson
 from app import app, active
 from app import retry
 from tests.service.logins import CREDENTIALS
-from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent, ArrowEncoder
 from flask import url_for, make_response
 from flask_restful import Resource, Api, abort
+from flask_restful_swagger import swagger
 
-api = Api(app)
-
-# We could create some sort of base request as balance and transactions are almost identical
+api = swagger.docs(Api(app), apiVersion='1', api_spec_url="/api/v1/spec")
 
 
 class Balance(Resource):
+    @swagger.operation(
+        responseMessages=list(errors.values()),
+        notes="Return a users balance for a specific agent"
+    )
     def get(self, agent_slug):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
@@ -23,15 +26,19 @@ class Balance(Resource):
         try:
             return create_response(agent_instance.balance())
         except MinerError as e:
-            abort(400, message=str(e))
+            abort(e.code, message=str(e))
         except Exception as e:
-            abort(400, message=str(e))
+            abort(520, message=str(e))
 
 
-api.add_resource(Balance, '/<string:agent>/balance/', endpoint="api.points_balance")
+api.add_resource(Balance, '/<string:agent_slug>/balance/', endpoint="api.points_balance")
 
 
 class Transactions(Resource):
+    @swagger.operation(
+        responseMessages=list(errors.values()),
+        notes="Return a users latest transactions for a specific agent"
+    )
     def get(self, agent_slug):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
@@ -40,15 +47,19 @@ class Transactions(Resource):
         try:
             return create_response(agent_instance.transactions())
         except MinerError as e:
-            abort(400, message=str(e))
+            abort(e.code, message=str(e))
         except Exception as e:
-            abort(400, message=str(e))
+            abort(520, message=str(e))
 
 
-api.add_resource(Transactions, '/<string:agent>/transactions/', endpoint="api.transactions")
+api.add_resource(Transactions, '/<string:agent_slug>/transactions/', endpoint="api.transactions")
 
 
 class AccountOverview(Resource):
+    """Return both a users balance and latest transaction for a specific agent"""
+    @swagger.operation(
+        responseMessages=list(errors.values())
+    )
     def get(self, agent_slug):
         agent_class = get_agent_class(agent_slug)
         credentials = get_credentials(agent_slug)
@@ -57,9 +68,9 @@ class AccountOverview(Resource):
         try:
             return create_response(agent_instance.account_overview())
         except MinerError as e:
-            abort(400, message=str(e))
+            abort(e.code, message=str(e))
         except Exception as e:
-            abort(400, message=str(e))
+            abort(520, message=str(e))
 
 
 api.add_resource(AccountOverview, '/<string:agent_slug>/account_overview/', endpoint="api.account_overview")
@@ -107,7 +118,7 @@ def get_credentials(agent_slug):
     try:
         return CREDENTIALS[agent_slug]
     except KeyError:
-        abort(400, message='Credentials not present.')
+        abort(401, message='Credentials not present.')
 
 
 def agent_login(agent_class, credentials):
@@ -121,11 +132,11 @@ def agent_login(agent_class, credentials):
     except LoginError as e:
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
-            abort(429, message=str(e))
+            abort(e.code, message=str(e))
         retry.inc_count(key, retry_count, exists)
-        abort(400, message=str(e))
+        abort(e.code, message=str(e))
     except Exception as e:
-        abort(400, message=str(e))
+        abort(520, message=str(e))
 
     return agent_instance
 
