@@ -5,7 +5,8 @@ from app import app, active
 from app import retry
 from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED, errors
-from app.utils import resolve_agent, ArrowEncoder
+from app.utils import resolve_agent
+from app.encoding import JsonEncoder
 from flask import url_for, make_response
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
@@ -18,9 +19,9 @@ class Balance(Resource):
         responseMessages=list(errors.values()),
         notes="Return a users balance for a specific agent"
     )
-    def get(self, agent_slug):
-        agent_class = get_agent_class(agent_slug)
-        credentials = get_credentials(agent_slug)
+    def get(self, scheme_slug):
+        agent_class = get_agent_class(scheme_slug)
+        credentials = get_credentials(scheme_slug)
         agent_instance = agent_login(agent_class, credentials)
 
         try:
@@ -31,7 +32,7 @@ class Balance(Resource):
             abort(520, message=str(e))
 
 
-api.add_resource(Balance, '/<string:agent_slug>/balance/', endpoint="api.points_balance")
+api.add_resource(Balance, '/<string:scheme_slug>/balance/', endpoint="api.points_balance")
 
 
 class Transactions(Resource):
@@ -39,9 +40,9 @@ class Transactions(Resource):
         responseMessages=list(errors.values()),
         notes="Return a users latest transactions for a specific agent"
     )
-    def get(self, agent_slug):
-        agent_class = get_agent_class(agent_slug)
-        credentials = get_credentials(agent_slug)
+    def get(self, scheme_slug):
+        agent_class = get_agent_class(scheme_slug)
+        credentials = get_credentials(scheme_slug)
         agent_instance = agent_login(agent_class, credentials)
 
         try:
@@ -52,7 +53,7 @@ class Transactions(Resource):
             abort(520, message=str(e))
 
 
-api.add_resource(Transactions, '/<string:agent_slug>/transactions/', endpoint="api.transactions")
+api.add_resource(Transactions, '/<string:scheme_slug>/transactions/', endpoint="api.transactions")
 
 
 class AccountOverview(Resource):
@@ -60,9 +61,9 @@ class AccountOverview(Resource):
     @swagger.operation(
         responseMessages=list(errors.values())
     )
-    def get(self, agent_slug):
-        agent_class = get_agent_class(agent_slug)
-        credentials = get_credentials(agent_slug)
+    def get(self, scheme_slug):
+        agent_class = get_agent_class(scheme_slug)
+        credentials = get_credentials(scheme_slug)
         agent_instance = agent_login(agent_class, credentials)
 
         try:
@@ -99,7 +100,7 @@ api.add_resource(Init, '/agents/')
 
 
 def create_response(response_data):
-    response = make_response(simplejson.dumps(response_data, cls=ArrowEncoder), 200)
+    response = make_response(simplejson.dumps(response_data, cls=JsonEncoder), 200)
     response.headers['Content-Type'] = "application/json"
     return response
 

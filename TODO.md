@@ -1,1 +1,1 @@
-* add unit test for each agent to handel reverse tranasactions
+* add unit test for each agent to handel reverse transactions

@@ -22,7 +22,7 @@ pexpect==3.3
 pickleshare==0.5
 py==1.4.30
 pycrypto==2.6.1
-pytest==2.7.2
+pip==2.7.2
 pytest-cov==2.1.0
 python-dateutil==2.4.2
 pytz==2015.4
@@ -31,7 +31,6 @@ requests==2.7.0
 robobrowser==0.5.3
 shellescape==3.4.1
 simplegeneric==0.8.1
-simplejson==3.8.0
 six==1.9.0
 traitlets==4.0.0
 voluptuous==0.8.7
