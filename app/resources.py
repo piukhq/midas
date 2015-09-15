@@ -3,7 +3,7 @@ import simplejson
 
 from app import active, retry
 from tests.service.logins import CREDENTIALS
-from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED, errors
+from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from flask import url_for, make_response
@@ -25,7 +25,7 @@ class Balance(Resource):
 
         try:
             return create_response(agent_instance.balance())
-        except MinerError as e:
+        except AgentError as e:
             abort(e.code, message=str(e))
         except Exception as e:
             abort(520, message=str(e))
@@ -46,7 +46,7 @@ class Transactions(Resource):
 
         try:
             return create_response(agent_instance.transactions())
-        except MinerError as e:
+        except AgentError as e:
             abort(e.code, message=str(e))
         except Exception as e:
             abort(520, message=str(e))
@@ -67,7 +67,7 @@ class AccountOverview(Resource):
 
         try:
             return create_response(agent_instance.account_overview())
-        except MinerError as e:
+        except AgentError as e:
             abort(e.code, message=str(e))
         except Exception as e:
             abort(520, message=str(e))

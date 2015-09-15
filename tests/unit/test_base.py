@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import MinerError, LoginError
+from app.agents.exceptions import AgentError, LoginError
 import arrow
 import httpretty
 from unittest import mock, TestCase
@@ -21,7 +21,7 @@ class TestBase(TestCase):
 
     def test_attempt_login_exception(self):
         m = Miner(3)
-        with self.assertRaises(MinerError) as e:
+        with self.assertRaises(AgentError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "RETRY_LIMIT_REACHED")
 
@@ -58,5 +58,5 @@ class TestOpenURL(TestCase):
         httpretty.register_uri(httpretty.GET, "http://foo-api.com/", status=500)
 
         m = Miner(2)
-        with self.assertRaises(MinerError):
+        with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")

@@ -37,7 +37,7 @@ errors = {
 }
 
 
-class MinerError(Exception):
+class AgentError(Exception):
     """Exception raised for errors in the input.
     """
     def __init__(self, name):
@@ -49,9 +49,9 @@ class MinerError(Exception):
         return "{0}: {1} code: {2}".format(self.name, self.message, self.code)
 
 
-class LoginError(MinerError):
+class LoginError(AgentError):
     pass
 
 
-class CredentialsError(MinerError):
+class CredentialsError(AgentError):
     pass

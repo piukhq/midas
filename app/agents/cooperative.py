@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, MinerError, UNKNOWN, INVALID_MFA_INFO
+from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, UNKNOWN, INVALID_MFA_INFO
 from app.utils import extract_decimal
 import arrow
 
@@ -16,7 +16,7 @@ class Cooperative(Miner):
                 break
         else:
             # There are only four questions but just in case don't loop for ever
-            raise MinerError(UNKNOWN)
+            raise AgentError(UNKNOWN)
 
         signup_form = self.browser.get_form(id='aspnetForm')
         signup_form['ctl00$ContentPlaceHolder1$txtM2'].value = credentials['card_number'][6:10]
