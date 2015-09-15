@@ -3,7 +3,7 @@ from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
-from app.agents.exceptions import MinerError, LoginError, AGENT_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
+from app.agents.exceptions import MinerError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
 
 
 class Miner(object):
@@ -34,7 +34,7 @@ class Miner(object):
         try:
             self.browser.response.raise_for_status()
         except HTTPError as e:
-            raise MinerError(AGENT_DOWN) from e
+            raise MinerError(END_SITE_DOWN) from e
 
     def login(self, credentials):
         raise NotImplementedError()

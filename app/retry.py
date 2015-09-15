@@ -1,7 +1,9 @@
 """
 Handle our persistence of the retry counts
 """
-from app import redis
+from flask.ext.redis import FlaskRedis
+
+redis = FlaskRedis()
 
 
 def get_count(key):

@@ -11,7 +11,7 @@ http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 STATUS_ACCOUNT_LOCKED = "STATUS_ACCOUNT_LOCKED"
 STATUS_LOGIN_FAILED = "STATUS_LOGIN_FAILED"
 INVALID_MFA_INFO = "INVALID_MFA_INFO"
-AGENT_DOWN = "AGENT_DOWN"
+END_SITE_DOWN = "END_SITE_DOWN"
 UNKNOWN = "UNKNOWN"
 RETRY_LIMIT_REACHED = "RETRY_LIMIT_REACHED"
 
@@ -30,8 +30,8 @@ errors = {
                                        "attempts in a short period of time. Please visit the site or contact its"
                                        "customer support to resolve this issue. Once done, please update your"
                                        "account credentials in case they are changed."},
-    AGENT_DOWN: {"code": 530,
-                 "message": "The agent is currently down."},
+    END_SITE_DOWN: {"code": 530,
+                    "message": "The scheme end site is currently down."},
     UNKNOWN: {"code": 530,
               "message": "We have know the idea what went wrong the team is on to it."}
 }

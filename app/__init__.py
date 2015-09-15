@@ -1,9 +1,14 @@
 from flask import Flask
-from redis import StrictRedis
+from app.resources import api
+from app.retry import redis
 
-app = Flask('core')
-app.config.from_object('settings')
 
-redis = StrictRedis(host='0.0.0.0', port=6379, db=0)
+def create_app(config_name="settings"):
+    app = Flask('core')
+    app.config.from_object(config_name)
 
-from app import resources
+    api.init_app(app)
+    redis.init_app(app)
+    return app
+
+

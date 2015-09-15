@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os
 from flask.ext.script import Manager, Shell, Server
-from app import app
+from app import create_app
 
-
+app = create_app()
 manager = Manager(app)
 
 # access python shell with context

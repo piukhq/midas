@@ -1,8 +1,7 @@
 import settings
 import simplejson
 
-from app import app, active
-from app import retry
+from app import active, retry
 from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError, MinerError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
@@ -11,7 +10,7 @@ from flask import url_for, make_response
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
 
-api = swagger.docs(Api(app), apiVersion='1', api_spec_url="/api/v1/spec")
+api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
 
 class Balance(Resource):
