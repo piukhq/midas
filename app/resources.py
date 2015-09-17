@@ -1,16 +1,18 @@
-import settings
-import simplejson
+import json
+from flask import url_for, make_response
+from flask_restful import Resource, Api, abort
+from flask_restful_swagger import swagger
 
+from app.exceptions import agent_abort, unknown_abort
+import settings
 from app import active, retry
 from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
-from flask import url_for, make_response
-from flask_restful import Resource, Api, abort
-from flask_restful_swagger import swagger
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
+
 
 
 class Balance(Resource):
@@ -26,9 +28,9 @@ class Balance(Resource):
         try:
             return create_response(agent_instance.balance())
         except AgentError as e:
-            abort(e.code, message=str(e))
+            agent_abort(e)
         except Exception as e:
-            abort(520, message=str(e))
+            unknown_abort(e)
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance/', endpoint="api.points_balance")
@@ -47,9 +49,9 @@ class Transactions(Resource):
         try:
             return create_response(agent_instance.transactions())
         except AgentError as e:
-            abort(e.code, message=str(e))
+            agent_abort(e)
         except Exception as e:
-            abort(520, message=str(e))
+            unknown_abort(e)
 
 
 api.add_resource(Transactions, '/<string:scheme_slug>/transactions/', endpoint="api.transactions")
@@ -68,12 +70,12 @@ class AccountOverview(Resource):
         try:
             return create_response(agent_instance.account_overview())
         except AgentError as e:
-            abort(e.code, message=str(e))
+            agent_abort(e)
         except Exception as e:
-            abort(520, message=str(e))
+            unknown_abort(e)
 
 
-api.add_resource(AccountOverview, '/<string:agent_slug>/account_overview/', endpoint="api.account_overview")
+api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview/', endpoint="api.account_overview")
 
 
 class Init(Resource):
@@ -99,24 +101,24 @@ api.add_resource(Init, '/agents/')
 
 
 def create_response(response_data):
-    response = make_response(simplejson.dumps(response_data, cls=JsonEncoder), 200)
+    response = make_response(json.dumps(response_data, cls=JsonEncoder), 200)
     response.headers['Content-Type'] = "application/json"
     return response
 
 
-def get_agent_class(agent_slug):
+def get_agent_class(scheme_slug):
     if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
         # We can do some pretty printing or rendering in here
         pass
     try:
-        return resolve_agent(agent_slug)
+        return resolve_agent(scheme_slug)
     except KeyError:
         abort(404, message='No such agent')
 
 
-def get_credentials(agent_slug):
+def get_credentials(scheme_slug):
     try:
-        return CREDENTIALS[agent_slug]
+        return CREDENTIALS[scheme_slug]
     except KeyError:
         abort(401, message='Credentials not present.')
 
@@ -132,11 +134,11 @@ def agent_login(agent_class, credentials):
     except LoginError as e:
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
-            abort(e.code, message=str(e))
+            agent_abort(e)
         retry.inc_count(key, retry_count, exists)
-        abort(e.code, message=str(e))
+        agent_abort(e)
     except Exception as e:
-        abort(520, message=str(e))
+        unknown_abort(e)
 
     return agent_instance
 
