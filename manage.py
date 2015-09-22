@@ -2,7 +2,9 @@
 import os
 from flask.ext.script import Manager, Shell, Server
 from app import create_app
+from environment import read_env
 
+read_env()
 app = create_app()
 manager = Manager(app)
 
