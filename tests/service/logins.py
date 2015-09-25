@@ -1,3 +1,7 @@
+from app.encyption import AESCipher
+from settings import AES_KEY
+import json
+
 CREDENTIALS = {
     "tesco": {
         'user_name': 'julie.gormley100@gmail.com',
@@ -50,3 +54,10 @@ CREDENTIALS = {
         "password": "BJHansbrics3",
     }
 }
+
+
+def encrypt(scheme_slug):
+    """For testing encryption"""
+    aes = AESCipher(AES_KEY.encode())
+
+    return aes.encrypt(json.dumps(CREDENTIALS[scheme_slug])).decode()

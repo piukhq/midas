@@ -13,7 +13,6 @@ class Publish:
         self.session.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers)
 
     def balance(self, balance):
-        import ipdb; ipdb.set_trace()
         self.post("/balance", balance)
 
     def transactions(self, transactions):

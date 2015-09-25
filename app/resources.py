@@ -1,15 +1,15 @@
 import json
-from flask import url_for, make_response
+from flask import make_response, request
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
 from app.exceptions import agent_abort, unknown_abort
 import settings
-from app import active, retry
-from tests.service.logins import CREDENTIALS
+from app import retry
 from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app.publish import Publish
+from app.encyption import AESCipher
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
@@ -21,11 +21,14 @@ class Balance(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        credentials = get_credentials(scheme_slug)
+        credentials = decrypt_credentials(request.args['credentials'].replace(" ", "+"))
+
         agent_instance = agent_login(agent_class, credentials)
 
         try:
             balance = agent_instance.balance()
+            balance['scheme_account_id'] = int(request.args['scheme_account_id'])
+            balance['user_id'] = int(request.args['user_id'])
             Publish().balance(balance)
             return create_response(balance)
         except AgentError as e:
@@ -44,11 +47,13 @@ class Transactions(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        credentials = get_credentials(scheme_slug)
+
+        credentials = decrypt_credentials(request.args['credentials'])
         agent_instance = agent_login(agent_class, credentials)
 
         try:
             transactions = agent_instance.transactions()
+            transactions['scheme_account_id'] = int(request.args['scheme_account_id'])
             Publish().transactions(transactions)
             return create_response(transactions)
         except AgentError as e:
@@ -67,15 +72,23 @@ class AccountOverview(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        credentials = get_credentials(scheme_slug)
+        credentials = decrypt_credentials(request.args['credentials'])
         agent_instance = agent_login(agent_class, credentials)
 
         publish = Publish()
 
         try:
             account_overview = agent_instance.account_overview()
-            publish.balance(account_overview.balance)
-            publish.transactions(account_overview.transactions)
+
+            balance = account_overview.balance
+            balance['scheme_account_id'] = int(request.args['scheme_account_id'])
+            balance['user_id'] = int(request.args['user_id'])
+
+            publish.balance(balance)
+
+            transactions = account_overview.transactions
+            transactions['scheme_account_id'] = int(request.args['scheme_account_id'])
+            publish.transactions(transactions)
             return create_response(account_overview)
         except AgentError as e:
             agent_abort(e)
@@ -86,26 +99,9 @@ class AccountOverview(Resource):
 api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview/', endpoint="api.account_overview")
 
 
-class Init(Resource):
-    def get(self):
-        agents = []
-        # Not all services will provide points and transactions
-        # TODO: we should detect this dynamically
-        for agent in active.AGENTS:
-            agents.append({
-                'name': agent[0],
-                'services': {
-                    'points': url_for('api.points_balance', id=agent[0]),
-                    'transactions': '',
-                    'pointsAndTransactions': ''
-                }
-            })
-
-        response_data = {'agents': agents}
-        return response_data
-
-
-api.add_resource(Init, '/agents/')
+def decrypt_credentials(credentials):
+    aes = AESCipher(settings.AES_KEY.encode())
+    return json.loads(aes.decrypt(credentials))
 
 
 def create_response(response_data):
@@ -124,16 +120,9 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def get_credentials(scheme_slug):
-    try:
-        return CREDENTIALS[scheme_slug]
-    except KeyError:
-        abort(401, message='Credentials not present.')
-
-
 def agent_login(agent_class, credentials):
-    user_name = credentials.get('user_name') or credentials.get('card_number')
-    key = retry.get_key(agent_class.__name__, user_name)
+    user_name_key = credentials.get('user_name') or credentials.get('card_number')
+    key = retry.get_key(agent_class.__name__, user_name_key)
     exists, retry_count = retry.get_count(key)
 
     agent_instance = agent_class(retry_count)
