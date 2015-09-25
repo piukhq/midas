@@ -2,7 +2,6 @@ import json
 from flask import url_for, make_response
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
-
 from app.exceptions import agent_abort, unknown_abort
 import settings
 from app import active, retry
@@ -10,9 +9,9 @@ from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
+from app.publish import Publish
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
-
 
 
 class Balance(Resource):
@@ -26,7 +25,9 @@ class Balance(Resource):
         agent_instance = agent_login(agent_class, credentials)
 
         try:
-            return create_response(agent_instance.balance())
+            balance = agent_instance.balance()
+            Publish().balance(balance)
+            return create_response(balance)
         except AgentError as e:
             agent_abort(e)
         except Exception as e:
@@ -47,7 +48,9 @@ class Transactions(Resource):
         agent_instance = agent_login(agent_class, credentials)
 
         try:
-            return create_response(agent_instance.transactions())
+            transactions = agent_instance.transactions()
+            Publish().transactions(transactions)
+            return create_response(transactions)
         except AgentError as e:
             agent_abort(e)
         except Exception as e:
@@ -67,8 +70,13 @@ class AccountOverview(Resource):
         credentials = get_credentials(scheme_slug)
         agent_instance = agent_login(agent_class, credentials)
 
+        publish = Publish()
+
         try:
-            return create_response(agent_instance.account_overview())
+            account_overview = agent_instance.account_overview()
+            publish.balance(account_overview.balance)
+            publish.transactions(account_overview.transactions)
+            return create_response(account_overview)
         except AgentError as e:
             agent_abort(e)
         except Exception as e:

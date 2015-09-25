@@ -1,5 +1,7 @@
 import os
-from environment import env_var
+from environment import env_var, read_env
+
+read_env()
 
 SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
 
@@ -9,3 +11,5 @@ DEBUG = env_var("MIDAS_DEBUG", False)
 
 
 REDIS_URL = env_var("MIDAS_REDIS_URI", "redis://localhost:6379/0")
+
+HADES_URL = env_var("HADES_URL", "http://local.hades.chingrewards.com:8000")

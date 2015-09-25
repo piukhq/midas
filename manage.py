@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 import os
 from flask.ext.script import Manager, Shell, Server
-from environment import read_env
 from app import create_app
 
-read_env()
 app = create_app()
 manager = Manager(app)
 
@@ -12,7 +10,7 @@ manager = Manager(app)
 manager.add_command("shell", Shell(make_context=lambda: {'app': app}), use_ipython=True)
 
 # run the app
-manager.add_command("runserver", Server(port=(os.getenv('FLASK_PORT') or 5000), host='0.0.0.0'))
+manager.add_command("runserver", Server(port=(os.getenv('FLASK_PORT') or 8000), host='127.0.0.2'))
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
