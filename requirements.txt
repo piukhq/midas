@@ -9,6 +9,7 @@ Flask-RESTful==0.3.4
 flask-restful-swagger==0.19
 flask-restplus==0.7.2
 Flask-Script==2.0.5
+Flask-Testing==0.4.2
 freeze==1.0.9
 httpretty==0.8.10
 ipdb==0.8.1

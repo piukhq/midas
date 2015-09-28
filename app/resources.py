@@ -21,7 +21,7 @@ class Balance(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        credentials = decrypt_credentials(request.args['credentials'].replace(" ", "+"))
+        credentials = decrypt_credentials(request.args['credentials'])
 
         agent_instance = agent_login(agent_class, credentials)
 
@@ -37,7 +37,7 @@ class Balance(Resource):
             unknown_abort(e)
 
 
-api.add_resource(Balance, '/<string:scheme_slug>/balance/', endpoint="api.points_balance")
+api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 
 class Transactions(Resource):
@@ -62,7 +62,7 @@ class Transactions(Resource):
             unknown_abort(e)
 
 
-api.add_resource(Transactions, '/<string:scheme_slug>/transactions/', endpoint="api.transactions")
+api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="api.transactions")
 
 
 class AccountOverview(Resource):
@@ -80,13 +80,13 @@ class AccountOverview(Resource):
         try:
             account_overview = agent_instance.account_overview()
 
-            balance = account_overview.balance
+            balance = account_overview["balance"]
             balance['scheme_account_id'] = int(request.args['scheme_account_id'])
             balance['user_id'] = int(request.args['user_id'])
 
             publish.balance(balance)
 
-            transactions = account_overview.transactions
+            transactions = account_overview["transactions"]
             transactions['scheme_account_id'] = int(request.args['scheme_account_id'])
             publish.transactions(transactions)
             return create_response(account_overview)
@@ -96,12 +96,12 @@ class AccountOverview(Resource):
             unknown_abort(e)
 
 
-api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview/', endpoint="api.account_overview")
+api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
 
 
 def decrypt_credentials(credentials):
     aes = AESCipher(settings.AES_KEY.encode())
-    return json.loads(aes.decrypt(credentials))
+    return json.loads(aes.decrypt(credentials.replace(" ", "+")))
 
 
 def create_response(response_data):
@@ -111,9 +111,6 @@ def create_response(response_data):
 
 
 def get_agent_class(scheme_slug):
-    if settings.DEBUG and 'text/html' == api.mediatypes()[0]:
-        # We can do some pretty printing or rendering in here
-        pass
     try:
         return resolve_agent(scheme_slug)
     except KeyError:

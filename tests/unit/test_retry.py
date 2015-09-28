@@ -30,6 +30,11 @@ class TestRetry(unittest.TestCase):
         self.assertEqual(retry_count, 0)
 
     @patch('app.retry.redis')
+    def test_max_out_count(self, mock_redis):
+        self.assertTrue(mock_redis.get.set)
+        self.assertTrue(mock_redis.get.expire)
+
+    @patch('app.retry.redis')
     def test_get_count_exists(self, mock_redis):
         mock_redis.get.return_value = '1'
         exists, retry_count = get_count("345")
