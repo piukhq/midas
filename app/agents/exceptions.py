@@ -17,7 +17,7 @@ RETRY_LIMIT_REACHED = "RETRY_LIMIT_REACHED"
 
 errors = {
     STATUS_LOGIN_FAILED: {"code": 403,
-                          "message": "We could not update your account because your username and/or password were"
+                          "message": "We could not update your account because your username and/or password were "
                                      "reported to be incorrect. Please re-verify your username and password."},
     INVALID_MFA_INFO: {"code": 432,
                        "message": "We're sorry, the authentication information you  provided is incorrect. "
@@ -25,15 +25,15 @@ errors = {
     RETRY_LIMIT_REACHED: {"code": 429,
                           "message": "You have reached your maximum amount of login tries please wait 15 minutes."},
     STATUS_ACCOUNT_LOCKED: {"code": 434,
-                            "message": "We could not update your account because it appears your <SITE_NAME> account"
-                                       "has been locked. This usually results from too many unsuccessful login"
-                                       "attempts in a short period of time. Please visit the site or contact its"
-                                       "customer support to resolve this issue. Once done, please update your"
+                            "message": "We could not update your account because it appears your <SITE_NAME> account "
+                                       "has been locked. This usually results from too many unsuccessful login "
+                                       "attempts in a short period of time. Please visit the site or contact its "
+                                       "customer support to resolve this issue. Once done, please update your "
                                        "account credentials in case they are changed."},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down."},
     UNKNOWN: {"code": 530,
-              "message": "We have know the idea what went wrong the team is on to it."}
+              "message": "We have no idea what went wrong the team is on to it."}
 }
 
 
