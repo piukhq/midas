@@ -11,7 +11,7 @@ class Boots(Miner):
         self.open_url(url)
 
         signup_form = self.browser.get_form(id='Logon')
-        signup_form['logonId'].value = credentials['user_name']
+        signup_form['logonId'].value = credentials['card_number']
         signup_form['logonPassword'].value = credentials['password']
 
         # we need to change the action url or else it uses javascript
