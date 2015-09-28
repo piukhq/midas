@@ -13,10 +13,24 @@ from app.encyption import AESCipher
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
+scheme_account_id_doc = {
+    "name": "scheme_account_id",
+    "required": True,
+    "dataType": "integer",
+    "paramType": "path"
+}
+user_id_doc = {
+    "name": "user_id",
+    "required": True,
+    "dataType": "integer",
+    "paramType": "path"
+}
+
 
 class Balance(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
+        parameters=[scheme_account_id_doc, user_id_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
@@ -43,7 +57,8 @@ api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_
 class Transactions(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
-        notes="Return a users latest transactions for a specific agent"
+        notes="Return a users latest transactions for a specific agent",
+        parameters=[scheme_account_id_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
@@ -68,7 +83,8 @@ api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="a
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
     @swagger.operation(
-        responseMessages=list(errors.values())
+        responseMessages=list(errors.values()),
+        parameters=[scheme_account_id_doc, user_id_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
