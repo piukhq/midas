@@ -25,12 +25,18 @@ user_id_doc = {
     "dataType": "integer",
     "paramType": "path"
 }
+credentials_doc = {
+    "name": "credentials",
+    "required": True,
+    "dataType": "string",
+    "paramType": "path"
+}
 
 
 class Balance(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc],
+        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
@@ -58,7 +64,7 @@ class Transactions(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
         notes="Return a users latest transactions for a specific agent",
-        parameters=[scheme_account_id_doc],
+        parameters=[scheme_account_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
@@ -84,7 +90,7 @@ class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc],
+        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
