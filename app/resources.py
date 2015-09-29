@@ -74,7 +74,8 @@ class Transactions(Resource):
 
         try:
             transactions = agent_instance.transactions()
-            transactions['scheme_account_id'] = int(request.args['scheme_account_id'])
+            transactions = update_transactions(transactions, int(request.args['scheme_account_id']))
+
             Publish().transactions(transactions)
             return create_response(transactions)
         except AgentError as e:
@@ -109,7 +110,7 @@ class AccountOverview(Resource):
             publish.balance(balance)
 
             transactions = account_overview["transactions"]
-            transactions['scheme_account_id'] = int(request.args['scheme_account_id'])
+            transactions = update_transactions(transactions, int(request.args['scheme_account_id']))
             publish.transactions(transactions)
             return create_response(account_overview)
         except AgentError as e:
@@ -119,6 +120,12 @@ class AccountOverview(Resource):
 
 
 api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
+
+
+def update_transactions(transactions, scheme_account_id):
+    for transaction in transactions:
+        transaction['scheme_account_id'] = scheme_account_id
+    return transactions
 
 
 def decrypt_credentials(credentials):
