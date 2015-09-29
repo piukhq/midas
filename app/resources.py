@@ -17,19 +17,19 @@ scheme_account_id_doc = {
     "name": "scheme_account_id",
     "required": True,
     "dataType": "integer",
-    "paramType": "path"
+    "paramType": "query"
 }
 user_id_doc = {
     "name": "user_id",
     "required": True,
     "dataType": "integer",
-    "paramType": "path"
+    "paramType": "query"
 }
 credentials_doc = {
     "name": "credentials",
     "required": True,
     "dataType": "string",
-    "paramType": "path"
+    "paramType": "query"
 }
 
 

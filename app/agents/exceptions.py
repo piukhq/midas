@@ -32,7 +32,7 @@ errors = {
                                        "account credentials in case they are changed."},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down."},
-    UNKNOWN: {"code": 530,
+    UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it."}
 }
 
