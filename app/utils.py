@@ -5,9 +5,15 @@ from Crypto import Random
 from decimal import Decimal
 from app.active import AGENTS
 
+TWO_PLACES = Decimal(10) ** -2
+
 
 def extract_decimal(s):
-    return Decimal(re.search(r'-?\d*\.{0,1}\d+', s).group(0))
+    """
+    We need to use the quantize method to ensure whole
+    numbers do not become integers when json encoding
+    """
+    return Decimal(re.search(r'-?\d*\.{0,1}\d+', s).group(0)).quantize(TWO_PLACES)
 
 
 def open_browser(html, base_href):
