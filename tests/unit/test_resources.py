@@ -2,6 +2,7 @@ from flask.ext.testing import TestCase
 from tests.service import logins
 from app import create_app
 from unittest import mock
+from decimal import Decimal
 
 
 class TestResources(TestCase):
@@ -23,14 +24,14 @@ class TestResources(TestCase):
     @mock.patch('app.publish.Publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions(self, mock_agent_login, mock_publish_transactions):
-        mock_agent_login.return_value.transactions.return_value = []
+        mock_agent_login.return_value.transactions.return_value = [{"points": Decimal("10.00")}]
         credentials = logins.encrypt("superdrug")
         url = "/superdrug/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
         response = self.client.get(url)
 
         self.assertTrue(mock_publish_transactions.called)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, [])
+        self.assertEqual(response.json, [{'points': 10.0, 'scheme_account_id': 3}, ])
 
     @mock.patch('app.publish.Publish.transactions', auto_spec=True)
     @mock.patch('app.publish.Publish.balance', auto_spec=True)

@@ -1,12 +1,13 @@
 from app.encoding import JsonEncoder
 import json
-from requests_futures.sessions import FuturesSession
+# from requests_futures.sessions import FuturesSession
+from requests.sessions import Session
 from settings import HADES_URL
 
 
 class Publish:
     def __init__(self):
-        self.session = FuturesSession()
+        self.session = Session()
 
     def post(self, url, data):
         headers = {'Content-type': 'application/json', }
