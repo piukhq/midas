@@ -3,7 +3,7 @@
 #These could be strings, if we end up with too many imports
 AGENTS = {
     "tesco": 'tesco.Tesco',
-    "boots": 'boots.Boots',
+    "advantage-card": 'boots.Boots',
     'superdrug': 'superdrug.Superdrug',
     'shell': 'shell.Shell',
     'morrisons': 'morrisons.Morrisons',
