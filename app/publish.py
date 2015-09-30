@@ -11,10 +11,10 @@ class Publish:
     def post(self, url, data):
         headers = {'Content-type': 'application/json', }
         request = self.session.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers)
-
-        if request.status_code not in [200, 201]:
-            # TODO: log the issue
-            pass
+        #
+        # if request.status_code not in [200, 201]:
+        #     # TODO: log the issue
+        #     pass
 
     def balance(self, balance):
         self.post("/balance", balance)
