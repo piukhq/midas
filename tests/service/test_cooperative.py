@@ -9,7 +9,7 @@ from tests.service.logins import CREDENTIALS
 class TestCooperative(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Cooperative(retry_count=1)
+        cls.b = Cooperative(1, 1)
         cls.b.attempt_login(CREDENTIALS["cooperative"])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestCooperativeFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["cooperative"]
         credentials['card_number'] = '633174911212875980'
-        b = Cooperative(retry_count=1)
+        b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
@@ -37,7 +37,7 @@ class TestCooperativeFail(unittest.TestCase):
     def test_login_bad_mfa(self):
         credentials = CREDENTIALS["cooperative"]
         credentials['place_of_birth'] = 'auckland'
-        b = Cooperative(retry_count=1)
+        b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "INVALID_MFA_INFO")

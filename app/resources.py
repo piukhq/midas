@@ -42,12 +42,12 @@ class Balance(Resource):
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
-
-        agent_instance = agent_login(agent_class, credentials)
+        scheme_account_id = int(request.args['scheme_account_id'])
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
             balance = agent_instance.balance()
-            balance['scheme_account_id'] = int(request.args['scheme_account_id'])
+            balance['scheme_account_id'] = scheme_account_id
             balance['user_id'] = int(request.args['user_id'])
             Publish().balance(balance)
             return create_response(balance)
@@ -68,13 +68,13 @@ class Transactions(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-
+        scheme_account_id = int(request.args['scheme_account_id'])
         credentials = decrypt_credentials(request.args['credentials'])
-        agent_instance = agent_login(agent_class, credentials)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
             transactions = agent_instance.transactions()
-            transactions = update_transactions(transactions, int(request.args['scheme_account_id']))
+            transactions = update_transactions(transactions, scheme_account_id)
 
             Publish().transactions(transactions)
             return create_response(transactions)
@@ -96,7 +96,8 @@ class AccountOverview(Resource):
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
-        agent_instance = agent_login(agent_class, credentials)
+        scheme_account_id = int(request.args['scheme_account_id'])
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         publish = Publish()
 
@@ -104,13 +105,13 @@ class AccountOverview(Resource):
             account_overview = agent_instance.account_overview()
 
             balance = account_overview["balance"]
-            balance['scheme_account_id'] = int(request.args['scheme_account_id'])
+            balance['scheme_account_id'] = scheme_account_id
             balance['user_id'] = int(request.args['user_id'])
 
             publish.balance(balance)
 
             transactions = account_overview["transactions"]
-            transactions = update_transactions(transactions, int(request.args['scheme_account_id']))
+            transactions = update_transactions(transactions, scheme_account_id)
             publish.transactions(transactions)
             return create_response(account_overview)
         except AgentError as e:
@@ -146,12 +147,12 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials):
+def agent_login(agent_class, credentials, scheme_account_id):
     user_name_key = credentials.get('user_name') or credentials.get('card_number')
     key = retry.get_key(agent_class.__name__, user_name_key)
     exists, retry_count = retry.get_count(key)
 
-    agent_instance = agent_class(retry_count)
+    agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         agent_instance.attempt_login(credentials)
     except LoginError as e:
