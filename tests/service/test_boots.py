@@ -10,7 +10,7 @@ class TestBoots(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Boots(1, 1)
-        cls.b.attempt_login(CREDENTIALS["boots"])
+        cls.b.attempt_login(CREDENTIALS["advantage-card"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

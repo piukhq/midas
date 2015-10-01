@@ -9,7 +9,7 @@ from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED,
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app.publish import Publish
-from app.encyption import AESCipher
+from app.encryption import AESCipher
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
