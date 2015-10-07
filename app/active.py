@@ -2,17 +2,17 @@
 
 #These could be strings, if we end up with too many imports
 AGENTS = {
-    "tesco": 'tesco.Tesco',
+    "tesco-clubcard": 'tesco.Tesco',
     "advantage-card": 'boots.Boots',
-    'superdrug': 'superdrug.Superdrug',
-    'shell': 'shell.Shell',
-    'morrisons': 'morrisons.Morrisons',
-    'kfc': 'kfc.Kfc',
-    'costa': 'costa.Costa',
+    'health-beautycard': 'superdrug.Superdrug',
+    'shell-drivers-club': 'shell.Shell',
+    'match-more': 'morrisons.Morrisons',
+    'colonels-club': 'kfc.Kfc',
+    'coffee-club': 'costa.Costa',
     'cooperative': 'cooperative.Cooperative',
-    # 'nectar': 'Nectar',
-    # 'avios': 'avios',
-    # 'british_airways': 'BritishAirways',
+    'nectar': 'nectar.Nectar',
+    'avios': 'avios.Avios',
+    'executive-club': 'british_airways.BritishAirways',
 }
 
 

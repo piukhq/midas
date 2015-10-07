@@ -7,18 +7,18 @@ class Avios(Miner):
     def login(self, credentials):
         self.open_url("http://www.avios.com/gb/en_gb/")
         login_form = self.browser.get_form(action='https://www.avios.com/my-account/login-process')
-        login_form['j_username'].value = credentials['username']
+        login_form['j_username'].value = credentials['user_name']
         login_form['j_password'].value = credentials['password']
         self.browser.submit_form(login_form)
         if self.browser.url != 'https://www.avios.com/gb/en_gb/':
             login_form = self.browser.get_form(action='/my-account/login-process')
-            login_form['j_username'].value = credentials['username']
+            login_form['j_username'].value = credentials['user_name']
             login_form['j_password'].value = credentials['password']
             self.browser.submit_form(login_form)
         print(True)
         if self.browser.url != 'https://www.avios.com/gb/en_gb/':
             login_form = self.browser.get_form(action='/my-account/login-process')
-            login_form['j_username'].value = credentials['username']
+            login_form['j_username'].value = credentials['user_name']
             login_form['j_password'].value = credentials['password']
             self.browser.submit_form(login_form)
         print(True)
