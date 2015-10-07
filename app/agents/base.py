@@ -10,7 +10,8 @@ class Miner(object):
     retry_limit = 2
     headers = {}
 
-    def __init__(self, retry_count):
+    def __init__(self, retry_count, scheme_id):
+        self.scheme_id = scheme_id
         self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                                              "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
@@ -57,7 +58,8 @@ class Miner(object):
 
     def hashed_transaction(self, transaction):
         transaction = self.parse_transaction(transaction)
-        s = "{0}{1}{2}".format(transaction['date'], transaction['description'], transaction['points'])
+        s = "{0}{1}{2}{3}".format(transaction['date'], transaction['description'],
+                                  transaction['points'], self.scheme_id)
         transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
         return transaction
 

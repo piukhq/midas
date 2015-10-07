@@ -9,8 +9,8 @@ from tests.service.logins import CREDENTIALS
 class TestBoots(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Boots(retry_count=1)
-        cls.b.attempt_login(CREDENTIALS["boots"])
+        cls.b = Boots(1, 1)
+        cls.b.attempt_login(CREDENTIALS["advantage-card"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
@@ -29,7 +29,7 @@ class TestBoots(unittest.TestCase):
 class TestBootsFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
-        b = Boots(retry_count=1)
+        b = Boots(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

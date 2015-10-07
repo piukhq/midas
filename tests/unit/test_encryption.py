@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from app.encyption import AESCipher
+from app.encryption import AESCipher
 from app.utils import generate_random_key
 
 

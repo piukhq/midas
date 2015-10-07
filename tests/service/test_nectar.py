@@ -8,7 +8,7 @@ from tests.service.logins import CREDENTIALS
 class TestNectar(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Nectar(retry_count=1)
+        cls.b = Nectar(1, 1)
         cls.b.attempt_login(CREDENTIALS["nectar"])
 
     def test_login(self):

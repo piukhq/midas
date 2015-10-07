@@ -14,20 +14,20 @@ class TestBase(TestCase):
             "points": 44
         }
         mocked_parse_transaction.return_value = transaction
-        m = Miner(1)
+        m = Miner(1, 2)
         transaction = m.hashed_transaction(transaction)
 
-        self.assertEqual(transaction["hash"], "d9d7b6f57cd5354bb69432165c1c2969")
+        self.assertEqual(transaction["hash"], "b7f2ce62c8b9007008d8034e8d39a87d")
 
     def test_attempt_login_exception(self):
-        m = Miner(3)
+        m = Miner(3, 2)
         with self.assertRaises(AgentError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "RETRY_LIMIT_REACHED")
 
     @mock.patch.object(Miner, 'login')
     def test_attempt_login(self, mocked_login):
-        m = Miner(2)
+        m = Miner(2, 2)
 
         m.attempt_login(credentials={})
         self.assertTrue(mocked_login.called)
@@ -57,6 +57,6 @@ class TestOpenURL(TestCase):
     def test_open_url_error_status(self):
         httpretty.register_uri(httpretty.GET, "http://foo-api.com/", status=500)
 
-        m = Miner(2)
+        m = Miner(2, 2)
         with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")

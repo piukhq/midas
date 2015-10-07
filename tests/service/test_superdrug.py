@@ -9,7 +9,7 @@ from tests.service.logins import CREDENTIALS
 class TestSuperDrug(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Superdrug(retry_count=1)
+        cls.b = Superdrug(1, 1)
         cls.b.attempt_login(CREDENTIALS["superdrug"])
 
     def test_login(self):
@@ -23,7 +23,7 @@ class TestSuperDrug(unittest.TestCase):
 
 class TestSuperDrugFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Superdrug(retry_count=1)
+        b = Superdrug(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

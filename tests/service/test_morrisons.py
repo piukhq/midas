@@ -8,7 +8,7 @@ from tests.service.logins import CREDENTIALS
 class TestMorrisons(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Morrisons(retry_count=1)
+        cls.b = Morrisons(1, 1)
         cls.b.attempt_login(CREDENTIALS["morrisons"])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestMorrisons(unittest.TestCase):
 
 class TestMorrisonsFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Morrisons(retry_count=1)
+        b = Morrisons(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

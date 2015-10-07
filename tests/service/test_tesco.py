@@ -9,7 +9,7 @@ from app.agents.exceptions import LoginError
 class TestTesco(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Tesco(retry_count=1)
+        cls.b = Tesco(1, 1)
         cls.b.attempt_login(CREDENTIALS["tesco"])
 
     def test_login(self):
@@ -28,13 +28,13 @@ class TestTesco(unittest.TestCase):
 
 class TestTescoFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Tesco(retry_count=1)
+        b = Tesco(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
 
     def test_login_mfa_fail(self):
-        b = Tesco(retry_count=1)
+        b = Tesco(1, 1)
         credentials = CREDENTIALS["tesco"]
         credentials['card_number'] = '634004024855326070'
         with self.assertRaises(LoginError) as e:

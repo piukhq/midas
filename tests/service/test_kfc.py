@@ -8,7 +8,7 @@ from tests.service.logins import CREDENTIALS
 class TestKfc(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Kfc(retry_count=1)
+        cls.b = Kfc(1, 1)
         cls.b.attempt_login(CREDENTIALS["kfc"])
 
     def test_login(self):
@@ -21,7 +21,7 @@ class TestKfc(unittest.TestCase):
 
 class TestKfcFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Kfc(retry_count=1)
+        b = Kfc(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

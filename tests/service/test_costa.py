@@ -8,7 +8,7 @@ from tests.service.logins import CREDENTIALS
 class TestCosta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Costa(retry_count=1)
+        cls.b = Costa(1, 1)
         cls.b.attempt_login(CREDENTIALS["costa"])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestCosta(unittest.TestCase):
 
 class TestCostaFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Costa(retry_count=1)
+        b = Costa(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

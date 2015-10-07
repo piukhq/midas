@@ -39,8 +39,8 @@ class TestResources(TestCase):
     def test_account_overview(self, mock_agent_login, mock_publish_balance, mock_publish_transactions):
         mock_agent_login.return_value.account_overview.return_value = {"balance": {},
                                                                        "transactions": []}
-        credentials = logins.encrypt("boots")
-        url = "/boots/account_overview?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        credentials = logins.encrypt("advantage-card")
+        url = "/advantage-card/account_overview?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_publish_balance.called)

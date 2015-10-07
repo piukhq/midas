@@ -7,7 +7,7 @@ from tests.service.logins import CREDENTIALS
 class TestAvios(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Avios(retry_count=1)
+        cls.b = Avios(1, 1)
         cls.b.attempt_login(CREDENTIALS["avios"])
 
     def test_login(self):

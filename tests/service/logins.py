@@ -1,4 +1,4 @@
-from app.encyption import AESCipher
+from app.encryption import AESCipher
 from settings import AES_KEY
 import json
 
@@ -16,7 +16,7 @@ CREDENTIALS = {
         'card_number': "49932498",
         'password': 'RAHansbrics14'
     },
-    "boots": {
+    "advantage-card": {
             'user_name': 'julie.gormley100@gmail.com',
             'password': 'RAHansbrics5'
     },
