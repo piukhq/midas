@@ -40,6 +40,7 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
+        # if 'scheme_account_id' or 'user_id'
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])

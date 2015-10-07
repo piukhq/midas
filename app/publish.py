@@ -1,17 +1,14 @@
 from app.encoding import JsonEncoder
 import json
-from requests_futures.sessions import FuturesSession
+import grequests
 from settings import HADES_URL
 
 
-class Publish:
-    def __init__(self):
-        self.session = FuturesSession()
-
+class Publish(object):
     def post(self, url, data):
         headers = {'Content-type': 'application/json', }
-        request = self.session.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers)
-        #
+        request = grequests.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers)
+
         # if request.status_code not in [200, 201]:
         #     # TODO: log the issue
         #     pass
