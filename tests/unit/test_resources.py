@@ -14,7 +14,7 @@ class TestResources(TestCase):
     def test_user_balances(self, mock_agent_login, mock_publish_balance):
         mock_agent_login.return_value.balance.return_value = {}
         credentials = logins.encrypt("tesco")
-        url = "/tesco/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_publish_balance.called)
@@ -26,7 +26,7 @@ class TestResources(TestCase):
     def test_transactions(self, mock_agent_login, mock_publish_transactions):
         mock_agent_login.return_value.transactions.return_value = [{"points": Decimal("10.00")}]
         credentials = logins.encrypt("superdrug")
-        url = "/superdrug/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
         response = self.client.get(url)
 
         self.assertTrue(mock_publish_transactions.called)

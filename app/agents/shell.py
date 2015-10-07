@@ -13,7 +13,7 @@ class Shell(Miner):
         """
         self.open_url("https://www.shellsmart.com/smart/login?site=en-en")
         signup_form = self.browser.get_form(id='login_page_form')
-        signup_form['cardnumber'].value = credentials['user_name']
+        signup_form['cardnumber'].value = credentials['email']
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)

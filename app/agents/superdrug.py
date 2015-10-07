@@ -9,7 +9,7 @@ class Superdrug(Miner):
     def login(self, credentials):
         self.open_url("https://www.superdrug.com/login")
         signup_form = self.browser.get_form(id='loginForm')
-        signup_form['j_username'].value = credentials['user_name']
+        signup_form['j_username'].value = credentials['email']
         signup_form['j_password'].value = credentials['password']
 
         headers = {'Referer': 'https://www.superdrug.com/login'}

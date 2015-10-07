@@ -15,7 +15,7 @@ class Morrisons(Miner):
         self.open_url("https://auth.morrisons.com/login?apikey=mDuA4s8AUAiS0l43QO3LKsfn8Tw7egWH"
                       "&response_type=token&state=123&redirect_uri=https://www.morrisons.com/matchandmore/callback.html")
         signup_form = self.browser.get_form(id='login')
-        signup_form['username'].value = credentials['user_name']
+        signup_form['username'].value = credentials['email']
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)

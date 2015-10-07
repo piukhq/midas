@@ -1,6 +1,5 @@
 from app.encoding import JsonEncoder
 import json
-import grequests
 from settings import HADES_URL
 import requests
 

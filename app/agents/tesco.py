@@ -13,7 +13,7 @@ class Tesco(Miner):
         self.open_url("https://secure.tesco.com/register/default.aspx")
 
         signup_form = self.browser.get_form(id='fSignin')
-        signup_form['loginID'].value = credentials['user_name']
+        signup_form['loginID'].value = credentials['email']
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)

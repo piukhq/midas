@@ -8,7 +8,7 @@ from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN
 class Kfc(Miner):
     def login(self, credentials):
         data = {"password": credentials["password"],
-                "username": credentials["user_name"],
+                "username": credentials["email"],
                 "grant_type": "password",
                 "client_id": "14_1ympi31f1tk0kco8kkc4cko48gg804csowcs4g4w4ckco80w0k"}
 

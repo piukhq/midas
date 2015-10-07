@@ -4,12 +4,12 @@ import json
 
 CREDENTIALS = {
     "tesco": {
-        'user_name': 'julie.gormley100@gmail.com',
+        'email': 'julie.gormley100@gmail.com',
         'password': 'NSHansbrics5',
         'card_number': '634004024051328070'
     },
     "avios": {
-        'username': 'chris.gormley2@me.com',
+        'email': 'chris.gormley2@me.com',
         'password': 'RZHansbrics5',
     },
     "british-airways": {
@@ -17,19 +17,19 @@ CREDENTIALS = {
         'password': 'RAHansbrics14'
     },
     "advantage-card": {
-            'user_name': 'julie.gormley100@gmail.com',
+            'email': 'julie.gormley100@gmail.com',
             'password': 'RAHansbrics5'
     },
     "superdrug": {
-            'user_name': 'julie.gormley100@gmail.com',
+            'email': 'julie.gormley100@gmail.com',
             'password': 'FRHansbrics9'
     },
     "costa": {
-            'user_name': 'chris.smith4@gmx.co.uk',
+            'email': 'chris.smith4@gmx.co.uk',
             'password': 'ZBHansbrics5',
     },
     "shell": {
-            'user_name': 'chris.gormley2@me.com',
+            'email': 'chris.gormley2@me.com',
             'password': 'KRHansbrics5',
     },
     "nectar": {
@@ -37,7 +37,7 @@ CREDENTIALS = {
             'password': 'QMHansbrics6',
     },
     "bad": {
-            'user_name': '234234@bad.com',
+            'email': '234234@bad.com',
             'password': '234234',
     },
     "cooperative": {
@@ -46,11 +46,11 @@ CREDENTIALS = {
             'place_of_birth': "cheltenham",
     },
     "morrisons": {
-        "user_name": "chris.gormley2@me.com",
+        "email": "chris.gormley2@me.com",
         'password': 'RLHansbrics9',
     },
     "kfc": {
-        "user_name": "chris.gormley2@me.com",
+        "email": "chris.gormley2@me.com",
         "password": "BJHansbrics3",
     }
 }

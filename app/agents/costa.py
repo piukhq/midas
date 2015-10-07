@@ -12,7 +12,7 @@ class Costa(Miner):
         self.open_url("https://www.costa.co.uk/coffee-club/login/")
         signup_form = self.browser.get_form(id='menuSearchForm')
         signup_form['ctl00$ctl00$ctl00$ContentPlaceHolderDefault$ContentPlaceHolder'
-                    'Body$LoginRegister_9$txtUsernameLoginForm'].value = credentials['user_name']
+                    'Body$LoginRegister_9$txtUsernameLoginForm'].value = credentials['email']
         signup_form['ctl00$ctl00$ctl00$ContentPlaceHolderDefault$ContentPlaceHolder'
                     'Body$LoginRegister_9$txtPasswordLoginForm'].value = credentials['password']
 
