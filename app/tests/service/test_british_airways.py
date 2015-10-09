@@ -1,19 +1,19 @@
 import unittest
-from app.agents import schemas
-from app.agents.nectar import Nectar
 from urllib.parse import urlsplit
-from tests.service.logins import CREDENTIALS
+from app.agents import schemas
+from app.agents.british_airways import BritishAirways
+from app.tests.service.logins import CREDENTIALS
 
 
-class TestNectar(unittest.TestCase):
+class TestBritishAirways(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Nectar(1, 1)
-        cls.b.attempt_login(CREDENTIALS["nectar"])
+        cls.b = BritishAirways(1, 1)
+        cls.b.attempt_login(CREDENTIALS["british-airways"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(self.b.browser.url).path, '/')
+        self.assertEqual(urlsplit(self.b.browser.url).path, '/travel/viewaccount/execclub/_gf/en_gb')
 
     def test_transactions(self):
         transactions = self.b.transactions()

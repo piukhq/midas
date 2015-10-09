@@ -1,7 +1,6 @@
 import unittest
-from app.agents import schemas
 from app.agents.avios import Avios
-from tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS
 
 
 class TestAvios(unittest.TestCase):

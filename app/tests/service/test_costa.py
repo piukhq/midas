@@ -1,20 +1,18 @@
 import unittest
-from app.agents.tesco import Tesco
-from urllib.parse import urlsplit
+from app.agents.costa import Costa
 from app.agents import schemas
-from tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError
+from app.tests.service.logins import CREDENTIALS
 
 
-class TestTesco(unittest.TestCase):
+class TestCosta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Tesco(1, 1)
-        cls.b.attempt_login(CREDENTIALS["tesco"])
+        cls.b = Costa(1, 1)
+        cls.b.attempt_login(CREDENTIALS["costa"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(self.b.browser.url).path, '/Clubcard/MyAccount/Home.aspx')
 
     def test_transactions(self):
         transactions = self.b.transactions()
@@ -26,21 +24,12 @@ class TestTesco(unittest.TestCase):
         schemas.balance(balance)
 
 
-class TestTescoFail(unittest.TestCase):
+class TestCostaFail(unittest.TestCase):
     def test_login_fail(self):
-        b = Tesco(1, 1)
+        b = Costa(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
-
-    def test_login_mfa_fail(self):
-        b = Tesco(1, 1)
-        credentials = CREDENTIALS["tesco"]
-        credentials['card_number'] = '634004024855326070'
-        with self.assertRaises(LoginError) as e:
-            b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "INVALID_MFA_INFO")
-
 
 if __name__ == '__main__':
     unittest.main()
