@@ -1,12 +1,8 @@
 import json
 import functools
-
-from flask import make_response, request
-from flask_restful import Resource, Api, abort
-from flask_restful_swagger import swagger
+import settings
 
 from app.exceptions import agent_abort, unknown_abort
-import settings
 from app import retry
 from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
@@ -14,6 +10,10 @@ from app.encoding import JsonEncoder
 from app import publish
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
+from flask import make_response, request
+from flask_restful import Resource, Api, abort
+from flask_restful_swagger import swagger
+
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
@@ -68,31 +68,6 @@ class Balance(Resource):
 
         try:
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  int(request.args['user_id']))
-            return create_response(balance)
-        except AgentError as e:
-            agent_abort(e)
-        except Exception as e:
-            unknown_abort(e)
-
-
-api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
-
-
-class CredentialValidation(Resource):
-    @validate_parameters
-    @swagger.operation(
-        responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
-        notes="Verify the credentials of a user publish transactions and balance"
-    )
-    def get(self, scheme_slug):
-        agent_class = get_agent_class(scheme_slug)
-        credentials = decrypt_credentials(request.args['credentials'])
-        scheme_account_id = int(request.args['scheme_account_id'])
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
-
-        try:
-            balance = publish.balance(agent_instance.balance(), scheme_account_id,  int(request.args['user_id']))
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id)
 
@@ -102,7 +77,8 @@ class CredentialValidation(Resource):
         except Exception as e:
             unknown_abort(e)
 
-api.add_resource(CredentialValidation, '/<string:scheme_slug>/credential_validation', endpoint="api.credential_validation")
+
+api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 
 def publish_transactions(agent_instance, scheme_account_id):
