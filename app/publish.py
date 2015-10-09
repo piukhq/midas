@@ -1,22 +1,36 @@
 from app.encoding import JsonEncoder
 import json
 from settings import HADES_URL
-import requests
+from concurrent.futures import ThreadPoolExecutor
+from requests_futures.sessions import FuturesSession
 
 
-class Publish(object):
-    def post(self, url, data):
-        headers = {'Content-type': 'application/json', }
+thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
-        request = requests.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers)
-        # this should be async but its currently only working 50% of the time
 
-        # if request.status_code not in [200, 201]:
-        #     # TODO: log the issue
-        #     pass
+def log_errors(session, resp):
+    # TODO: log the issue
+    # if resp.status_code not in [200, 201]:
+    pass
 
-    def balance(self, balance):
-        self.post("/balance", balance)
 
-    def transactions(self, transactions):
-        self.post("/transactions", transactions)
+def post(url, data):
+    headers = {'Content-type': 'application/json', }
+    session = FuturesSession(executor=thread_pool_executor)
+    session.post(HADES_URL + url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
+                 background_callback=log_errors)
+
+
+def transactions(transactions_items, scheme_account_id):
+    for transaction_item in transactions_items:
+        transaction_item['scheme_account_id'] = scheme_account_id
+    post("/transactions", transactions_items)
+    return transactions_items
+
+
+def balance(balance_item, scheme_account_id, user_id):
+    balance_item['scheme_account_id'] = scheme_account_id
+    balance_item['user_id'] = user_id
+    post("/balance", balance_item)
+    return balance_item
+

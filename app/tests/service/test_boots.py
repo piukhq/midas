@@ -1,18 +1,20 @@
 import unittest
-from app.agents.exceptions import LoginError
-from app.agents.shell import Shell
+from app.agents.boots import Boots
+from urllib.parse import urlsplit
 from app.agents import schemas
-from tests.service.logins import CREDENTIALS
+from app.agents.exceptions import LoginError
+from app.tests.service.logins import CREDENTIALS
 
 
-class TestShell(unittest.TestCase):
+class TestBoots(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Shell(1, 1)
-        cls.b.attempt_login(CREDENTIALS["shell"])
+        cls.b = Boots(1, 1)
+        cls.b.attempt_login(CREDENTIALS["advantage-card"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
+        self.assertEqual(urlsplit(self.b.browser.url).path, '/webapp/wcs/stores/servlet/ADCAccountSummary')
 
     def test_transactions(self):
         transactions = self.b.transactions()
@@ -24,12 +26,14 @@ class TestShell(unittest.TestCase):
         schemas.balance(balance)
 
 
-class TestShellFail(unittest.TestCase):
-    def test_login_fail(self):
-        b = Shell(1, 1)
+class TestBootsFail(unittest.TestCase):
+    def test_login_bad_number(self):
+        credentials = CREDENTIALS["bad"]
+        b = Boots(1, 1)
         with self.assertRaises(LoginError) as e:
-            b.attempt_login(CREDENTIALS["bad"])
+            b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@ from app.agents.exceptions import LoginError
 from app.agents.superdrug import Superdrug
 from urllib.parse import urlsplit
 from app.agents import schemas
-from tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS
 
 
 class TestSuperDrug(unittest.TestCase):

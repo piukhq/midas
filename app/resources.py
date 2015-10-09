@@ -1,15 +1,19 @@
 import json
-from flask import make_response, request
-from flask_restful import Resource, Api, abort
-from flask_restful_swagger import swagger
-from app.exceptions import agent_abort, unknown_abort
+import functools
 import settings
+
+from app.exceptions import agent_abort, unknown_abort
 from app import retry
 from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
-from app.publish import Publish
+from app import publish
 from app.encryption import AESCipher
+from app.publish import thread_pool_executor
+from flask import make_response, request
+from flask_restful import Resource, Api, abort
+from flask_restful_swagger import swagger
+
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
@@ -33,24 +37,40 @@ credentials_doc = {
 }
 
 
+def validate_parameters(method):
+    """
+    Checks swaggers defined parameters exist in query string
+    """
+    @functools.wraps(method)
+    def f(*args, **kwargs):
+        for parameter in method.__swagger_attr['parameters']:
+            if not parameter["required"] or parameter["paramType"] != "query":
+                continue
+            if parameter["name"] not in request.args:
+                abort(400, message="Missing required query parameter '{0}'".format(parameter["name"]))
+
+        return method(*args, **kwargs)
+    return f
+
+
 class Balance(Resource):
+    @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
         parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
-        # if 'scheme_account_id' or 'user_id'
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
-            balance = agent_instance.balance()
-            balance['scheme_account_id'] = scheme_account_id
-            balance['user_id'] = int(request.args['user_id'])
-            Publish().balance(balance)
+            balance = publish.balance(agent_instance.balance(), scheme_account_id,  int(request.args['user_id']))
+            # Asynchronously get the transactions for the a user
+            thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id)
+
             return create_response(balance)
         except AgentError as e:
             agent_abort(e)
@@ -61,7 +81,12 @@ class Balance(Resource):
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 
+def publish_transactions(agent_instance, scheme_account_id):
+    publish.transactions(agent_instance.transactions(), scheme_account_id)
+
+
 class Transactions(Resource):
+    @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
         notes="Return a users latest transactions for a specific agent",
@@ -74,10 +99,7 @@ class Transactions(Resource):
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
-            transactions = agent_instance.transactions()
-            transactions = update_transactions(transactions, scheme_account_id)
-
-            Publish().transactions(transactions)
+            transactions = publish.transactions(agent_instance.transactions(), scheme_account_id)
             return create_response(transactions)
         except AgentError as e:
             agent_abort(e)
@@ -90,6 +112,7 @@ api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="a
 
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
+    @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
         parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
@@ -100,20 +123,11 @@ class AccountOverview(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
-        publish = Publish()
-
         try:
             account_overview = agent_instance.account_overview()
+            publish.balance(account_overview["balance"], scheme_account_id, int(request.args['user_id']))
+            publish.transactions(account_overview["transactions"], scheme_account_id)
 
-            balance = account_overview["balance"]
-            balance['scheme_account_id'] = scheme_account_id
-            balance['user_id'] = int(request.args['user_id'])
-
-            publish.balance(balance)
-
-            transactions = account_overview["transactions"]
-            transactions = update_transactions(transactions, scheme_account_id)
-            publish.transactions(transactions)
             return create_response(account_overview)
         except AgentError as e:
             agent_abort(e)
@@ -122,12 +136,6 @@ class AccountOverview(Resource):
 
 
 api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
-
-
-def update_transactions(transactions, scheme_account_id):
-    for transaction in transactions:
-        transaction['scheme_account_id'] = scheme_account_id
-    return transactions
 
 
 def decrypt_credentials(credentials):

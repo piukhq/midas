@@ -14,7 +14,7 @@ manager.add_command("runserver", Server(port=(os.getenv('FLASK_PORT') or 8000), 
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-UNIT_TEST_PATH = os.path.join(HERE, 'tests', 'unit')
+UNIT_TEST_PATH = os.path.join(HERE, 'app', 'tests', 'unit')
 
 
 @manager.command
