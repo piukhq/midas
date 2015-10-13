@@ -15,13 +15,12 @@ class Avios(Miner):
             login_form['j_username'].value = credentials['email']
             login_form['j_password'].value = credentials['password']
             self.browser.submit_form(login_form)
-        print(True)
+
         if self.browser.url != 'https://www.avios.com/gb/en_gb/':
             login_form = self.browser.get_form(action='/my-account/login-process')
             login_form['j_username'].value = credentials['email']
             login_form['j_password'].value = credentials['password']
             self.browser.submit_form(login_form)
-        print(True)
 
     def balance(self):
         points = self.browser.find('div', {'id': 'acc-status'}).find('strong').text

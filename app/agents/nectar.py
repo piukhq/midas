@@ -12,7 +12,7 @@ class Nectar(Miner):
         self.open_url("https://www.nectar.com/login")
 
         login_form = self.browser.get_form(id='loginform')
-        login_form['username'].value = credentials['card_number'][7:] # we dont need the card prefix
+        login_form['username'].value = credentials['card_number'][7:]  # we dont need the card prefix
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
