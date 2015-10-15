@@ -6,7 +6,7 @@ CREDENTIALS = {
     "tesco": {
         'email': 'julie.gormley100@gmail.com',
         'password': 'NSHansbrics5',
-        'card_number': '634004024051328070'
+        'barcode': '634004024051328070'
     },
     "avios": {
         'email': 'chris.gormley2@me.com',
@@ -33,7 +33,7 @@ CREDENTIALS = {
             'password': 'KRHansbrics5',
     },
     "nectar": {
-            'card_number': '9826300030842203013',
+            'barcode': '9826300030842203013',
             'password': 'QMHansbrics6',
     },
     "bad": {
@@ -41,7 +41,7 @@ CREDENTIALS = {
             'password': '234234',
     },
     "cooperative": {
-            'card_number': '633174911212875989',
+            'barcode': '633174911212875989',
             'post_code': 'BH23 1HT',
             'place_of_birth': "cheltenham",
     },
