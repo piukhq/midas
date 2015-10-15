@@ -3,7 +3,7 @@ from settings import AES_KEY
 import json
 
 CREDENTIALS = {
-    "tesco": {
+    "tesco-clubcard": {
         'email': 'julie.gormley100@gmail.com',
         'password': 'NSHansbrics5',
         'barcode': '634004024051328070'
