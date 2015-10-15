@@ -24,14 +24,14 @@ def post(url, data):
 def transactions(transactions_items, scheme_account_id):
     for transaction_item in transactions_items:
         transaction_item['scheme_account_id'] = scheme_account_id
-    post(HADES_URL + "/transactions", transactions_items)
+    post("{}/balance".format(HADES_URL), transactions_items)
     return transactions_items
 
 
 def balance(balance_item, scheme_account_id, user_id):
     balance_item['scheme_account_id'] = scheme_account_id
     balance_item['user_id'] = user_id
-    post(HADES_URL + "/balance", balance_item)
+    post("{}/balance".format(HADES_URL), balance_item)
     return balance_item
 
 

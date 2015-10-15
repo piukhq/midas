@@ -67,7 +67,7 @@ class Balance(Resource):
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
-            status = 2
+            status = 1
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  int(request.args['user_id']))
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id)
@@ -80,7 +80,7 @@ class Balance(Resource):
             status = e.code
             unknown_abort(e)
         finally:
-            thread_pool_executor(publish.status, scheme_account_id, status)
+            thread_pool_executor.submit(publish.status, scheme_account_id, status)
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
@@ -105,12 +105,17 @@ class Transactions(Resource):
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
+            status = 1
             transactions = publish.transactions(agent_instance.transactions(), scheme_account_id)
             return create_response(transactions)
         except AgentError as e:
+            status = e.code
             agent_abort(e)
         except Exception as e:
+            status = e.code
             unknown_abort(e)
+        finally:
+            thread_pool_executor.submit(publish.status, scheme_account_id, status)
 
 
 api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="api.transactions")
