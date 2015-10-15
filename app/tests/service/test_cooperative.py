@@ -28,7 +28,7 @@ class TestCooperative(unittest.TestCase):
 class TestCooperativeFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["cooperative"]
-        credentials['card_number'] = '633174911212875980'
+        credentials['barcode'] = '633174911212875980'
         b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
