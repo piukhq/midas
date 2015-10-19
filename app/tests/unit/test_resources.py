@@ -14,7 +14,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_user_balances(self, mock_pool, mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
-        credentials = logins.encrypt("tesco")
+        credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
