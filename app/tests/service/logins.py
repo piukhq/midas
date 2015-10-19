@@ -57,6 +57,20 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RFHansbrics6",
     },
+    "starbucks": {
+        "email": "chris.gormley2@me.com",
+        "password": "RRHansbrics9",
+    },
+    "debenhams": {
+        "username": "gormleyc1",
+        "password": "RCHansbrics9",
+        "memorable_date": "28/08/2004",
+    },
+    "debenhams_bad": {
+        "username": "234234",
+        "password": "234234",
+        "memorable_date": "01/01/1970",
+    },
 }
 
 
