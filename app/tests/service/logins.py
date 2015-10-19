@@ -52,7 +52,11 @@ CREDENTIALS = {
     "kfc": {
         "email": "chris.gormley2@me.com",
         "password": "BJHansbrics3",
-    }
+    },
+    "greggs": {
+        "email": "chris.gormley2@me.com",
+        "password": "RFHansbrics6",
+    },
 }
 
 
