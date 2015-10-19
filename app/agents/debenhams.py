@@ -1,6 +1,8 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+import arrow
+from decimal import Decimal
 
 class Debenhams(Miner):
     def login(self, credentials):
@@ -43,3 +45,18 @@ class Debenhams(Miner):
         return {
             "points": extract_decimal(points_span.text)
         }
+
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def transactions(self):
+        #self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
+        #transaction_table = self.browser.select('table.txnHistory')
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [self.hashed_transaction(t)]
