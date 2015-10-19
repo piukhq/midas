@@ -1,6 +1,6 @@
 from app.encoding import JsonEncoder
 import json
-from settings import HADES_URL, HERMES_URL
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
 
@@ -15,7 +15,8 @@ def log_errors(session, resp):
 
 
 def post(url, data):
-    headers = {'Content-type': 'application/json', }
+    headers = {'Content-type': 'application/json',
+               'Authorization': 'Token ' + SERVICE_API_KEY}
     session = FuturesSession(executor=thread_pool_executor)
     session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
                  background_callback=log_errors)
@@ -36,7 +37,7 @@ def balance(balance_item, scheme_account_id, user_id):
 
 
 def status(scheme_account_id, status):
-    data = {status: status}
-    post("{}/accounts/{}/status".format(HERMES_URL, scheme_account_id), data)
+    data = {"status": status}
+    post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data)
     return status
 
