@@ -8,10 +8,7 @@ class Debenhams(Miner):
     def login(self, credentials):
         url = 'https://portal.prepaytec.com/chopinweb/scareMyLogin.do?customerCode=452519111525&loc=en&brandingCode=myscare_uk'
         self.open_url(url)
-
-        if self.browser.response.status_code != 200:
-            raise LoginError(END_SITE_DOWN)
-
+        
         login_form = self.browser.get_form('login')
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
