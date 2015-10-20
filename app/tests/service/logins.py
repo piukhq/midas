@@ -57,6 +57,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RFHansbrics6",
     },
+    "maximiles": {
+        "email": "chris.gormley2@me.com",
+        "password": "RLHansbrics9",
+    }
 }
 
 
