@@ -3,10 +3,10 @@ from settings import AES_KEY
 import json
 
 CREDENTIALS = {
-    "tesco": {
+    "tesco-clubcard": {
         'email': 'julie.gormley100@gmail.com',
         'password': 'NSHansbrics5',
-        'card_number': '634004024051328070'
+        'barcode': '634004024051328070'
     },
     "avios": {
         'email': 'chris.gormley2@me.com',
@@ -33,7 +33,7 @@ CREDENTIALS = {
             'password': 'KRHansbrics5',
     },
     "nectar": {
-            'card_number': '9826300030842203013',
+            'barcode': '9826300030842203013',
             'password': 'QMHansbrics6',
     },
     "bad": {
@@ -41,7 +41,7 @@ CREDENTIALS = {
             'password': '234234',
     },
     "cooperative": {
-            'card_number': '633174911212875989',
+            'barcode': '633174911212875989',
             'post_code': 'BH23 1HT',
             'place_of_birth': "cheltenham",
     },
@@ -52,6 +52,23 @@ CREDENTIALS = {
     "kfc": {
         "email": "chris.gormley2@me.com",
         "password": "BJHansbrics3",
+    },
+    "greggs": {
+        "email": "chris.gormley2@me.com",
+        "password": "RFHansbrics6",
+    },
+    "starbucks": {
+        "email": "chris.gormley2@me.com",
+        "password": "RRHansbrics9",
+    },
+    "debenhams": {
+        "username": "gormleyc1",
+        "password": "RCHansbrics9",
+        "memorable_date": "28/08/2004",
+    },
+    "maximiles": {
+        "email": "chris.gormley2@me.com",
+        "password": "RLHansbrics9",
     }
 }
 

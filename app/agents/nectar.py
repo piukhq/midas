@@ -12,7 +12,7 @@ class Nectar(Miner):
         self.open_url("https://www.nectar.com/login")
 
         login_form = self.browser.get_form(id='loginform')
-        login_form['username'].value = credentials['card_number'][7:]  # we dont need the card prefix
+        login_form['username'].value = credentials['barcode'][7:]  # we dont need the card prefix
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
@@ -45,10 +45,9 @@ class Nectar(Miner):
         status = row.select('.status')[0].text.strip()
         process_date = extra_details.select('.date')[0].text
 
-        transaction_data['description'] = 'partner:{}, collector:{},'.format(partner, collector)
+        transaction_data['description'] = 'Partner: {0}, {1},'.format(partner, collector)
 
         return transaction_data
-
 
     def transactions(self):
         # Nectar return the last 10 transactions

@@ -28,7 +28,7 @@ class Tesco(Miner):
         digit_form = self.browser.get_form(id='aspnetForm')
 
         fields = self.browser.select(".security_questions .textfield")
-        card_number = credentials['card_number']
+        card_number = credentials['barcode']
         digit_form['ctl00$PageContainer$txtSecurityAnswer1'].value = card_number[self.digit_index(fields[0])]
         digit_form['ctl00$PageContainer$txtSecurityAnswer2'].value = card_number[self.digit_index(fields[1])]
         digit_form['ctl00$PageContainer$txtSecurityAnswer3'].value = card_number[self.digit_index(fields[2])]
