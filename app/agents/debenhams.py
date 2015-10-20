@@ -24,15 +24,12 @@ class Debenhams(Miner):
         # The first 12 cells are just for formatting.
         date_table = self.browser.select("table.memorable tr td")[12:]
         correct = credentials['memorable_date']
-        index = 0
 
-        for cell in date_table:
+        for index, cell in enumerate(date_table):
             # Cells with an input field contain three elements, others just one.
             if len(cell.contents) == 3:
-                input = cell.contents[1]
-                date_form[input.attrs['name']] = correct[index]
-
-            index += 1
+                input_field = cell.contents[1]
+                date_form[input_field.attrs['name']] = correct[index]
 
         self.browser.submit_form(date_form)
 
