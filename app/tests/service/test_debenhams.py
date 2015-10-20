@@ -26,7 +26,11 @@ class TestDebenhams(unittest.TestCase):
 
 class TestDebenhamsFail(unittest.TestCase):
     def test_login_bad_credentials(self):
-        credentials = CREDENTIALS["debenhams_bad"]
+        credentials = {
+            'username': '234234',
+            'password': '234234',
+            'memorable_date': '01/01/1970',
+        }
         d = Debenhams(1, 1)
         with self.assertRaises(LoginError) as e:
             d.attempt_login(credentials)
