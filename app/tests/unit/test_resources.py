@@ -36,6 +36,18 @@ class TestResources(TestCase):
         self.assertEqual(response.json, [{'points': 10.0}, ])
 
     @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_transactions_none(self, mock_agent_login, mock_publish_transactions):
+        mock_publish_transactions.return_value = None
+        credentials = logins.encrypt("superdrug")
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, None)
+
+    @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_account_overview(self, mock_agent_login, mock_publish_balance, mock_publish_transactions):

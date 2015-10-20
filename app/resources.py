@@ -80,7 +80,7 @@ class Balance(Resource):
             status = e.code
             unknown_abort(e)
         finally:
-            thread_pool_executor(publish.status, scheme_account_id, status)
+            thread_pool_executor.submit(publish.status, scheme_account_id, status)
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
