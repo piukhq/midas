@@ -18,15 +18,11 @@ UNIT_TEST_PATH = os.path.join(HERE, 'app', 'tests', 'unit')
 
 
 @manager.command
-def test(coverage=False):
+def test():
     """Run the tests."""
     import pytest
 
     params = [UNIT_TEST_PATH, '--verbose', ]
-
-    if coverage:
-        params.append("--cov=.")
-
     exit_code = pytest.main(params)
     return exit_code
 

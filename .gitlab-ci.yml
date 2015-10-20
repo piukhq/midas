@@ -1,4 +1,4 @@
 dev:
   script:
   - pip3 install -r requirements.txt
-  - python3 manage.py test --coverage
+  - py.test app/tests/unit --cov=app --cov-config=.coveragerc-noagent
