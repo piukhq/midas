@@ -66,6 +66,10 @@ CREDENTIALS = {
         "password": "RCHansbrics9",
         "memorable_date": "28/08/2004",
     },
+    "maximiles": {
+        "email": "chris.gormley2@me.com",
+        "password": "RLHansbrics9",
+    }
 }
 
 
