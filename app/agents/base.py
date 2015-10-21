@@ -4,6 +4,7 @@ from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
+from requests import Session
 
 
 class Miner(object):
@@ -12,8 +13,12 @@ class Miner(object):
 
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
-        self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
-                                                             "Gecko/20100101 Firefox/40.0")
+        session = Session()
+        session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
+
+        self.browser = RoboBrowser(parser="lxml", session=session,
+                                   user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
+                                              "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
 
     def attempt_login(self, credentials):
