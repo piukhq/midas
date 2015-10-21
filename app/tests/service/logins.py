@@ -73,6 +73,10 @@ CREDENTIALS = {
     "waterstones": {
         "email": "chris.gormley2@me.com",
         "password": "RVHansbrics11",
+    },
+    "esprit": {
+        "email": "chris.gormley2@me.com",
+        "password": "SDHansbrics6",
     }
 }
 
