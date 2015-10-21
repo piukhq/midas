@@ -72,7 +72,11 @@ CREDENTIALS = {
     },
     "esprit": {
         "email": "chris.gormley2@me.com",
-        "password": "SDHansbrics6"
+        "password": "SDHansbrics6",
+    },
+    "quidco": {
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "NPHansbrics6",
     }
 }
 
