@@ -6,7 +6,7 @@ import arrow
 
 class Esprit(Miner):
     def login(self, credentials):
-        self.open_url('https://www.esprit.co.uk/my-esprit/login')
+        self.open_url('https://www.esprit.co.uk/my-esprit/epoints')
 
         login_form = self.browser.get_form('login_form')
         login_form['username'].value = credentials['email']
@@ -18,7 +18,6 @@ class Esprit(Miner):
         self.check_error('/my-esprit/check', ((selector, STATUS_LOGIN_FAILED, 'The combination of Esprit Friends number'),))
 
     def balance(self):
-        self.open_url('https://www.esprit.co.uk/my-esprit/epoints')
         point_holder = self.browser.select('#epoint-status h3.page_subtitle span')[0]
         return {
             'points': extract_decimal(point_holder.text)
