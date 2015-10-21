@@ -22,7 +22,7 @@ class Waterstones(Miner):
         value_holder = self.browser.select('div.span12 h2')[0]
         return {
             'points': extract_decimal(point_holder.text),
-            'value': extract_decimal(point_holder.text)
+            'value': extract_decimal(value_holder.text)
         }
 
     def transactions(self):
