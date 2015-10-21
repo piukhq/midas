@@ -73,6 +73,10 @@ CREDENTIALS = {
     "esprit": {
         "email": "chris.gormley2@me.com",
         "password": "SDHansbrics6"
+    },
+    "heathrow": {
+        "email": "chris.gormley2@me.com",
+        "password": "RGHansbr15",
     }
 }
 
