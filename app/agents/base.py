@@ -11,11 +11,11 @@ class Miner(object):
     retry_limit = 2
     headers = {}
 
-    def __init__(self, retry_count, scheme_id):
+    def __init__(self, retry_count, scheme_id, proxy=True):
         self.scheme_id = scheme_id
         session = Session()
-        session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
-
+        if proxy:
+            session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
         self.browser = RoboBrowser(parser="lxml", session=session,
                                    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                               "Gecko/20100101 Firefox/40.0")
