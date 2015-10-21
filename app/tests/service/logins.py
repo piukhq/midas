@@ -69,6 +69,10 @@ CREDENTIALS = {
     "maximiles": {
         "email": "chris.gormley2@me.com",
         "password": "RLHansbrics9",
+    },
+    "waterstones": {
+        "email": "chris.gormley2@me.com",
+        "password": "RVHansbrics11",
     }
 }
 
