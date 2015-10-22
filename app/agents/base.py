@@ -31,7 +31,7 @@ class Miner(object):
     # ^- `AttributeError: 'module' object has no attribute 'PROTOCOL_SSLv2'`
     # ^- apparently this is because python removes the PROTOCOL_SSLv2 constant if
     # ^- OpenSSL was compiled without SSLv2 support.
-    def __init__(self, retry_count, scheme_id, ssl_version=ssl.PROTOCOL_TLSv1_2, proxy=True):
+    def __init__(self, retry_count, scheme_id, proxy=True, ssl_version=ssl.PROTOCOL_TLSv1_2):
         self.scheme_id = scheme_id
         session = Session()
         session.mount('https://', SSLAdapter(ssl_version))
