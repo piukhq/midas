@@ -23,10 +23,6 @@ class TestEnterprise(unittest.TestCase):
         balance = self.e.balance()
         schemas.balance(balance)
 
-    def test_balance_after_transactions(self):
-        self.e.transactions()
-        balance = self.e.balance()
-        schemas.balance(balance)
 
 class TestEnterpriseFail(unittest.TestCase):
     def test_login_fail(self):

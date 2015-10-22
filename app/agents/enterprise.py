@@ -1,15 +1,11 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, UNKNOWN, AgentError
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-from urllib.parse import urlsplit
 import arrow
-import re
 
 
 class Enterprise(Miner):
-    redemption_miles_pat = re.compile('"redemptionMiles":"(\d+)"')
-
     def login(self, credentials):
         self.open_url('https://www.enterprise.co.uk/car_rental/home.do')
 
@@ -28,20 +24,8 @@ class Enterprise(Miner):
                              ((selector, STATUS_LOGIN_FAILED, "We're sorry"),))
 
     def balance(self):
-        parts = urlsplit(self.browser.url)
-
-        if parts.path == '/car_rental/enterprisePlusLoginWidget.do':
-            points = extract_decimal(self.browser.select('#loyaltyWidgetHomeContainer form p strong')[2].text)
-        elif parts.path == '/group/ehi/account-activity':
-            user_data_script = self.browser.select('script')[10].text
-            matches = self.redemption_miles_pat.findall(user_data_script)
-            points = extract_decimal(matches[0])
-        else:
-            # TODO: This should be an 'end site changed' error, or something like that.
-            raise AgentError(UNKNOWN)
-
         return {
-            'points': points
+            'points': extract_decimal(self.browser.select('#loyaltyWidgetHomeContainer form p strong')[2].text)
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
@@ -50,9 +34,10 @@ class Enterprise(Miner):
         return row
 
     def transactions(self):
-        self.open_url('https://www.enterprise.co.uk/car_rental/enterprisePlusMyAccount.do'\
+        self.open_url('https://www.enterprise.co.uk/car_rental/enterprisePlusMyAccount.do'
                       '?redirect=accountHistory&transactionId=WebTransaction2')
 
+        # Page uses JavaScript to submit form for redirect.
         redir_form = self.browser.get_form('enterprisePlusSSORedirectForm')
         self.browser.submit_form(redir_form)
 
