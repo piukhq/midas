@@ -85,7 +85,11 @@ CREDENTIALS = {
     "toysrus": {
         "email": "chris.gormley2@me.com",
         "password": "RSHansbrics7!"
-    }
+    },
+    "heathrow": {
+        "email": "chris.gormley2@me.com",
+        "password": "RGHansbr15",
+    },
 }
 
 
