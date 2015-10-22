@@ -24,7 +24,8 @@ class Enterprise(Miner):
         # We can't just check_error because the page for a correct login is the same as that of an incorrect one.
         error_box = self.browser.select(selector)
         if error_box:
-            self.check_error('/car_rental/enterprisePlusLoginWidget.do', ((selector, STATUS_LOGIN_FAILED, "We're sorry"),))
+            self.check_error('/car_rental/enterprisePlusLoginWidget.do',
+                             ((selector, STATUS_LOGIN_FAILED, "We're sorry"),))
 
     def balance(self):
         parts = urlsplit(self.browser.url)
@@ -49,7 +50,8 @@ class Enterprise(Miner):
         return row
 
     def transactions(self):
-        self.open_url('https://www.enterprise.co.uk/car_rental/enterprisePlusMyAccount.do?redirect=accountHistory&transactionId=WebTransaction2')
+        self.open_url('https://www.enterprise.co.uk/car_rental/enterprisePlusMyAccount.do'\
+                      '?redirect=accountHistory&transactionId=WebTransaction2')
 
         redir_form = self.browser.get_form('enterprisePlusSSORedirectForm')
         self.browser.submit_form(redir_form)
