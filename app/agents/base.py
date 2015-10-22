@@ -26,12 +26,13 @@ class SSLAdapter(HTTPAdapter):
 class Miner(object):
     retry_limit = 2
     headers = {}
+    use_tls_v1 = False
 
-    def __init__(self, retry_count, scheme_id, proxy=True, use_tls1=False):
+    def __init__(self, retry_count, scheme_id, proxy=True):
         self.scheme_id = scheme_id
         session = Session()
 
-        if use_tls1:
+        if self.use_tls_v1:
             session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
 
         if proxy:
