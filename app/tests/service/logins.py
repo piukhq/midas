@@ -81,6 +81,10 @@ CREDENTIALS = {
     "quidco": {
         "email": "chris.smith4@gmx.co.uk",
         "password": "NPHansbrics6",
+    },
+    "toysrus": {
+        "email": "chris.gormley2@me.com",
+        "password": "RSHansbrics7!"
     }
 }
 
