@@ -89,7 +89,11 @@ CREDENTIALS = {
     "enterprise": {
         "email": "chris.gormley2@me.com",
         "password": "DDHansbrics10",
-    }
+    },
+    "heathrow": {
+        "email": "chris.gormley2@me.com",
+        "password": "RGHansbr15",
+    },
 }
 
 
