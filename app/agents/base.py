@@ -5,15 +5,35 @@ from urllib.parse import urlsplit
 from app.utils import open_browser
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
 from requests import Session
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import _ssl
+
+
+class SSLAdapter(HTTPAdapter):
+        def __init__(self, ssl_version=None, **kwargs):
+            self.ssl_version = ssl_version
+            self.poolmanager = PoolManager()
+            super().__init__(**kwargs)
+
+        def init_poolmanager(self, connections, maxsize, block=False):
+            self.poolmanager = PoolManager(num_pools=connections,
+                                           maxsize=maxsize,
+                                           block=block,
+                                           ssl_version=self.ssl_version)
 
 
 class Miner(object):
     retry_limit = 2
     headers = {}
 
-    def __init__(self, retry_count, scheme_id, proxy=True):
+    def __init__(self, retry_count, scheme_id, proxy=True, use_tls1=False):
         self.scheme_id = scheme_id
         session = Session()
+
+        if use_tls1:
+            session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
+
         if proxy:
             session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
         self.browser = RoboBrowser(parser="lxml", session=session,
