@@ -29,6 +29,8 @@ class Miner(object):
 
     # I'd prefer to set ssl_version to `ssl.PROTOCOL_SSLv2` by default, but that yields:
     # ^- `AttributeError: 'module' object has no attribute 'PROTOCOL_SSLv2'`
+    # ^- apparently this is because python removes the PROTOCOL_SSLv2 constant if
+    # ^- OpenSSL was compiled without SSLv2 support.
     def __init__(self, retry_count, scheme_id, ssl_version=ssl.PROTOCOL_TLSv1_2, proxy=True):
         self.scheme_id = scheme_id
         session = Session()
