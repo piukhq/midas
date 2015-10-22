@@ -26,4 +26,4 @@ class Waterstones(Miner):
         }
 
     def transactions(self):
-        raise None
+        return None
