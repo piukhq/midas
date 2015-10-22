@@ -7,7 +7,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
-import ssl
+import _ssl
 
 
 class SSLAdapter(HTTPAdapter):
@@ -27,14 +27,12 @@ class Miner(object):
     retry_limit = 2
     headers = {}
 
-    # I'd prefer to set ssl_version to `ssl.PROTOCOL_SSLv2` by default, but that yields:
-    # ^- `AttributeError: 'module' object has no attribute 'PROTOCOL_SSLv2'`
-    # ^- apparently this is because python removes the PROTOCOL_SSLv2 constant if
-    # ^- OpenSSL was compiled without SSLv2 support.
-    def __init__(self, retry_count, scheme_id, proxy=True, ssl_version=ssl.PROTOCOL_TLSv1_2):
+    def __init__(self, retry_count, scheme_id, proxy=True, use_tls1=False):
         self.scheme_id = scheme_id
         session = Session()
-        session.mount('https://', SSLAdapter(ssl_version))
+
+        if use_tls1:
+            session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
 
         if proxy:
             session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
