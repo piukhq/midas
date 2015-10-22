@@ -1,8 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-from decimal import Decimal
-import arrow
+
 
 class Waterstones(Miner):
     def login(self, credentials):
@@ -20,8 +19,10 @@ class Waterstones(Miner):
     def balance(self):
         self.open_url('https://www.waterstones.com/account/waterstonescard')
         point_holder = self.browser.select('div.span4 span')[0]
+        value_holder = self.browser.select('div.span12 h2')[0]
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': extract_decimal(point_holder.text),
+            'value': extract_decimal(value_holder.text)
         }
 
     def transactions(self):

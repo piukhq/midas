@@ -2,6 +2,7 @@ from app.agents.base import Miner
 from app.agents.exceptions import AgentError, LoginError
 import arrow
 import httpretty
+import re
 from unittest import mock, TestCase
 
 
@@ -57,6 +58,6 @@ class TestOpenURL(TestCase):
     def test_open_url_error_status(self):
         httpretty.register_uri(httpretty.GET, "http://foo-api.com/", status=500)
 
-        m = Miner(2, 2)
+        m = Miner(2, 2, proxy=False)
         with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")

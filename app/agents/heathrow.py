@@ -5,6 +5,9 @@ import arrow
 
 
 class Heathrow(Miner):
+    def __init__(self, retry_count, scheme_id, proxy):
+        super().__init__(retry_count, scheme_id, proxy, True)
+
     def login(self, credentials):
         self.open_url('https://rewards.heathrow.com')
 
@@ -14,7 +17,7 @@ class Heathrow(Miner):
 
         self.browser.submit_form(login_form)
 
-        selector = '#loginForm\.errors'
+        selector = '#loginForm.errors'
         self.check_error('/web/lhr/heathrow-rewards', ((selector, STATUS_LOGIN_FAILED, 'Invalid login or password'),))
 
     def balance(self):
@@ -27,12 +30,12 @@ class Heathrow(Miner):
     def parse_transaction(row):
         data = row.select('td')
         return {
-            'date': arrow.get(data[0].content[0].strip(), 'DD/MM/YYYY'),
-            'description': data[3].select('div')[0].content[0].strip(),
-            'points': extract_decimal(data[4].content[0].strip())
+            'date': arrow.get(data[0].contents[0].strip(), 'DD/MM/YYYY'),
+            'description': data[3].select('div')[0].contents[0].strip(),
+            'points': extract_decimal(data[4].contents[0].strip())
         }
 
     def transactions(self):
         self.open_url('https://rewards.heathrow.com/group/lhr/my-transactions')
         rows = self.browser.select('div.transaction-history-table-container tr')
-        return [self.parse_transaction(row) for row in rows]
+        return [self.hashed_transaction(row) for row in rows]
