@@ -5,8 +5,7 @@ import arrow
 
 
 class Heathrow(Miner):
-    def __init__(self, retry_count, scheme_id, proxy):
-        super().__init__(retry_count, scheme_id, proxy, True)
+    use_tls_v1 = True
 
     def login(self, credentials):
         self.open_url('https://rewards.heathrow.com')
