@@ -1,16 +1,13 @@
 from app.agents.base import Miner
-from robobrowser.forms import Form
-from app.agents.exceptions import STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from decimal import Decimal
 import arrow
+import json
 
 
 class Hertz(Miner):
     def login(self, credentials):
-        self.open_url('https://www.hertz.co.uk/rentacar/emember/modify/statementTab')
-
-        post_params = {
+        data = {
             "loginCreateUserID": "false",
             "loginId": credentials['email'],
             "password": credentials['password'],
@@ -18,15 +15,17 @@ class Hertz(Miner):
             "loginForgotPassword": ""
         }
 
-        self.browser.session.post(self.browser.url, post_params)
+        self.browser.open('https://www.hertz.co.uk/rentacar/member/authentication', method='post', data=data)
 
-        selector = '.field-error-list li'
-        self.check_error('/rentacar/member/login.do', ((selector, STATUS_LOGIN_FAILED, 'Member Number'),))
+        if self.browser.response.status_code != 200:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        point_holder = self.browser.select('#section.account-Info span strong')[0]
+        self.browser.open('https://www.hertz.co.uk/rentacar/member/account/navigation?_=1445528212900')
+
+        response_data = json.loads(self.browser.response.text)
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': Decimal(response_data['data']['rewardsPoints'])
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
