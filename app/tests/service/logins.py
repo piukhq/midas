@@ -97,7 +97,11 @@ CREDENTIALS = {
     "hertz": {
         "email": "chris.gormley2@me.com",
         "password": "AGHansbrics5",
-    }
+    },
+    "eurostar": {
+        "email": "chris.gormley2@me.com",
+        "password": "QDHansbrics8"
+    },
 }
 
 
