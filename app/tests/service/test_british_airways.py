@@ -1,6 +1,7 @@
 import unittest
 from urllib.parse import urlsplit
 from app.agents import schemas
+from app.agents.exceptions import LoginError
 from app.agents.british_airways import BritishAirways
 from app.tests.service.logins import CREDENTIALS
 
@@ -23,6 +24,18 @@ class TestBritishAirways(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+
+
+class TestBritishAirwaysFail(unittest.TestCase):
+    def test_login_fail(self):
+        b = BritishAirways(1, 1)
+        bad_cred = {
+            'card_number': "00000000",
+            'password': '321321321'
+        }
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(bad_cred)
+        self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
 
 if __name__ == '__main__':
     unittest.main()

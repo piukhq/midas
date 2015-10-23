@@ -4,16 +4,42 @@ from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
+from requests import Session
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import _ssl
+
+
+class SSLAdapter(HTTPAdapter):
+        def __init__(self, ssl_version=None, **kwargs):
+            self.ssl_version = ssl_version
+            self.poolmanager = PoolManager()
+            super().__init__(**kwargs)
+
+        def init_poolmanager(self, connections, maxsize, block=False):
+            self.poolmanager = PoolManager(num_pools=connections,
+                                           maxsize=maxsize,
+                                           block=block,
+                                           ssl_version=self.ssl_version)
 
 
 class Miner(object):
     retry_limit = 2
     headers = {}
+    use_tls_v1 = False
 
-    def __init__(self, retry_count, scheme_id):
+    def __init__(self, retry_count, scheme_id, proxy=True):
         self.scheme_id = scheme_id
-        self.browser = RoboBrowser(parser="lxml", user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
-                                                             "Gecko/20100101 Firefox/40.0")
+        session = Session()
+
+        if self.use_tls_v1:
+            session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
+
+        if proxy:
+            session.proxies = {'http': '[http:192.168.1.40:3128]http:192.168.1.40:3128'}
+        self.browser = RoboBrowser(parser="lxml", session=session,
+                                   user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
+                                              "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
 
     def attempt_login(self, credentials):
