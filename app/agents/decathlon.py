@@ -59,7 +59,7 @@ class Decathlon(Miner):
 
         rows = [{
             'date': arrow.get(first_response['data'][x]['dateTicket'].strip(), 'YYYY-MM-DD'),
-            'description': 'Purchase at a {} store.'.format(first_response['data'][x]['nomTiers'].title()),
+            'description': first_response['data'][x]['nomTiers'].title(),
             'points': Decimal(floor(second_response['data'][x]['montantTicket'])),
             'location': first_response['data'][x]['nomTiers'].title(),
         } for x in range(len(first_response['data']))]
