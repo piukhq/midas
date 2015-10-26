@@ -1,5 +1,6 @@
 import arrow
 from app.agents.base import Miner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
@@ -21,6 +22,9 @@ class Avios(Miner):
             login_form['j_username'].value = credentials['email']
             login_form['j_password'].value = credentials['password']
             self.browser.submit_form(login_form)
+
+        if self.browser.url != 'https://www.avios.com/gb/en_gb/':
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         points = self.browser.find('div', {'id': 'acc-status'}).find('strong').text
