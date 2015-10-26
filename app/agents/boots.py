@@ -6,17 +6,18 @@ import arrow
 
 class Boots(Miner):
     def login(self, credentials):
-        url = "https://www.boots.com/webapp/wcs/stores/servlet/ADCAccountSummary?" \
-              "storeId=10052&langId=-1&catalogId=10552"
-        self.open_url(url)
+        query = 'https://www.boots.com/webapp/wcs/stores/servlet/LoginRequestDispatcher'
+        data = {
+            'storeId': '10052',
+            'reLogonURL': 'LogonForm',
+            'URL': ('/webapp/wcs/stores/servlet/ADCAccountSummary?catalogId=10552&langId=-1&storeId=10052'
+                    '&krypto=KaymTKtLMpduxnlSzanOzfyb0aQbcMtqR8beC08WV1OdWxhhD3AETPwwqqGZ6TlP26fQ2DYU0OCSl'
+                    'KDlRUUsufo4WJiFvxRcZjI8sg7APBilxu8YivmvRDC3s1z6GXiL'),
+            'logonId': credentials['email'],
+            'logonPassword': credentials['password'],
+        }
 
-        signup_form = self.browser.get_form(id='Logon')
-        signup_form['logonId'].value = credentials['email']
-        signup_form['logonPassword'].value = credentials['password']
-
-        # we need to change the action url or else it uses javascript
-        signup_form.action = "https://www.boots.com/webapp/wcs/stores/servlet/LoginRequestDispatcher"
-        self.browser.submit_form(signup_form)
+        self.browser.open(query, method='post', data=data)
 
         selector = "#formErrorContainer > div > div > ul > li > a"
         self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
@@ -41,4 +42,3 @@ class Boots(Miner):
     def transactions(self):
         rows = self.browser.select(".transactionsList tr")[1:]
         return [self.hashed_transaction(row) for row in rows]
-
