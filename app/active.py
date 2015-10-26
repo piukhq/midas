@@ -13,8 +13,16 @@ AGENTS = {
     'nectar': 'nectar.Nectar',
     'avios': 'avios.Avios',
     'executive-club': 'british_airways.BritishAirways',
+    'greggs': 'greggs.Greggs',
+    'debenhams': 'debenhams.Debenhams',
+    'maximiles': 'maximiles.Maximiles',
+    'waterstones': 'waterstones.Waterstones',
+    'esprit': 'esprit.Esprit',
+    'quidco': 'quidco.Quidco',
+    'toysrus': 'toysrus.Toysrus',
+    'enterprise': 'enterprise.Enterprise',
+    'heathrow': 'heathrow.Heathrow',
+    'hertz': 'hertz.Hertz',
+    'eurostar': 'eurostar.Eurostar',
+    'tabletable': 'tabletable.Tabletable',
 }
-
-
-
-
