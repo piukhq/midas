@@ -102,6 +102,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "QDHansbrics8"
     },
+    "tabletable": {
+        "email": "chris.gormley2@me.com",
+        "password": "DSHansbrics10",
+    },
 }
 
 
