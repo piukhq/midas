@@ -100,7 +100,15 @@ CREDENTIALS = {
     },
     "eurostar": {
         "email": "chris.gormley2@me.com",
-        "password": "QDHansbrics8"
+        "password": "QDHansbrics8",
+    },
+    "tabletable": {
+        "email": "chris.gormley2@me.com",
+        "password": "DSHansbrics10",
+    },
+    "decathlon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MCHansbrics9",
     },
     "odeon": {
         "email": "chris.gormley2@me.com",
