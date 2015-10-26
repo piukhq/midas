@@ -106,6 +106,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "DSHansbrics10",
     },
+    "decathlon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MCHansbrics9",
+    },
 }
 
 
