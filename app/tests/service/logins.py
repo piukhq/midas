@@ -86,9 +86,21 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RSHansbrics7!",
     },
+    "enterprise": {
+        "email": "chris.gormley2@me.com",
+        "password": "DDHansbrics10",
+    },
     "heathrow": {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbr15",
+    },
+    "hertz": {
+        "email": "chris.gormley2@me.com",
+        "password": "AGHansbrics5",
+    },
+    "eurostar": {
+        "email": "chris.gormley2@me.com",
+        "password": "QDHansbrics8"
     },
     "odeon": {
         "email": "chris.gormley2@me.com",

@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 import arrow
 
@@ -14,7 +14,9 @@ class Odeon(Miner):
         self.browser.submit_form(login_form)
 
         selector = '.error'
-        self.check_error('/', ((selector, STATUS_LOGIN_FAILED, 'Username or Password incorrect'),))
+        error_box = self.browser.select('.error')
+        if len(error_box) > 0:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         point_holder = self.browser.select('div.span5 span')[0]
