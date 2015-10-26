@@ -6,7 +6,7 @@ import arrow
 
 class Tabletable(Miner):
     def login(self, credentials):
-        self.open_url('https://www.tabletabletastyrewards.co.uk/home')
+        self.open_url('https://www.tastyrewards.co.uk/')
 
         login_form = self.browser.get_form('_58_fm')
         login_form['_58_login'].value = credentials['email']
@@ -27,13 +27,13 @@ class Tabletable(Miner):
     def parse_transaction(row):
         data = row.find_all('td')
         return {
-            'date': arrow.get(data[4].strip(), 'DD.MM.YYYY'),
-            'description': data[2].strip(),
-            'points': extract_decimal(data[3].strip()),
+            'date': arrow.get(data[4].contents[0].strip(), 'DD/MM/YY'),
+            'description': data[2].contents[0].strip(),
+            'points': extract_decimal(data[3].contents[0].strip()),
         }
 
     def transactions(self):
-        self.open_url('https://www.tabletabletastyrewards.co.uk/group/table/your-account')
+        self.open_url('https://www.tastyrewards.co.uk/group/tasty-rewards/your-account')
 
         rows = self.browser.select('div.pointsTransaction tr.portlet-section-body.results-row')[1:]
         return [self.hashed_transaction(row) for row in rows]
