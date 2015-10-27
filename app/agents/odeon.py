@@ -27,10 +27,14 @@ class Odeon(Miner):
     @staticmethod
     def parse_transaction(row):
         data = row.select('div.attr')
+
+        positive_points = extract_decimal(data[2].select('b')[0].contents[0].strip())
+        negative_points = extract_decimal(data[3].select('b')[0].contents[0].strip())
+
         return {
             'date': arrow.get(data[0].contents[0].strip(), 'DD/MM/YYYY'),
             'description': data[1].select('b')[0].contents[0].strip(),
-            'points': extract_decimal(data[2].select('b')[0].contents[0].strip())
+            'points': positive_points - negative_points
         }
 
     def transactions(self):
