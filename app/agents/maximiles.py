@@ -19,7 +19,6 @@ class Maximiles(Miner):
         self.check_error('/my-account/login', ((selector, STATUS_LOGIN_FAILED, 'Invalid Username/password'),))
 
     def balance(self):
-        self.open_url('http://www.maximiles.co.uk/my-account')
         point_holder = self.browser.select('#global #main #colLeft h1 strong')[0]
         return {
             'points': extract_decimal(point_holder.text)
