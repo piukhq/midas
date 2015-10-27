@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 
 
@@ -25,12 +26,24 @@ class Odeon(Miner):
         }
 
     @staticmethod
+    def get_points(data):
+        holder = data.select('b')[0]
+        if len(holder.contents) > 0:
+            return extract_decimal(holder.contents[0].strip())
+        else:
+            return Decimal(0)
+
+    @staticmethod
     def parse_transaction(row):
         data = row.select('div.attr')
+
+        positive_points = Odeon.get_points(data[2])
+        negative_points = Odeon.get_points(data[3])
+
         return {
             'date': arrow.get(data[0].contents[0].strip(), 'DD/MM/YYYY'),
             'description': data[1].select('b')[0].contents[0].strip(),
-            'points': extract_decimal(data[2].select('b')[0].contents[0].strip())
+            'points': positive_points - negative_points
         }
 
     def transactions(self):
