@@ -18,7 +18,7 @@ class Morrisons(Miner):
         signup_form['username'].value = credentials['email']
         signup_form['password'].value = credentials['password']
 
-        self.browser.submit_form(signup_form)
+        self.browser.submit_form(signup_form, verify=False)
         self.check_error("/login", ((".error-message", STATUS_LOGIN_FAILED, "Wrong username or password"), ))
 
         # get the access token and the card number

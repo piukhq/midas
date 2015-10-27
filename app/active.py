@@ -1,29 +1,31 @@
 # We possibly don't need the class path but we'll see
 
-#These could be strings, if we end up with too many imports
+# These could be strings, if we end up with too many imports
+# Commented entries are agents whose tests are currently not passing.
 AGENTS = {
-    "tesco-clubcard": 'tesco.Tesco',
-    "advantage-card": 'boots.Boots',
-    'health-beautycard': 'superdrug.Superdrug',
-    'shell-drivers-club': 'shell.Shell',
-    'match-more': 'morrisons.Morrisons',
-    'colonels-club': 'kfc.Kfc',
-    'coffee-club': 'costa.Costa',
-    'cooperative': 'cooperative.Cooperative',
-    'nectar': 'nectar.Nectar',
     'avios': 'avios.Avios',
+    'advantage-card': 'boots.Boots',
     'executive-club': 'british_airways.BritishAirways',
-    'greggs-rewards': 'greggs.Greggs',
+    'cooperative': 'cooperative.Cooperative',
+    # 'coffee-club': 'costa.Costa',                         # Costa now has a captcha.
     'debenhams': 'debenhams.Debenhams',
-    'maximiles': 'maximiles.Maximiles',
-    'the-waterstones-card': 'waterstones.Waterstones',
-    'my-esprit': 'esprit.Esprit',
-    'quidco': 'quidco.Quidco',
-    'toysrus': 'toysrus.Toysrus',
+    'decathlon-card': 'decathlon.Decathlon',
     'enterprise': 'enterprise.Enterprise',
+    'my-esprit': 'esprit.Esprit',
+    # 'eurostar-plus-points': 'eurostar.Eurostar',          # Eurostar's site is currently unavailable.
+    'greggs-rewards': 'greggs.Greggs',
     'heathrow-rewards': 'heathrow.Heathrow',
     'hertz': 'hertz.Hertz',
-    'eurostar-plus-points': 'eurostar.Eurostar',
-    'tasty-rewards': 'tabletable.Tabletable',
+    'colonels-club': 'kfc.Kfc',
+    'maximiles': 'maximiles.Maximiles',
+    'match-more': 'morrisons.Morrisons',
+    'nectar': 'nectar.Nectar',
     'my-opc': 'odeon.Odeon',
+    'quidco': 'quidco.Quidco',
+    'shell-drivers-club': 'shell.Shell',
+    'health-beautycard': 'superdrug.Superdrug',
+    'tasty-rewards': 'tabletable.Tabletable',
+    'tesco-clubcard': 'tesco.Tesco',
+    'toysrus': 'toysrus.Toysrus',
+    'the-waterstones-card': 'waterstones.Waterstones',
 }
