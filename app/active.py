@@ -19,7 +19,7 @@ AGENTS = {
     'colonels-club': 'kfc.Kfc',
     'maximiles': 'maximiles.Maximiles',
     'match-more': 'morrisons.Morrisons',
-    # 'nectar': 'nectar.Nectar',
+    'nectar': 'nectar.Nectar',
     'my-opc': 'odeon.Odeon',
     'quidco': 'quidco.Quidco',
     'shell-drivers-club': 'shell.Shell',
