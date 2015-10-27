@@ -84,7 +84,7 @@ CREDENTIALS = {
     },
     "toysrus": {
         "email": "chris.gormley2@me.com",
-        "password": "RSHansbrics7!"
+        "password": "RSHansbrics7!",
     },
     "enterprise": {
         "email": "chris.gormley2@me.com",
@@ -100,7 +100,7 @@ CREDENTIALS = {
     },
     "eurostar": {
         "email": "chris.gormley2@me.com",
-        "password": "QDHansbrics8"
+        "password": "QDHansbrics8",
     },
     "tabletable": {
         "email": "chris.gormley2@me.com",
@@ -109,6 +109,10 @@ CREDENTIALS = {
     "decathlon": {
         "email": "chris.gormley2@me.com",
         "password": "MCHansbrics9",
+    },
+    "odeon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MNHansbrics5",
     },
 }
 
