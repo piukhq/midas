@@ -117,7 +117,11 @@ CREDENTIALS = {
     "nandos": {
         "email": "nataliabrevot@live.com",
         "password": "LAngels2015!",
-    }
+    },
+    "beefeater": {
+        "email": "chris.gormley2@me.com",
+        "password": "DSHansbrics10",
+    },
 }
 
 
