@@ -25,4 +25,5 @@ AGENTS = {
     'hertz': 'hertz.Hertz',
     'eurostar-plus-points': 'eurostar.Eurostar',
     'tasty-rewards': 'tabletable.Tabletable',
+    'my-opc': 'odeon.Odeon',
 }

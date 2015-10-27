@@ -3,6 +3,7 @@ from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 import arrow
 
+
 class Odeon(Miner):
     def login(self, credentials):
         self.open_url('http://www.odeon.co.uk')
