@@ -28,4 +28,5 @@ AGENTS = {
     'tesco-clubcard': 'tesco.Tesco',
     'toysrus': 'toysrus.Toysrus',
     'the-waterstones-card': 'waterstones.Waterstones',
+    'nandos-card': 'nandos.Nandos',
 }
