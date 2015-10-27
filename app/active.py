@@ -18,7 +18,7 @@ AGENTS = {
     'hertz': 'hertz.Hertz',
     'colonels-club': 'kfc.Kfc',
     'maximiles': 'maximiles.Maximiles',
-    # 'match-more': 'morrisons.Morrisons',
+    'match-more': 'morrisons.Morrisons',
     # 'nectar': 'nectar.Nectar',
     'my-opc': 'odeon.Odeon',
     'quidco': 'quidco.Quidco',
