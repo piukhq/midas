@@ -13,7 +13,6 @@ class Odeon(Miner):
 
         self.browser.submit_form(login_form)
 
-        selector = '.error'
         error_box = self.browser.select('.error')
         if len(error_box) > 0:
             raise LoginError(STATUS_LOGIN_FAILED)
@@ -29,11 +28,11 @@ class Odeon(Miner):
         data = row.select('div.attr')
         return {
             'date': arrow.get(data[0].contents[0].strip(), 'DD/MM/YYYY'),
-            'description': data[1].select('b')[0].strip(),
-            'points': extract_decimal(data[2].select('b')[0].strip())
+            'description': data[1].select('b')[0].contents[0].strip(),
+            'points': extract_decimal(data[2].select('b')[0].contents[0].strip())
         }
 
     def transactions(self):
         self.open_url('https://www.odeon.co.uk/my-odeon/dashboard/my-opc/')
-        rows = self.browser.select('div.points-transactions div.row')[1:]
+        rows = self.browser.select('div.points-transactions')[0].select('div.row')[1:]
         return [self.hashed_transaction(row) for row in rows]
