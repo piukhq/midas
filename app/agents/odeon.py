@@ -26,19 +26,11 @@ class Odeon(Miner):
         }
 
     @staticmethod
-    def get_points(data):
-        holder = data.select('b')[0]
-        if len(holder.contents) > 0:
-            return extract_decimal(holder.contents[0].strip())
-        else:
-            return Decimal(0)
-
-    @staticmethod
     def parse_transaction(row):
         data = row.select('div.attr')
 
-        positive_points = Odeon.get_points(data[2])
-        negative_points = Odeon.get_points(data[3])
+        positive_points = get_points(data[2])
+        negative_points = get_points(data[3])
 
         return {
             'date': arrow.get(data[0].contents[0].strip(), 'DD/MM/YYYY'),
@@ -50,3 +42,11 @@ class Odeon(Miner):
         self.open_url('https://www.odeon.co.uk/my-odeon/dashboard/my-opc/')
         rows = self.browser.select('div.points-transactions')[0].select('div.row')[1:]
         return [self.hashed_transaction(row) for row in rows]
+
+
+def get_points(data):
+    holder = data.select('b')[0]
+    if len(holder.contents) > 0:
+        return extract_decimal(holder.contents[0].strip())
+    else:
+        return Decimal(0)
