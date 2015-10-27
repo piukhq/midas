@@ -12,7 +12,7 @@ AGENTS = {
     'decathlon-card': 'decathlon.Decathlon',
     'enterprise': 'enterprise.Enterprise',
     'my-esprit': 'esprit.Esprit',
-    # 'eurostar-plus-points': 'eurostar.Eurostar',          # Eurostar's site is currently unavailable.
+    'eurostar-plus-points': 'eurostar.Eurostar',
     'greggs-rewards': 'greggs.Greggs',
     'heathrow-rewards': 'heathrow.Heathrow',
     'hertz': 'hertz.Hertz',
@@ -28,4 +28,5 @@ AGENTS = {
     'tesco-clubcard': 'tesco.Tesco',
     'toysrus': 'toysrus.Toysrus',
     'the-waterstones-card': 'waterstones.Waterstones',
+    'nandos-card': 'nandos.Nandos',
 }
