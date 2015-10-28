@@ -122,10 +122,14 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "DSHansbrics10",
     },
+    "harrods": {
+        "email": "chris.gormley2@me.com",
+        "password": "RGHansbrics7",
+    },
     "jetblue": {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015",
-    }
+    },
 }
 
 
