@@ -126,6 +126,14 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
     },
+    "monsoon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MLHansbrics7",
+    },
+    "jetblue": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015",
+    },
     "qantas": {
         "member_number": "1925645176",
         "last_name": "angels",

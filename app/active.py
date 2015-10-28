@@ -30,5 +30,8 @@ AGENTS = {
     'the-waterstones-card': 'waterstones.Waterstones',
     'nandos-card': 'nandos.Nandos',
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
+    'monsoon': 'monsoon.Monsoon',
+    'harrods': 'harrods.Harrods',
+    'trueblue': 'jetblue.Jetblue',
     'frequent-flyer': 'qantas.Qantas',
 }
