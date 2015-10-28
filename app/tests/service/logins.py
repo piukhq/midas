@@ -134,6 +134,11 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015",
     },
+    "qantas": {
+        "card_number": "1925645176",
+        "last_name": "angels",
+        "pin": "1290",
+    },
 }
 
 

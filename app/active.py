@@ -33,4 +33,5 @@ AGENTS = {
     'monsoon': 'monsoon.Monsoon',
     'harrods': 'harrods.Harrods',
     'trueblue': 'jetblue.Jetblue',
+    'frequent-flyer': 'qantas.Qantas',
 }
