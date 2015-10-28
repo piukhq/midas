@@ -30,4 +30,5 @@ AGENTS = {
     'the-waterstones-card': 'waterstones.Waterstones',
     'nandos-card': 'nandos.Nandos',
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
+    'frequent-flyer': 'qantas.Qantas',
 }

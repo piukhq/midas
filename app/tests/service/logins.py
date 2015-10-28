@@ -125,7 +125,12 @@ CREDENTIALS = {
     "harrods": {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
-    }
+    },
+    "qantas": {
+        "member_number": "1925645176",
+        "last_name": "angels",
+        "pin": "1290",
+    },
 }
 
 
