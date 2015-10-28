@@ -125,6 +125,10 @@ CREDENTIALS = {
     "harrods": {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
+    },
+    "mandco": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
     }
 }
 
