@@ -125,7 +125,11 @@ CREDENTIALS = {
     "harrods": {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
-    }
+    },
+    "monsoon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MLHansbrics7",
+    },
 }
 
 
