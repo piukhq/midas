@@ -135,7 +135,7 @@ CREDENTIALS = {
         "password": "LAngels2015",
     },
     "qantas": {
-        "member_number": "1925645176",
+        "card_number": "1925645176",
         "last_name": "angels",
         "pin": "1290",
     },

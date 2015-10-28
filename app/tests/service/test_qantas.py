@@ -27,7 +27,7 @@ class TestQantasFail(unittest.TestCase):
     def test_login_fail(self):
         m = Qantas(1, 1, False)
         credentials = {
-            "member_number": "9999999999",
+            "card_number": "9999999999",
             "last_name": "bad",
             "pin": "9999",
         }

@@ -8,7 +8,7 @@ class Qantas(Miner):
         self.open_url('https://www.qantas.com.au/fflyer/do/dyns/auth/youractivity/yourActivity')
 
         login_form = self.browser.get_form('FFLoginForm')
-        login_form['login_ffNumber'].value = credentials['member_number']
+        login_form['login_ffNumber'].value = credentials['card_number']
         login_form['login_surname'].value = credentials['last_name']
         login_form['login_pin'].value = credentials['pin']
 
