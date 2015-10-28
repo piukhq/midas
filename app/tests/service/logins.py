@@ -130,6 +130,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "MLHansbrics7",
     },
+    "jetblue": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015",
+    },
 }
 
 
