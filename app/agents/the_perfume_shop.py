@@ -1,0 +1,37 @@
+from app.agents.base import Miner
+from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
+from decimal import Decimal
+import arrow
+
+
+class ThePerfumeShop(Miner):
+    def login(self, credentials):
+        self.open_url('https://www.theperfumeshop.com/my-account/loyalty')
+
+        login_form = self.browser.get_form('loginForm')
+        login_form['j_username'].value = credentials['email']
+        login_form['j_password'].value = credentials['password']
+        self.browser.submit_form(login_form)
+
+        self.check_error('/login',
+                         (('span.message-box.error.show', STATUS_LOGIN_FAILED, 'Your username or password'), ))
+
+    def balance(self):
+        return {
+            'points': extract_decimal(self.browser.select('p.p-points-balance--amount')[0].text)
+        }
+
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def transactions(self):
+        #self.open_url('https://www.theperfumeshop.com/my-account/orders')
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [self.hashed_transaction(t)]
