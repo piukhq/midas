@@ -34,4 +34,5 @@ AGENTS = {
     'harrods': 'harrods.Harrods',
     'trueblue': 'jetblue.Jetblue',
     'frequent-flyer': 'qantas.Qantas',
+    'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
 }
