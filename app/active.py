@@ -35,4 +35,7 @@ AGENTS = {
     'trueblue': 'jetblue.Jetblue',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
+    'rewards4fishing': 'rewards4fishing.Rewards4Fishing',
+    'rewards4golf': 'rewards4golf.Rewards4Golf',
+    'rewards4racing': 'rewards4racing.Rewards4Racing',
 }

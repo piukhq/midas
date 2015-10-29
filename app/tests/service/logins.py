@@ -143,6 +143,18 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015!",
     },
+    "rewards4fishing": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "rewards4golf": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "rewards4racing": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
 }
 
 
