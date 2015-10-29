@@ -155,6 +155,10 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015!",
     },
+    "lufthansa": {
+        "card_number": "992000656640646",
+        "pin": "55296",
+    }
 }
 
 
