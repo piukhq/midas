@@ -139,6 +139,10 @@ CREDENTIALS = {
         "last_name": "angels",
         "pin": "1290",
     },
+    "rewards4fishing": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    }
 }
 
 
