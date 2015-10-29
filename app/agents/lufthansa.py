@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 import arrow
 import time
@@ -22,6 +22,8 @@ class Lufthansa(Miner):
         error_box = self.browser.select('span.alert-label')
         if len(error_box) > 0 and error_box[0].text.startswith('Please check your Miles & More service card number'):
             raise LoginError(STATUS_LOGIN_FAILED)
+        elif self.browser.url.startswith('https://www.miles-and-more.com/online/portal/mam/uk/homepage'):
+            raise LoginError(STATUS_ACCOUNT_LOCKED)
 
     def balance(self):
         miles_elements = self.browser.select('div.account-status dl.dl-horizontal dd')
