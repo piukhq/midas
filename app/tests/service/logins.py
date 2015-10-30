@@ -158,6 +158,10 @@ CREDENTIALS = {
     "space_nk": {
         "card_number": "63385283721106029252",
     },
+    "lufthansa": {
+        "card_number": "992000656640646",
+        "pin": "55296",
+    },
 }
 
 
