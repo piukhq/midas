@@ -18,10 +18,15 @@ class MandCo(Miner):
 
         login_form['dwfrm_login_password'].value = credentials['password']
 
-        self.browser.submit_form(login_form)
+        post_data = {}
+        post_data['dwfrm_login_login'] = 'Login'
+        for k, v in login_form.fields.items():
+            post_data[k] = v.value
 
-        self.check_error('/sign-in',
-            (('#dwfrm_login div.error-form', STATUS_LOGIN_FAILED, 'Oops, this email address and password'), ))
+        self.browser.open(login_form.action, method='post', data=post_data)
+
+        #self.check_error('/sign-in', (('#dwfrm_login div.error-form',
+        #                               STATUS_LOGIN_FAILED, 'Oops, this email address and password'), ))
 
     def balance(self):
         return {
