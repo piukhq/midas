@@ -14,9 +14,6 @@ class Lufthansa(Miner):
         login_form['PC_7_A0SO5GGCQUEA20A15AJ3TA3QK20n3046_userId'].value = credentials['card_number']
         login_form['PC_7_A0SO5GGCQUEA20A15AJ3TA3QK20n3046_password'].value = credentials['pin']
 
-        # We need a bit of time to get past the spinning progress gif. Is there a better way to wait for this?
-        time.sleep(.5)
-
         self.browser.submit_form(login_form)
 
         error_box = self.browser.select('span.alert-label')
