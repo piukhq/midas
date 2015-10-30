@@ -38,4 +38,5 @@ AGENTS = {
     'rewards4fishing': 'rewards4fishing.Rewards4Fishing',
     'rewards4golf': 'rewards4golf.Rewards4Golf',
     'rewards4racing': 'rewards4racing.Rewards4Racing',
+    'space_nk': 'space_nk.SpaceNK',
 }
