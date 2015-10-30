@@ -126,10 +126,42 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
     },
+    "monsoon": {
+        "email": "chris.gormley2@me.com",
+        "password": "MLHansbrics7",
+    },
+    "jetblue": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015",
+    },
+    "qantas": {
+        "card_number": "1925645176",
+        "last_name": "angels",
+        "pin": "1290",
+    },
+    "the_perfume_shop": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "rewards4fishing": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "rewards4golf": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "rewards4racing": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
+    "space_nk": {
+        "card_number": "63385283721106029252",
+    },
     "mandco": {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015!",
-    }
+    },
 }
 
 
