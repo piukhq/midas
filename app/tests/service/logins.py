@@ -165,7 +165,11 @@ CREDENTIALS = {
     "avis": {
         "email": "chris.gormley2@me.com",
         "password": "RZHansbrics4",
-    }
+    },
+    "mandco": {
+        "email": "la@loyaltyangels.com",
+        "password": "LAngels2015!",
+    },
 }
 
 

@@ -41,4 +41,5 @@ AGENTS = {
     'space_nk': 'space_nk.SpaceNK',
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
+    'mandco': 'mandco.MandCo',
 }
