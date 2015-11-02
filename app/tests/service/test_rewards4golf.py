@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestRewards4Golf(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.r = Rewards4Golf(1, 1, False)
+        cls.r = Rewards4Golf(1, 1)
         cls.r.attempt_login(CREDENTIALS['rewards4golf'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestRewards4Golf(unittest.TestCase):
 
 class TestRewards4GolfFail(unittest.TestCase):
     def test_login_fail(self):
-        r = Rewards4Golf(1, 1, False)
+        r = Rewards4Golf(1, 1)
         with self.assertRaises(LoginError) as e:
             r.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')

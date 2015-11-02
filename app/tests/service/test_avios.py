@@ -8,7 +8,7 @@ from app.agents import schemas
 class TestAvios(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Avios(1, 1, False)
+        cls.b = Avios(1, 1)
         cls.b.attempt_login(CREDENTIALS["avios"])
 
     def test_login(self):

@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestDecathlon(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.d = Decathlon(1, 1, False)
+        cls.d = Decathlon(1, 1)
         cls.d.attempt_login(CREDENTIALS['decathlon'])
 
     def test_login(self):
@@ -21,7 +21,7 @@ class TestDecathlon(unittest.TestCase):
 
 class TestDecathlonFail(unittest.TestCase):
     def test_login_fail(self):
-        d = Decathlon(1, 1, False)
+        d = Decathlon(1, 1)
         with self.assertRaises(LoginError) as e:
             d.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
