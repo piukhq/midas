@@ -27,7 +27,7 @@ class TestAvios(unittest.TestCase):
 class TestAviosFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
-        b = Avios(1, 1, False)
+        b = Avios(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

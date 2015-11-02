@@ -26,7 +26,7 @@ class TestAvis(unittest.TestCase):
 
 class TestAvisFail(unittest.TestCase):
     def test_login_bad_credentials(self):
-        d = Avis(1, 1, False)
+        d = Avis(1, 1)
         with self.assertRaises(LoginError) as e:
             d.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
