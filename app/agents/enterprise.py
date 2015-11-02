@@ -1,31 +1,29 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 import arrow
+import json
 
 
 class Enterprise(Miner):
     def login(self, credentials):
-        self.open_url('https://www.enterprise.co.uk/car_rental/home.do')
+        url = 'https://prd.webapi.enterprise.co.uk/enterprise-ewt/ecom-service/login/EP?locale=en_GB'
+        login_data = {
+            'username': credentials['email'],
+            'password': credentials['password'],
+            'remember_credentials': 'false',
+        }
 
-        login_form = self.browser.get_form(action='/car_rental/enterprisePlusLoginWidget.do')
-        login_form['memberNumber'].value = credentials['email']
-        login_form['password'].value = credentials['password']
+        self.browser.open(url, method='post', json=login_data)
 
-        self.browser.submit_form(login_form)
+        self.account_data = json.loads(self.browser.response.text)
 
-        selector = 'p.errorText'
-
-        # We can't just check_error because the page for a correct login is the same as that of an incorrect one.
-        error_box = self.browser.select(selector)
-        if error_box:
-            self.check_error('/car_rental/enterprisePlusLoginWidget.do',
-                             ((selector, STATUS_LOGIN_FAILED, "We're sorry"),))
+        if len(self.account_data['messages']) and self.account_data['messages'][0]['message'].startswith('We'):
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         return {
-            'points': extract_decimal(self.browser.select('#loyaltyWidgetHomeContainer form p strong')[2].text)
+            'points': Decimal(self.account_data['profile']['basic_profile']['loyalty_data']['points_to_date'])
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
@@ -34,13 +32,6 @@ class Enterprise(Miner):
         return row
 
     def transactions(self):
-        self.open_url('https://www.enterprise.co.uk/car_rental/enterprisePlusMyAccount.do'
-                      '?redirect=accountHistory&transactionId=WebTransaction2')
-
-        # Page uses JavaScript to submit form for redirect.
-        redir_form = self.browser.get_form('enterprisePlusSSORedirectForm')
-        self.browser.submit_form(redir_form)
-
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
