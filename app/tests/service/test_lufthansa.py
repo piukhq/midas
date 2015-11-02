@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestLufthansa(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Lufthansa(1, 1, False)
+        cls.m = Lufthansa(1, 1)
         cls.m.attempt_login(CREDENTIALS['lufthansa'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestLufthansa(unittest.TestCase):
 
 class TestLufthansaFail(unittest.TestCase):
     def test_login_fail(self):
-        m = Lufthansa(1, 1, False)
+        m = Lufthansa(1, 1)
         credentials = {
             'card_number': '999999999999999',
             'pin': '99999',

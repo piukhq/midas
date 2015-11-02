@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestJetBlue(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.j = JetBlue(1, 1, False)
+        cls.j = JetBlue(1, 1)
         cls.j.attempt_login(CREDENTIALS['jetblue'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestJetBlue(unittest.TestCase):
 
 class TestJetBlueFail(unittest.TestCase):
     def test_login_fail(self):
-        j = JetBlue(1, 1, False)
+        j = JetBlue(1, 1)
         with self.assertRaises(LoginError) as e:
             j.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')

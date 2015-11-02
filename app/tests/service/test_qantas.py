@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestQantas(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Qantas(1, 1, False)
+        cls.m = Qantas(1, 1)
         cls.m.attempt_login(CREDENTIALS['qantas'])
 
     def test_login(self):
@@ -25,7 +25,7 @@ class TestQantas(unittest.TestCase):
 
 class TestQantasFail(unittest.TestCase):
     def test_login_fail(self):
-        m = Qantas(1, 1, False)
+        m = Qantas(1, 1)
         credentials = {
             "card_number": "9999999999",
             "last_name": "bad",

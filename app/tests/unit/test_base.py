@@ -57,7 +57,10 @@ class TestOpenURL(TestCase):
     @httpretty.activate
     def test_open_url_error_status(self):
         httpretty.register_uri(httpretty.GET, "http://foo-api.com/", status=500)
+        m_cls = Miner
+        m_cls.proxy = False
 
-        m = Miner(2, 2, proxy=False)
+        m = m_cls(2, 2)
+        m.proxy = False
         with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")

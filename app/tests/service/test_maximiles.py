@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestMaximiles(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Maximiles(1, 1, False)
+        cls.m = Maximiles(1, 1)
         cls.m.attempt_login(CREDENTIALS['maximiles'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestMaximiles(unittest.TestCase):
 
 class TestMaximilesFail(unittest.TestCase):
     def test_login_fail(self):
-        m = Maximiles(1, 1, False)
+        m = Maximiles(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')

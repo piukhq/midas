@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestMonsoon(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Monsoon(1, 1, False)
+        cls.m = Monsoon(1, 1)
         cls.m.attempt_login(CREDENTIALS['monsoon'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestMonsoon(unittest.TestCase):
 
 class TestMonsoonFail(unittest.TestCase):
     def test_login_fail(self):
-        m = Monsoon(1, 1, False)
+        m = Monsoon(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
