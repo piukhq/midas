@@ -10,6 +10,7 @@ class TestRetry(unittest.TestCase):
         items = transactions([{}, ], 5)
         self.assertEqual(items, [{'scheme_account_id': 5}])
         self.assertTrue(mock_post.called)
+        self.assertTrue(mock_post.call_args[0][0][-13:], '/transactions')
 
     @patch('app.publish.post', autospec=True)
     def test_balance(self, mock_post):
