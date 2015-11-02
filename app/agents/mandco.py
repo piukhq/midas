@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -7,7 +7,7 @@ import arrow
 
 class MandCo(Miner):
     def login(self, credentials):
-        self.open_url('https://www.mandco.com/sign-in')
+        self.open_url('https://www.mandco.com/on/demandware.store/Sites-mandco-Site/default/LoyaltyCard-Show')
         login_form = self.browser.get_form('dwfrm_login')
 
         # The email field name is partially scrambled.
@@ -25,8 +25,9 @@ class MandCo(Miner):
 
         self.browser.open(login_form.action, method='post', data=post_data)
 
-        #self.check_error('/sign-in', (('#dwfrm_login div.error-form',
-        #                               STATUS_LOGIN_FAILED, 'Oops, this email address and password'), ))
+        error_box = self.browser.select('#dwfrm_login div.error-form')
+        if len(error_box) > 0 and error_box[0].text.startswith('Oops, this email address and password'):
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         return {

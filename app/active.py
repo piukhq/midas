@@ -39,5 +39,6 @@ AGENTS = {
     'rewards4golf': 'rewards4golf.Rewards4Golf',
     'rewards4racing': 'rewards4racing.Rewards4Racing',
     'space_nk': 'space_nk.SpaceNK',
+    'miles-and-more': 'lufthansa.Lufthansa',
     'mandco': 'mandco.MandCo',
 }
