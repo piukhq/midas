@@ -77,7 +77,7 @@ class Balance(Resource):
             status = e.code
             agent_abort(e)
         except Exception as e:
-            status = e.code
+            status = 520
             unknown_abort(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status)
@@ -112,7 +112,7 @@ class Transactions(Resource):
             status = e.code
             agent_abort(e)
         except Exception as e:
-            status = e.code
+            status = 520
             unknown_abort(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status)
