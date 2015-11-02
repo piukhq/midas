@@ -162,6 +162,10 @@ CREDENTIALS = {
         "card_number": "992000656640646",
         "pin": "55296",
     },
+    "avis": {
+        "email": "chris.gormley2@me.com",
+        "password": "RZHansbrics4",
+    }
 }
 
 
