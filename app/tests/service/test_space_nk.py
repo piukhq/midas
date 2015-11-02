@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestSpaceNK(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = SpaceNK(1, 1, False)
+        cls.m = SpaceNK(1, 1)
         cls.m.attempt_login(CREDENTIALS['space_nk'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestSpaceNK(unittest.TestCase):
 
 class TestSpaceNKFail(unittest.TestCase):
     def test_login_fail(self):
-        m = SpaceNK(1, 1, False)
+        m = SpaceNK(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login({ 'card_number': '99999999999999999999' })
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')

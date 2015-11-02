@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestMandCo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = MandCo(1, 1, False)
+        cls.m = MandCo(1, 1)
         cls.m.attempt_login(CREDENTIALS["mandco"])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestMandCo(unittest.TestCase):
 
 class TestMandCoFail(unittest.TestCase):
     def test_login_bad_credentials(self):
-        m = MandCo(1, 1, False)
+        m = MandCo(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")

@@ -8,7 +8,7 @@ from app.tests.service.logins import CREDENTIALS
 class TestThePerfumeShop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = ThePerfumeShop(1, 1, False)
+        cls.m = ThePerfumeShop(1, 1)
         cls.m.attempt_login(CREDENTIALS['the_perfume_shop'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestThePerfumeShop(unittest.TestCase):
 
 class TestThePerfumeShopFail(unittest.TestCase):
     def test_login_fail(self):
-        m = ThePerfumeShop(1, 1, False)
+        m = ThePerfumeShop(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
