@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, IP_BLOCKED, TRIPPED_CAPTCHA
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -17,7 +17,10 @@ class Nandos(Miner):
         }
         self.browser.open(query, method='post', data=data)
 
-        self.check_error('/card/log-in', (('#content-header div h2', STATUS_LOGIN_FAILED, 'Status'),))
+        self.check_error('/card/log-in', (
+            ('#content-header div h2', STATUS_LOGIN_FAILED, 'Status'),
+            ('.messages', TRIPPED_CAPTCHA, "Error message\nOops, that wasn't the correct code"),
+            ('.messages', IP_BLOCKED, "Error message\nOops, we've detected too many login attempts")))
 
     def balance(self):
         reward_boxes = self.browser.select('.reward-box-value')

@@ -14,6 +14,9 @@ INVALID_MFA_INFO = "INVALID_MFA_INFO"
 END_SITE_DOWN = "END_SITE_DOWN"
 UNKNOWN = "UNKNOWN"
 RETRY_LIMIT_REACHED = "RETRY_LIMIT_REACHED"
+IP_BLOCKED = "IP_BLOCKED"
+TRIPPED_CAPTCHA = "TRIPPED_CAPTCHA"
+
 
 errors = {
     STATUS_LOGIN_FAILED: {"code": 403,
@@ -32,6 +35,10 @@ errors = {
                                        "account credentials in case they are changed."},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down."},
+    IP_BLOCKED: {"code": 531,
+                 "message": "The end site is currently blocking this ip address"},
+    TRIPPED_CAPTCHA: {"code": 532,
+                      "message": "The agent has tripped the scheme capture"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it."}
 }
