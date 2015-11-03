@@ -6,7 +6,7 @@ import arrow
 
 class Maximiles(Miner):
     def login(self, credentials):
-        url = 'http://www.maximiles.co.uk/my-account/login'
+        url = 'https://www.maximiles.co.uk/my-account/login'
         self.open_url(url)
 
         login_form = self.browser.get_form('infos')

@@ -8,7 +8,7 @@ import re
 
 class Rewards4Racing(Miner):
     point_balance_pattern = re.compile(r'(\d+) points')
-    point_value_pattern = re.compile(r'Worth £(\d.\d\d)')
+    point_value_pattern = re.compile(r'Worth £(\d+.\d\d)')
 
     def login(self, credentials):
         self.open_url('https://www.rewards4racing.com/Home/')
