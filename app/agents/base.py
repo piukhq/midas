@@ -3,7 +3,8 @@ from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser
-from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED
+from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
+    IP_BLOCKED
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -27,7 +28,7 @@ class Miner(object):
     retry_limit = 2
     headers = {}
     use_tls_v1 = False
-    proxy = True
+    proxy = False
 
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
@@ -36,9 +37,9 @@ class Miner(object):
         if self.use_tls_v1:
             session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
 
-        # if self.proxy:
-        #     session.proxies = {'http': 'http://192.168.1.40:3128',
-        #                        'https': 'https://192.168.1.40:3128'}
+        if self.proxy:
+            session.proxies = {'http': 'http://192.168.1.47:3128',
+                               'https': 'https://192.168.1.47:3128'}
         self.browser = RoboBrowser(parser="lxml", session=session,
                                    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                               "Gecko/20100101 Firefox/40.0")
@@ -63,6 +64,8 @@ class Miner(object):
         try:
             self.browser.response.raise_for_status()
         except HTTPError as e:
+            if e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
             raise AgentError(END_SITE_DOWN) from e
 
     def login(self, credentials):

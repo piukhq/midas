@@ -90,7 +90,6 @@ def publish_transactions(agent_instance, scheme_account_id):
     publish.transactions(agent_instance.transactions(), scheme_account_id)
 
 
-
 class Transactions(Resource):
     @validate_parameters
     @swagger.operation(
