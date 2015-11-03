@@ -6,7 +6,7 @@ from app.utils import extract_decimal
 
 class Avios(Miner):
     def login(self, credentials):
-        self.open_url("http://www.avios.com/gb/en_gb/")
+        self.open_url("https://www.avios.com/gb/en_gb/")
         login_form = self.browser.get_form(action='https://www.avios.com/my-account/login-process')
         login_form['j_username'].value = credentials['email']
         login_form['j_password'].value = credentials['password']

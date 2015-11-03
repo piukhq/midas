@@ -7,7 +7,7 @@ import arrow
 
 class Odeon(Miner):
     def login(self, credentials):
-        self.open_url('http://www.odeon.co.uk')
+        self.open_url('https://www.odeon.co.uk')
 
         login_form = self.browser.get_form('login-header')
         login_form['username'].value = credentials['email']

@@ -27,7 +27,6 @@ class Nectar(Miner):
             "value": extract_decimal(value)
         }
 
-
     @staticmethod
     def parse_transaction(row):
         extra_details = row.find('div', {'class':'more-transactional-details'})
