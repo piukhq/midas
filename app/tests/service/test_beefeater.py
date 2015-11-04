@@ -1,6 +1,6 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.beefeater import Beefeater
+from app.agents.beefeater import Beefeater, format_voucher_count
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
@@ -22,6 +22,12 @@ class TestBeefeater(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^\d+ discount voucher[s]?$')
+
+    def test_format_voucher_count(self):
+        self.assertEqual('0 discount vouchers', format_voucher_count(0))
+        self.assertEqual('1 discount voucher', format_voucher_count(1))
+        self.assertEqual('2 discount vouchers', format_voucher_count(2))
 
 
 class TestBeefeaterFail(unittest.TestCase):
