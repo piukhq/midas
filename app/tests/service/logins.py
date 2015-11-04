@@ -42,7 +42,7 @@ CREDENTIALS = {
     },
     "cooperative": {
             'barcode': '633174911212875989',
-            'post_code': 'BH23 1HT',
+            'postcode': 'BH23 1HT',
             'place_of_birth': "cheltenham",
     },
     "morrisons": {
