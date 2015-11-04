@@ -2,7 +2,7 @@ import hashlib
 from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
-from app.utils import open_browser, TWO_PLACES
+from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED
 from requests import Session
@@ -112,6 +112,9 @@ class Miner(object):
     def calculate_point_value(self, points):
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)
 
+    def format_label(self, count, noun, plural_suffix='s'):
+        return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
+
     def view(self):
         """
         Open the RoboBrowser object in a browser in its current state
@@ -119,8 +122,3 @@ class Miner(object):
         parts = urlsplit(self.browser.url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
-
-
-# Usage: format_label(4, 'voucher', 'vouchers') => '4 vouchers'
-def format_plural_label(count, singular, plural):
-    return '{} {}'.format(count, singular if count == 1 else plural)

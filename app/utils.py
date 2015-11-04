@@ -32,3 +32,13 @@ def resolve_agent(name):
     module_name, class_name = class_path.split(".")
     module = importlib.import_module('app.agents.{}'.format(module_name))
     return getattr(module, class_name)
+
+
+def pluralise(count, plural_suffix):
+    if ',' not in plural_suffix:
+        plural_suffix = ',' + plural_suffix
+    parts = plural_suffix.split(',')
+    if len(parts) > 2:
+        return ''
+    singular, plural = parts[:2]
+    return singular if count == 1 else plural
