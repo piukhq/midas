@@ -23,6 +23,10 @@ class TestAvios(unittest.TestCase):
         balance = self.b.balance()
         schemas.balance(balance)
 
+    def test_value_label(self):
+        balance = self.b.balance()
+        self.assertRegex(balance['value_label'], '^\d*\.\d+ Avios$')
+
 
 class TestAviosFail(unittest.TestCase):
     def test_login_bad_number(self):

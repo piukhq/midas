@@ -27,9 +27,11 @@ class Avios(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        points = self.browser.find('div', {'id': 'acc-status'}).find('strong').text
+        points = extract_decimal(self.browser.find('div', {'id': 'acc-status'}).find('strong').text)
         return {
-            "points": extract_decimal(points)
+            'points': points,
+            'value': points,
+            'value_label': '{} Avios'.format(points)
         }
 
     @staticmethod
