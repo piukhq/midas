@@ -73,7 +73,7 @@ class Balance(Resource):
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id)
 
             return create_response(balance)
-        except AgentError as e:
+        except (LoginError, AgentError) as e:
             status = e.code
             agent_abort(e)
         except Exception as e:
@@ -107,7 +107,7 @@ class Transactions(Resource):
             status = 1
             transactions = publish.transactions(agent_instance.transactions(), scheme_account_id)
             return create_response(transactions)
-        except AgentError as e:
+        except (LoginError, AgentError) as e:
             status = e.code
             agent_abort(e)
         except Exception as e:
@@ -139,7 +139,7 @@ class AccountOverview(Resource):
             publish.transactions(account_overview["transactions"], scheme_account_id)
 
             return create_response(account_overview)
-        except AgentError as e:
+        except (LoginError, AgentError) as e:
             agent_abort(e)
         except Exception as e:
             unknown_abort(e)
@@ -174,7 +174,7 @@ def agent_login(agent_class, credentials, scheme_account_id):
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         agent_instance.attempt_login(credentials)
-    except LoginError as e:
+    except (LoginError, AgentError) as e:
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
             agent_abort(e)

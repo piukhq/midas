@@ -12,7 +12,7 @@ class SpaceNK(Miner):
             '_FUNCTION_': 'balance',
             'history_type': 'loyalty',
             'cardnum': credentials['card_number'],
-            'balance_check':'Check+Balance',
+            'balance_check': 'Check+Balance',
             'form_submit': 't',
         }
 

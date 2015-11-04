@@ -58,7 +58,3 @@ class AgentError(Exception):
 
 class LoginError(AgentError):
     pass
-
-
-class CredentialsError(AgentError):
-    pass
