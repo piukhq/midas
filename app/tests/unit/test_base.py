@@ -1,5 +1,6 @@
 from app.agents.base import Miner
 from app.agents.exceptions import AgentError, LoginError
+from decimal import Decimal
 import arrow
 import httpretty
 import re
@@ -51,6 +52,17 @@ class TestBase(TestCase):
         with self.assertRaises(LoginError):
             Miner.check_error(mock_instance, "/HomeSecurityLayer.aspx",
                               (("", "INVALID_MFA_INFO", "The details"), ))
+
+    def test_default_point_conversion(self):
+        m = Miner(1, 1)
+        value = m.calculate_point_value(Decimal('100'))
+        self.assertEqual(Decimal('0'), value)
+
+    def test_point_conversion(self):
+        m = Miner(1, 1)
+        m.point_conversion_rate = Decimal('0.5')
+        value = m.calculate_point_value(Decimal('25'))
+        self.assertEqual(Decimal('12.50'), value)
 
 
 class TestOpenURL(TestCase):
