@@ -31,7 +31,7 @@ class Miner(object):
     use_tls_v1 = False
     proxy = False
 
-    point_conversion_rate = Decimal('1')
+    point_conversion_rate = Decimal('0')
 
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
