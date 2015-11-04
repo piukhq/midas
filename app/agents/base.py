@@ -2,12 +2,13 @@ import hashlib
 from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
-from app.utils import open_browser
+from app.utils import open_browser, TWO_PLACES
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+from decimal import Decimal
 import _ssl
 
 
@@ -29,6 +30,8 @@ class Miner(object):
     headers = {}
     use_tls_v1 = False
     proxy = False
+
+    point_conversion_rate = Decimal('0')
 
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
@@ -105,6 +108,9 @@ class Miner(object):
             if message and message[0].get_text().strip().startswith(error_match):
                 raise LoginError(error_name)
         raise LoginError(UNKNOWN)
+
+    def calculate_point_value(self, points):
+        return (points * self.point_conversion_rate).quantize(TWO_PLACES)
 
     def view(self):
         """

@@ -2,9 +2,12 @@ import arrow
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
 
 
 class Avios(Miner):
+    point_conversion_rate = Decimal('0.0068')
+
     def login(self, credentials):
         self.open_url("https://www.avios.com/gb/en_gb/")
         login_form = self.browser.get_form(action='https://www.avios.com/my-account/login-process')
@@ -27,9 +30,13 @@ class Avios(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        points = self.browser.find('div', {'id': 'acc-status'}).find('strong').text
+        points = extract_decimal(self.browser.find('div', {'id': 'acc-status'}).find('strong').text)
+        value = self.calculate_point_value(points)
+
         return {
-            "points": extract_decimal(points)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     @staticmethod
