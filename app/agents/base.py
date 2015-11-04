@@ -119,3 +119,8 @@ class Miner(object):
         parts = urlsplit(self.browser.url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
+
+
+# Usage: format_label(4, 'voucher', 'vouchers') => '4 vouchers'
+def format_plural_label(count, singular, plural):
+    return '{} {}'.format(count, singular if count == 1 else plural)

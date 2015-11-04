@@ -1,4 +1,4 @@
-from app.agents.base import Miner
+from app.agents.base import Miner, format_plural_label
 from app.agents.exceptions import AgentError, LoginError
 from decimal import Decimal
 import arrow
@@ -63,6 +63,11 @@ class TestBase(TestCase):
         m.point_conversion_rate = Decimal('0.5')
         value = m.calculate_point_value(Decimal('25'))
         self.assertEqual(Decimal('12.50'), value)
+
+    def test_format_plural_label(self):
+        self.assertEqual('0 vouchers', format_plural_label(0, 'voucher', 'vouchers'))
+        self.assertEqual('1 voucher', format_plural_label(1, 'voucher', 'vouchers'))
+        self.assertEqual('2 vouchers', format_plural_label(2, 'voucher', 'vouchers'))
 
 
 class TestOpenURL(TestCase):
