@@ -22,10 +22,7 @@ class TestAvios(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-
-    def test_value_label(self):
-        balance = self.b.balance()
-        self.assertRegex(balance['value_label'], '^\d*\.\d+ Avios$')
+        self.assertRegex(balance['value_label'], '^£\d*\.\d+$')
 
 
 class TestAviosFail(unittest.TestCase):
