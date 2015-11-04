@@ -7,8 +7,7 @@ import arrow
 
 class Beefeater(Miner):
     point_conversion_rate = Decimal('500')
-    proxy = False
-
+    
     def login(self, credentials):
         self.open_url('https://www.beefeatergrillrewardclub.co.uk/web/guest/home')
 
