@@ -19,7 +19,9 @@ class JetBlue(Miner):
 
     def balance(self):
         return {
-            'points': extract_decimal(self.browser.select('p.points')[0].contents[2])
+            'points': extract_decimal(self.browser.select('p.points')[0].contents[2]),
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
@@ -31,6 +33,6 @@ class JetBlue(Miner):
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
-            'points': Decimal(0),
+            'points': Decimal('0'),
         }
         return [self.hashed_transaction(t)]
