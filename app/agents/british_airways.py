@@ -5,9 +5,12 @@ from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
+
 class BritishAirways(Miner):
     # TODO: REPLACE WITH REAL LIMIT
     retry_limit = 3
+
+    point_conversion_rate = Decimal('0.0068')
 
     def login(self, credentials):
         self.open_url("https://www.britishairways.com/travel/loginr/public/en_gb")
@@ -17,14 +20,18 @@ class BritishAirways(Miner):
         login_form['password'].value = credentials['password']
         login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
-        self.check_error("/travel/loginr/public/en_gb", (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"), ))
+        self.check_error("/travel/loginr/public/en_gb",
+                         (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"), ))
 
     def balance(self):
         points_span = self.browser.select('.nowrap')[0]
-        points = points_span.text.strip('My Avios:  |').strip().replace(',', '')
+        points = Decimal(points_span.text.strip('My Avios:  |').strip().replace(',', ''))
+        value = self.calculate_point_value(points)
 
         return {
-            "points": Decimal(points)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     def transactions(self):
