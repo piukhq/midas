@@ -1,12 +1,16 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 import arrow
 from decimal import Decimal
 
+
 class Debenhams(Miner):
+    point_conversion_rate = Decimal('0.01')
+
     def login(self, credentials):
-        url = 'https://portal.prepaytec.com/chopinweb/scareMyLogin.do?customerCode=452519111525&loc=en&brandingCode=myscare_uk'
+        url = ('https://portal.prepaytec.com/chopinweb/scareMyLogin.do?customerCode=452519111525&loc=en'
+               '&brandingCode=myscare_uk')
         self.open_url(url)
         
         login_form = self.browser.get_form('login')
@@ -31,13 +35,18 @@ class Debenhams(Miner):
         self.browser.submit_form(date_form)
 
         selector = '#login > p.error'
-        self.check_error('/chopinweb/scareMyLogin.do', ((selector, STATUS_LOGIN_FAILED, 'Please correct the following errors'),))
+        self.check_error('/chopinweb/scareMyLogin.do',
+                         ((selector, STATUS_LOGIN_FAILED, 'Please correct the following errors'), ))
 
     def balance(self):
         self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
-        points_span = self.browser.select("td#clearedBalance span.balanceValue")[1]
+        points = extract_decimal(self.browser.select("td#clearedBalance span.balanceValue")[1].text)
+        value = self.calculate_point_value(points)
+
         return {
-            "points": extract_decimal(points_span.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
