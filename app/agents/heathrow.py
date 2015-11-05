@@ -1,11 +1,13 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 
 
 class Heathrow(Miner):
     use_tls_v1 = True
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
         self.open_url('https://rewards.heathrow.com')
@@ -20,9 +22,13 @@ class Heathrow(Miner):
         self.check_error('/web/lhr/heathrow-rewards', ((selector, STATUS_LOGIN_FAILED, 'Invalid login or password'),))
 
     def balance(self):
-        point_holder = self.browser.select('div.rightCol span')[0]
+        points = extract_decimal(self.browser.select('div.rightCol span')[0].text)
+        value = self.calculate_point_value(points)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     @staticmethod
