@@ -1,11 +1,13 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
 class MandCo(Miner):
+    point_conversion_rate = Decimal('0.002')
+
     def login(self, credentials):
         self.open_url('https://www.mandco.com/on/demandware.store/Sites-mandco-Site/default/LoyaltyCard-Show')
         login_form = self.browser.get_form('dwfrm_login')
@@ -30,8 +32,13 @@ class MandCo(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
+        points = extract_decimal(self.browser.select('.loyalty-card-content-wraper p strong')[0].text)
+        reward_qty = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+
         return {
-            'points': extract_decimal(self.browser.select('.loyalty-card-content-wraper p strong')[0].text)
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': self.format_label(reward_qty, '£5 reward voucher')
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
