@@ -7,6 +7,8 @@ import arrow
 
 
 class Harrods(Miner):
+    point_conversion_rate = Decimal('0.01')
+
     def login(self, credentials):
         query = 'https://www.harrods.com/UIServices/Account/AccountService.svc/Signin'
         data = {
@@ -23,8 +25,13 @@ class Harrods(Miner):
         self.open_url('https://www.harrods.com/Pages/Account/Secure/AccountHome.aspx')
 
     def balance(self):
+        points = extract_decimal(self.browser.select('div.myaccount_option_boxes_inner p')[2].contents[10])
+        value = self.calculate_point_value(points)
+
         return {
-            'points': extract_decimal(self.browser.select('div.myaccount_option_boxes_inner p')[2].contents[10])
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
