@@ -2,7 +2,7 @@ import hashlib
 from requests import HTTPError
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
-from app.utils import open_browser, TWO_PLACES
+from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED
 from requests import Session
@@ -111,6 +111,9 @@ class Miner(object):
 
     def calculate_point_value(self, points):
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)
+
+    def format_label(self, count, noun, plural_suffix='s'):
+        return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
 
     def view(self):
         """
