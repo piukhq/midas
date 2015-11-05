@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, UNKNOWN, INVALID_MFA_INFO
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
@@ -33,10 +34,12 @@ class Cooperative(Miner):
                           (selector, INVALID_MFA_INFO, "Please enter a valid  Security Answer"), ))
 
     def balance(self):
-        self.open_url("https://www.secure.membership.coop/MemberPointsSearch.aspx")
+        self.open_url('https://www.secure.membership.coop/MemberPointsSearch.aspx')
         return {
-            "points": extract_decimal(
+            'points': extract_decimal(
                 self.browser.find(id="ctl00_ContentPlaceHolder1_labelCurrentYearPoints").contents[0]),
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     @staticmethod
