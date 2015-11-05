@@ -4,7 +4,10 @@ from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
+
 class Esprit(Miner):
+    point_conversion_rate = Decimal('0.01')
+
     def login(self, credentials):
         self.open_url('https://www.esprit.co.uk/my-esprit/epoints')
 
@@ -15,12 +18,17 @@ class Esprit(Miner):
         self.browser.submit_form(login_form)
 
         selector = '#auth-error > div.layer_content > p'
-        self.check_error('/my-esprit/check', ((selector, STATUS_LOGIN_FAILED, 'The combination of Esprit Friends number'),))
+        self.check_error('/my-esprit/check',
+                         ((selector, STATUS_LOGIN_FAILED, 'The combination of Esprit Friends number'),))
 
     def balance(self):
-        point_holder = self.browser.select('#epoint-status h3.page_subtitle span')[0]
+        points = extract_decimal(self.browser.select('#epoint-status h3.page_subtitle span')[0].text)
+        value = self.calculate_point_value(points)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
