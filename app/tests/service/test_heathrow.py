@@ -22,6 +22,7 @@ class TestHeathrow(unittest.TestCase):
     def test_balance(self):
         balance = self.h.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
 
 
 class TestHeathrowFail(unittest.TestCase):
