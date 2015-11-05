@@ -23,7 +23,9 @@ class Enterprise(Miner):
 
     def balance(self):
         return {
-            'points': Decimal(self.account_data['profile']['basic_profile']['loyalty_data']['points_to_date'])
+            'points': Decimal(self.account_data['profile']['basic_profile']['loyalty_data']['points_to_date']),
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
