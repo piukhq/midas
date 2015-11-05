@@ -22,7 +22,7 @@ class Cooperative(Miner):
         signup_form['ctl00$ContentPlaceHolder1$txtM2'].value = credentials['barcode'][6:10]
         signup_form['ctl00$ContentPlaceHolder1$txtM3'].value = credentials['barcode'][10:14]
         signup_form['ctl00$ContentPlaceHolder1$txtM4'].value = credentials['barcode'][14:18]
-        signup_form['ctl00$ContentPlaceHolder1$txtPostCode'].value = credentials['post_code']
+        signup_form['ctl00$ContentPlaceHolder1$txtPostCode'].value = credentials['postcode']
         signup_form['ctl00$ContentPlaceHolder1$txtAns'].value = credentials['place_of_birth']
         # self.browser.select("#ctl00_ContentPlaceHolder1_lblError > li > p")[0].get_text().strip()
         self.browser.submit_form(signup_form)

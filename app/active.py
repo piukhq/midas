@@ -6,7 +6,7 @@ AGENTS = {
     'avios': 'avios.Avios',
     'advantage-card': 'boots.Boots',
     'executive-club': 'british_airways.BritishAirways',
-    'cooperative': 'cooperative.Cooperative',
+    'the-co-operative-membership': 'cooperative.Cooperative',
     # 'coffee-club': 'costa.Costa',                         # Costa now has a captcha.
     'debenhams': 'debenhams.Debenhams',
     'decathlon-card': 'decathlon.Decathlon',

@@ -3,7 +3,6 @@ from unittest.mock import patch
 from app.publish import transactions, balance
 
 
-
 class TestRetry(unittest.TestCase):
     @patch('app.publish.post', autospec=True)
     def test_transactions(self, mock_post):

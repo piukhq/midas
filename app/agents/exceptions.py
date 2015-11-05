@@ -16,6 +16,7 @@ UNKNOWN = "UNKNOWN"
 RETRY_LIMIT_REACHED = "RETRY_LIMIT_REACHED"
 IP_BLOCKED = "IP_BLOCKED"
 TRIPPED_CAPTCHA = "TRIPPED_CAPTCHA"
+PASSWORD_EXPIRED = "PASSWORD_EXPIRED"
 
 
 errors = {
@@ -39,6 +40,9 @@ errors = {
                  "message": "The end site is currently blocking this ip address"},
     TRIPPED_CAPTCHA: {"code": 532,
                       "message": "The agent has tripped the scheme capture"},
+    PASSWORD_EXPIRED: {"code": 533,
+                       "message": "We could not update your account because the end site requires that you reset your "
+                                  "password. Please visit the site and resolve this issue before trying again."},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it."}
 }

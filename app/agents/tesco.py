@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO
+from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED
 from app.utils import extract_decimal
 import arrow
 
@@ -20,7 +20,9 @@ class Tesco(Miner):
 
         self.check_error("/register/default.aspx",
                          (('#fSignin > fieldset > div > div > p', STATUS_LOGIN_FAILED,
-                           "Sorry the email and/or password"), ))
+                           "Sorry the email and/or password"),
+                          ('#fSignin > fieldset > div > div > p', PASSWORD_EXPIRED,
+                            'As part of our ongoing work to always protect your security'), ))
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
