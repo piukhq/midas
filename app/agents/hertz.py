@@ -1,11 +1,13 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import arrow
 import json
 
 
 class Hertz(Miner):
+    point_conversion_rate = 1 / Decimal('900')
+
     def login(self, credentials):
         data = {
             "loginCreateUserID": "false",
@@ -24,8 +26,13 @@ class Hertz(Miner):
         self.browser.open('https://www.hertz.co.uk/rentacar/member/account/navigation?_=1445528212900')
 
         response_data = json.loads(self.browser.response.text)
+        points = Decimal(response_data['data']['rewardsPoints'])
+        reward_qty = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+
         return {
-            'points': Decimal(response_data['data']['rewardsPoints'])
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': self.format_label(reward_qty, 'reward rental day'),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
