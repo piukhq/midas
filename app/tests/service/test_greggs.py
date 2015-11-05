@@ -17,6 +17,7 @@ class TestGreggs(unittest.TestCase):
     def test_balance(self):
         balance = self.g.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^\d/7 towards a free coffee?$')
 
 
 class TestGreggsFail(unittest.TestCase):

@@ -1,6 +1,8 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
 from decimal import Decimal
+
 
 class Greggs(Miner):
     def login(self, credentials):
@@ -22,8 +24,13 @@ class Greggs(Miner):
     def balance(self):
         self.open_url('https://www.greggs.co.uk/my-account/my-coffees#content_start')
         coffees = self.browser.select('ul#coffee li')
+        points = Decimal(len([x for x in coffees if 'done' in x.attrs['class']]))
+
         return {
-            'points': Decimal(len([x for x in coffees if 'done' in x.attrs['class']])),
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': '{}/7 towards a free coffee'.format(points),
+            'balance': extract_decimal(self.browser.select('p.current_balance_amount strong span')[0].text),
         }
 
     def transactions(self):
