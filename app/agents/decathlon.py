@@ -1,11 +1,13 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
+from decimal import Decimal
 import re
 
 
 class Decathlon(Miner):
     json_pattern = re.compile('__gwt_jsonp__\.P\d+\.onSuccess\((.*)\)')
+    point_conversion_rate = Decimal('0.02')
 
     def login(self, credentials):
         url = ('https://www.decathlon.co.uk/en/loginAjax'
@@ -21,9 +23,15 @@ class Decathlon(Miner):
         self.open_url('https://www.decathlon.co.uk/en/mydktAvantages'
                       '?currentMenu=MenuMyAccountWebLinkAvantages#nomPage=defaut')
 
-        point_holder = self.browser.select('#menu-my-account-infos-loyalty-card-point span.loyalty-content')[0]
+        points = extract_decimal(
+            self.browser.select('#menu-my-account-infos-loyalty-card-point span.loyalty-content')[0].text)
+
+        value = self.calculate_point_value(points)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     def transactions(self):
