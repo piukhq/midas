@@ -22,6 +22,7 @@ class TestEsprit(unittest.TestCase):
     def test_balance(self):
         balance = self.e.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
 
 
 class TestEspritFail(unittest.TestCase):
