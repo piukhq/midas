@@ -22,12 +22,16 @@ class Boots(Miner):
         selector = "#formErrorContainer > div > div > ul > li > a"
         self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
                          ((selector, STATUS_LOGIN_FAILED, "The email address and password you entered has not been"),
-                          (selector, STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts")))
+                          (selector, STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts"), ))
 
     def balance(self):
+        elements = self.browser.select(".pointsValue")
+        value = extract_decimal(elements[1].contents[0])
+
         return {
-            "points": extract_decimal(self.browser.select(".pointsValue")[0].contents[0]),
-            "value": extract_decimal(self.browser.select(".pointsValue")[1].contents[0])
+            'points': extract_decimal(elements[0].contents[0]),
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     @staticmethod
