@@ -22,9 +22,11 @@ class Avis(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
+        value = extract_decimal(self.browser.select('.loyal-spend-text p strong')[1].text)
         return {
             'points': extract_decimal(self.browser.select('.loyal-spend-text p strong')[0].text),
-            'value': extract_decimal(self.browser.select('.loyal-spend-text p strong')[1].text),
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
