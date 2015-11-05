@@ -1,10 +1,13 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
 class Beefeater(Miner):
+    point_conversion_rate = Decimal('0.002')
+    
     def login(self, credentials):
         self.open_url('https://www.beefeatergrillrewardclub.co.uk/web/guest/home')
 
@@ -18,9 +21,13 @@ class Beefeater(Miner):
         self.check_error('/web/guest/home', ((selector, STATUS_LOGIN_FAILED, 'You have entered invalid data'),))
 
     def balance(self):
-        point_holder = self.browser.select('div.yellow h3 span')[0]
+        points = extract_decimal(self.browser.select('div.yellow h3 span')[0].text)
+        value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': self.format_label(value, 'discount voucher'),
         }
 
     @staticmethod
