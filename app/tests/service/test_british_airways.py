@@ -24,6 +24,7 @@ class TestBritishAirways(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
 
 
 class TestBritishAirwaysFail(unittest.TestCase):
