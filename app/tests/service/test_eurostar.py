@@ -17,6 +17,7 @@ class TestEurostar(unittest.TestCase):
     def test_balance(self):
         balance = self.e.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^\d+ £20 e-voucher[s]?$')
 
 
 class TestEurostarFail(unittest.TestCase):

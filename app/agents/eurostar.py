@@ -1,9 +1,12 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal, ROUND_DOWN
 
 
 class Eurostar(Miner):
+    point_conversion_rate = 1 / Decimal('300')
+
     def login(self, credentials):
         data = {
             'form_build_id': 'form-e_ry4AzklRERsn0JlnLv6a7YeffGMmj9Llrgbb2ozaM',
@@ -19,9 +22,14 @@ class Eurostar(Miner):
         self.check_error('/uk-en/login', ((selector, STATUS_LOGIN_FAILED, 'Sorry'),))
 
     def balance(self):
-        point_holder = self.browser.select('div.pane-you-are-epp-member-markup div.pane-content div.row div.right')[1]
+        points = extract_decimal(
+            self.browser.select('div.pane-you-are-epp-member-markup div.pane-content div.row div.right')[1].text)
+        value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': self.format_label(value, '£20 e-voucher')
         }
 
     def transactions(self):
