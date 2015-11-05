@@ -6,6 +6,12 @@ from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN
 
 
 class Kfc(Miner):
+    rewards = [
+        (11, '£5 off'),
+        (7, 'free snack'),
+        (3, 'free side'),
+    ]
+
     def login(self, credentials):
         data = {"password": credentials["password"],
                 "username": credentials["email"],
@@ -24,8 +30,18 @@ class Kfc(Miner):
 
     def balance(self):
         self.open_url("https://www.kfc.co.uk/ccapi/api/me?scope=user_full,card_full,account_full")
+        points = Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
+
+        reward = ''
+        for threshold, r in self.rewards:
+            if points >= threshold:
+                reward = r
+                break
+
         return {
-            "points": Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': reward,
         }
 
     def transactions(self):
