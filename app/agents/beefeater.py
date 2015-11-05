@@ -27,7 +27,7 @@ class Beefeater(Miner):
         return {
             'points': points,
             'value': value,
-            'value_label': format_voucher_count(value)
+            'value_label': self.format_label(value, 'discount voucher'),
         }
 
     @staticmethod
@@ -44,7 +44,3 @@ class Beefeater(Miner):
 
         rows = self.browser.select('div.pointsTransaction tr.portlet-section-body.results-row')[1:]
         return [self.hashed_transaction(row) for row in rows]
-
-
-def format_voucher_count(voucher_count):
-        return '{} discount {}'.format(voucher_count, 'voucher' if voucher_count == 1 else 'vouchers')
