@@ -22,6 +22,7 @@ class TestDebenhams(unittest.TestCase):
     def test_balance(self):
         balance = self.d.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
 
 
 class TestDebenhamsFail(unittest.TestCase):
