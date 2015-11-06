@@ -1,7 +1,5 @@
-from werkzeug.exceptions import HTTPException
 
-
-class AgentException(HTTPException):
+class AgentException(Exception):
     code = None
     description = None
     name = None
@@ -10,11 +8,6 @@ class AgentException(HTTPException):
         self.description = description
         self.code = code
         self.name = name
-
-    def get_response(self, environ):
-        resp = super(AgentException, self).get_response(environ)
-        resp.status = "%s %s" % (self.code, self.name.upper())
-        return resp
 
 
 def agent_abort(e):
