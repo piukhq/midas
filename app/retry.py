@@ -25,4 +25,4 @@ def inc_count(key, retry_count, exists):
 
 
 def get_key(agent, user_name):
-    return "retry-{0}-{1}".format(agent, user_name)
+    return "retry-{0}-{1}".format(agent, user_name).lower()

@@ -167,10 +167,8 @@ def get_agent_class(scheme_slug):
 
 
 def agent_login(agent_class, credentials, scheme_account_id):
-    user_name_key = credentials.get('user_name') or credentials.get('card_number')
-    key = retry.get_key(agent_class.__name__, user_name_key)
+    key = retry.get_key(agent_class.__name__, scheme_account_id)
     exists, retry_count = retry.get_count(key)
-
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         agent_instance.attempt_login(credentials)
