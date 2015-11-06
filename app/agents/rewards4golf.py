@@ -19,9 +19,12 @@ class Rewards4Golf(Miner):
 
     def balance(self):
         point_holder = self.browser.select('#mainmenu span')[0]
+        value = extract_decimal(point_holder.contents[2])
+
         return {
             'points': extract_decimal(point_holder.contents[0].text),
-            'value': extract_decimal(point_holder.contents[2]),
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
