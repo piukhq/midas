@@ -112,13 +112,16 @@ class Miner(object):
     def calculate_point_value(self, points):
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)
 
+    def calculate_label(self, points):
+        raise NotImplementedError()
+
     @staticmethod
     def format_label(self, count, noun, plural_suffix='s'):
         return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
 
     # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
     @staticmethod
-    def calculate_label(points, reward_tiers):
+    def calculate_tiered_reward(points, reward_tiers):
         for threshold, reward in reward_tiers:
             if points >= threshold:
                 return reward
