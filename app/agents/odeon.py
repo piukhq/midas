@@ -19,10 +19,24 @@ class Odeon(Miner):
         if len(error_box) > 0:
             raise LoginError(STATUS_LOGIN_FAILED)
 
+    def calculate_label(self, points):
+        return self.calculate_tiered_reward(points, [
+            (1200, 'Free movie ticket'),
+            (1000, 'Family mix'),
+            (800, 'Large hot dog combo'),
+            (750, 'Large popcorn combo'),
+            (700, 'Medium popcorn combo'),
+            (400, 'Small popcorn'),
+            (300, 'Small soft drink'),
+        ])
+
     def balance(self):
-        point_holder = self.browser.select('div.span5 span')[0]
+        points = extract_decimal(self.browser.select('div.span5 span')[0].text)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': self.calculate_label(points),
         }
 
     @staticmethod

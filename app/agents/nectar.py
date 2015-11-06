@@ -21,18 +21,22 @@ class Nectar(Miner):
     def balance(self):
         points_container = self.browser.find("div", {'class': "points-summary"}).select(".fr-reg")
         points = points_container[0].text.lstrip('You have:').rstrip(' PTS').replace(',', '')
-        value = points_container[1].text.lstrip('You can spend:£')
+        value = extract_decimal(points_container[1].text.lstrip('You can spend:£'))
+
         return {
             "points": extract_decimal(points),
-            "value": extract_decimal(value)
+            "value": value,
+            'value_label': '£{}'.format(value)
         }
 
     @staticmethod
     def parse_transaction(row):
         extra_details = row.find('div', {'class':'more-transactional-details'})
         # TODO: Redeem points to check points balance goes negative.
-        transaction_data = {}
-        transaction_data['date'] = arrow.get(row.select('.date')[0].text, 'MMM D, YYYY')
+        transaction_data = {
+            'date': arrow.get(row.select('.date')[0].text, 'MMM D, YYYY')
+        }
+
         try:
             location = transaction_data['location'] = extra_details.select('.location')[0].text
         except IndexError:

@@ -4,7 +4,10 @@ from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
+
 class Maximiles(Miner):
+    point_conversion_rate = Decimal('0.0009')
+
     def login(self, credentials):
         url = 'https://www.maximiles.co.uk/my-account/login'
         self.open_url(url)
@@ -19,9 +22,13 @@ class Maximiles(Miner):
         self.check_error('/my-account/login', ((selector, STATUS_LOGIN_FAILED, 'Invalid Username/password'),))
 
     def balance(self):
-        point_holder = self.browser.select('#global #main #colLeft h1 strong')[0]
+        points = extract_decimal(self.browser.select('#global #main #colLeft h1 strong')[0].text)
+        value = self.calculate_point_value(points)
+
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
