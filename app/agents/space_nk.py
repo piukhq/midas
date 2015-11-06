@@ -6,6 +6,8 @@ import arrow
 
 
 class SpaceNK(Miner):
+    point_conversion_rate = Decimal('0.01')
+
     def login(self, credentials):
         query = 'https://wwws.givex.com/cws/spacenk_uk/consumer/clp/balance_check.py'
         data = {
@@ -23,10 +25,12 @@ class SpaceNK(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        values = self.browser.select('#main table tr td.structured-list-value')
+        elements = self.browser.select('#main table tr td.structured-list-value')
+        value = extract_decimal(elements[1].text)
         return {
-            'points': extract_decimal(values[2].text),
-            'value': extract_decimal(values[1].text),
+            'points': extract_decimal(elements[2].text),
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
