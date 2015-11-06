@@ -125,6 +125,7 @@ class Miner(object):
         for threshold, reward in reward_tiers:
             if points >= threshold:
                 return reward
+        return ''
 
     def view(self):
         """
