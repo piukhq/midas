@@ -1,6 +1,8 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
+
 
 class Toysrus(Miner):
     def login(self, credentials):
@@ -20,7 +22,9 @@ class Toysrus(Miner):
         self.open_url('https://club.toysrus.co.uk/Account_PointsTotal.aspx')
         point_holder = self.browser.select('#bodyPlaceHolder_ansTotalPoints')[0]
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': extract_decimal(point_holder.text),
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     def transactions(self):
