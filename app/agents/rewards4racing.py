@@ -25,9 +25,13 @@ class Rewards4Racing(Miner):
         # Despite the fact that this site is a copy-paste job identical to two others, they somehow managed to end up
         # with malformed HTML in this one's point balance, so we have to regex it.
         pretty_html = self.browser.parsed.prettify()
+
+        value = extract_decimal(self.point_value_pattern.findall(pretty_html)[0])
+
         return {
             'points': extract_decimal(self.point_balance_pattern.findall(pretty_html)[0]),
-            'value': extract_decimal(self.point_value_pattern.findall(pretty_html)[0]),
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
