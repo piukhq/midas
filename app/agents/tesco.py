@@ -46,10 +46,12 @@ class Tesco(Miner):
 
     def balance(self):
         balances = self.browser.select(".pointsbox h4")
+        value = extract_decimal(balances[1].contents[2].strip())
 
         return {
             "points": extract_decimal(balances[0].contents[0].strip()),
-            "value": extract_decimal(balances[1].contents[2].strip())
+            "value": value,
+            'value_label': '£{}'.format(value),
         }
 
     @staticmethod
