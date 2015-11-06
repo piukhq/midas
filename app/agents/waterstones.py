@@ -18,11 +18,13 @@ class Waterstones(Miner):
 
     def balance(self):
         self.open_url('https://www.waterstones.com/account/waterstonescard')
-        point_holder = self.browser.select('div.span4 span')[0]
-        value_holder = self.browser.select('div.span12 h2')[0]
+        points = extract_decimal(self.browser.select('div.span4 span')[0].text)
+        value = extract_decimal(self.browser.select('div.span12 h2')[0].text)
+
         return {
-            'points': extract_decimal(point_holder.text),
-            'value': extract_decimal(value_holder.text)
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     def transactions(self):
