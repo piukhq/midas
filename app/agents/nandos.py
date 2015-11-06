@@ -6,12 +6,6 @@ import arrow
 
 
 class Nandos(Miner):
-    rewards = [
-        (10, 'Red Reward'),
-        (6, 'Orange Reward'),
-        (3, 'Green Reward'),
-    ]
-
     def login(self, credentials):
         query = 'https://www.nandos.co.uk/card/log-in?nocache=9232253217205040'
         data = {
@@ -28,20 +22,21 @@ class Nandos(Miner):
             ('.messages', TRIPPED_CAPTCHA, "Error message\nOops, that wasn't the correct code"),
             ('.messages', IP_BLOCKED, "Error message\nOops, we've detected too many login attempts")))
 
+    def calculate_label(self, points):
+        return self.calculate_tiered_reward(points, [
+            (10, 'Red Reward'),
+            (6, 'Orange Reward'),
+            (3, 'Green Reward'),
+        ])
+
     def balance(self):
         chili_wheel = self.browser.select('div.chilli-wheel-big')[0]
         points = extract_decimal(chili_wheel['class'][1][-2:])
 
-        reward = ''
-        for threshold, v in self.rewards:
-            if points >= threshold:
-                reward = v
-                break
-
         return {
             'points': points,
             'value': Decimal('0'),
-            'value_label': reward,
+            'value_label': self.calculate_label(points),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
