@@ -31,7 +31,7 @@ class TestTescoFail(unittest.TestCase):
         b = Tesco(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
-        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
     def test_login_mfa_fail(self):
         b = Tesco(1, 1)
@@ -39,7 +39,7 @@ class TestTescoFail(unittest.TestCase):
         credentials['barcode'] = '634004024855326070'
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "INVALID_MFA_INFO")
+        self.assertEqual(e.exception.name, "Invalid mfa")
 
 
 if __name__ == '__main__':
