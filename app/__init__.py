@@ -22,7 +22,7 @@ def create_app(config_name="settings"):
     @app.errorhandler(AgentException)
     def bad_request_handler(error):
         response = jsonify({'message': error.description, 'code': error.code, 'name': error.name})
-        response.status_code = 400
+        response.status_code = error.code
         return response
 
     return app
