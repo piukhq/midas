@@ -30,7 +30,7 @@ class TestMandCoFail(unittest.TestCase):
         m = MandCo(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
-        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ class TestLufthansaFail(unittest.TestCase):
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
+        self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':
     unittest.main()

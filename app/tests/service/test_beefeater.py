@@ -30,7 +30,7 @@ class TestBeefeaterFail(unittest.TestCase):
         b = Beefeater(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
-        self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
+        self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':
     unittest.main()

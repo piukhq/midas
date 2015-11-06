@@ -29,7 +29,7 @@ class TestRewards4RacingFail(unittest.TestCase):
         r = Rewards4Racing(1, 1)
         with self.assertRaises(LoginError) as e:
             r.attempt_login(CREDENTIALS['bad'])
-        self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
+        self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':
     unittest.main()
