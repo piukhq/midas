@@ -18,9 +18,11 @@ class Quidco(Miner):
         self.check_error('/sign-in/', ((selector, STATUS_LOGIN_FAILED, 'Invalid username'),))
 
     def balance(self):
-        point_holder = self.browser.select('div.earnings p.amount')[0]
+        points = extract_decimal(self.browser.select('div.earnings p.amount')[0].text)
         return {
-            'points': extract_decimal(point_holder.text)
+            'points': points,
+            'value': points,
+            'value_label': '£{}'.format(points),
         }
 
     @staticmethod
