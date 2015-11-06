@@ -33,7 +33,7 @@ class TestBootsFail(unittest.TestCase):
         b = Boots(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':

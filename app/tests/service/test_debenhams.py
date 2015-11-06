@@ -35,7 +35,7 @@ class TestDebenhamsFail(unittest.TestCase):
         d = Debenhams(1, 1)
         with self.assertRaises(LoginError) as e:
             d.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':

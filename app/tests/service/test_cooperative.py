@@ -32,7 +32,7 @@ class TestCooperativeFail(unittest.TestCase):
         b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "STATUS_LOGIN_FAILED")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
     def test_login_bad_mfa(self):
         credentials = CREDENTIALS["cooperative"]
@@ -40,7 +40,7 @@ class TestCooperativeFail(unittest.TestCase):
         b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "INVALID_MFA_INFO")
+        self.assertEqual(e.exception.name, "Invalid mfa")
 
 if __name__ == '__main__':
     unittest.main()

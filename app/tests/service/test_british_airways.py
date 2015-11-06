@@ -36,7 +36,7 @@ class TestBritishAirwaysFail(unittest.TestCase):
         }
         with self.assertRaises(LoginError) as e:
             b.attempt_login(bad_cred)
-        self.assertEqual(e.exception.name, 'STATUS_LOGIN_FAILED')
+        self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':
     unittest.main()
