@@ -11,6 +11,7 @@ thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
 def log_errors(session, resp):
     if not resp.ok:
+        # TODO: graylog this
         pass
 
 
