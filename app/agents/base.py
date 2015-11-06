@@ -116,7 +116,7 @@ class Miner(object):
         raise NotImplementedError()
 
     @staticmethod
-    def format_label(self, count, noun, plural_suffix='s'):
+    def format_label(count, noun, plural_suffix='s'):
         return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
 
     # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
