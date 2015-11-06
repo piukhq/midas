@@ -18,9 +18,11 @@ class Monsoon(Miner):
                          (('div.login_main_error_box.generic_form_error', STATUS_LOGIN_FAILED, 'Sign In Failed'), ))
 
     def balance(self):
+        value = extract_decimal(self.browser.select('div.reward-points dl dd')[2].text)
         return {
             'points': extract_decimal(self.browser.select('div.reward-points dl dd')[1].text),
-            'value': extract_decimal(self.browser.select('div.reward-points dl dd')[2].text)
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
