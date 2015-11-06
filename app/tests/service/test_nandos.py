@@ -22,6 +22,7 @@ class TestNandos(unittest.TestCase):
     def test_balance(self):
         balance = self.n.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '(?:^(?:Red|Orange|Yellow) Reward$)|^$')
 
 
 class TestNandosFail(unittest.TestCase):
