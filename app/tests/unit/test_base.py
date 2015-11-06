@@ -25,7 +25,7 @@ class TestBase(TestCase):
         m = Miner(3, 2)
         with self.assertRaises(AgentError) as e:
             m.attempt_login(credentials={})
-        self.assertEqual(e.exception.name, "RETRY_LIMIT_REACHED")
+        self.assertEqual(e.exception.name, "Retry limit reached")
 
     @mock.patch.object(Miner, 'login')
     def test_attempt_login(self, mocked_login):

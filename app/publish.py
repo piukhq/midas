@@ -10,9 +10,9 @@ thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
 
 def log_errors(session, resp):
-    # TODO: log the issue
-    # if resp.status_code not in [200, 201]:
-    pass
+    if not resp.ok:
+        # TODO: graylog this
+        pass
 
 
 def post(url, data):
