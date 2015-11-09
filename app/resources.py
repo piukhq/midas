@@ -168,7 +168,7 @@ def get_agent_class(scheme_slug):
 
 def agent_login(agent_class, credentials, scheme_account_id):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
-    exists, retry_count = retry.get_count(key)
+    retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         agent_instance.attempt_login(credentials)
@@ -176,7 +176,7 @@ def agent_login(agent_class, credentials, scheme_account_id):
         if e.name == STATUS_ACCOUNT_LOCKED:
             retry.max_out_count(key, agent_instance.retry_limit)
             agent_abort(e)
-        retry.inc_count(key, retry_count, exists)
+        retry.inc_count(key)
         agent_abort(e)
     except Exception as e:
         unknown_abort(e)

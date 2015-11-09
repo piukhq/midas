@@ -9,19 +9,16 @@ redis = FlaskRedis()
 def get_count(key):
     retry_count = redis.get(key)
     if retry_count:
-        return True, int(retry_count)
-    return False, 0
+        return int(retry_count)
+    return 0
 
 
 def max_out_count(key, max_retries):
-    redis.set(key, max_retries)
-    redis.expire(key, 60*15)
+    redis.setex(key, max_retries, 60*15)
 
 
-def inc_count(key, retry_count, exists):
-    redis.set(key, retry_count + 1)
-    if not exists:
-        redis.expire(key, 60*15)
+def inc_count(key):
+    redis.incr(key)
 
 
 def get_key(agent, user_name):
