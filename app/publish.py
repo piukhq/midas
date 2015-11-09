@@ -25,6 +25,8 @@ def post(url, data):
 
 
 def transactions(transactions_items, scheme_account_id):
+    if not transactions_items:
+        return None
     for transaction_item in transactions_items:
         transaction_item['scheme_account_id'] = scheme_account_id
     post("{}/transactions".format(HADES_URL), transactions_items)

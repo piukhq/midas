@@ -17,4 +17,5 @@ class TestRetry(unittest.TestCase):
         self.assertEqual(item, {'user_id': 8, 'scheme_account_id': 5})
         self.assertTrue(mock_post.called)
 
-
+    def test_transactions_none(self):
+        self.assertIsNone(transactions(None, 5))
