@@ -32,7 +32,7 @@ AGENTS = {
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
     'monsoon': 'monsoon.Monsoon',
     'harrods': 'harrods.Harrods',
-    'trueblue': 'jetblue.Jetblue',
+    'trueblue': 'jetblue.JetBlue',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
     'rewards4fishing': 'rewards4fishing.Rewards4Fishing',
