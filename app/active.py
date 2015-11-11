@@ -42,4 +42,5 @@ AGENTS = {
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
     'm-co-loyalty-card': 'mandco.MandCo',
+    'sparks': 'sparks.Sparks',
 }

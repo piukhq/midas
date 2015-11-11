@@ -170,6 +170,10 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015!",
     },
+    "sparks": {
+        "email": "chris.gormley2@me.com",
+        "password": "QLHansbrics15",
+    },
 }
 
 
