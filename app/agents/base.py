@@ -26,7 +26,7 @@ class SSLAdapter(HTTPAdapter):
 
 
 class Miner(object):
-    retry_limit = 2
+    retry_limit = 5
     headers = {}
     use_tls_v1 = False
     proxy = False
