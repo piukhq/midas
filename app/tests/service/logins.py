@@ -156,7 +156,7 @@ CREDENTIALS = {
         "password": "LAngels2015!",
     },
     "space_nk": {
-        "card_number": "63385283721106029252",
+        "barcode": "63385283721106029252",
     },
     "lufthansa": {
         "card_number": "992000656640646",
