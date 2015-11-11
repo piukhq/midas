@@ -1,5 +1,6 @@
 import hashlib
 from requests import HTTPError
+from requests.exceptions import ReadTimeout
 from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser, TWO_PLACES, pluralise
@@ -62,7 +63,10 @@ class Miner(object):
         connect_timeout = 1
         read_timeout = 5
 
-        self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
+        try:
+            self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
+        except ReadTimeout as e:
+            raise AgentError(END_SITE_DOWN) from e
 
         try:
             self.browser.response.raise_for_status()
