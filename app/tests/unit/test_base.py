@@ -22,7 +22,7 @@ class TestBase(TestCase):
         self.assertEqual(transaction["hash"], "b7f2ce62c8b9007008d8034e8d39a87d")
 
     def test_attempt_login_exception(self):
-        m = Miner(3, 2)
+        m = Miner(retry_count=6, scheme_id=2)
         with self.assertRaises(AgentError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "Retry limit reached")
