@@ -28,7 +28,7 @@ class Shell(Miner):
     def balance(self):
         points = extract_decimal(self.browser.select("#detail_point_amount")[0].contents[0])
         value = self.calculate_point_value(points)
-        
+
         return {
             "points": points,
             'value': value,
