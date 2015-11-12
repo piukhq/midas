@@ -33,6 +33,10 @@ class Kfc(Miner):
         self.open_url("https://www.kfc.co.uk/ccapi/api/me?scope=user_full,card_full,account_full")
         points = Decimal(self.browser.response.json()["_embedded"]["cards"][0]["_embedded"]["account"]["balance"])
 
+        # Points are calculated on a milestone system that wraps around at 11 points.
+        # We are only interested in showing what the remaining points are worth.
+        points %= 11
+
         return {
             'points': points,
             'value': Decimal('0'),
