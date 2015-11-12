@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 
@@ -18,8 +18,12 @@ class Eurostar(Miner):
         }
         self.browser.open('https://www.eurostar.com/uk-en/login', method='post', data=data)
 
-        selector = 'div.messages.error > ul > li'
-        self.check_error('/uk-en/login', ((selector, STATUS_LOGIN_FAILED, 'Sorry'),))
+        # We can't differentiate between a locked account and an incorrect password, because the site shows the same
+        # error message for both.
+        selector = 'div.item-list > ul.element-errors > li'
+        self.check_error('/uk-en/login',
+                         ((selector, STATUS_LOGIN_FAILED, 'Sorry'),
+                          (selector, STATUS_LOGIN_FAILED, 'You have been locked out of your account.')))
 
     def balance(self):
         points = extract_decimal(

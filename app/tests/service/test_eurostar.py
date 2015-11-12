@@ -27,5 +27,15 @@ class TestEurostarFail(unittest.TestCase):
             eu.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+    def test_login_bad_password(self):
+        eu = Eurostar(1, 1)
+        credentials = {
+            'email': 'chris.gormley2@me.com',
+            'password': 'QDHansbrics81',
+        }
+        with self.assertRaises(LoginError) as e:
+            eu.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
 if __name__ == '__main__':
     unittest.main()
