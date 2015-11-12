@@ -12,13 +12,13 @@ class Avis(Miner):
         data = {
             'require-login': 'true',
             'login-email': credentials['email'],
-            'login-password': credentials['password'],
+            'login-hidtext': credentials['password'],
         }
 
         self.browser.open(query, method='post', data=data)
 
         parts = urlsplit(self.browser.url)
-        if getattr(parts, 'query') == 'require-login=true':
+        if getattr(parts, 'query').startswith('require-login=true'):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
