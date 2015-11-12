@@ -31,5 +31,15 @@ class TestEnterpriseFail(unittest.TestCase):
             en.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+    def test_login_bad_password(self):
+        en = Enterprise(1, 1)
+        credentials = {
+            'email': 'chris.gormley2@me.com',
+            'password': 'DDHansbrics101',
+        }
+        with self.assertRaises(LoginError) as e:
+            en.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
 if __name__ == '__main__':
     unittest.main()
