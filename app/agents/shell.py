@@ -1,12 +1,15 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 # TODO: add STATUS_ACCOUNT_LOCKED
 # TODO: add transaction handling
 
 
 class Shell(Miner):
+    point_conversion_rate = Decimal('0.005')
+
     def login(self, credentials):
         """
         user name is card number
@@ -23,8 +26,13 @@ class Shell(Miner):
                          ((selector, STATUS_LOGIN_FAILED, "We do not recognise the details you have input"), ))
 
     def balance(self):
+        points = extract_decimal(self.browser.select("#detail_point_amount")[0].contents[0])
+        value = self.calculate_point_value(points)
+
         return {
-            "points": extract_decimal(self.browser.select("#detail_point_amount")[0].contents[0]),
+            "points": points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     @staticmethod
