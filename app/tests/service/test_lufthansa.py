@@ -25,11 +25,21 @@ class TestLufthansa(unittest.TestCase):
 
 
 class TestLufthansaFail(unittest.TestCase):
-    def test_login_fail(self):
+    def test_login_bad_pin(self):
         m = Lufthansa(1, 1)
         credentials = {
-            'card_number': '999999999999999',
-            'pin': '99999',
+            'card_number': '992000656640646',
+            'pin': '552960',
+        }
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
+    def test_login_bad_card_number(self):
+        m = Lufthansa(1, 1)
+        credentials = {
+            'card_number': '9920006566406460',
+            'pin': '55296',
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
