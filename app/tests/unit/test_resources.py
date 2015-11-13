@@ -1,4 +1,8 @@
 from flask.ext.testing import TestCase
+
+from app.agents.avios import Avios
+from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED
+from app.resources import agent_login
 from app.tests.service import logins
 from app import create_app
 from unittest import mock
@@ -73,3 +77,21 @@ class TestResources(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
+
+    @mock.patch('app.resources.agent_abort', autospec=True)
+    @mock.patch('app.resources.retry', autospec=True)
+    @mock.patch.object(Avios, 'attempt_login')
+    def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry, mock_agent_abort):
+        mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
+        agent_login(Avios, {}, 5)
+        self.assertTrue(mock_retry.max_out_count.called)
+        self.assertTrue(mock_agent_abort.called)
+
+    @mock.patch('app.resources.agent_abort', autospec=True)
+    @mock.patch('app.resources.retry', autospec=True)
+    @mock.patch.object(Avios, 'attempt_login')
+    def test_agent_login_inc(self, mock_attempt_login, mock_retry, mock_agent_abort):
+        mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
+        agent_login(Avios, {}, 5)
+        self.assertTrue(mock_retry.inc_count.called)
+        self.assertTrue(mock_agent_abort.called)
