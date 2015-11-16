@@ -42,7 +42,6 @@ class Eurostar(Miner):
                 self.determine_login_failure(credentials)
 
     def balance(self):
-        self.open_url('https://www.eurostar.com/uk-en/account')
         points = extract_decimal(
             self.browser.select('div.pane-you-are-epp-member-markup div.pane-content div.row div.right')[1].text)
         value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
