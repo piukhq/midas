@@ -44,5 +44,5 @@ AGENTS = {
     'm-co-loyalty-card': 'mandco.MandCo',
     'sparks': 'sparks.Sparks',
     'virgin-flyingclub': 'virgin.Virgin',
-    'rewards-club': 'ihg.IHG'
+    'rewards-club': 'ihg.Ihg'
 }

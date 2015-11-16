@@ -5,7 +5,7 @@ from decimal import Decimal
 import arrow
 
 
-class IHG(Miner):
+class Ihg(Miner):
     def login(self, credentials):
         url = 'https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home'
         data = {

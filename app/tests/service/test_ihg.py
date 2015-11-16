@@ -1,14 +1,14 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.ihg import IHG
+from app.agents.ihg import Ihg
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestIHG(unittest.TestCase):
+class TestIhg(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = IHG(1, 1)
+        cls.m = Ihg(1, 1)
         cls.m.attempt_login(CREDENTIALS['ihg'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestIHG(unittest.TestCase):
 
 class TestIHGFail(unittest.TestCase):
     def test_login_fail(self):
-        m = IHG(1, 1)
+        m = Ihg(1, 1)
         credentials = {
             'email': 'bad@bad.com',
             'pin': '0000'
