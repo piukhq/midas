@@ -177,7 +177,11 @@ CREDENTIALS = {
     "virgin": {
         "username": "gormleyc",
         "password": "MUHansb6",
-    }
+    },
+    "ihg": {
+        "email": "la@loyaltyangels.com",
+        "pin": "1290",
+    },
 }
 
 
