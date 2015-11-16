@@ -43,4 +43,5 @@ AGENTS = {
     'avis': 'avis.Avis',
     'm-co-loyalty-card': 'mandco.MandCo',
     'sparks': 'sparks.Sparks',
+    'virgin-flyingclub': 'virgin.Virgin',
 }

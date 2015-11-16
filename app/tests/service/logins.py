@@ -174,6 +174,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "QLHansbrics15",
     },
+    "virgin": {
+        "username": "gormleyc",
+        "password": "MUHansb6",
+    }
 }
 
 
