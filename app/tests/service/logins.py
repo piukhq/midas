@@ -17,33 +17,33 @@ CREDENTIALS = {
         'password': 'RAHansbrics14'
     },
     "advantage-card": {
-            'email': 'julie.gormley100@gmail.com',
-            'password': 'RAHansbrics5'
+        'email': 'julie.gormley100@gmail.com',
+        'password': 'RAHansbrics5'
     },
     "superdrug": {
-            'email': 'julie.gormley100@gmail.com',
-            'password': 'FRHansbrics9'
+        'email': 'julie.gormley100@gmail.com',
+        'password': 'FRHansbrics9'
     },
     "costa": {
-            'email': 'chris.smith4@gmx.co.uk',
-            'password': 'ZBHansbrics5',
+        'email': 'chris.smith4@gmx.co.uk',
+        'password': 'ZBHansbrics5',
     },
     "shell": {
-            'email': 'chris.gormley2@me.com',
-            'password': 'KRHansbrics5',
+        'email': 'chris.gormley2@me.com',
+        'password': 'KRHansbrics5',
     },
     "nectar": {
-            'barcode': '29930842203013',
-            'password': 'QMHansbrics6',
+        'barcode': '29930842203013',
+        'password': 'QMHansbrics6',
     },
     "bad": {
-            'email': '234234@bad.com',
-            'password': '234234',
+        'email': '234234@bad.com',
+        'password': '234234',
     },
     "cooperative": {
-            'barcode': '633174911212875989',
-            'postcode': 'BH23 1HT',
-            'place_of_birth': "cheltenham",
+        'barcode': '633174911212875989',
+        'postcode': 'BH23 1HT',
+        'place_of_birth': "cheltenham",
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
