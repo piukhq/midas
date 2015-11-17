@@ -1,4 +1,6 @@
 from app.agents.base import Miner
+from app.utils import extract_decimal
+from decimal import Decimal
 
 
 class Hyatt(Miner):
@@ -9,4 +11,13 @@ class Hyatt(Miner):
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
-        self.view()
+
+    def balance(self):
+        selector = '#hyattBuilt_pgctntClmnQuickBookAndSearchModuleHolder > div > div > form > div > span.hbDefinition'
+        points = self.browser.select(selector)
+
+        return {
+            'points': extract_decimal(points[0].text),
+            'value': Decimal('0'),
+            'value_label': '',
+        }
