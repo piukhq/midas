@@ -182,6 +182,10 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "pin": "1290",
     },
+    "hyatt": {
+        "username": "loyaltyangels",
+        "password": "Bagshot1",
+    }
 }
 
 
