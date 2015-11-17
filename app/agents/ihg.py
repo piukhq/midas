@@ -7,22 +7,19 @@ import arrow
 
 class Ihg(Miner):
     def login(self, credentials):
-        url = 'https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home'
-        data = {
-            "formSubmit": "true",
-            "currentUrl": ("https%3A%2F%2Fwww.ihg.com%2Frewardsclub%2Fgb%2Fen%2Fsign-in%2F%3Ffwdest%3Dhttps%3A%2F%2Fwww"
-                           ".ihg.com%2Frewardsclub%2Fgb%2Fen%2Faccount%2Fhome"),
-            "emailOrPcrNumber": credentials['email'],
-            "password": credentials['pin'],
-            "signInButton": "Sign+In",
-        }
+        self.open_url('http://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home')
 
-        self.browser.open(url, method='post', data=data)
+        login_form = self.browser.get_form('walletLoginForm')
+        login_form['emailOrPcrNumber'] = credentials['email']
+        login_form['password'] = credentials['pin']
+        self.browser.submit_form(login_form)
 
-        message = 'We cannot find the email address you entered in our system.'
-        error_message = self.browser.select('#loginError > div.alert-content')
-        if error_message and error_message[0].text.strip().startswith(message):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        error_box = self.browser.select('#loginError > div.alert-content')
+        if error_box:
+            message = error_box[0].text.strip()
+            if (message.startswith('We cannot find the email address') or
+                message.startswith('The IHG® Rewards Club Member Number or PIN provided cannot be found.')):
+                raise LoginError(STATUS_LOGIN_FAILED)
 
         self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
 
