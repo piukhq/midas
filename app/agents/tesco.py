@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
@@ -8,6 +9,7 @@ import arrow
 
 class Tesco(Miner):
     retry_limit = 3
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
         self.open_url("https://secure.tesco.com/register/default.aspx")
@@ -52,12 +54,14 @@ class Tesco(Miner):
 
     def balance(self):
         balances = self.browser.select(".pointsbox h4")
-        value = extract_decimal(balances[1].contents[2].strip())
+        points = extract_decimal(balances[0].contents[0].strip())
+        value = self.calculate_point_value(points)
 
         return {
-            "points": extract_decimal(balances[0].contents[0].strip()),
-            "value": value,
+            "points": points,
+            'value': value,
             'value_label': '£{}'.format(value),
+            'balance': extract_decimal(balances[1].contents[2].strip()),
         }
 
     @staticmethod
