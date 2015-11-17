@@ -14,11 +14,6 @@ class TestHyatt(unittest.TestCase):
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
 
-    def test_transactions(self):
-        transactions = self.m.transactions()
-        self.assertTrue(transactions)
-        schemas.transactions(transactions)
-
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
@@ -27,8 +22,12 @@ class TestHyatt(unittest.TestCase):
 class TestHyattFail(unittest.TestCase):
     def test_login_fail(self):
         m = Hyatt(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(CREDENTIALS['bad'])
+            m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':
