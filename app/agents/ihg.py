@@ -7,13 +7,7 @@ import arrow
 
 class Ihg(Miner):
     def login(self, credentials):
-        # Making this connection is very unreliable, so we have to try several times.
-        for x in range(0, 3):
-            try:
-                self.open_url('http://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home')
-                break
-            except:
-                pass
+        self.open_url('http://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home')
 
         login_form = self.browser.get_form('walletLoginForm')
         login_form['emailOrPcrNumber'] = credentials['email']
@@ -27,13 +21,7 @@ class Ihg(Miner):
                message.startswith('The IHG® Rewards Club Member Number or PIN provided cannot be found.')):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
-        # As above.
-        for x in range(0, 3):
-            try:
-                self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
-                break
-            except:
-                pass
+        self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
 
     def balance(self):
         point_text = self.browser.select('#reflectionBg > div > div.value.large.withCommas')[0].text.strip()
