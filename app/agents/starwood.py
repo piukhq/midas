@@ -19,17 +19,14 @@ class Starwood(Miner):
                           ('#genericBEError', STATUS_ACCOUNT_LOCKED, 'Your account is locked'), ))
 
         # Refreshing does not give you a new question. Putting in the wrong answer does.
-        passed_mfa = False
         for x in range(0, 3):
             mfa_form = self.browser.get_form('securityQForm')
             mfa_form['securityAnswer'].value = credentials['favourite_place']
             self.browser.submit_form(mfa_form)
 
             if self.browser.url != 'https://www.starwoodhotels.com/preferredguest/account/answerSecurityQuestion.html':
-                passed_mfa = True
                 break
-
-        if not passed_mfa:
+        else:
             raise LoginError(INVALID_MFA_INFO)
 
     def balance(self):
