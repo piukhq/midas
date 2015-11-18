@@ -29,28 +29,29 @@ class Nectar(Miner):
             'value_label': '£{}'.format(value)
         }
 
+    # TODO: Redeem points to check points balance goes negative.
     @staticmethod
     def parse_transaction(row):
         extra_details = row.find('div', {'class':'more-transactional-details'})
-        # TODO: Redeem points to check points balance goes negative.
-        transaction_data = {
-            'date': arrow.get(row.select('.date')[0].text, 'MMM D, YYYY')
-        }
 
         try:
-            location = transaction_data['location'] = extra_details.select('.location')[0].text
+            location = extra_details.select('.location')[0].text
         except IndexError:
             location = None
-        transaction_data['points'] = extract_decimal(row.select('.points')[0].text.strip().rstrip('pts'))
+
         partner = row.select('.partner')[0].text.strip()
-
         collector = extra_details.select('.collector')[0].text
-        status = row.select('.status')[0].text.strip()
-        process_date = extra_details.select('.date')[0].text
 
-        transaction_data['description'] = 'Partner: {0}, {1},'.format(partner, collector)
+        transaction = {
+            'date': arrow.get(row.select('.date')[0].text, 'MMM D, YYYY'),
+            'description': 'Partner: {0}, {1},'.format(partner, collector),
+            'points': extract_decimal(row.select('.points')[0].text.strip().rstrip('pts')),
+        }
 
-        return transaction_data
+        if location:
+            transaction['location'] = location
+
+        return transaction
 
     def transactions(self):
         # Nectar return the last 10 transactions
