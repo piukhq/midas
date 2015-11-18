@@ -45,6 +45,16 @@ class TestIHGFail(unittest.TestCase):
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+    def test_login_long_pin(self):
+        m = Ihg(1, 1)
+        credentials = {
+            'email': 'la@loyaltyangels.com',
+            'pin': '12900'
+        }
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()
