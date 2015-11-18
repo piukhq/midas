@@ -43,4 +43,9 @@ AGENTS = {
     'avis': 'avis.Avis',
     'm-co-loyalty-card': 'mandco.MandCo',
     'sparks': 'sparks.Sparks',
+    'virgin-flyingclub': 'virgin.Virgin',
+    'rewards-club': 'ihg.Ihg',
+    'gold-passport': 'hyatt.Hyatt',
+    'rewards-for-life': 'holland_and_barrett.HollandAndBarrett',
+    'starwood-preferred-guest': 'starwood.Starwood',
 }

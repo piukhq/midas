@@ -5,7 +5,7 @@ from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED
+    IP_BLOCKED, RetryLimitError
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -51,10 +51,13 @@ class Miner(object):
         self.retry_count = retry_count
 
     def attempt_login(self, credentials):
-        if self.retry_count <= self.retry_limit:
+        if self.retry_count >= self.retry_limit:
+            raise RetryLimitError(RETRY_LIMIT_REACHED)
+
+        try:
             self.login(credentials)
-        else:
-            raise AgentError(RETRY_LIMIT_REACHED)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
 
     def open_url(self, url):
         """

@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED
 from app.utils import extract_decimal
+from decimal import Decimal
 import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
@@ -8,6 +9,7 @@ import arrow
 
 class Tesco(Miner):
     retry_limit = 3
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
         self.open_url("https://secure.tesco.com/register/default.aspx")
@@ -30,7 +32,9 @@ class Tesco(Miner):
         digit_form = self.browser.get_form(id='aspnetForm')
 
         fields = self.browser.select(".security_questions .textfield")
-        card_number = credentials['barcode']
+
+        card_number = self.get_card_number(credentials['barcode'])
+
         digit_form['ctl00$PageContainer$txtSecurityAnswer1'].value = card_number[self.digit_index(fields[0])]
         digit_form['ctl00$PageContainer$txtSecurityAnswer2'].value = card_number[self.digit_index(fields[1])]
         digit_form['ctl00$PageContainer$txtSecurityAnswer3'].value = card_number[self.digit_index(fields[2])]
@@ -44,14 +48,20 @@ class Tesco(Miner):
     def digit_index(field):
         return int(field.select("span")[0].contents[0]) - 1
 
+    @staticmethod
+    def get_card_number(barcode):
+        return '634004' + barcode[4:]
+
     def balance(self):
         balances = self.browser.select(".pointsbox h4")
-        value = extract_decimal(balances[1].contents[2].strip())
+        points = extract_decimal(balances[0].contents[0].strip())
+        value = self.calculate_point_value(points)
 
         return {
-            "points": extract_decimal(balances[0].contents[0].strip()),
-            "value": value,
+            "points": points,
+            'value': value,
             'value_label': '£{}'.format(value),
+            'balance': extract_decimal(balances[1].contents[2].strip()),
         }
 
     @staticmethod

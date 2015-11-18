@@ -1,5 +1,6 @@
+from app.agents.avios import Avios
 from app.agents.base import Miner
-from app.agents.exceptions import AgentError, LoginError
+from app.agents.exceptions import AgentError, LoginError, RetryLimitError
 from decimal import Decimal
 import arrow
 import httpretty
@@ -23,7 +24,7 @@ class TestBase(TestCase):
 
     def test_attempt_login_exception(self):
         m = Miner(retry_count=6, scheme_id=2)
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(RetryLimitError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "Retry limit reached")
 
@@ -77,6 +78,12 @@ class TestBase(TestCase):
         self.assertEqual('0 candies', m.format_label(0, 'cand', 'y,ies'))
         self.assertEqual('1 candy', m.format_label(1, 'cand', 'y,ies'))
         self.assertEqual('2 candies', m.format_label(2, 'cand', 'y,ies'))
+
+    def test_agent_login_missing_credentials(self):
+        m = Avios(2, 2)
+        with self.assertRaises(Exception) as e:
+            m.attempt_login(credentials={})
+        self.assertEqual(e.exception.args[0], "missing the credential 'email'")
 
 
 class TestOpenURL(TestCase):

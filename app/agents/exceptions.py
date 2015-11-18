@@ -71,3 +71,7 @@ class AgentError(Exception):
 
 class LoginError(AgentError):
     pass
+
+
+class RetryLimitError(AgentError):
+    pass

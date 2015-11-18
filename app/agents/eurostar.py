@@ -1,11 +1,27 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 
 
 class Eurostar(Miner):
     point_conversion_rate = 1 / Decimal('300')
+
+    def determine_login_failure(self, credentials):
+        self.open_url('http://www.eurostar.com/uk-en/loyalty-programmes')
+        login_form = self.browser.get_form('user-account-management-member-login-form')
+        login_form['name'] = credentials['email']
+        login_form['pass'] = credentials['password']
+        self.browser.submit_form(login_form)
+
+        # URLs for correct and incorrect login are identical, so check_error won't work.
+        message_box = self.browser.select('#content > div > div.panel-pane.pane-page-messages > div > div')
+        if message_box:
+            message = message_box[0].text.strip()
+            if message.startswith('Error message\nSorry, we don\'t recognise that username or password.'):
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif message.startswith('You have been locked out of your account.'):
+                raise LoginError(STATUS_ACCOUNT_LOCKED)
 
     def login(self, credentials):
         data = {
@@ -18,12 +34,12 @@ class Eurostar(Miner):
         }
         self.browser.open('https://www.eurostar.com/uk-en/login', method='post', data=data)
 
-        # We can't differentiate between a locked account and an incorrect password, because the site shows the same
-        # error message for both.
-        selector = 'div.item-list > ul.element-errors > li'
-        self.check_error('/uk-en/login',
-                         ((selector, STATUS_LOGIN_FAILED, 'Sorry'),
-                          (selector, STATUS_LOGIN_FAILED, 'You have been locked out of your account.')))
+        # If we've failed to log in, figure out why.
+        message_box = self.browser.select('div.item-list > ul.element-errors > li')
+        if message_box:
+            message = message_box[0].text.strip()
+            if message.startswith('Sorry') or message.startswith('You have been locked out of your account.'):
+                self.determine_login_failure(credentials)
 
     def balance(self):
         points = extract_decimal(

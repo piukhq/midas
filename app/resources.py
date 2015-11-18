@@ -4,7 +4,7 @@ import settings
 
 from app.exceptions import agent_abort, unknown_abort
 from app import retry
-from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors
+from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors, RetryLimitError
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -172,10 +172,10 @@ def agent_login(agent_class, credentials, scheme_account_id):
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         agent_instance.attempt_login(credentials)
+    except RetryLimitError as e:
+        retry.max_out_count(key, agent_instance.retry_limit)
+        agent_abort(e)
     except (LoginError, AgentError) as e:
-        if e.name == STATUS_ACCOUNT_LOCKED:
-            retry.max_out_count(key, agent_instance.retry_limit)
-            agent_abort(e)
         retry.inc_count(key)
         agent_abort(e)
     except Exception as e:
