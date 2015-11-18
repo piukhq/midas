@@ -185,6 +185,10 @@ CREDENTIALS = {
     "hyatt": {
         "username": "loyaltyangels",
         "password": "Bagshot1",
+    },
+    "holland_and_barrett": {
+        "email": "chris.gormley2@me.com",
+        "password": "SGHansbr14",
     }
 }
 
