@@ -22,6 +22,7 @@ class TestMyMail(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
+        self.assertRegex(balance['value_label'], '(^£.*? Gift Card$)|(^$)')
 
 
 class TestMyMailFail(unittest.TestCase):
