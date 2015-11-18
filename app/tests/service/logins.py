@@ -194,7 +194,12 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "Loyalty1",
         "favourite_place": "bagshot",
-    }
+    },
+    "the_works": {
+        "email": "chris.gormley2@me.com",
+        "password": "RSHansbrics8",
+        "barcode": "6338846846810026009666"
+    },
 }
 
 
