@@ -5,8 +5,8 @@ import re
 
 
 class HollandAndBarrett(Miner):
-    point_re = re.compile("^You've collected (\d+) points so far this quarter which will be worth")
-    value_re = re.compile('^You also have   £(\d*.\d\d) worth of vouchers waiting to be spent')
+    point_value_re = re.compile("^You've collected (\d+) points so far this quarter which will be worth £(\d*\.\d\d)")
+    balance_re = re.compile('^You also have   £(\d*\.\d\d) worth of vouchers waiting to be spent')
 
     def login(self, credentials):
         self.open_url('https://www.hollandandbarrett.com/my-account/login.jsp?myaccount=true')
@@ -24,13 +24,14 @@ class HollandAndBarrett(Miner):
         point_text = info_box.contents[0].strip()
         value_text = info_box.contents[3].strip()
 
-        points = self.point_re.findall(point_text)[0]
-        value = self.value_re.findall(value_text)[0]
+        points, value = self.point_value_re.findall(point_text)[0]
+        balance = self.balance_re.findall(value_text)[0]
 
         return {
             'points': Decimal(points),
             'value': Decimal(value),
             'value_label': '£{}'.format(value),
+            'balance': Decimal(balance),
         }
 
     def transactions(self):
