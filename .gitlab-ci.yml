@@ -1,4 +1,9 @@
-dev:
+tests:
   script:
   - pip3 install -r requirements.txt
   - py.test app/tests/unit --cov=app --cov-config=.coveragerc-noagent
+
+
+flake8:
+  script:
+    - flake8 *

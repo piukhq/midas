@@ -7,7 +7,8 @@ import arrow
 
 class Monsoon(Miner):
     def login(self, credentials):
-        self.browser.open('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab3', verify=False)
+        self.browser.open('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab3',
+                          verify=False)
 
         login_form = self.browser.get_form(action='/j_spring_security_check')
         login_form['j_username'].value = credentials['email']
@@ -31,7 +32,7 @@ class Monsoon(Miner):
         return row
 
     def transactions(self):
-        #self.open_url('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab')
+        # self.open_url('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',

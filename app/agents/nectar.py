@@ -32,7 +32,7 @@ class Nectar(Miner):
     # TODO: Redeem points to check points balance goes negative.
     @staticmethod
     def parse_transaction(row):
-        extra_details = row.find('div', {'class':'more-transactional-details'})
+        extra_details = row.find('div', {'class': 'more-transactional-details'})
 
         try:
             location = extra_details.select('.location')[0].text

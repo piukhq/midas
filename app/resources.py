@@ -4,7 +4,7 @@ import settings
 
 from app.exceptions import agent_abort, unknown_abort
 from app import retry
-from app.agents.exceptions import LoginError, AgentError, STATUS_ACCOUNT_LOCKED, errors, RetryLimitError
+from app.agents.exceptions import LoginError, AgentError, errors, RetryLimitError
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -182,5 +182,3 @@ def agent_login(agent_class, credentials, scheme_account_id):
         unknown_abort(e)
 
     return agent_instance
-
-

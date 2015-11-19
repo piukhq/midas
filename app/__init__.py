@@ -26,5 +26,3 @@ def create_app(config_name="settings"):
         return response
 
     return app
-
-

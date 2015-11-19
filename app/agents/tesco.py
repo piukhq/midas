@@ -24,7 +24,7 @@ class Tesco(Miner):
                          (('#fSignin > fieldset > div > div > p', STATUS_LOGIN_FAILED,
                            "Sorry the email and/or password"),
                           ('#fSignin > fieldset > div > div > p', PASSWORD_EXPIRED,
-                            'As part of our ongoing work to always protect your security'), ))
+                           'As part of our ongoing work to always protect your security'), ))
 
         # cant just go strait to url as its just a meta refresh
         self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
@@ -77,6 +77,3 @@ class Tesco(Miner):
         self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
         rows = self.browser.select("table.tbl tr")[1:-1]
         return [self.hashed_transaction(row) for row in rows]
-
-
-

@@ -14,16 +14,16 @@ import _ssl
 
 
 class SSLAdapter(HTTPAdapter):
-        def __init__(self, ssl_version=None, **kwargs):
-            self.ssl_version = ssl_version
-            self.poolmanager = PoolManager()
-            super().__init__(**kwargs)
+    def __init__(self, ssl_version=None, **kwargs):
+        self.ssl_version = ssl_version
+        self.poolmanager = PoolManager()
+        super().__init__(**kwargs)
 
-        def init_poolmanager(self, connections, maxsize, block=False):
-            self.poolmanager = PoolManager(num_pools=connections,
-                                           maxsize=maxsize,
-                                           block=block,
-                                           ssl_version=self.ssl_version)
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=self.ssl_version)
 
 
 class Miner(object):
@@ -69,8 +69,8 @@ class Miner(object):
 
         try:
             self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
-        except ReadTimeout as e:
-            raise AgentError(END_SITE_DOWN) from e
+        except ReadTimeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
 
         try:
             self.browser.response.raise_for_status()

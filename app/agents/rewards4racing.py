@@ -40,7 +40,7 @@ class Rewards4Racing(Miner):
         return row
 
     def transactions(self):
-        #self.open_url('https://www.rewards4racing.com/MyAccount/PointsStatement/')
+        # self.open_url('https://www.rewards4racing.com/MyAccount/PointsStatement/')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',

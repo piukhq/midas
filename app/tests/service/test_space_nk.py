@@ -28,7 +28,7 @@ class TestSpaceNKFail(unittest.TestCase):
     def test_login_fail(self):
         m = SpaceNK(1, 1)
         with self.assertRaises(LoginError) as e:
-            m.attempt_login({'barcode': '99999999999999999999' })
+            m.attempt_login({'barcode': '99999999999999999999'})
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':

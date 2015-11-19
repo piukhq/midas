@@ -4,7 +4,6 @@ from app.agents.exceptions import AgentError, LoginError, RetryLimitError
 from decimal import Decimal
 import arrow
 import httpretty
-import re
 from unittest import mock, TestCase
 
 

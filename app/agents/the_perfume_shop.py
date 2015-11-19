@@ -35,7 +35,7 @@ class ThePerfumeShop(Miner):
         return row
 
     def transactions(self):
-        #self.open_url('https://www.theperfumeshop.com/my-account/orders')
+        # self.open_url('https://www.theperfumeshop.com/my-account/orders')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
