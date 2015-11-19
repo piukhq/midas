@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, UNKNOWN, INVALID_MFA_INFO
+from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, UNKNOWN, INVALID_MFA_INFO, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -32,6 +32,10 @@ class Cooperative(Miner):
         self.check_error("/MemberLogin.aspx",
                          ((selector, STATUS_LOGIN_FAILED, "Please enter a valid  Card Number"),
                           (selector, INVALID_MFA_INFO, "Please enter a valid  Security Answer"), ))
+
+        selector = '#skiptomain'
+        self.check_error('/AccountLocked.aspx',
+                         ((selector, STATUS_ACCOUNT_LOCKED, 'Your Account has been locked'), ))
 
     def balance(self):
         self.open_url('https://www.secure.membership.coop/MemberPointsSearch.aspx')

@@ -2,6 +2,7 @@ from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 import arrow
+from decimal import Decimal
 
 
 class Quidco(Miner):
@@ -18,7 +19,8 @@ class Quidco(Miner):
         self.check_error('/sign-in/', ((selector, STATUS_LOGIN_FAILED, 'Invalid username'),))
 
     def balance(self):
-        points = extract_decimal(self.browser.select('div.earnings p.amount')[0].text)
+        self.open_url('https://www.quidco.com/ajax/main_nav/get_cashback_summary')
+        points = Decimal(self.browser.response.json()['total_cashback_earned'])
         return {
             'points': points,
             'value': points,

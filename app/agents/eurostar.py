@@ -20,7 +20,7 @@ class Eurostar(Miner):
             message = message_box[0].text.strip()
             if message.startswith('Error message\nSorry, we don\'t recognise that username or password.'):
                 raise LoginError(STATUS_LOGIN_FAILED)
-            elif message.startswith('You have been locked out of your account.'):
+            elif message.startswith('Error message\nSorry, there have been more than 5 failed login'):
                 raise LoginError(STATUS_ACCOUNT_LOCKED)
 
     def login(self, credentials):
