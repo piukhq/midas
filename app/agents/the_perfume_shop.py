@@ -17,7 +17,7 @@ class ThePerfumeShop(Miner):
         self.browser.submit_form(login_form)
 
         self.check_error('/login',
-                         (('span.message-box.error.show', STATUS_LOGIN_FAILED, 'Your username or password'), ))
+                         (('span.message-box.error.show', STATUS_LOGIN_FAILED, 'Your Email Address or password'), ))
 
     def balance(self):
         points = extract_decimal(self.browser.select('p.p-points-balance--amount')[0].text)
