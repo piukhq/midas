@@ -44,6 +44,7 @@ class Miner(object):
         if self.proxy:
             session.proxies = {'http': 'http://192.168.1.47:3128',
                                'https': 'https://192.168.1.47:3128'}
+
         self.browser = RoboBrowser(parser="lxml", session=session,
                                    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                               "Gecko/20100101 Firefox/40.0")
