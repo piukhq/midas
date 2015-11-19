@@ -195,10 +195,15 @@ CREDENTIALS = {
         "password": "Loyalty1",
         "favourite_place": "bagshot",
     },
+    "the_works": {
+        "email": "chris.gormley2@me.com",
+        "password": "RSHansbrics8",
+        "barcode": "6338846846810026009666"
+    },
     "mymail": {
         "email": "chris.smith4@gmx.co.uk",
         "password": "KLHansbrics6",
-    }
+    },
 }
 
 

@@ -48,4 +48,5 @@ AGENTS = {
     'gold-passport': 'hyatt.Hyatt',
     'rewards-for-life': 'holland_and_barrett.HollandAndBarrett',
     'starwood-preferred-guest': 'starwood.Starwood',
+    'together-rewards-card': 'the_works.TheWorks',
 }
