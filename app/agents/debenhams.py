@@ -12,7 +12,7 @@ class Debenhams(Miner):
         url = ('https://portal.prepaytec.com/chopinweb/scareMyLogin.do?customerCode=452519111525&loc=en'
                '&brandingCode=myscare_uk')
         self.open_url(url)
-        
+
         login_form = self.browser.get_form('login')
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
@@ -55,8 +55,8 @@ class Debenhams(Miner):
         return row
 
     def transactions(self):
-        #self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
-        #transaction_table = self.browser.select('table.txnHistory')
+        # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
+        # transaction_table = self.browser.select('table.txnHistory')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',

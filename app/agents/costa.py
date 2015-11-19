@@ -16,7 +16,8 @@ class Costa(Miner):
         signup_form['ctl00$ctl00$ctl00$ContentPlaceHolderDefault$ContentPlaceHolder'
                     'Body$LoginRegister_9$txtPasswordLoginForm'].value = credentials['password']
 
-        submit = signup_form.submit_fields["ctl00$ctl00$ctl00$ContentPlaceHolderDefault$ContentPlaceHolderBody$LoginRegister_9$btnCCLogin"]
+        submit = signup_form.submit_fields["ctl00$ctl00$ctl00$ContentPlaceHolderDefault$"
+                                           "ContentPlaceHolderBody$LoginRegister_9$btnCCLogin"]
         self.browser.submit_form(signup_form, submit=submit)
 
         self.check_error("/coffee-club/login/", (

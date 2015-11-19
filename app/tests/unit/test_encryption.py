@@ -34,7 +34,7 @@ class TestEncryption(unittest.TestCase):
 
     def test_do_not_allow_decryption_of_none(self):
         aes_cipher = AESCipher(key=self.key)
-        cipher_text = aes_cipher.encrypt('blah')
+        aes_cipher.encrypt('blah')
         self.assertRaises(TypeError, aes_cipher.decrypt, '')
 
 

@@ -33,7 +33,7 @@ class Rewards4Golf(Miner):
         return row
 
     def transactions(self):
-        #self.open_url('https://www.rewards4golf.com/MyAccount/PointsStatement/')
+        # self.open_url('https://www.rewards4golf.com/MyAccount/PointsStatement/')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',

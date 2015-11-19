@@ -44,4 +44,3 @@ def status(scheme_account_id, status):
     data = {"status": status}
     post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data)
     return status
-

@@ -4,6 +4,7 @@ from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
+
 class Qantas(Miner):
     def login(self, credentials):
         self.open_url('https://www.qantas.com.au/fflyer/do/dyns/auth/youractivity/yourActivity')
