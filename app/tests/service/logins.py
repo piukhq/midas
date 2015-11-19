@@ -200,6 +200,10 @@ CREDENTIALS = {
         "password": "RSHansbrics8",
         "barcode": "6338846846810026009666"
     },
+    "mymail": {
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "KLHansbrics6",
+    },
 }
 
 
