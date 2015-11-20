@@ -31,12 +31,16 @@ class Qantas(Miner):
     def parse_transaction(row):
         data = row.select('td')
 
+        point_text = data[2].text.strip()
+        if point_text == '-':
+            point_text = '0'
+
         return {
             'date': arrow.get(data[0].text.strip(), 'DD MMM YY'),
             'description': data[1].text.strip(),
-            'points': extract_decimal(data[2].text.strip()),
+            'points': extract_decimal(point_text),
         }
 
     def transactions(self):
         rows = self.browser.select('#ffactivity tbody tr')
-        return [self.hashed_transaction(row) for row in rows if row.select('td')[2].text.strip() != '-']
+        return [self.hashed_transaction(row) for row in rows]# if row.select('td')[2].text.strip() != '-']

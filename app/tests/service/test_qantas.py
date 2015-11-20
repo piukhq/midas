@@ -17,6 +17,7 @@ class TestQantas(unittest.TestCase):
     def test_transactions(self):
         transactions = self.m.transactions()
         schemas.transactions(transactions)
+        self.assertIsNotNone(transactions)
 
     def test_balance(self):
         balance = self.m.balance()
