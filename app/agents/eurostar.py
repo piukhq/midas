@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED, IP_BLOCKED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 
@@ -22,6 +22,8 @@ class Eurostar(Miner):
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif message.startswith('Error message\nSorry, there have been more than 5 failed login'):
                 raise LoginError(STATUS_ACCOUNT_LOCKED)
+            elif message.startswith('Error message\nSorry, too many failed login attempts'):
+                raise LoginError(IP_BLOCKED)
 
     def login(self, credentials):
         data = {
