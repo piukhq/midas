@@ -30,9 +30,7 @@ class MyMail(Miner):
         if self.browser.url.startswith('https://www.mymail.co.uk/home'):
             self.open_url('https://www.mymail.co.uk/defaultMember')
 
-        response = self.browser.response
-        res_text = response.text.strip()
-        data = response.json()
+        data = self.browser.response.json()
 
         points = Decimal(data['points'])
         reward = self.calculate_tiered_reward(points, [
