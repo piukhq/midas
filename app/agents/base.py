@@ -64,11 +64,11 @@ class Miner(object):
         Sensible defaults and error handling for opening url
         http://www.mobify.com/blog/http-requests-are-hard/
         """
-        connect_timeout = 1
-        read_timeout = 5
+        connect_timeout = 60
+        read_timeout = 60
 
         try:
-            self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
+            self.browser.open(url, timeout=(read_timeout, connect_timeout), headers=self.headers)
         except ReadTimeout as exception:
             raise AgentError(END_SITE_DOWN) from exception
 
