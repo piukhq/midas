@@ -43,4 +43,4 @@ class Qantas(Miner):
 
     def transactions(self):
         rows = self.browser.select('#ffactivity tbody tr')
-        return [self.hashed_transaction(row) for row in rows]# if row.select('td')[2].text.strip() != '-']
+        return [self.hashed_transaction(row) for row in rows]
