@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 import arrow
@@ -17,8 +17,11 @@ class Beefeater(Miner):
 
         self.browser.submit_form(login_form)
 
-        selector = 'div.portlet-msg-error'
-        self.check_error('/web/guest/home', ((selector, STATUS_LOGIN_FAILED, 'You have entered invalid data'),))
+        sel = '#_58_fm > div.portlet-msg-error'
+        self.check_error(
+            '/web/guest/home', (
+                (sel, STATUS_LOGIN_FAILED, 'Authentication failed. Please try again.'),
+                (sel, STATUS_ACCOUNT_LOCKED, 'Authentication failed. Please enable browser cookies and try again.')))
 
     def balance(self):
         points = extract_decimal(self.browser.select('div.yellow h3 span')[0].text)
