@@ -20,7 +20,8 @@ class Nandos(Miner):
         self.check_error('/card/log-in', (
             ('#content-header div h2', STATUS_LOGIN_FAILED, 'Status'),
             ('.messages', TRIPPED_CAPTCHA, "Error message\nOops, that wasn't the correct code"),
-            ('.messages', IP_BLOCKED, "Error message\nOops, we've detected too many login attempts")))
+            ('.messages', IP_BLOCKED, "Error message\nOops, we've detected too many login attempts"),
+            ('body > div > div.rc-anchor-content > div > div > div', STATUS_LOGIN_FAILED, 'ERROR'), ))
 
     def calculate_label(self, points):
         return self.calculate_tiered_reward(points, [
