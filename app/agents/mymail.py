@@ -26,6 +26,10 @@ class MyMail(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
+        # Sometimes the request to /defaultMember seems to fail.
+        if self.browser.url.startswith('https://www.mymail.co.uk/home'):
+            self.open_url('https://www.mymail.co.uk/defaultMember')
+
         data = self.browser.response.json()
 
         points = Decimal(data['points'])
