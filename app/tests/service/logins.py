@@ -207,7 +207,11 @@ CREDENTIALS = {
     "malaysia_airlines": {
         "username": "315377635",
         "password": "Loyalty1",
-    }
+    },
+    "big-rewards": {
+        "email": "la@loyaltyangels.com",
+        "password": "Loyalty1",
+    },
 }
 
 

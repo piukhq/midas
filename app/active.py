@@ -50,4 +50,5 @@ AGENTS = {
     'starwood-preferred-guest': 'starwood.Starwood',
     'together-rewards-card': 'the_works.TheWorks',
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
+    'big-rewards': 'air_asia.AirAsia',
 }
