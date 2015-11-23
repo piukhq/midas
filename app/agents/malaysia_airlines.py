@@ -1,4 +1,5 @@
 from app.agents.base import Miner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -12,6 +13,9 @@ class MalaysiaAirlines(Miner):
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
+
+        if self.browser.url == 'https://www.enrich.malaysiaairlines.com/EnrichWebsite/index?badcredential=NA':
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         return {
