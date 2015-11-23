@@ -204,6 +204,10 @@ CREDENTIALS = {
         "email": "chris.smith4@gmx.co.uk",
         "password": "KLHansbrics6",
     },
+    "royal-orchid-plus": {
+        "username": "NX31265",
+        "password": "Loyalty1",
+    }
 }
 
 

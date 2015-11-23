@@ -9,7 +9,7 @@ class TestThaiAirways(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = ThaiAirways(1, 1)
-        cls.m.attempt_login(CREDENTIALS['thai_airways'])
+        cls.m.attempt_login(CREDENTIALS['royal-orchid-plus'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -22,15 +22,28 @@ class TestThaiAirways(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
 
 
 class TestThaiAirwaysFail(unittest.TestCase):
-    def test_login_fail(self):
+    def test_login_bad_username(self):
         m = ThaiAirways(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(CREDENTIALS['bad'])
+            m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
+    def test_login_bad_password(self):
+        m = ThaiAirways(1, 1)
+        credentials = CREDENTIALS['royal-orchid-plus'].copy()
+        credentials['password'] = '32132132'
+
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()
