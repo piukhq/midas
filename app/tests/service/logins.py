@@ -212,6 +212,10 @@ CREDENTIALS = {
         "username": "NX31265",
         "password": "Loyalty1",
     },
+    "big-rewards": {
+        "email": "la@loyaltyangels.com",
+        "password": "Loyalty1",
+    },
 }
 
 
