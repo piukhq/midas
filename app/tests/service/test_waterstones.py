@@ -9,12 +9,7 @@ class TestWaterstones(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.w = Waterstones(1, 1)
-        # cls.w.attempt_login(CREDENTIALS['waterstones'])
-        credentials = {
-            'email': 'LonelyTimeLord@gmail.com',
-            'password': 'Dav1d10ant10',
-        }
-        cls.w.attempt_login(credentials)
+        cls.w.attempt_login(CREDENTIALS['waterstones'])
 
     def test_login(self):
         self.assertEqual(self.w.browser.response.status_code, 200)
