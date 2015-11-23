@@ -204,10 +204,14 @@ CREDENTIALS = {
         "email": "chris.smith4@gmx.co.uk",
         "password": "KLHansbrics6",
     },
+    "malaysia_airlines": {
+        "username": "315377635",
+        "password": "Loyalty1",
+    },
     "royal-orchid-plus": {
         "username": "NX31265",
         "password": "Loyalty1",
-    }
+    },
 }
 
 
