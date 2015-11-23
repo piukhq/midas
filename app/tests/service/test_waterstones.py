@@ -18,6 +18,11 @@ class TestWaterstones(unittest.TestCase):
         balance = self.w.balance()
         schemas.balance(balance)
 
+    def test_transactions(self):
+        transactions = self.w.transactions()
+        self.assertTrue(transactions)
+        schemas.transactions(transactions)
+
 
 class TestWaterstonesFail(unittest.TestCase):
     def test_login_fail(self):
