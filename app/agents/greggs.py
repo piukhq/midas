@@ -1,7 +1,8 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+from app.utils import extract_decimal, collapse_item_list
 from decimal import Decimal
+import arrow
 
 
 class Greggs(Miner):
@@ -33,5 +34,24 @@ class Greggs(Miner):
             'balance': extract_decimal(self.browser.select('p.current_balance_amount strong span')[0].text),
         }
 
+    @staticmethod
+    def parse_transaction(row):
+        data = row.select('td')
+
+        items = collapse_item_list(data[2].contents[0::2])
+
+        description_items = []
+        for item, qty in items.items():
+            description_items.append('{} x{}'.format(item, qty))
+
+        return {
+            'date': arrow.get('{} {}'.format(data[0].text, data[1].text), 'DD/MM/YYYY h:mma'),
+            'description': ', '.join(description_items),
+            'points': Decimal('0'),
+        }
+
     def transactions(self):
-        return None
+        self.open_url('https://www.greggs.co.uk/my-account/purchase-history/2015-09#content_start')
+
+        rows = self.browser.select('#page_account_purchase_history > table > tbody > tr')
+        return [self.hashed_transaction(row) for row in rows]
