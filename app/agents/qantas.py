@@ -35,9 +35,11 @@ class Qantas(Miner):
         if point_text == '-':
             point_text = '0'
 
+        description_parts = data[1].text.strip().split('\n')
+
         return {
             'date': arrow.get(data[0].text.strip(), 'DD MMM YY'),
-            'description': data[1].text.strip(),
+            'description': description_parts[0].strip(),
             'points': extract_decimal(point_text),
         }
 
