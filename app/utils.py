@@ -4,7 +4,6 @@ import re
 from Crypto import Random
 from decimal import Decimal
 from app.active import AGENTS
-from collections import defaultdict
 
 TWO_PLACES = Decimal(10) ** -2
 
@@ -43,13 +42,3 @@ def pluralise(count, plural_suffix):
         return ''
     singular, plural = parts[:2]
     return singular if count == 1 else plural
-
-
-# Collapses the given list into a dictionary containing each unique item and the quantity of that item.
-# This -> ['Foo', 'Foo', 'Foo', 'Bar', 'Bar', 'Foo']
-# Becomes this -> {'Foo': 4, 'Bar': 2}
-def collapse_item_list(items):
-    quantities = defaultdict(int)
-    for item in items:
-        quantities[item] += 1
-    return quantities

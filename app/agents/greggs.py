@@ -1,7 +1,8 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
-from app.utils import extract_decimal, collapse_item_list
+from app.utils import extract_decimal
 from decimal import Decimal
+from collections import Counter
 import arrow
 
 
@@ -38,15 +39,11 @@ class Greggs(Miner):
     def parse_transaction(row):
         data = row.select('td')
 
-        items = collapse_item_list(data[2].contents[0::2])
-
-        description_items = []
-        for item, qty in items.items():
-            description_items.append('{} x{}'.format(item, qty))
+        item_counts = Counter(data[2].contents[0::2])
 
         return {
             'date': arrow.get('{} {}'.format(data[0].text, data[1].text), 'DD/MM/YYYY h:mma'),
-            'description': ', '.join(description_items),
+            'description': ', '.join('{} x{}'.format(item, qty) for (item, qty) in item_counts.items()),
             'points': Decimal('0'),
         }
 
