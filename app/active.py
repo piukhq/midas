@@ -52,4 +52,5 @@ AGENTS = {
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
     'royal-orchid-plus': 'thai_airways.ThaiAirways',
     'big-rewards': 'air_asia.AirAsia',
+    'foyalty': 'foyles_bookstore.FoylesBookstore',
 }
