@@ -9,7 +9,12 @@ class TestWaterstones(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.w = Waterstones(1, 1)
-        cls.w.attempt_login(CREDENTIALS['waterstones'])
+        # cls.w.attempt_login(CREDENTIALS['waterstones'])
+        credentials = {
+            'email': 'LonelyTimeLord@gmail.com',
+            'password': 'Dav1d10ant10',
+        }
+        cls.w.attempt_login(credentials)
 
     def test_login(self):
         self.assertEqual(self.w.browser.response.status_code, 200)
@@ -17,6 +22,11 @@ class TestWaterstones(unittest.TestCase):
     def test_balance(self):
         balance = self.w.balance()
         schemas.balance(balance)
+
+    def test_transactions(self):
+        transactions = self.w.transactions()
+        self.assertTrue(transactions)
+        schemas.transactions(transactions)
 
 
 class TestWaterstonesFail(unittest.TestCase):

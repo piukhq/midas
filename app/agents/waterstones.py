@@ -1,9 +1,14 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
+import arrow
+import re
 
 
 class Waterstones(Miner):
+    order_id_re = re.compile(r"Order #(.*) \(Placed ")
+
     def login(self, credentials):
         self.open_url('https://www.waterstones.com/signin')
 
@@ -27,5 +32,31 @@ class Waterstones(Miner):
             'value_label': '£{}'.format(value),
         }
 
+    @staticmethod
+    def parse_transaction(row):
+        return {
+            'date': arrow.get(row['date'], 'Do MMMM YYYY'),
+            'description': row['description'],
+            'points': Decimal(row['points']),
+        }
+
+    def get_order_details(self, order):
+        order_id = self.order_id_re.findall(order.select('p.order-number')[0].text)[0]
+        self.open_url('https://www.waterstones.com/account/vieworder/orderid/{}'.format(order_id))
+
+        date = self.browser.select('div.order-row > p.order-number')[0].text.strip()
+        description = self.browser.select('div.title > a.link-invert')[0].text.strip()
+        points = self.browser.select('div.order-info-section > p > b')[0].text.strip()
+
+        return {
+            'date': date,
+            'description': description,
+            'points': points,
+        }
+
     def transactions(self):
-        return None
+        self.open_url('https://www.waterstones.com/account/orders')
+
+        orders = self.browser.select('body > div > div.row.main-page > div > div > div.span12.alpha.omega.section > div')
+        details = [self.get_order_details(order) for order in orders]
+        return [self.hashed_transaction(row) for row in details]
