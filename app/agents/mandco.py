@@ -25,7 +25,7 @@ class MandCo(Miner):
         for k, v in login_form.fields.items():
             post_data[k] = v.value
 
-        self.browser.open(login_form.action, method='post', data=post_data)
+        self.open_url(login_form.action, method='post', data=post_data)
 
         error_box = self.browser.select('#dwfrm_login div.error-form')
         if len(error_box) > 0 and error_box[0].text.startswith('Oops, this email address and password'):

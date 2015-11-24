@@ -34,7 +34,7 @@ class Eurostar(Miner):
             'pass': credentials['password'],
             'login_form_submit': 'Continue',
         }
-        self.browser.open('https://www.eurostar.com/uk-en/login', method='post', data=data)
+        self.open_url('https://www.eurostar.com/uk-en/login', method='post', data=data)
 
         # If we've failed to log in, figure out why.
         message_box = self.browser.select('div.item-list > ul.element-errors > li')

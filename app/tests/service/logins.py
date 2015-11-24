@@ -223,7 +223,11 @@ CREDENTIALS = {
     "treat-me": {
         "email": "la@loyaltyangels.com",
         "password": "Loyalty1",
-    }
+    },
+    "priority-guest-rewards": {
+        "username": "R2103483",
+        "password": "Loyalty1",
+    },
 }
 
 

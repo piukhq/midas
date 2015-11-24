@@ -15,7 +15,7 @@ class Avis(Miner):
             'login-hidtext': credentials['password'],
         }
 
-        self.browser.open(query, method='post', data=data)
+        self.open_url(query, method='post', data=data)
 
         parts = urlsplit(self.browser.url)
         if getattr(parts, 'query').startswith('require-login=true'):

@@ -18,7 +18,7 @@ class SpaceNK(Miner):
             'form_submit': 't',
         }
 
-        self.browser.open(query, method='post', data=data)
+        self.open_url(query, method='post', data=data)
 
         error = self.browser.select('span.errorText')
         if len(error) > 0 and 'Invalid N.dulge Card number.' in error[0].text:

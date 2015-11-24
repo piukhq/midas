@@ -54,4 +54,5 @@ AGENTS = {
     'big-rewards': 'air_asia.AirAsia',
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',
+    'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
 }

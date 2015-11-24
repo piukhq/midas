@@ -21,7 +21,7 @@ class TheWorks(Miner):
             'j_username': credentials['email'],
             'j_password': credentials['password'],
         }
-        self.browser.open(url, method='post', data=data)
+        self.open_url(url, method='post', data=data)
 
         response = self.browser.response.json()
         if 'errorMessage' in response and response['errorMessage'] == 'Bad Credentials':
@@ -36,7 +36,7 @@ class TheWorks(Miner):
             '_csrf': self.csrf,
         }
 
-        self.browser.open(url, method='post', data=data)
+        self.open_url(url, method='post', data=data)
         response = self.browser.response.json()
 
         return {

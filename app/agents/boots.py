@@ -17,7 +17,7 @@ class Boots(Miner):
             'logonPassword': credentials['password'],
         }
 
-        self.browser.open(query, method='post', data=data)
+        self.open_url(query, method='post', data=data)
 
         selector = "#formErrorContainer > div > div > ul > li > a"
         self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
