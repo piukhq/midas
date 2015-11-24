@@ -15,7 +15,7 @@ class Nandos(Miner):
             'form_build_id': 'form-ZarY-CxUl0Q6yXiN1JYGdlQF1XLr20CFsayv9lotek8',
             'form_id': 'nandoscard_ui_log_in_form',
         }
-        self.browser.open(query, method='post', data=data)
+        self.open_url(query, method='post', data=data)
 
         self.check_error('/card/log-in', (
             ('#content-header div h2', STATUS_LOGIN_FAILED, 'Status'),

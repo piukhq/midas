@@ -23,7 +23,7 @@ class Hertz(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        self.browser.open('https://www.hertz.co.uk/rentacar/member/account/navigation?_=1445528212900')
+        self.open_url('https://www.hertz.co.uk/rentacar/member/account/navigation?_=1445528212900')
 
         response_data = json.loads(self.browser.response.text)
         points = Decimal(response_data['data']['rewardsPoints'])

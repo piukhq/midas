@@ -27,7 +27,7 @@ class Tesco(Miner):
                            'As part of our ongoing work to always protect your security'), ))
 
         # cant just go strait to url as its just a meta refresh
-        self.browser.open("https://secure.tesco.com/clubcard/myaccount/home.aspx")
+        self.open_url("https://secure.tesco.com/clubcard/myaccount/home.aspx")
 
         digit_form = self.browser.get_form(id='aspnetForm')
 

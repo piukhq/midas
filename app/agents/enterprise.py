@@ -14,7 +14,7 @@ class Enterprise(Miner):
             'remember_credentials': 'false',
         }
 
-        self.browser.open(url, method='post', json=login_data)
+        self.open_url(url, method='post', json=login_data)
 
         self.account_data = json.loads(self.browser.response.text)
 

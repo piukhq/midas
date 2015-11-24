@@ -15,7 +15,7 @@ class ThaiAirways(Miner):
             'pin': credentials['password'],
         }
 
-        self.browser.open(url, method='post', data=data)
+        self.open_url(url, method='post', data=data)
 
         self.check_error('/AIP_ROP/rop/errorPage.jsp',
                          (('h1 > font.contentbody', STATUS_LOGIN_FAILED, 'Invalid membership number'),

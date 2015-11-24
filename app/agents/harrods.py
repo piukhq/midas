@@ -16,7 +16,7 @@ class Harrods(Miner):
             'password': credentials['password'],
         }
 
-        self.browser.open(query, method='post', json=data)
+        self.open_url(query, method='post', json=data)
         response = json.loads(self.browser.response.text)
 
         if not response['d']['isValid']:
