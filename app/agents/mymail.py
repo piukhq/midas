@@ -9,7 +9,9 @@ class MyMail(Miner):
         # AngularJS sets this header as cross-site request forgery protection. Without it, we can't log in.
         # The cookie is obtained by visiting the login page.
         self.open_url('https://www.mymail.co.uk/login')
-        self.headers = {'X-XSRF-TOKEN': self.browser.session.cookies._cookies['www.mymail.co.uk']['/']['XSRF-TOKEN'].value}
+        self.headers = {
+            'X-XSRF-TOKEN': self.browser.session.cookies._cookies['www.mymail.co.uk']['/']['XSRF-TOKEN'].value
+        }
 
         # The login request itself contains json data and is sent by AngularJS.
         data = {

@@ -8,7 +8,7 @@ import arrow
 class Monsoon(Miner):
     def login(self, credentials):
         self.open_url('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab3',
-                          verify=False)
+                      verify=False)
 
         login_form = self.browser.get_form(action='/j_spring_security_check')
         login_form['j_username'].value = credentials['email']
