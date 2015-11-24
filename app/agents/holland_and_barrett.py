@@ -9,7 +9,7 @@ class HollandAndBarrett(Miner):
     balance_re = re.compile('^You also have   £(\d*\.\d\d) worth of vouchers waiting to be spent')
 
     def login(self, credentials):
-        self.browser.open('https://www.hollandandbarrett.com/my-account/login.jsp?myaccount=true', verify=False)
+        self.open_url('https://www.hollandandbarrett.com/my-account/login.jsp?myaccount=true', verify=False)
 
         login_form = self.browser.get_form(action='/my-account/login.jsp?_DARGS=/my-account/login.jsp')
         login_form['email'].value = credentials['email']
