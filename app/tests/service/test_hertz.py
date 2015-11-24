@@ -22,7 +22,7 @@ class TestHertz(unittest.TestCase):
     def test_balance(self):
         balance = self.h.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ reward rental day[s]?$')
+        self.assertRegex(balance['value_label'], '^\d+ reward rental day[s]?$|^$')
 
 
 class TestHertzFail(unittest.TestCase):
