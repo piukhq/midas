@@ -17,7 +17,7 @@ class TestSuperDrug(unittest.TestCase):
         self.assertNotEqual(urlsplit(self.b.browser.url).query, 'loginError=true')
 
     def test_transactions(self):
-        transactions = self.d.transactions()
+        transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
