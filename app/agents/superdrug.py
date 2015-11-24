@@ -1,6 +1,8 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from decimal import Decimal
+import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 
@@ -26,5 +28,16 @@ class Superdrug(Miner):
             'value_label': '£{}'.format(value),
         }
 
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
     def transactions(self):
-        return None
+        # self.open_url('https://www.superdrug.com/my-account/orders?acc=1&bc=1')
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [self.hashed_transaction(t)]
