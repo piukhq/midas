@@ -219,7 +219,11 @@ CREDENTIALS = {
     "foyalty": {    # we don't have credentials for this one yet
         "card_number": "0000000000000",
         "email": "la@loyaltyangels.com",
-    }
+    },
+    "priority-guest-rewards": {
+        "username": "R2103483",
+        "password": "Loyalty1",
+    },
 }
 
 
