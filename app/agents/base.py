@@ -68,7 +68,7 @@ class Miner(object):
         read_timeout = 5
 
         try:
-            self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers)
+            self.browser.open(url, timeout=(connect_timeout, read_timeout), headers=self.headers, kwargs=kwargs)
         except ReadTimeout as exception:
             raise AgentError(END_SITE_DOWN) from exception
 
