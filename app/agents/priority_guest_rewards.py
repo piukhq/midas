@@ -14,7 +14,7 @@ class PriorityGuestRewards(Miner):
             'loginpass': credentials['password'],
         }
 
-        self.browser.open(url, method='post', data=data)
+        self.open_url(url, method='post', data=data)
 
         self.check_error('/login/',
                          (('div.alert.alert-danger', STATUS_LOGIN_FAILED, '×\r\n        We are having trouble'), ))
