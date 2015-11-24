@@ -38,7 +38,6 @@ class PriorityGuestRewards(Miner):
 
     @staticmethod
     def parse_transaction(row):
-        # 0 = location, 1 = date, 2 = description, 3 = points
         data = row.select('td')
 
         return {
