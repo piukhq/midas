@@ -20,7 +20,7 @@ class TestWaterstones(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.w.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
 
