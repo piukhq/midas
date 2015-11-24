@@ -66,17 +66,19 @@ class TestBase(TestCase):
 
     def test_format_plural_label(self):
         m = Miner(1, 1)
-        self.assertEqual('0 votes', m.format_label(0, 'vote'))
+        self.assertEqual('0 votes', m.format_label(0, 'vote', include_zero_items=True))
         self.assertEqual('1 vote', m.format_label(1, 'vote'))
         self.assertEqual('2 votes', m.format_label(2, 'vote'))
 
-        self.assertEqual('0 classes', m.format_label(0, 'class', 'es'))
+        self.assertEqual('0 classes', m.format_label(0, 'class', 'es', include_zero_items=True))
         self.assertEqual('1 class', m.format_label(1, 'class', 'es'))
         self.assertEqual('2 classes', m.format_label(2, 'class', 'es'))
 
-        self.assertEqual('0 candies', m.format_label(0, 'cand', 'y,ies'))
+        self.assertEqual('0 candies', m.format_label(0, 'cand', 'y,ies', include_zero_items=True))
         self.assertEqual('1 candy', m.format_label(1, 'cand', 'y,ies'))
         self.assertEqual('2 candies', m.format_label(2, 'cand', 'y,ies'))
+
+        self.assertEqual('', m.format_label(0, 'vote'))
 
     def test_agent_login_missing_credentials(self):
         m = Avios(2, 2)
