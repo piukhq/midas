@@ -231,6 +231,10 @@ CREDENTIALS = {
     "delta-skymiles": {
         "username": "9118431866",
         "password": "Loyalty1",
+    },
+    "klm-flying-blue": {
+        "username": "1109882571",
+        "pin": "1234",
     }
 }
 
