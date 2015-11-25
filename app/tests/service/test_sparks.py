@@ -14,6 +14,11 @@ class TestSparks(unittest.TestCase):
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
 
+    def test_transactions(self):
+        transactions = self.m.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
+
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)

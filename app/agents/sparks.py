@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
+import arrow
 
 
 class Sparks(Miner):
@@ -34,3 +35,18 @@ class Sparks(Miner):
             'value': Decimal('0'),
             'value_label': '',
         }
+
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def transactions(self):
+        # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
+        # transaction_table = self.browser.select('table.txnHistory')
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [self.hashed_transaction(t)]
