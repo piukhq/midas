@@ -55,4 +55,5 @@ AGENTS = {
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',
     'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
+    'delta-skymiles': 'delta.Delta',
 }

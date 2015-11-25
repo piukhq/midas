@@ -228,6 +228,10 @@ CREDENTIALS = {
         "username": "R2103483",
         "password": "Loyalty1",
     },
+    "delta-skymiles": {
+        "username": "9118431866",
+        "password": "Loyalty1",
+    }
 }
 
 
