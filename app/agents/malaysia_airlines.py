@@ -35,7 +35,8 @@ class MalaysiaAirlines(Miner):
         }
 
     def transactions(self):
-        self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/mymiles-myactivity')
+        # This request is incredibly slow to return, we need to wait ~40 seconds to actually get a response back.
+        self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/mymiles-myactivity', read_timeout=40)
 
         rows = self.browser.select('table.table.table-miles.spacing-top-10 > tbody > tr')[1:]
         return [self.hashed_transaction(row) for row in rows]
