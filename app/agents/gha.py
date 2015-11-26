@@ -39,8 +39,6 @@ class Gha(Miner):
         return row
 
     def transactions(self):
-        # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
-        # transaction_table = self.browser.select('table.txnHistory')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
