@@ -59,4 +59,5 @@ AGENTS = {
     'klm-flying-blue': 'flying_blue.FlyingBlue',
     'le-club': 'accor.Accor',
     'choicehotels': 'choicehotels.ChoiceHotels',
+    'clubcarlson': 'carlson.Carlson',
 }

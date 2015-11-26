@@ -243,7 +243,11 @@ CREDENTIALS = {
     "choicehotels": {
         "username": "LoyaltyAngels",
         "password": "Loyalty1",
-    }
+    },
+    "clubcarlson": {
+        "username": "6015995055905023",
+        "password": "Loyalty1!",
+    },
 }
 
 
