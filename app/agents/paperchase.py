@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from decimal import Decimal
+import arrow
 
 
 class Paperchase(Miner):
@@ -34,5 +35,16 @@ class Paperchase(Miner):
             'value_label': '{}/10 stamps towards your next treat'.format(num_spent),
         }
 
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
     def transactions(self):
-        return None
+        # self.open_url('https://www.paperchase.co.uk/sales/order/history')
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [self.hashed_transaction(t)]
