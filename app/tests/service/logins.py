@@ -217,7 +217,7 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "foyalty": {    # we don't have credentials for this one yet
-        "card_number": "0000000000000",
+        "barcode": "0000000000000",
         "email": "la@loyaltyangels.com",
     },
     "treat-me": {

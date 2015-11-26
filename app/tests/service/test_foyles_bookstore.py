@@ -28,7 +28,7 @@ class TestFoylesBookstoreFail(unittest.TestCase):
     def test_login_fail(self):
         w = FoylesBookstore(1, 1)
         credentials = {
-            'card_number': '000000000000',
+            'barcode': '000000000000',
             'email': 'bad@bad.com',
         }
         with self.assertRaises(LoginError) as e:

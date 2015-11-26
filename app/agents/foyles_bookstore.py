@@ -12,7 +12,7 @@ class FoylesBookstore(Miner):
         self.open_url('http://www.foyalty.co.uk/Default.aspx')
 
         login_form = self.browser.get_form('aspnetForm')
-        login_form['ctl00$HeaderInfo$txtUserID'].value = credentials['card_number']
+        login_form['ctl00$HeaderInfo$txtUserID'].value = credentials['barcode']
         login_form['ctl00$HeaderInfo$txtPassword'].value = credentials['email']
         self.browser.submit_form(login_form)
 
