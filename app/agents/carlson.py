@@ -13,7 +13,7 @@ class Carlson(Miner):
             'linkToken': '',
             'successURL': '/home.do',
             'rightSide': '',
-            'userId': credentials['username'],
+            'userId': credentials['card_number'],
             'password': credentials['password'],
             'rememberMe': 'true',
         }

@@ -29,7 +29,7 @@ class TestAccorFail(unittest.TestCase):
     def test_login_fail(self):
         m = Accor(1, 1)
         credentials = {
-            'username': '3213123123123',
+            'card_number': '3213123123123',
             'password': '3213231312312',
         }
         with self.assertRaises(LoginError) as e:
