@@ -61,4 +61,5 @@ AGENTS = {
     'choicehotels': 'choicehotels.ChoiceHotels',
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
+    'omni': 'omni.Omni',
 }
