@@ -252,6 +252,10 @@ CREDENTIALS = {
         "username": "6015995055905023",
         "password": "Loyalty1!",
     },
+    "omni": {
+        "email": "la@loyaltyangels.com",
+        "password": "Loyalty1",
+    }
 }
 
 
