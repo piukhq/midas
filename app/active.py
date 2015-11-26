@@ -60,4 +60,5 @@ AGENTS = {
     'le-club': 'accor.Accor',
     'choicehotels': 'choicehotels.ChoiceHotels',
     'discovery': 'gha.Gha',
+    'clubcarlson': 'carlson.Carlson',
 }
