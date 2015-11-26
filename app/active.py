@@ -58,4 +58,5 @@ AGENTS = {
     'delta-skymiles': 'delta.Delta',
     'klm-flying-blue': 'flying_blue.FlyingBlue',
     'le-club': 'accor.Accor',
+    'choicehotels': 'choicehotels.ChoiceHotels',
 }

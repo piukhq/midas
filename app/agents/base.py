@@ -5,7 +5,7 @@ from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -76,7 +76,9 @@ class Miner(object):
         try:
             self.browser.response.raise_for_status()
         except HTTPError as e:
-            if e.response.status_code == 403:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
                 raise AgentError(IP_BLOCKED) from e
             raise AgentError(END_SITE_DOWN) from e
 

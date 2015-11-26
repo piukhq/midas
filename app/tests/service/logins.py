@@ -240,6 +240,10 @@ CREDENTIALS = {
         "username": "3081031370906043",
         "password": "Loyalty1",
     },
+    "choicehotels": {
+        "username": "LoyaltyAngels",
+        "password": "Loyalty1",
+    }
 }
 
 
