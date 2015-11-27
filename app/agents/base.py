@@ -59,13 +59,12 @@ class Miner(object):
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
-    def open_url(self, url, verify=True, method='get', data=None, json=None):
+    def open_url(self, url, verify=True, method='get', data=None, json=None, read_timeout=5):
         """
         Sensible defaults and error handling for opening url
         http://www.mobify.com/blog/http-requests-are-hard/
         """
         connect_timeout = 1
-        read_timeout = 5
 
         try:
             self.browser.open(url, timeout=(connect_timeout, read_timeout),
