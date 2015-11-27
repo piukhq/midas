@@ -183,7 +183,7 @@ CREDENTIALS = {
         "pin": "1290",
     },
     "hyatt": {
-        "username": "loyaltyangels",
+        "card_number": "528180109F",
         "password": "Bagshot1",
     },
     "holland_and_barrett": {
