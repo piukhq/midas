@@ -9,7 +9,7 @@ class TestStarwood(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Starwood(1, 1)
-        cls.m.attempt_login(CREDENTIALS['starwood'])
+        cls.m.attempt_login(CREDENTIALS['starwood-preferred-guest'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
