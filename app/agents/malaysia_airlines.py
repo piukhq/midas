@@ -10,11 +10,11 @@ class MalaysiaAirlines(Miner):
         self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/index')
 
         login_form = self.browser.get_form('loginForm')
-        login_form['username'].value = credentials['username']
+        login_form['username'].value = credentials['card_number'][2:]
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
-        if self.browser.url == 'https://www.enrich.malaysiaairlines.com/EnrichWebsite/index?badcredential=NA':
+        if self.browser.url.startswith('https://www.enrich.malaysiaairlines.com/EnrichWebsite/index?badcredential='):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
