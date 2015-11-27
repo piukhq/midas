@@ -190,7 +190,7 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "SGHansbr14",
     },
-    "starwood": {
+    "starwood-preferred-guest": {
         "email": "la@loyaltyangels.com",
         "password": "Loyalty1",
         "favourite_place": "bagshot",
