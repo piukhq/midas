@@ -36,7 +36,6 @@ requests-futures==0.9.5
 robobrowser==0.5.3
 shellescape==3.4.1
 simplegeneric==0.8.1
-simplejson==3.8.0
 six==1.9.0
 traitlets==4.0.0
 voluptuous==0.8.7
