@@ -28,7 +28,7 @@ class TestMalaysiaAirlinesFail(unittest.TestCase):
     def test_login_fail(self):
         m = MalaysiaAirlines(1, 1)
         credentials = {
-            'username': '321321@bad.com',
+            'card_number': 'MH000000000',
             'password': '321321321',
         }
         with self.assertRaises(LoginError) as e:

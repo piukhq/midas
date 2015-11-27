@@ -205,7 +205,7 @@ CREDENTIALS = {
         "password": "KLHansbrics6",
     },
     "malaysia_airlines": {
-        "username": "315377635",
+        "card_number": "MH315377635",
         "password": "Loyalty1",
     },
     "royal-orchid-plus": {
