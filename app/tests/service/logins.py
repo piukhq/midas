@@ -233,11 +233,11 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "klm-flying-blue": {
-        "username": "1109882571",
+        "card_number": "1109882571",
         "pin": "1234",
     },
     "le-club": {
-        "username": "3081031370906043",
+        "card_number": "3081031370906043",
         "password": "Loyalty1",
     },
     "choicehotels": {
@@ -249,7 +249,7 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "clubcarlson": {
-        "username": "6015995055905023",
+        "card_number": "6015995055905023",
         "password": "Loyalty1!",
     },
     "omni": {

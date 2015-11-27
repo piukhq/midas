@@ -28,7 +28,7 @@ class TestFlyingBlueFail(unittest.TestCase):
     def test_login_bad_username(self):
         m = FlyingBlue(1, 1)
         credentials = {
-            'username': '0000000000',
+            'card_number': '0000000000',
             'pin': '0000',
         }
         with self.assertRaises(LoginError) as e:

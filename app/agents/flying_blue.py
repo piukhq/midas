@@ -9,7 +9,7 @@ class FlyingBlue(Miner):
     def login(self, credentials):
         url = 'https://www.flyingblue.com/account/login/process.html'
         data = {
-            'uid': credentials['username'],
+            'uid': credentials['card_number'],
             'pwd': credentials['pin'],
         }
         self.open_url(url, method='post', data=data)
