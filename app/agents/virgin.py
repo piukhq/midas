@@ -34,6 +34,5 @@ class Virgin(Miner):
             'points': extract_decimal(row.contents[7].text.strip()),
         }
 
-    def transactions(self):
-        rows = self.browser.select('#account table.centerTable.tableCopy.borderPurple.boxContainer tr')[1:]
-        return [self.hashed_transaction(row) for row in rows]
+    def scrape_transactions(self):
+        return self.browser.select('#account table.centerTable.tableCopy.borderPurple.boxContainer tr')[1:]

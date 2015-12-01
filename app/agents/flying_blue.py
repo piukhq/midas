@@ -35,7 +35,7 @@ class FlyingBlue(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         # overview_link = self.browser.select('#overlay_account > div > div.menuRight > div > ul > li > a')[0].href
         # self.open_url(overview_link)
         t = {
@@ -43,4 +43,4 @@ class FlyingBlue(Miner):
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

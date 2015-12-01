@@ -47,8 +47,6 @@ class Greggs(Miner):
             'points': Decimal('0'),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.greggs.co.uk/my-account/purchase-history/2015-09#content_start')
-
-        rows = self.browser.select('#page_account_purchase_history > table > tbody > tr')
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select('#page_account_purchase_history > table > tbody > tr')

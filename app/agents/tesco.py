@@ -73,7 +73,6 @@ class Tesco(Miner):
             "points": extract_decimal(items[4].contents[0].strip()),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
-        rows = self.browser.select("table.tbl tr")[1:-1]
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select("table.tbl tr")[1:-1]

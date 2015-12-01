@@ -35,10 +35,10 @@ class Enterprise(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

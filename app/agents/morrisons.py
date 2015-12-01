@@ -49,8 +49,7 @@ class Morrisons(Miner):
             'points': Decimal(row['points']),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://api.morrisons.com/card/v1/cards/{0}/transactions?'
                       'pageLength=50&pageNumber=1&includeLinkedCards=true'.format(self.card_number))
-        rows = self.browser.response.json()['transactions']
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.response.json()['transactions']

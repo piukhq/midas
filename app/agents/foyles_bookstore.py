@@ -40,8 +40,6 @@ class FoylesBookstore(Miner):
             'location': data[3].text,
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('http://www.foyalty.co.uk/MyCards_Transactions.aspx')
-
-        rows = self.browser.select('#ctl00_ctl00_HeaderInfo_PageDetails_GridView1 > tr')[1:]
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select('#ctl00_ctl00_HeaderInfo_PageDetails_GridView1 > tr')[1:]

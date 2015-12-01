@@ -34,13 +34,12 @@ class BritishAirways(Miner):
             'value_label': '£{}'.format(value)
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705")
         self.open_url("https://www.britishairways.com/travel/viewtransaction/execclub/_gf/en_gb?eId=172705")
 
         table_body = self.browser.find("table", {"id": "recentTransTbl"}).find('tbody')
-        rows = table_body.select('tr')[:-1]  # The last row is a summary row
-        return [self.hashed_transaction(row) for row in rows]
+        return table_body.select('tr')[:-1]  # The last row is a summary row
 
     @staticmethod
     def parse_transaction(row):

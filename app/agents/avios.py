@@ -60,7 +60,6 @@ class Avios(Miner):
             'points': points
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url("https://www.avios.com/gb/en_gb/my-account/your-avios-account?from=accNav")
-        transactions = self.browser.find('div', {'id': 'transactions'}).select('table tbody tr')
-        return [self.hashed_transaction(transaction) for transaction in transactions]
+        return self.browser.find('div', {'id': 'transactions'}).select('table tbody tr')

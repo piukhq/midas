@@ -53,7 +53,7 @@ class TheWorks(Miner):
             'points': Decimal(row['amount']),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://wwws-uk2.givex.com/cws30/The_Works/listLoyaltyTransactions.json?colNumber=4'
                       '&cardId=491942751&draw=2&columns%5B0%5D%5Bdata%5D=date&columns%5B0%5D%5Bname%5D=date'
                       '&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true'
@@ -71,5 +71,4 @@ class TheWorks(Miner):
                       '&search%5Bregex%5D=false&_=1447758480356')
 
         data = self.browser.response.json()
-
-        return [self.hashed_transaction(row) for row in data['data']]
+        return data['data']

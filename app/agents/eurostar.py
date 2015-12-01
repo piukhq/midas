@@ -54,5 +54,5 @@ class Eurostar(Miner):
             'value_label': self.format_label(value, '£20 e-voucher')
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         return None

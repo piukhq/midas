@@ -39,11 +39,11 @@ class Harrods(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         # self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

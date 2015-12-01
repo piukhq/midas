@@ -42,8 +42,6 @@ class Beefeater(Miner):
             'points': extract_decimal(data[3].contents[0].strip()),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.beefeatergrillrewardclub.co.uk/group/beefeater/your-account')
-
-        rows = self.browser.select('div.pointsTransaction tr.portlet-section-body.results-row')[1:]
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select('div.pointsTransaction tr.portlet-section-body.results-row')[1:]

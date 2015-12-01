@@ -34,7 +34,7 @@ class TestStarwoodFail(unittest.TestCase):
 
     def test_login_bad_mfa(self):
         m = Starwood(1, 1)
-        credentials = CREDENTIALS['starwood'].copy()
+        credentials = CREDENTIALS['starwood-preferred-guest'].copy()
         credentials['favourite_place'] = 'totally incorrect'
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)

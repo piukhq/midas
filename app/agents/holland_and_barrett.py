@@ -34,5 +34,5 @@ class HollandAndBarrett(Miner):
             'balance': Decimal(balance),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         return None

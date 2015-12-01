@@ -65,6 +65,5 @@ class Lufthansa(Miner):
             'points': extract_decimal(award_miles) + extract_decimal(status_miles)
         }
 
-    def transactions(self):
-        rows = self.browser.select('table tbody tr')
-        return [self.hashed_transaction(row) for row in rows]
+    def scrape_transactions(self):
+        return self.browser.select('table tbody tr')
