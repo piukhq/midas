@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import hashlib
 from requests import HTTPError
 from requests.exceptions import ReadTimeout
@@ -100,12 +102,26 @@ class Miner(object):
             'transactions': self.transactions()
         }
 
-    def hashed_transaction(self, transaction):
-        transaction = self.parse_transaction(transaction)
-        s = "{0}{1}{2}{3}".format(transaction['date'], transaction['description'],
-                                  transaction['points'], self.scheme_id)
-        transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
-        return transaction
+    def index_transactions(self, transactions):
+        # As far as I can tell, collections.Counter provides no method to incrementally add items.
+        count = defaultdict(int)
+
+        for transaction in transactions:
+            transaction['index'] = count[transaction['date']]
+            count[transaction['date']] += 1
+
+        return transactions
+
+    def hash_transactions(self, transactions):
+        transactions = self.index_transactions(list(transactions))
+
+        for transaction in transactions:
+            s = "{0}{1}{2}{3}{4}".format(transaction['date'], transaction['description'],
+                                         transaction['points'], self.scheme_id,
+                                         transaction['index'])
+            transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
+
+        return transactions
 
     def check_error(self, incorrect, error_causes, url_part="path"):
         parts = urlsplit(self.browser.url)
