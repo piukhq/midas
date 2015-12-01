@@ -26,8 +26,7 @@ class TestBase(TestCase):
             "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
             "description": "Clothes purchase",
             "points": 44
-        },
-        {
+        }, {
             "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
             "description": "Clothes purchase",
             "points": 44
