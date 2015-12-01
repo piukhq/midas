@@ -1,6 +1,5 @@
-from collections import defaultdict
-
 import hashlib
+from collections import defaultdict
 from requests import HTTPError
 from requests.exceptions import ReadTimeout
 from robobrowser import RoboBrowser
@@ -89,12 +88,15 @@ class Miner(object):
     def balance(self):
         raise NotImplementedError()
 
-    def transactions(self):
+    def scrape_transactions(self):
         raise NotImplementedError()
 
     @staticmethod
     def parse_transaction(row):
         raise NotImplementedError()
+
+    def transactions(self):
+        return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
 
     def account_overview(self):
         return {
@@ -109,15 +111,13 @@ class Miner(object):
             s = "{0}{1}{2}{3}{4}".format(transaction['date'], transaction['description'],
                                          transaction['points'], self.scheme_id, transaction.get('location'))
 
+            # identical hashes get sequentially indexed to make them unique.
             index = count[s]
             count[s] += 1
             s = "{0}{1}".format(s, index)
             transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
 
         return transactions
-
-    def process_transactions(self, transactions):
-        return self.hash_transactions([self.parse_transaction(t) for t in transactions])
 
     def check_error(self, incorrect, error_causes, url_part="path"):
         parts = urlsplit(self.browser.url)
