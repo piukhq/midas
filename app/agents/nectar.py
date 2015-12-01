@@ -53,8 +53,6 @@ class Nectar(Miner):
 
         return transaction
 
-    def transactions(self):
-        # Nectar return the last 10 transactions
+    def scrape_transactions(self):
         self.open_url("https://www.nectar.com/my-nectar/manage-account/transactions")
-        transactions = self.browser.select('ul.transactions-list li.transaction')
-        return [self.hashed_transaction(transaction) for transaction in transactions]
+        return self.browser.select('ul.transactions-list li.transaction')

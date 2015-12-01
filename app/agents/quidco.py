@@ -42,7 +42,6 @@ class Quidco(Miner):
             'points': extract_decimal(data[3].contents[0].strip()),
         }
 
-    def transactions(self):
-        rows = self.browser.select('#activity-table tbody tr')
+    def scrape_transactions(self):
         # Every second row is a hidden element we can't parse, so skip it.
-        return [self.hashed_transaction(row) for row in rows[0::2]]
+        return self.browser.select('#activity-table tbody tr')[0::2]

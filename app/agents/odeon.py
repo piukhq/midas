@@ -52,10 +52,9 @@ class Odeon(Miner):
             'points': positive_points - negative_points
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.odeon.co.uk/my-odeon/dashboard/my-opc/')
-        rows = self.browser.select('div.points-transactions')[0].select('div.row')[1:]
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select('div.points-transactions')[0].select('div.row')[1:]
 
 
 def get_points(data):

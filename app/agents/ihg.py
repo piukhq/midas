@@ -41,9 +41,8 @@ class Ihg(Miner):
             'points': Decimal(row['totalPointValue']),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.ihg.com/rewardsclub/gb/en/ws/accountActivity/get'
                       '?activityType=ALL&duration=365&rows=10&page=1')
         data = self.browser.response.json()
-
-        return [self.hashed_transaction(row) for row in data['accountActivityList']]
+        return data['accountActivityList']

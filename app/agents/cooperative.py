@@ -56,7 +56,6 @@ class Cooperative(Miner):
             "points": extract_decimal(items[3].contents[0].strip()),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url("https://www.secure.membership.coop/MemberTransactions.aspx")
-        rows = self.browser.select("#gridViewMemberTransactions tr")[1:]
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select("#gridViewMemberTransactions tr")[1:]

@@ -54,10 +54,9 @@ class Waterstones(Miner):
             'points': points,
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.waterstones.com/account/orders')
 
         orders = self.browser.select(
             'body > div > div.row.main-page > div > div > div.span12.alpha.omega.section > div')
-        details = [self.get_order_details(order) for order in orders]
-        return [self.hashed_transaction(row) for row in details]
+        return [self.get_order_details(order) for order in orders]

@@ -43,6 +43,5 @@ class Qantas(Miner):
             'points': extract_decimal(point_text),
         }
 
-    def transactions(self):
-        rows = self.browser.select('#ffactivity tbody tr')
-        return [self.hashed_transaction(row) for row in rows]
+    def scrape_transactions(self):
+        return self.browser.select('#ffactivity tbody tr')

@@ -57,8 +57,7 @@ class MyMail(Miner):
             'points': Decimal(row['availablePoints']),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://www.mymail.co.uk/my-account/points-history/0/10')
         data = self.browser.response.json()
-
-        return [self.hashed_transaction(row) for row in data['paginatedEarnedMailRewards']]
+        return data['paginatedEarnedMailRewards']

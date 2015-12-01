@@ -26,5 +26,5 @@ class Hyatt(Miner):
             'value_label': '',
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         return None

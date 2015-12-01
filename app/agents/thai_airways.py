@@ -35,7 +35,7 @@ class ThaiAirways(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         '''
         url = 'http://www.thaiair.com/AIP_ROP/MileageStatement'
         data = {
@@ -50,4 +50,4 @@ class ThaiAirways(Miner):
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

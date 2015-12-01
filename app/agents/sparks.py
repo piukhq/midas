@@ -41,7 +41,7 @@ class Sparks(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
         # transaction_table = self.browser.select('table.txnHistory')
         t = {
@@ -49,4 +49,4 @@ class Sparks(Miner):
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

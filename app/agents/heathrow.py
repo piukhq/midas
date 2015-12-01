@@ -40,7 +40,6 @@ class Heathrow(Miner):
             'points': extract_decimal(data[4].contents[0].strip())
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         self.open_url('https://rewards.heathrow.com/group/lhr/my-transactions')
-        rows = self.browser.select('div.transaction-history-table-container tr')
-        return [self.hashed_transaction(row) for row in rows]
+        return self.browser.select('div.transaction-history-table-container tr')

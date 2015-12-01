@@ -43,6 +43,5 @@ class Boots(Miner):
             "points": extract_decimal(items[3].contents[0]),
         }
 
-    def transactions(self):
-        rows = self.browser.select(".transactionsList tr")[1:]
-        return [self.hashed_transaction(row) for row in rows]
+    def scrape_transactions(self):
+        return self.browser.select(".transactionsList tr")[1:]

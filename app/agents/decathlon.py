@@ -32,5 +32,5 @@ class Decathlon(Miner):
             'value_label': self.format_label(value, '£5 voucher'),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         return None

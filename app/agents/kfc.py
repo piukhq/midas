@@ -43,5 +43,5 @@ class Kfc(Miner):
             'value_label': self.calculate_label(points),
         }
 
-    def transactions(self):
+    def scrape_transactions(self):
         return None

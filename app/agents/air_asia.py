@@ -35,11 +35,11 @@ class AirAsia(Miner):
     def parse_transaction(row):
         return row
 
-    def transactions(self):
+    def scrape_transactions(self):
         # rows = self.browser.select('div.managepoints.box > table > tr')[1:]
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
             'points': Decimal(0),
         }
-        return [self.hashed_transaction(t)]
+        return [t]

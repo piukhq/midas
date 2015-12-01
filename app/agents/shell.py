@@ -44,6 +44,5 @@ class Shell(Miner):
             "points": extract_decimal(items[2].select("span")[0].contents[0].strip()),
         }
 
-    def transactions(self):
-        rows = self.browser.select("#points_collected_table tr")[1:]
-        return [self.hashed_transaction(row) for row in rows]
+    def scrape_transactions(self):
+        return self.browser.select("#points_collected_table tr")[1:]
