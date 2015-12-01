@@ -10,16 +10,34 @@ from unittest import mock, TestCase
 class TestBase(TestCase):
     @mock.patch.object(Miner, 'parse_transaction')
     def test_hashed_transaction(self, mocked_parse_transaction):
-        transaction = {
+        transactions = [{
             "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
             "description": "Clothes purchase",
             "points": 44
-        }
-        mocked_parse_transaction.return_value = transaction
+        }]
+        mocked_parse_transaction.return_value = transactions
         m = Miner(1, 2)
-        transaction = m.hashed_transaction(transaction)
+        transaction = m.hash_transactions(transactions)
 
-        self.assertEqual(transaction["hash"], "b7f2ce62c8b9007008d8034e8d39a87d")
+        self.assertEqual(transaction[0]["hash"], "a0c99f1ec24421acb6b12ec82cc07792")
+
+    def test_duplicate_transactions(self):
+        transactions = [{
+            "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
+            "description": "Clothes purchase",
+            "points": 44
+        },
+        {
+            "date": arrow.get('2013-09-30T15:34:00.000-07:00'),
+            "description": "Clothes purchase",
+            "points": 44
+        }]
+
+        m = Miner(1, 1)
+        transactions = m.hash_transactions(transactions)
+
+        hashes = [t['hash'] for t in transactions]
+        self.assertEqual(len(hashes), len(set(hashes)))
 
     def test_attempt_login_exception(self):
         m = Miner(retry_count=6, scheme_id=2)

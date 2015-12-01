@@ -20,10 +20,6 @@ class TestNectar(unittest.TestCase):
         self.assertTrue(transactions)
         schemas.transactions(transactions)
 
-        # Make sure the hashes are unique.
-        hashes = [t['hash'] for t in transactions]
-        self.assertEqual(len(hashes), len(set(hashes)))
-
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
