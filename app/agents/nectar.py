@@ -35,16 +35,16 @@ class Nectar(Miner):
         extra_details = row.find('div', {'class': 'more-transactional-details'})
 
         try:
-            location = extra_details.select('.location')[0].text
+            location = extra_details.select('.location')[0].text[9:]
         except IndexError:
             location = None
 
         partner = row.select('.partner')[0].text.strip()
-        collector = extra_details.select('.collector')[0].text
+        collector = extra_details.select('.collector')[0].text[10:]
 
         transaction = {
             'date': arrow.get(row.select('.date')[0].text, 'MMM D, YYYY'),
-            'description': 'Partner: {0}, {1},'.format(partner, collector),
+            'description': 'Partner: {0}, Collector: {1},'.format(partner, collector),
             'points': extract_decimal(row.select('.points')[0].text.strip().rstrip('pts')),
         }
 
