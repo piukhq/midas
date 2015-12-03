@@ -31,7 +31,7 @@ class TestBritishAirwaysFail(unittest.TestCase):
     def test_login_fail(self):
         b = BritishAirways(1, 1)
         bad_cred = {
-            'card_number': "00000000",
+            'username': "00000000",
             'password': '321321321'
         }
         with self.assertRaises(LoginError) as e:

@@ -16,7 +16,7 @@ class BritishAirways(Miner):
         self.open_url("https://www.britishairways.com/travel/loginr/public/en_gb")
 
         login_form = self.browser.get_form(id='loginrForm')
-        login_form['membershipNumber'].value = credentials['card_number']
+        login_form['membershipNumber'].value = credentials['username']
         login_form['password'].value = credentials['password']
         login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
