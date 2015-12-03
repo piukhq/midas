@@ -27,8 +27,12 @@ class TestQuidco(unittest.TestCase):
 class TestQuidcoFail(unittest.TestCase):
     def test_login_fail(self):
         q = Quidco(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            q.attempt_login(CREDENTIALS['bad'])
+            q.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':

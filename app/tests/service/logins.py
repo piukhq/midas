@@ -79,7 +79,7 @@ CREDENTIALS = {
         "password": "SDHansbrics6",
     },
     "quidco": {
-        "email": "chris.smith4@gmx.co.uk",
+        "username": "chris.smith4@gmx.co.uk",
         "password": "NPHansbrics6",
     },
     "toysrus": {

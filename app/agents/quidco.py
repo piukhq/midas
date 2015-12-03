@@ -10,7 +10,7 @@ class Quidco(Miner):
         self.open_url('https://www.quidco.com/sign-in/?sign_in_redirect_path=%2Factivity%2F')
 
         login_form = self.browser.get_form('sign-in-page-form')
-        login_form['username'].value = credentials['email']
+        login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
 
         self.browser.submit_form(login_form)
