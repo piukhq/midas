@@ -11,7 +11,7 @@ class Hertz(Miner):
     def login(self, credentials):
         data = {
             "loginCreateUserID": "false",
-            "loginId": credentials['email'],
+            "loginId": credentials['username'],
             "password": credentials['password'],
             "cookieMemberOnLogin": False,
             "loginForgotPassword": ""

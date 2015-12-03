@@ -95,7 +95,7 @@ CREDENTIALS = {
         "password": "RGHansbr15",
     },
     "hertz": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "AGHansbrics5",
     },
     "eurostar": {
