@@ -23,7 +23,7 @@ class TestHyattFail(unittest.TestCase):
     def test_login_fail(self):
         m = Hyatt(1, 1)
         credentials = {
-            'card_number': '000000000F',
+            'username': '000000000F',
             'password': '321321321',
         }
         with self.assertRaises(LoginError) as e:
