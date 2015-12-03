@@ -29,7 +29,7 @@ class TestCarlsonFail(unittest.TestCase):
     def test_login_fail(self):
         m = Carlson(1, 1)
         credentials = {
-            'card_number': '0000000000000000',
+            'username': '0000000000000000',
             'password': '321321321',
         }
         with self.assertRaises(LoginError) as e:

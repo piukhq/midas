@@ -249,7 +249,7 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "clubcarlson": {
-        "card_number": "6015995055905023",
+        "username": "6015995055905023",
         "password": "Loyalty1!",
     },
     "omni": {
