@@ -233,7 +233,7 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "klm-flying-blue": {
-        "card_number": "1109882571",
+        "username": "1109882571",
         "pin": "1234",
     },
     "le-club": {
