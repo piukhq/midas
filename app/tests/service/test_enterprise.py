@@ -27,14 +27,18 @@ class TestEnterprise(unittest.TestCase):
 class TestEnterpriseFail(unittest.TestCase):
     def test_login_fail(self):
         en = Enterprise(1, 1)
+        credentials = {
+            'username': '3213213@bad.com',
+            'password': '3213213123',
+        }
         with self.assertRaises(LoginError) as e:
-            en.attempt_login(CREDENTIALS['bad'])
+            en.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
         en = Enterprise(1, 1)
         credentials = {
-            'email': 'chris.gormley2@me.com',
+            'username': 'chris.gormley2@me.com',
             'password': 'DDHansbrics101',
         }
         with self.assertRaises(LoginError) as e:

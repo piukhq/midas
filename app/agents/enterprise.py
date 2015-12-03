@@ -9,7 +9,7 @@ class Enterprise(Miner):
     def login(self, credentials):
         url = 'https://prd.webapi.enterprise.co.uk/enterprise-ewt/ecom-service/login/EP?locale=en_GB'
         login_data = {
-            'username': credentials['email'],
+            'username': credentials['username'],
             'password': credentials['password'],
             'remember_credentials': 'false',
         }
