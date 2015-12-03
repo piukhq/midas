@@ -237,7 +237,7 @@ CREDENTIALS = {
         "pin": "1234",
     },
     "le-club": {
-        "card_number": "3081031370906043",
+        "username": "3081031370906043",
         "password": "Loyalty1",
     },
     "choicehotels": {

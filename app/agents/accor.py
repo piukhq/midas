@@ -14,7 +14,7 @@ class Accor(Miner):
                       '&gotoUrl=%2Fuser%2Fdashboard.action')
 
         login_form = self.browser.get_form('login-form')
-        login_form['username'].value = credentials['card_number']
+        login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
