@@ -10,7 +10,7 @@ class Starwood(Miner):
         self.open_url('https://www.starwoodhotels.com/preferredguest/account/starpoints/index.html')
 
         login_form = self.browser.get_form('loginForm')
-        login_form['login'].value = credentials['email']
+        login_form['login'].value = credentials['username']
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 

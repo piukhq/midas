@@ -191,7 +191,7 @@ CREDENTIALS = {
         "password": "SGHansbr14",
     },
     "starwood-preferred-guest": {
-        "email": "la@loyaltyangels.com",
+        "username": "la@loyaltyangels.com",
         "password": "Loyalty1",
         "favourite_place": "bagshot",
     },
