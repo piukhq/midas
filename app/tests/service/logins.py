@@ -167,7 +167,7 @@ CREDENTIALS = {
         "password": "RZHansbrics4",
     },
     "mandco": {
-        "email": "la@loyaltyangels.com",
+        "username": "la@loyaltyangels.com",
         "password": "LAngels2015!",
     },
     "sparks": {
