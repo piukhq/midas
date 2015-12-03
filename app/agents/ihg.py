@@ -11,7 +11,7 @@ class Ihg(Miner):
                       'fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home')
 
         login_form = self.browser.get_form('walletLoginForm')
-        login_form['emailOrPcrNumber'] = credentials['email']
+        login_form['emailOrPcrNumber'] = credentials['username']
         login_form['password'] = credentials['pin']
         self.browser.submit_form(login_form)
 
