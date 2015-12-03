@@ -28,7 +28,7 @@ class TestIHGFail(unittest.TestCase):
     def test_login_fail(self):
         m = Ihg(1, 1)
         credentials = {
-            'email': 'bad@bad.com',
+            'username': 'bad@bad.com',
             'pin': '0000'
         }
         with self.assertRaises(LoginError) as e:
@@ -38,7 +38,7 @@ class TestIHGFail(unittest.TestCase):
     def test_login_bad_pin(self):
         m = Ihg(1, 1)
         credentials = {
-            'email': 'la@loyaltyangels.com',
+            'username': 'la@loyaltyangels.com',
             'pin': '0000'
         }
         with self.assertRaises(LoginError) as e:
@@ -48,7 +48,7 @@ class TestIHGFail(unittest.TestCase):
     def test_login_long_pin(self):
         m = Ihg(1, 1)
         credentials = {
-            'email': 'la@loyaltyangels.com',
+            'username': 'la@loyaltyangels.com',
             'pin': '12900'
         }
         with self.assertRaises(LoginError) as e:

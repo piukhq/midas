@@ -28,8 +28,12 @@ class TestMandCo(unittest.TestCase):
 class TestMandCoFail(unittest.TestCase):
     def test_login_bad_credentials(self):
         m = MandCo(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(CREDENTIALS['bad'])
+            m.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 

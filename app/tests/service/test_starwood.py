@@ -28,8 +28,12 @@ class TestStarwood(unittest.TestCase):
 class TestStarwoodFail(unittest.TestCase):
     def test_login_fail(self):
         m = Starwood(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(CREDENTIALS['bad'])
+            m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_mfa(self):

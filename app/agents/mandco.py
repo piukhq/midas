@@ -15,7 +15,7 @@ class MandCo(Miner):
         # The email field name is partially scrambled.
         for k, v in login_form.fields.items():
             if v.name.startswith('dwfrm_login_username'):
-                login_form[k].value = credentials['email']
+                login_form[k].value = credentials['username']
                 break
 
         login_form['dwfrm_login_password'].value = credentials['password']

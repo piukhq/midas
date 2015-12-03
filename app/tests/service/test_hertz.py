@@ -28,8 +28,12 @@ class TestHertz(unittest.TestCase):
 class TestHertzFail(unittest.TestCase):
     def test_login_fail(self):
         h = Hertz(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            h.attempt_login(CREDENTIALS['bad'])
+            h.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':

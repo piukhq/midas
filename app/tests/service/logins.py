@@ -75,11 +75,11 @@ CREDENTIALS = {
         "password": "RVHansbrics11",
     },
     "esprit": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "SDHansbrics6",
     },
     "quidco": {
-        "email": "chris.smith4@gmx.co.uk",
+        "username": "chris.smith4@gmx.co.uk",
         "password": "NPHansbrics6",
     },
     "toysrus": {
@@ -87,7 +87,7 @@ CREDENTIALS = {
         "password": "RSHansbrics7!",
     },
     "enterprise": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "DDHansbrics10",
     },
     "heathrow": {
@@ -95,7 +95,7 @@ CREDENTIALS = {
         "password": "RGHansbr15",
     },
     "hertz": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "AGHansbrics5",
     },
     "eurostar": {
@@ -167,7 +167,7 @@ CREDENTIALS = {
         "password": "RZHansbrics4",
     },
     "mandco": {
-        "email": "la@loyaltyangels.com",
+        "username": "la@loyaltyangels.com",
         "password": "LAngels2015!",
     },
     "sparks": {
@@ -179,11 +179,11 @@ CREDENTIALS = {
         "password": "MUHansb6",
     },
     "ihg": {
-        "email": "la@loyaltyangels.com",
+        "username": "la@loyaltyangels.com",
         "pin": "1290",
     },
     "hyatt": {
-        "card_number": "528180109F",
+        "username": "528180109F",
         "password": "Bagshot1",
     },
     "holland_and_barrett": {
@@ -191,7 +191,7 @@ CREDENTIALS = {
         "password": "SGHansbr14",
     },
     "starwood-preferred-guest": {
-        "email": "la@loyaltyangels.com",
+        "username": "la@loyaltyangels.com",
         "password": "Loyalty1",
         "favourite_place": "bagshot",
     },
@@ -233,11 +233,11 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "klm-flying-blue": {
-        "card_number": "1109882571",
+        "username": "1109882571",
         "pin": "1234",
     },
     "le-club": {
-        "card_number": "3081031370906043",
+        "username": "3081031370906043",
         "password": "Loyalty1",
     },
     "choicehotels": {
@@ -249,7 +249,7 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "clubcarlson": {
-        "card_number": "6015995055905023",
+        "username": "6015995055905023",
         "password": "Loyalty1!",
     },
     "omni": {
