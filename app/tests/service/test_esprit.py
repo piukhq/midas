@@ -28,8 +28,12 @@ class TestEsprit(unittest.TestCase):
 class TestEspritFail(unittest.TestCase):
     def test_login_fail(self):
         es = Esprit(1, 1)
+        credentials = {
+            'username': '321321321',
+            'password': '321321321',
+        }
         with self.assertRaises(LoginError) as e:
-            es.attempt_login(CREDENTIALS['bad'])
+            es.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 if __name__ == '__main__':

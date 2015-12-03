@@ -12,7 +12,7 @@ class Esprit(Miner):
         self.open_url('https://www.esprit.co.uk/my-esprit/epoints')
 
         login_form = self.browser.get_form('login_form')
-        login_form['username'].value = credentials['email']
+        login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
 
         self.browser.submit_form(login_form)
