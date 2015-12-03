@@ -13,7 +13,7 @@ def extract_decimal(s):
     We need to use the quantize method to ensure whole
     numbers do not become integers when json encoding
     """
-    return Decimal(re.search(r'-?\d+(?:,\d{1,3})*(?:\.\d+)?', s).group(0).replace(',', '')).quantize(TWO_PLACES)
+    return Decimal(re.search(r'-?\d+(?:,\d+)*(?:\.\d+)?', s).group(0).replace(',', '')).quantize(TWO_PLACES)
 
 
 def open_browser(html, base_href):
