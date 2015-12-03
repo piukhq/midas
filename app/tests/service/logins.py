@@ -13,8 +13,8 @@ CREDENTIALS = {
         'password': 'RZHansbrics5',
     },
     "british-airways": {
-        'card_number': "49932498",
-        'password': 'RAHansbrics14'
+        'username': "49932498",
+        'password': 'Loyalty1'
     },
     "advantage-card": {
         'email': 'julie.gormley100@gmail.com',
