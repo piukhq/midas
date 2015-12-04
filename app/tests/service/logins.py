@@ -9,8 +9,8 @@ CREDENTIALS = {
         'barcode': '9794024051328070'
     },
     "avios": {
-        'email': 'chris.gormley2@me.com',
-        'password': 'RZHansbrics5',
+        'email': 'chris.smith4@gmx.co.uk',
+        'password': 'Loyalty1',
     },
     "british-airways": {
         'username': "49932498",
@@ -47,7 +47,7 @@ CREDENTIALS = {
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
-        'password': 'RLHansbrics9',
+        'password': 'Loyalty1',
     },
     "kfc": {
         "email": "chris.gormley2@me.com",
@@ -107,8 +107,8 @@ CREDENTIALS = {
         "password": "DSHansbrics10",
     },
     "decathlon": {
-        "email": "chris.gormley2@me.com",
-        "password": "MCHansbrics9",
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "Loyalty1",
     },
     "odeon": {
         "email": "chris.gormley2@me.com",
@@ -171,8 +171,8 @@ CREDENTIALS = {
         "password": "LAngels2015!",
     },
     "sparks": {
-        "email": "chris.gormley2@me.com",
-        "password": "QLHansbrics15",
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "Loyalty1",
     },
     "virgin": {
         "username": "gormleyc",
