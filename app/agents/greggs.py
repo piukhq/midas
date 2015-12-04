@@ -39,11 +39,15 @@ class Greggs(Miner):
     def parse_transaction(row):
         data = row.select('td')
 
-        item_counts = Counter(data[2].contents[0::2])
+        """
+        Calling most_common sorts the Counter's contents, ensuring the order of items in the description of a single
+        transaction never changes.
+        """
+        item_counts = Counter(data[2].contents[0::2]).most_common()
 
         return {
             'date': arrow.get('{} {}'.format(data[0].text, data[1].text), 'DD/MM/YYYY h:mma'),
-            'description': ', '.join('{} x{}'.format(item, qty) for (item, qty) in item_counts.items()),
+            'description': ', '.join('{} x{}'.format(item, qty) for (item, qty) in item_counts),
             'points': Decimal('0'),
         }
 
