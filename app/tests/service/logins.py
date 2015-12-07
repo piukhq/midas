@@ -255,7 +255,11 @@ CREDENTIALS = {
     "omni": {
         "email": "la@loyaltyangels.com",
         "password": "Loyalty1",
-    }
+    },
+    "papa_johns": {
+        "email": "chris.gormley2@me.com",
+        "password": "ROHansbrics9!",
+    },
 }
 
 

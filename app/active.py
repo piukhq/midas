@@ -62,4 +62,5 @@ AGENTS = {
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
     'omni': 'omni.Omni',
+    'papa-johns': 'papa_johns.PapaJohns',
 }
