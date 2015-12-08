@@ -1,9 +1,7 @@
-from decimal import Decimal, ROUND_DOWN
-
-import arrow
-
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, TRIPPED_CAPTCHA, STATUS_LOGIN_FAILED
+from decimal import Decimal, ROUND_DOWN
+import arrow
 
 
 class PapaJohns(Miner):
