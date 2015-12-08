@@ -1,6 +1,7 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from decimal import Decimal
+import arrow
 import re
 
 
@@ -34,5 +35,15 @@ class HollandAndBarrett(Miner):
             'balance': Decimal(balance),
         }
 
+    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
     def scrape_transactions(self):
-        return None
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [t]
