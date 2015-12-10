@@ -6,3 +6,9 @@ tests:
 flake8:
   script:
     - flake8 *
+
+
+deploy:
+  stage: deploy
+  script:
+  - curl http://deployer.loyaltyangels.local/deploy/dev/midas
