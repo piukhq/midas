@@ -29,7 +29,7 @@ CREDENTIALS = {
         'password': 'ZBHansbrics5',
     },
     "shell": {
-        'email': 'chris.gormley2@me.com',
+        'username': 'chris.gormley2@me.com',
         'password': 'KRHansbrics5',
     },
     "nectar": {
@@ -58,7 +58,7 @@ CREDENTIALS = {
         "password": "RFHansbrics6",
     },
     "starbucks": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "RRHansbrics9",
     },
     "debenhams": {
