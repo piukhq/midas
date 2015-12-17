@@ -4,7 +4,6 @@ beautifulsoup4==4.4.0
 blinker==1.4
 coverage==3.7.1
 decorator==4.0.2
-flake8==2.5.0
 Flask==0.10.1
 Flask-Redis==0.1.0
 Flask-RESTful==0.3.4
@@ -21,15 +20,12 @@ itsdangerous==0.24
 Jinja2==2.8
 lxml==3.4.4
 MarkupSafe==0.23
-mccabe==0.3.1
 path.py==7.7.1
-pep8==1.5.7
 pexpect==3.3
 pickleshare==0.5
 py==1.4.30
 pycrypto==2.6.1
 PyExecJS==1.1.0
-pyflakes==1.0.0
 pytest==2.7.2
 pytest-cov==2.1.0
 python-dateutil==2.4.2
@@ -41,7 +37,6 @@ requests-futures==0.9.5
 robobrowser==0.5.3
 shellescape==3.4.1
 simplegeneric==0.8.1
-simplejson==3.8.0
 six==1.9.0
 traitlets==4.0.0
 voluptuous==0.8.7
