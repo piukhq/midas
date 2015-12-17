@@ -25,6 +25,7 @@ pexpect==3.3
 pickleshare==0.5
 py==1.4.30
 pycrypto==2.6.1
+PyExecJS==1.1.0
 pytest==2.7.2
 pytest-cov==2.1.0
 python-dateutil==2.4.2
