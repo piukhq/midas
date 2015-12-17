@@ -23,7 +23,7 @@ class Decathlon(Miner):
 
         mdp = result['mdp']
         email = result['email']
-        url = ('http://back.mydecathlon.com/mydkt-server-mvc/ajax'
+        url = ('https://back.mydecathlon.com/mydkt-server-mvc/ajax'
                '/private/authentification/connexion'
                '?ppays=GB'
                '&codeAppli=NetCardV2'
@@ -43,7 +43,7 @@ class Decathlon(Miner):
         self.token = resp['data']['token']
 
     def balance(self):
-        self.open_url('http://back.mydecathlon.com/mydkt-server-mvc/ajax'
+        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax'
                       '/private/synthesePersonne/getInfoPersonne'
                       '?ppays=GB'
                       '&personneId=0'
@@ -72,7 +72,7 @@ class Decathlon(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('http://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
+        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
                       '/tickets/liste'
                       '?ppays=GB'
                       '&idPersonne=0'
@@ -83,7 +83,7 @@ class Decathlon(Miner):
 
         list = json.loads(self.browser.response.text[1:-1])
 
-        self.open_url('http://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
+        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
                       '/tickets/listeDetail'
                       '?ppays=GB'
                       '&idPersonne=0'
