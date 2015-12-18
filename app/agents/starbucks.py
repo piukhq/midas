@@ -23,6 +23,8 @@ class Starbucks(Miner):
         chrome_options.add_experimental_option("prefs", prefs)
 
         web_driver = webdriver.Chrome(chrome_options=chrome_options)
+        web_driver.implicitly_wait(20)
+
         web_driver.get('https://www.starbucks.co.uk/account/signin')
 
         web_driver.find_element_by_xpath('//input[@placeholder="Username or email"]').send_keys(credentials['username'])
