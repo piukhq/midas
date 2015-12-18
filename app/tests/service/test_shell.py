@@ -27,8 +27,12 @@ class TestShell(unittest.TestCase):
 class TestShellFail(unittest.TestCase):
     def test_login_fail(self):
         b = Shell(1, 1)
+        credentials = {
+            'username': 'bad@bad.com',
+            'password': '32132132131',
+        }
         with self.assertRaises(LoginError) as e:
-            b.attempt_login(CREDENTIALS["bad"])
+            b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 if __name__ == '__main__':
