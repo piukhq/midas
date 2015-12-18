@@ -53,5 +53,5 @@ class Starbucks(Miner):
             'points': self.points,
             'value': Decimal('0'),
             'balance': self.card_balance,
-            'value_label': '{}/15 coffees'.format(self.points.quantize(0, ROUND_DOWN)),
+            'value_label': '{} more stars until a free coffee'.format(15 - self.points.quantize(0, ROUND_DOWN)),
         }
