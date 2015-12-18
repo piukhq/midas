@@ -40,7 +40,7 @@ class TestCooperativeFail(unittest.TestCase):
         b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "Invalid mfa")
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 if __name__ == '__main__':
     unittest.main()

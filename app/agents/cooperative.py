@@ -31,7 +31,8 @@ class Cooperative(Miner):
         selector = "#ctl00_ContentPlaceHolder1_lblError > li > p"
         self.check_error("/MemberLogin.aspx",
                          ((selector, STATUS_LOGIN_FAILED, "Please enter a valid  Card Number"),
-                          (selector, INVALID_MFA_INFO, "Please enter a valid  Security Answer"), ))
+                          (selector, INVALID_MFA_INFO, "Please enter a valid  Security Answer"),
+                          ('#ctl00_ContentPlaceHolder1_lblError', STATUS_LOGIN_FAILED, 'One or more parts of your')))
 
         selector = '#skiptomain'
         self.check_error('/AccountLocked.aspx',
