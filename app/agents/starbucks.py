@@ -1,19 +1,16 @@
-from decimal import Decimal, ROUND_DOWN
-
 from app.agents.base import Miner
-from selenium import webdriver
-from xvfbwrapper import Xvfb
-
 from app.agents.exceptions import LoginError
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
+from selenium import webdriver
+from xvfbwrapper import Xvfb
+from decimal import Decimal, ROUND_DOWN
 
 
 class Starbucks(Miner):
     web_driver = None
     card_balance = Decimal('0')
     points = Decimal('0')
-
 
     def login(self, credentials):
         display = Xvfb()
@@ -23,7 +20,7 @@ class Starbucks(Miner):
         prefs = {
             "profile.managed_default_content_settings.images": 2
         }
-        chrome_options.add_experimental_option("prefs",prefs)
+        chrome_options.add_experimental_option("prefs", prefs)
 
         web_driver = webdriver.Chrome(chrome_options=chrome_options)
         web_driver.get('https://www.starbucks.co.uk/account/signin')
