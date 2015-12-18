@@ -63,4 +63,5 @@ AGENTS = {
     'clubcarlson': 'carlson.Carlson',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
+    'mystarbucks-rewards': 'starbucks.Starbucks',
 }
