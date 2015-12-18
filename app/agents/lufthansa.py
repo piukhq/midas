@@ -34,6 +34,8 @@ class Lufthansa(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
         elif len(error_box) > 0 and error_box[0].text.startswith('Invalid PIN. Please try again'):
             raise LoginError(STATUS_LOGIN_FAILED)
+        elif len(error_box) > 0 and error_box[0].text.startswith('Your login details are incorrect.'):
+            raise LoginError(STATUS_LOGIN_FAILED)
         elif self.browser.url.startswith('https://www.miles-and-more.com/online/portal/mam/uk/homepage'):
             raise LoginError(STATUS_ACCOUNT_LOCKED)
 
