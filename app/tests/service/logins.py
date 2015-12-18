@@ -188,7 +188,7 @@ CREDENTIALS = {
     },
     "holland_and_barrett": {
         "email": "chris.gormley2@me.com",
-        "password": "SFHansbr17",
+        "password": "SGHansbr17",
     },
     "starwood-preferred-guest": {
         "username": "la@loyaltyangels.com",
