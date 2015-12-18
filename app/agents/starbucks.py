@@ -3,6 +3,9 @@ from decimal import Decimal, ROUND_DOWN
 from app.agents.base import Miner
 from selenium import webdriver
 from xvfbwrapper import Xvfb
+
+from app.agents.exceptions import LoginError
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
@@ -30,16 +33,22 @@ class Starbucks(Miner):
         web_driver.find_element_by_xpath('//input[@placeholder="Password"]').send_keys(credentials['password'])
         web_driver.find_element_by_xpath('//*[@id="AT_SignIn_Button"]').click()
 
-        # Get pre-paid card balance.
-        self.card_balance = extract_decimal(web_driver.find_element_by_xpath(
-            '//*[@id="selected_card"]/div/span[1]/span[2]/span/span[3]').text)
+        # Try to get the account details.
+        try:
+            # Get pre-paid card balance.
+            self.card_balance = extract_decimal(web_driver.find_element_by_xpath(
+                '//*[@id="selected_card"]/div/span[1]/span[2]/span/span[3]').text)
 
-        # Get points details.
-        self.points = extract_decimal(web_driver.find_element_by_xpath(
-            '//*[@id="stars_and_rewards_section"]/div[3]/figure/figcaption/span[1]').text)
-
-        web_driver.quit()
-        display.stop()
+            # Get points details.
+            self.points = extract_decimal(web_driver.find_element_by_xpath(
+                '//*[@id="stars_and_rewards_section"]/div[3]/figure/figcaption/span[1]').text)
+        except:
+            # If getting the account status failed, then it likely means we failed to log in.
+            raise LoginError(STATUS_LOGIN_FAILED)
+        finally:
+            # Make sure we clean up after ourselves, or Chrome will crash when the virtual display closes.
+            web_driver.quit()
+            display.stop()
 
     def balance(self):
         return {

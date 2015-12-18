@@ -17,5 +17,17 @@ class TestStarbucks(unittest.TestCase):
         self.assertTrue(balance['points'] >= 0 and balance['points'] <= 15)
         self.assertRegex(balance['value_label'], '^\d+/15 coffees$')
 
+
+class TestStarbucksFail(unittest.TestCase):
+    def test_login_fail(self):
+        s = Starbucks(1, 1)
+        credentials = {
+            'username': 'bad@bad.com',
+            'password': '321321321321',
+        }
+        with self.assertRaises(LoginError) as e:
+            s.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
+
 if __name__ == '__main__':
     unittest.main()
