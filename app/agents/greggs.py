@@ -31,7 +31,7 @@ class Greggs(Miner):
         return {
             'points': points,
             'value': Decimal('0'),
-            'value_label': '{}/7 towards a free coffee'.format(points),
+            'value_label': '{}/7 coffees'.format(points),
             'balance': extract_decimal(self.browser.select('p.current_balance_amount strong span')[0].text),
         }
 
