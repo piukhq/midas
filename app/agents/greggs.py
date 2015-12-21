@@ -52,5 +52,5 @@ class Greggs(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.greggs.co.uk/my-account/purchase-history/2015-09#content_start')
+        self.open_url('https://www.greggs.co.uk/my-account/purchase-history#content_start')
         return self.browser.select('#page_account_purchase_history > table > tbody > tr')
