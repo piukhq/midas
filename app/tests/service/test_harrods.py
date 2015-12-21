@@ -21,7 +21,7 @@ class TestHarrods(unittest.TestCase):
 
     def test_transactions(self):
         t = self.h.transactions()
-        self.assertTrue(t)
+        self.assertIsNotNone(t)
         schemas.transactions(t)
 
 

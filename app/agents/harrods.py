@@ -16,7 +16,7 @@ class Harrods(Miner):
             'password': credentials['password'],
         }
 
-        self.open_url(query, method='post', json=data)
+        self.open_url(query, method='post', json=data, read_timeout=15)
         response = json.loads(self.browser.response.text)
 
         if not response['d']['isValid']:
@@ -34,16 +34,23 @@ class Harrods(Miner):
             'value_label': '£{}'.format(value)
         }
 
-    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
-        return row
+        data = row.select('td')
+        return {
+            'date': arrow.get(data[0].contents[0], 'DD-MM-YYYY'),
+            'description': data[1].contents[0],
+            'points': extract_decimal(data[4].contents[0]),
+        }
 
     def scrape_transactions(self):
-        # self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx')
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx')
+
+        search_form = self.browser.get_form('aspnetForm')
+        search_form['__EVENTTARGET'].value = 'ctl00$ContentPlaceHolder1$btnSearchTransactions'
+        search_form['ctl00$ContentPlaceHolder1$ddlTransactionType'].value = 'PurchasesAndRefunds'
+        search_form['ctl00$ContentPlaceHolder1$txtDateFrom'].value = '01/01/2007'
+        search_form['ctl00$ContentPlaceHolder1$txtDateTo'].value = arrow.utcnow().replace(days=-1).format('DD/MM/YYYY')
+        self.browser.submit_form(search_form)
+
+        return self.browser.select('table.statements > tr')[1::2]
