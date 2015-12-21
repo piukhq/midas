@@ -1,7 +1,18 @@
 import os
+import logging
+import graypy
 from environment import env_var, read_env
 
 read_env()
+
+logger = logging.getLogger('midas_logger')
+logger.setLevel(logging.DEBUG)
+
+GRAYLOG_HOST = env_var('GRAYLOG_HOST')
+if GRAYLOG_HOST:
+    handler = graypy.GELFHandler(GRAYLOG_HOST, 12201)
+    logger.addHandler(handler)
+
 
 SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
 
