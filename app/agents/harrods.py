@@ -46,11 +46,13 @@ class Harrods(Miner):
     def scrape_transactions(self):
         self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx')
 
+        yesterday = arrow.utcnow().replace(days=-1)
+
         search_form = self.browser.get_form('aspnetForm')
         search_form['__EVENTTARGET'].value = 'ctl00$ContentPlaceHolder1$btnSearchTransactions'
         search_form['ctl00$ContentPlaceHolder1$ddlTransactionType'].value = 'PurchasesAndRefunds'
-        search_form['ctl00$ContentPlaceHolder1$txtDateFrom'].value = arrow.utcnow().replace(years=-1, days=-1).format('DD/MM/YYYY')
-        search_form['ctl00$ContentPlaceHolder1$txtDateTo'].value = arrow.utcnow().replace(days=-1).format('DD/MM/YYYY')
+        search_form['ctl00$ContentPlaceHolder1$txtDateFrom'].value = yesterday.replace(years=-1).format('DD/MM/YYYY')
+        search_form['ctl00$ContentPlaceHolder1$txtDateTo'].value = yesterday.format('DD/MM/YYYY')
         self.browser.submit_form(search_form)
 
         return self.browser.select('table.statements > tr')[1::2]
