@@ -49,7 +49,7 @@ class Harrods(Miner):
         search_form = self.browser.get_form('aspnetForm')
         search_form['__EVENTTARGET'].value = 'ctl00$ContentPlaceHolder1$btnSearchTransactions'
         search_form['ctl00$ContentPlaceHolder1$ddlTransactionType'].value = 'PurchasesAndRefunds'
-        search_form['ctl00$ContentPlaceHolder1$txtDateFrom'].value = '01/01/2007'
+        search_form['ctl00$ContentPlaceHolder1$txtDateFrom'].value = arrow.utcnow().replace(years=-1, days=-1).format('DD/MM/YYYY')
         search_form['ctl00$ContentPlaceHolder1$txtDateTo'].value = arrow.utcnow().replace(days=-1).format('DD/MM/YYYY')
         self.browser.submit_form(search_form)
 
