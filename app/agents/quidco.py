@@ -6,6 +6,8 @@ from decimal import Decimal
 
 
 class Quidco(Miner):
+    transaction_rows = []
+
     def login(self, credentials):
         self.open_url('https://www.quidco.com/sign-in/?sign_in_redirect_path=%2Factivity%2F')
 
@@ -17,6 +19,8 @@ class Quidco(Miner):
 
         selector = 'div.alert'
         self.check_error('/sign-in/', ((selector, STATUS_LOGIN_FAILED, 'Invalid username'),))
+
+        self.transaction_rows = self.browser.select('#activity-table tbody tr')[0::2]
 
     def balance(self):
         self.open_url('https://www.quidco.com/ajax/main_nav/get_cashback_summary')
@@ -44,4 +48,4 @@ class Quidco(Miner):
 
     def scrape_transactions(self):
         # Every second row is a hidden element we can't parse, so skip it.
-        return self.browser.select('#activity-table tbody tr')[0::2]
+        return self.transaction_rows
