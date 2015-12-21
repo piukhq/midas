@@ -39,11 +39,13 @@ class TheWorks(Miner):
 
         self.open_url(url, method='post', data=data)
         response = self.browser.response.json()
+        points = Decimal(response['pointBalance'])
+        value = self.calculate_point_value(points)
 
         return {
-            'points': Decimal(response['pointBalance']),
-            'value': Decimal('0'),
-            'value_label': '£',
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     @staticmethod
