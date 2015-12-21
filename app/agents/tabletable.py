@@ -27,7 +27,7 @@ class Tabletable(Miner):
         return {
             'points': points,
             'value': value,
-            'value_label': self.format_label(value, 'discount voucher'),
+            'value_label': self.format_label(value, 'voucher'),
         }
 
     @staticmethod
