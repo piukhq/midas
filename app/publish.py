@@ -4,7 +4,7 @@ from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
 import socket
-from flask import request
+
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
