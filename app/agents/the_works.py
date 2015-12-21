@@ -7,6 +7,7 @@ import arrow
 class TheWorks(Miner):
     csrf = ''
     barcode = ''
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
         self.open_url('https://wwws-uk2.givex.com/cws30/The_Works/login.html')
@@ -38,11 +39,13 @@ class TheWorks(Miner):
 
         self.open_url(url, method='post', data=data)
         response = self.browser.response.json()
+        points = Decimal(response['pointBalance'])
+        value = self.calculate_point_value(points)
 
         return {
-            'points': Decimal(response['pointBalance']),
-            'value': Decimal('0'),
-            'value_label': '',
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value)
         }
 
     @staticmethod
