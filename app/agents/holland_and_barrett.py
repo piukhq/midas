@@ -28,7 +28,7 @@ class HollandAndBarrett(Miner):
         points, value = self.point_value_re.findall(point_text)[0]
 
         if value_text == 'You have no Cash Vouchers available.':
-            balance = Decimal('0')
+            balance = '0'
         else:
             balance = self.balance_re.findall(value_text)[0]
 
