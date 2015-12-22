@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -15,11 +15,12 @@ class ThaiAirways(Miner):
             'pin': credentials['password'],
         }
 
-        self.open_url(url, method='post', data=data)
+        self.open_url(url, method='post', data=data, read_timeout=10)
 
         self.check_error('/AIP_ROP/rop/errorPage.jsp',
                          (('h1 > font.contentbody', STATUS_LOGIN_FAILED, 'Invalid membership number'),
-                          ('h1 > font.contentbody', STATUS_LOGIN_FAILED, 'Incorrect Pin Number'), ))
+                          ('h1 > font.contentbody', STATUS_LOGIN_FAILED, 'Incorrect Pin Number'),
+                          ('h1 > font.contentbody', STATUS_ACCOUNT_LOCKED, 'You account is locked'), ))
 
     def balance(self):
         points = extract_decimal(self.browser.select('table.table_userDetail > tr > td > font > b')[2].text)
