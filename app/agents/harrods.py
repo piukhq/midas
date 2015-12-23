@@ -44,7 +44,7 @@ class Harrods(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx')
+        self.open_url('https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx', read_timeout=15)
 
         yesterday = arrow.utcnow().replace(days=-1)
 
