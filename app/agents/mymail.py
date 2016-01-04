@@ -1,3 +1,5 @@
+import time
+
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
@@ -19,12 +21,18 @@ class MyMail(Miner):
             'username': credentials['email'],
             'password': credentials['password'],
         }
-        self.open_url('https://www.mymail.co.uk/login', method='post', json=data)
 
-        # We have to request account data to tell if we were successfully logged in or not.
-        self.open_url('https://www.mymail.co.uk/defaultMember')
+        for i in range(3):
+            self.open_url('https://www.mymail.co.uk/login', method='post', json=data)
 
-        if self.browser.url == 'https://www.mymail.co.uk/login':
+            # We have to request account data to tell if we were successfully logged in or not.
+            self.open_url('https://www.mymail.co.uk/defaultMember')
+
+            if self.browser.url != 'https://www.mymail.co.uk/login':
+                break
+                
+            time.sleep(1)
+        else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
