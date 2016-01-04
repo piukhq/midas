@@ -65,4 +65,5 @@ AGENTS = {
     'papa-johns': 'papa_johns.PapaJohns',
     'mystarbucks-rewards': 'starbucks.Starbucks',
     'mymail': 'mymail.MyMail',
+    'bonus-club': 'brewersfayre.BrewersFayre',
 }
