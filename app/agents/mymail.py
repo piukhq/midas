@@ -30,7 +30,7 @@ class MyMail(Miner):
 
             if self.browser.url != 'https://www.mymail.co.uk/login':
                 break
-                
+
             time.sleep(1)
         else:
             raise LoginError(STATUS_LOGIN_FAILED)
