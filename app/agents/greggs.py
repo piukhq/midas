@@ -53,4 +53,10 @@ class Greggs(Miner):
 
     def scrape_transactions(self):
         self.open_url('https://www.greggs.co.uk/my-account/purchase-history#content_start')
-        return self.browser.select('#page_account_purchase_history > table > tbody > tr')
+
+        data = self.browser.select('#page_account_purchase_history > table > tbody > tr')
+
+        if data[0].select('td')[0].text == 'You have no purchase history for this month':
+            return []
+
+        return data
