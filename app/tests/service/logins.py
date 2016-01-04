@@ -260,6 +260,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "ROHansbrics9!",
     },
+    "bonus-club": {
+        "email": "chris.gormley2@me.com",
+        "password": "DSHansbrics10",
+    }
 }
 
 
