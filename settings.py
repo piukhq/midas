@@ -13,6 +13,8 @@ if GRAYLOG_HOST:
     handler = graypy.GELFHandler(GRAYLOG_HOST, 12201)
     logger.addHandler(handler)
 
+SLACK_API_KEY = "xoxp-10814716850-10810422998-11484111571-159b7e873a"
+JUNIT_XML_FILENAME = "test_results.xml"
 
 SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
 
@@ -27,6 +29,8 @@ REDIS_URL = env_var("MIDAS_REDIS_URI", "redis://localhost:6379/0")
 HADES_URL = env_var("HADES_URL", "http://local.hades.chingrewards.com:8000")
 
 HERMES_URL = env_var("HERMES_URL", "http://local.hermes.chingrewards.com:8000")
+APOLLO_URL = env_var("APOLLO_URL", "http://dev.apollo.loyaltyangels.local")
+HEARTBEAT_URL = env_var("HEARTBEAT_URL", "https://hchk.io/22d1bb0c-daae-43db-8ab2-5a6da0c5f0ec")
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 

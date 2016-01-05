@@ -7,7 +7,6 @@ flake8:
   script:
     - flake8 *
 
-
 deploy:
   stage: deploy
   script:

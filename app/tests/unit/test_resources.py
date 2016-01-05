@@ -1,3 +1,6 @@
+from unittest.mock import mock_open
+
+import builtins
 from flask.ext.testing import TestCase
 
 from app.agents.avios import Avios
@@ -95,3 +98,11 @@ class TestResources(TestCase):
         agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.inc_count.called)
         self.assertTrue(mock_agent_abort.called)
+
+    @mock.patch.object(builtins, 'open', mock_open(read_data='<xml></xml>'))
+    def test_test_results(self):
+        url = "/test_results"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b'<xml></xml>')
+        self.assertEqual(response.content_type, 'text/xml')

@@ -1,0 +1,823 @@
+<?xml version="1.0" encoding="utf-8"?><testsuite errors="13" failures="6" name="pytest" skips="0" tests="234" time="128.817"><testcase classname="test_decathlon.TestDecathlon" name="test_balance" time="0.05470013618469238"/><testcase classname="test_decathlon.TestDecathlon" name="test_login" time="0.0001888275146484375"/><testcase classname="test_carlson.TestCarlson" name="test_transactions" time="0.0005834102630615234"/><testcase classname="test_avis.TestAvisFail" name="test_login_bad_credentials" time="0.5053882598876953"/><testcase classname="test_decathlon.TestDecathlon" name="test_transactions" time="0.24039053916931152"/><testcase classname="test_carlson.TestCarlsonFail" name="test_login_fail" time="0.265765905380249"/><testcase classname="test_decathlon.TestDecathlonFail" name="test_login_fail" time="0.2808980941772461"/><testcase classname="test_beefeater.TestBeefeater" name="test_balance" time="0.014815568923950195"/><testcase classname="test_beefeater.TestBeefeater" name="test_login" time="0.0001347064971923828"/><testcase classname="test_delta.TestDelta" name="test_balance" time="0.0003941059112548828"/><testcase classname="test_delta.TestDelta" name="test_login" time="0.00014710426330566406"/><testcase classname="test_delta.TestDelta" name="test_transactions" time="0.0004436969757080078"/><testcase classname="test_choicehotels.TestChoiceHotels" name="test_balance" time="0.0002880096435546875"/><testcase classname="test_choicehotels.TestChoiceHotels" name="test_login" time="0.00010514259338378906"/><testcase classname="test_choicehotels.TestChoiceHotels" name="test_transactions" time="0.000308990478515625"/><testcase classname="test_beefeater.TestBeefeater" name="test_transactions" time="0.48830556869506836"/><testcase classname="test_choicehotels.TestChoiceHotelsFail" name="test_login_fail" time="0.3067479133605957"/><testcase classname="test_accor.TestAccor" name="test_balance" time="0.00067901611328125"/><testcase classname="test_accor.TestAccor" name="test_login" time="0.00015997886657714844"/><testcase classname="test_accor.TestAccor" name="test_transactions" time="0.0005142688751220703"/><testcase classname="test_beefeater.TestBeefeaterFail" name="test_login_fail" time="0.6022980213165283"/><testcase classname="test_accor.TestAccorFail" name="test_login_fail" time="0.5450947284698486"/><testcase classname="test_boots.TestBoots" name="test_balance" time="0.527010440826416"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_boots.TestBoots&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Boots(1, 1)
+&gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
+
+app/tests/service/test_boots.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/boots.py:25: in login
+    (selector, STATUS_ACCOUNT_LOCKED, &quot;You have exceeded the maximum number of attempts&quot;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.boots.Boots object at 0x7f93b3016d68&gt;
+incorrect = &apos;/webapp/wcs/stores/servlet/LoginRequestDispatcher&apos;
+error_causes = ((&apos;#formErrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;The email address and password you entered ...rrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;You have exceeded the maximum number of attempts&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+                raise LoginError(error_name)
+&gt;       raise LoginError(UNKNOWN)
+E       app.agents.exceptions.LoginError: An unknown error has occurred: We have no idea what went wrong the team is on to it. code: 520
+
+app/agents/base.py:132: LoginError</error></testcase><testcase classname="test_boots.TestBoots" name="test_login" time="0.00019049644470214844"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_boots.TestBoots&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Boots(1, 1)
+&gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
+
+app/tests/service/test_boots.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/boots.py:25: in login
+    (selector, STATUS_ACCOUNT_LOCKED, &quot;You have exceeded the maximum number of attempts&quot;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.boots.Boots object at 0x7f93b3016d68&gt;
+incorrect = &apos;/webapp/wcs/stores/servlet/LoginRequestDispatcher&apos;
+error_causes = ((&apos;#formErrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;The email address and password you entered ...rrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;You have exceeded the maximum number of attempts&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+                raise LoginError(error_name)
+&gt;       raise LoginError(UNKNOWN)
+E       app.agents.exceptions.LoginError: An unknown error has occurred: We have no idea what went wrong the team is on to it. code: 520
+
+app/agents/base.py:132: LoginError</error></testcase><testcase classname="test_boots.TestBoots" name="test_transactions" time="0.000453948974609375"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_boots.TestBoots&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.b = Boots(1, 1)
+&gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
+
+app/tests/service/test_boots.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/boots.py:25: in login
+    (selector, STATUS_ACCOUNT_LOCKED, &quot;You have exceeded the maximum number of attempts&quot;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.boots.Boots object at 0x7f93b3016d68&gt;
+incorrect = &apos;/webapp/wcs/stores/servlet/LoginRequestDispatcher&apos;
+error_causes = ((&apos;#formErrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;The email address and password you entered ...rrorContainer &gt; div &gt; div &gt; ul &gt; li &gt; a&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;You have exceeded the maximum number of attempts&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+                raise LoginError(error_name)
+&gt;       raise LoginError(UNKNOWN)
+E       app.agents.exceptions.LoginError: An unknown error has occurred: We have no idea what went wrong the team is on to it. code: 520
+
+app/agents/base.py:132: LoginError</error></testcase><testcase classname="test_boots.TestBootsFail" name="test_login_bad_number" time="0.31331443786621094"/><testcase classname="test_british_airways.TestBritishAirways" name="test_balance" time="0.08779788017272949"/><testcase classname="test_british_airways.TestBritishAirways" name="test_login" time="0.00012493133544921875"/><testcase classname="test_cooperative.TestCooperative" name="test_balance" time="0.10965800285339355"/><testcase classname="test_cooperative.TestCooperative" name="test_login" time="0.00027108192443847656"/><testcase classname="test_cooperative.TestCooperative" name="test_transactions" time="0.04372215270996094"/><testcase classname="test_cooperative.TestCooperativeFail" name="test_login_bad_mfa" time="0.2642021179199219"/><testcase classname="test_cooperative.TestCooperativeFail" name="test_login_bad_number" time="0.22243881225585938"/><testcase classname="test_delta.TestDeltaFail" name="test_login_bad_password" time="4.448883056640625"/><testcase classname="test_delta.TestDeltaFail" name="test_login_bad_username" time="0.4317138195037842"/><testcase classname="test_british_airways.TestBritishAirways" name="test_transactions" time="1.5866072177886963"/><testcase classname="test_debenhams.TestDebenhams" name="test_balance" time="0.18323540687561035"/><testcase classname="test_debenhams.TestDebenhams" name="test_login" time="0.0001666545867919922"/><testcase classname="test_debenhams.TestDebenhams" name="test_transactions" time="0.0004405975341796875"/><testcase classname="test_british_airways.TestBritishAirwaysFail" name="test_login_fail" time="0.3438229560852051"/><testcase classname="test_debenhams.TestDebenhamsFail" name="test_login_bad_credentials" time="0.2988705635070801"/><testcase classname="test_carlson.TestCarlson" name="test_balance" time="0.05735182762145996"/><testcase classname="test_carlson.TestCarlson" name="test_login" time="0.000133514404296875"/><testcase classname="test_foyles_bookstore.TestFoylesBookstore" name="test_login" time="0.06891012191772461"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_foyles_bookstore.TestFoylesBookstore&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.w = FoylesBookstore(1, 1)
+&gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
+
+app/tests/service/test_foyles_bookstore.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/foyles_bookstore.py:20: in login
+    ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, STATUS_LOGIN_FAILED, &apos;Incorrect Username or Password&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.foyles_bookstore.FoylesBookstore object at 0x7f93b2d84c18&gt;
+incorrect = &apos;/Default.aspx&apos;
+error_causes = ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Incorrect Username or Password&apos;),)
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Invalid credentials: We could not update your account because your username and/or password were reported to be incorrect. Please re-verify your username and password. code: 403
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_foyles_bookstore.TestFoylesBookstore" name="test_transactions" time="0.00016045570373535156"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_foyles_bookstore.TestFoylesBookstore&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.w = FoylesBookstore(1, 1)
+&gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
+
+app/tests/service/test_foyles_bookstore.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/foyles_bookstore.py:20: in login
+    ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, STATUS_LOGIN_FAILED, &apos;Incorrect Username or Password&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.foyles_bookstore.FoylesBookstore object at 0x7f93b2d84c18&gt;
+incorrect = &apos;/Default.aspx&apos;
+error_causes = ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Incorrect Username or Password&apos;),)
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Invalid credentials: We could not update your account because your username and/or password were reported to be incorrect. Please re-verify your username and password. code: 403
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_foyles_bookstore.TestFoylesBookstoreFail" name="test_login_fail" time="0.05997347831726074"/><testcase classname="test_enterprise.TestEnterprise" name="test_balance" time="0.00032830238342285156"/><testcase classname="test_enterprise.TestEnterprise" name="test_login" time="0.00015091896057128906"/><testcase classname="test_enterprise.TestEnterprise" name="test_transactions" time="0.0004792213439941406"/><testcase classname="test_enterprise.TestEnterpriseFail" name="test_login_bad_password" time="0.801246166229248"/><testcase classname="test_enterprise.TestEnterpriseFail" name="test_login_fail" time="0.6258182525634766"/><testcase classname="test_gha.TestGha" name="test_balance" time="0.05721402168273926"/><testcase classname="test_gha.TestGha" name="test_login" time="0.00014638900756835938"/><testcase classname="test_gha.TestGha" name="test_transactions" time="0.0004303455352783203"/><testcase classname="test_esprit.TestEsprit" name="test_balance" time="0.033651113510131836"/><testcase classname="test_esprit.TestEsprit" name="test_login" time="0.00014257431030273438"/><testcase classname="test_esprit.TestEsprit" name="test_transactions" time="0.0004298686981201172"/><testcase classname="test_esprit.TestEspritFail" name="test_login_fail" time="0.7849798202514648"/><testcase classname="test_gha.TestGhaFail" name="test_login_fail" time="2.3692264556884766"/><testcase classname="test_air_asia.TestAirAsia" name="test_balance" time="0.02586817741394043"/><testcase classname="test_air_asia.TestAirAsia" name="test_login" time="0.0001842975616455078"/><testcase classname="test_air_asia.TestAirAsia" name="test_transactions" time="0.0004534721374511719"/><testcase classname="test_air_asia.TestAirAsiaFail" name="test_login_fail" time="2.6641762256622314"/><testcase classname="test_eurostar.TestEurostar" name="test_balance" time="0.0015568733215332031"/><testcase classname="test_eurostar.TestEurostar" name="test_login" time="0.00014734268188476562"/><testcase classname="test_harrods.TestHarrods" name="test_transactions" time="5.009041786193848"><failure message="self = &lt;app.tests.service.test_harrods.TestHarrods testMethod=test_transactions&gt;
+
+    def test_transactions(self):
+&gt;       t = self.h.transactions()
+
+app/tests/service/test_harrods.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:99: in transactions
+    return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+app/agents/harrods.py:47: in scrape_transactions
+    self.open_url(&apos;https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx&apos;)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.harrods.Harrods object at 0x7f8573aa9c88&gt;
+url = &apos;https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx&apos;
+verify = True, method = &apos;get&apos;, data = None, json = None, read_timeout = 5
+
+    def open_url(self, url, verify=True, method=&apos;get&apos;, data=None, json=None, read_timeout=5):
+        &quot;&quot;&quot;
+            Sensible defaults and error handling for opening url
+            http://www.mobify.com/blog/http-requests-are-hard/
+            &quot;&quot;&quot;
+        connect_timeout = 1
+    
+        try:
+            self.browser.open(url, timeout=(connect_timeout, read_timeout),
+                              headers=self.headers, verify=verify, method=method, data=data, json=json)
+        except ReadTimeout as exception:
+&gt;           raise AgentError(END_SITE_DOWN) from exception
+E           app.agents.exceptions.AgentError: End site down: The scheme end site is currently down. code: 530
+
+app/agents/base.py:74: AgentError">self = &lt;app.tests.service.test_harrods.TestHarrods testMethod=test_transactions&gt;
+
+    def test_transactions(self):
+&gt;       t = self.h.transactions()
+
+app/tests/service/test_harrods.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:99: in transactions
+    return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+app/agents/harrods.py:47: in scrape_transactions
+    self.open_url(&apos;https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx&apos;)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.harrods.Harrods object at 0x7f8573aa9c88&gt;
+url = &apos;https://www.harrods.com/Pages/Account/Secure/StatementTransactions.aspx&apos;
+verify = True, method = &apos;get&apos;, data = None, json = None, read_timeout = 5
+
+    def open_url(self, url, verify=True, method=&apos;get&apos;, data=None, json=None, read_timeout=5):
+        &quot;&quot;&quot;
+            Sensible defaults and error handling for opening url
+            http://www.mobify.com/blog/http-requests-are-hard/
+            &quot;&quot;&quot;
+        connect_timeout = 1
+    
+        try:
+            self.browser.open(url, timeout=(connect_timeout, read_timeout),
+                              headers=self.headers, verify=verify, method=method, data=data, json=json)
+        except ReadTimeout as exception:
+&gt;           raise AgentError(END_SITE_DOWN) from exception
+E           app.agents.exceptions.AgentError: End site down: The scheme end site is currently down. code: 530
+
+app/agents/base.py:74: AgentError</failure></testcase><testcase classname="test_harrods.TestHarrodsFail" name="test_bad_login" time="0.0784916877746582"/><testcase classname="test_greggs.TestGreggs" name="test_balance" time="1.8268373012542725"/><testcase classname="test_greggs.TestGreggs" name="test_login" time="0.00038743019104003906"/><testcase classname="test_eurostar.TestEurostarFail" name="test_login_bad_password" time="3.188342571258545"/><testcase classname="test_avios.TestAvios" name="test_balance" time="0.1234581470489502"/><testcase classname="test_avios.TestAvios" name="test_login" time="0.00011277198791503906"/><testcase classname="test_greggs.TestGreggs" name="test_transactions" time="2.4006128311157227"/><testcase classname="test_heathrow.TestHeathrow" name="test_balance" time="0.0330805778503418"/><testcase classname="test_heathrow.TestHeathrow" name="test_login" time="0.00016498565673828125"/><testcase classname="test_avios.TestAvios" name="test_transactions" time="1.3607490062713623"/><testcase classname="test_eurostar.TestEurostarFail" name="test_login_fail" time="1.8230233192443848"/><testcase classname="test_heathrow.TestHeathrow" name="test_transactions" time="0.3314352035522461"/><testcase classname="test_greggs.TestGreggsFail" name="test_login_bad_credentials" time="1.2079963684082031"/><testcase classname="test_heathrow.TestHeathrowFail" name="test_login_fail" time="2.272214651107788"/><testcase classname="test_avios.TestAviosFail" name="test_login_bad_number" time="2.825535297393799"/><testcase classname="test_flying_blue.TestFlyingBlue" name="test_balance" time="0.6487841606140137"/><testcase classname="test_flying_blue.TestFlyingBlue" name="test_login" time="0.0001461505889892578"/><testcase classname="test_flying_blue.TestFlyingBlue" name="test_transactions" time="0.0006377696990966797"/><testcase classname="test_hertz.TestHertz" name="test_balance" time="0.3824045658111572"/><testcase classname="test_hertz.TestHertz" name="test_login" time="0.0001633167266845703"/><testcase classname="test_hertz.TestHertz" name="test_transactions" time="0.00044226646423339844"/><testcase classname="test_flying_blue.TestFlyingBlueFail" name="test_login_bad_password" time="0.484342098236084"/><testcase classname="test_hertz.TestHertzFail" name="test_login_fail" time="0.49297261238098145"/><testcase classname="test_flying_blue.TestFlyingBlueFail" name="test_login_bad_username" time="0.4826357364654541"/><testcase classname="test_foyles_bookstore.TestFoylesBookstore" name="test_balance" time="0.06348872184753418"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_foyles_bookstore.TestFoylesBookstore&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.w = FoylesBookstore(1, 1)
+&gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
+
+app/tests/service/test_foyles_bookstore.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/foyles_bookstore.py:20: in login
+    ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, STATUS_LOGIN_FAILED, &apos;Incorrect Username or Password&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.foyles_bookstore.FoylesBookstore object at 0x7f506215b6d8&gt;
+incorrect = &apos;/Default.aspx&apos;
+error_causes = ((&apos;#ctl00_HeaderInfo_lblErrors&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Incorrect Username or Password&apos;),)
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Invalid credentials: We could not update your account because your username and/or password were reported to be incorrect. Please re-verify your username and password. code: 403
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_avis.TestAvis" name="test_balance" time="0.05199313163757324"/><testcase classname="test_avis.TestAvis" name="test_login" time="0.00014495849609375"/><testcase classname="test_avis.TestAvis" name="test_transactions" time="0.00040268898010253906"/><testcase classname="test_holland_and_barrett.TestHollandAndBarrett" name="test_balance" time="0.0302736759185791"><system-err>/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+</system-err></testcase><testcase classname="test_holland_and_barrett.TestHollandAndBarrett" name="test_login" time="0.00015473365783691406"/><testcase classname="test_harrods.TestHarrods" name="test_balance" time="0.09957313537597656"/><testcase classname="test_harrods.TestHarrods" name="test_login" time="0.0001361370086669922"/><testcase classname="test_hyatt.TestHyatt" name="test_balance" time="0.02011394500732422"/><testcase classname="test_hyatt.TestHyatt" name="test_login" time="9.393692016601562e-05"/><testcase classname="test_hyatt.TestHyattFail" name="test_login_fail" time="1.2217764854431152"/><testcase classname="test_jetblue.TestJetBlue" name="test_login" time="0.00021004676818847656"/><testcase classname="test_jetblue.TestJetBlue" name="test_transactions" time="0.0006663799285888672"/><testcase classname="test_holland_and_barrett.TestHollandAndBarrettFail" name="test_login_fail" time="3.6852540969848633"><system-err>/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+</system-err></testcase><testcase classname="test_jetblue.TestJetBlueFail" name="test_login_fail" time="1.227327585220337"/><testcase classname="test_monsoon.TestMonsoon" name="test_balance" time="0.06860899925231934"><system-err>/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+</system-err></testcase><testcase classname="test_monsoon.TestMonsoon" name="test_login" time="0.0002269744873046875"/><testcase classname="test_monsoon.TestMonsoon" name="test_transactions" time="0.0005025863647460938"/><testcase classname="test_ihg.TestIhg" name="test_balance" time="0.15009784698486328"/><testcase classname="test_ihg.TestIhg" name="test_login" time="0.00010943412780761719"/><testcase classname="test_monsoon.TestMonsoonFail" name="test_login_fail" time="0.31955647468566895"><system-err>/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+</system-err></testcase><testcase classname="test_ihg.TestIhg" name="test_transactions" time="0.24114513397216797"/><testcase classname="test_kfc.TestKfc" name="test_balance" time="0.7906754016876221"/><testcase classname="test_kfc.TestKfc" name="test_login" time="0.0001842975616455078"/><testcase classname="test_ihg.TestIHGFail" name="test_login_bad_pin" time="0.9988696575164795"/><testcase classname="test_morrisons.TestMorrisons" name="test_balance" time="0.22178244590759277"><system-err>/home/bo/projects/midas/lib/python3.4/site-packages/requests/packages/urllib3/connectionpool.py:768: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html
+  InsecureRequestWarning)
+</system-err></testcase><testcase classname="test_morrisons.TestMorrisons" name="test_login" time="0.00017213821411132812"/><testcase classname="test_kfc.TestKfcFail" name="test_login_fail" time="0.5661096572875977"/><testcase classname="test_morrisons.TestMorrisons" name="test_transactions" time="0.24429941177368164"/><testcase classname="test_ihg.TestIHGFail" name="test_login_fail" time="0.5084714889526367"/><testcase classname="test_morrisons.TestMorrisonsFail" name="test_login_fail" time="0.2577528953552246"/><testcase classname="test_ihg.TestIHGFail" name="test_login_long_pin" time="0.4318976402282715"/><testcase classname="test_mymail.TestMyMail" name="test_balance" time="0.1118781566619873"/><testcase classname="test_lufthansa.TestLufthansa" name="test_balance" time="0.0017359256744384766"/><testcase classname="test_lufthansa.TestLufthansa" name="test_login" time="0.00014209747314453125"/><testcase classname="test_lufthansa.TestLufthansa" name="test_transactions" time="0.0018398761749267578"/><testcase classname="test_nectar.TestNectar" name="test_login" time="0.0002701282501220703"/><testcase classname="test_nectar.TestNectar" name="test_transactions" time="1.0292081832885742"/><testcase classname="test_lufthansa.TestLufthansaFail" name="test_login_bad_card_number" time="1.1463916301727295"/><testcase classname="test_lufthansa.TestLufthansaFail" name="test_login_bad_pin" time="0.7971529960632324"/><testcase classname="test_odeon.TestOdeon" name="test_balance" time="0.003173351287841797"/><testcase classname="test_odeon.TestOdeon" name="test_login" time="0.00017333030700683594"/><testcase classname="test_jetblue.TestJetBlue" name="test_balance" time="0.04066824913024902"/><testcase classname="test_odeon.TestOdeon" name="test_transactions" time="1.500387191772461"/><testcase classname="test_mymail.TestMyMail" name="test_login" time="0.000179290771484375"/><testcase classname="test_mymail.TestMyMail" name="test_transactions" time="0.11760187149047852"/><testcase classname="test_mymail.TestMyMailFail" name="test_login_fail" time="0.46941542625427246"/><testcase classname="test_malaysia_airlines.TestMalaysiaAirlines" name="test_login" time="0.00020313262939453125"/><testcase classname="test_odeon.TestOdeonFail" name="test_login_fail" time="1.216569423675537"/><testcase classname="test_nandos.TestNandos" name="test_balance" time="0.5666964054107666"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_nandos.TestNandos&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.n = Nandos(1, 1)
+&gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
+
+app/tests/service/test_nandos.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/nandos.py:24: in login
+    (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, STATUS_LOGIN_FAILED, &apos;ERROR&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.nandos.Nandos object at 0x7f93b1ddabe0&gt;
+incorrect = &apos;/card/log-in&apos;
+error_causes = ((&apos;#content-header div h2&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Status&apos;), (&apos;.messages&apos;, &apos;TRIPPED_CAPTCHA&apos;, &quot;Error message\nOops, t...ed too many login attempts&quot;), (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;ERROR&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Tripped captcha: The agent has tripped the scheme capture code: 532
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_nandos.TestNandos" name="test_login" time="0.00018978118896484375"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_nandos.TestNandos&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.n = Nandos(1, 1)
+&gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
+
+app/tests/service/test_nandos.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/nandos.py:24: in login
+    (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, STATUS_LOGIN_FAILED, &apos;ERROR&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.nandos.Nandos object at 0x7f93b1ddabe0&gt;
+incorrect = &apos;/card/log-in&apos;
+error_causes = ((&apos;#content-header div h2&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Status&apos;), (&apos;.messages&apos;, &apos;TRIPPED_CAPTCHA&apos;, &quot;Error message\nOops, t...ed too many login attempts&quot;), (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;ERROR&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Tripped captcha: The agent has tripped the scheme capture code: 532
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_nandos.TestNandos" name="test_transactions" time="0.00017952919006347656"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_nandos.TestNandos&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.n = Nandos(1, 1)
+&gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
+
+app/tests/service/test_nandos.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/nandos.py:24: in login
+    (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, STATUS_LOGIN_FAILED, &apos;ERROR&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.nandos.Nandos object at 0x7f93b1ddabe0&gt;
+incorrect = &apos;/card/log-in&apos;
+error_causes = ((&apos;#content-header div h2&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Status&apos;), (&apos;.messages&apos;, &apos;TRIPPED_CAPTCHA&apos;, &quot;Error message\nOops, t...ed too many login attempts&quot;), (&apos;body &gt; div &gt; div.rc-anchor-content &gt; div &gt; div &gt; div&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;ERROR&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Tripped captcha: The agent has tripped the scheme capture code: 532
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_nandos.TestNandosFail" name="test_login_fail" time="0.5983672142028809"><failure message="self = &lt;app.tests.service.test_nandos.TestNandosFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        n = Nandos(1, 1)
+        with self.assertRaises(LoginError) as e:
+            n.attempt_login(CREDENTIALS[&apos;bad&apos;])
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
+E       AssertionError: &apos;Tripped captcha&apos; != &apos;Invalid credentials&apos;
+E       - Tripped captcha
+E       + Invalid credentials
+
+app/tests/service/test_nandos.py:33: AssertionError">self = &lt;app.tests.service.test_nandos.TestNandosFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        n = Nandos(1, 1)
+        with self.assertRaises(LoginError) as e:
+            n.attempt_login(CREDENTIALS[&apos;bad&apos;])
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
+E       AssertionError: &apos;Tripped captcha&apos; != &apos;Invalid credentials&apos;
+E       - Tripped captcha
+E       + Invalid credentials
+
+app/tests/service/test_nandos.py:33: AssertionError</failure></testcase><testcase classname="test_nectar.TestNectar" name="test_balance" time="0.05110597610473633"/><testcase classname="test_paperchase.TestPaperchaseFail" name="test_login_fail" time="1.4292798042297363"/><testcase classname="test_omni.TestOmni" name="test_balance" time="0.0018281936645507812"/><testcase classname="test_omni.TestOmni" name="test_login" time="0.0002117156982421875"/><testcase classname="test_omni.TestOmni" name="test_transactions" time="0.0007798671722412109"/><testcase classname="test_priority_guest_rewards.TestPriorityGuestRewards" name="test_balance" time="0.06752181053161621"/><testcase classname="test_priority_guest_rewards.TestPriorityGuestRewards" name="test_login" time="0.00011706352233886719"/><testcase classname="test_priority_guest_rewards.TestPriorityGuestRewards" name="test_transactions" time="0.0030829906463623047"/><testcase classname="test_qantas.TestQantas" name="test_transactions" time="0.03996086120605469"/><testcase classname="test_priority_guest_rewards.TestPriorityGuestRewardsFail" name="test_login_fail" time="3.329035997390747"/><testcase classname="test_qantas.TestQantasFail" name="test_login_fail" time="2.723576068878174"/><testcase classname="test_quidco.TestQuidco" name="test_balance" time="0.09847688674926758"/><testcase classname="test_quidco.TestQuidco" name="test_login" time="0.0002815723419189453"/><testcase classname="test_quidco.TestQuidco" name="test_transactions" time="0.0016357898712158203"/><testcase classname="test_malaysia_airlines.TestMalaysiaAirlines" name="test_balance" time="0.008885860443115234"/><testcase classname="test_quidco.TestQuidcoFail" name="test_login_fail" time="0.3966071605682373"/><testcase classname="test_omni.TestOmniFail" name="test_login_fail" time="1.4942615032196045"/><testcase classname="test_qantas.TestQantas" name="test_balance" time="0.03853559494018555"/><testcase classname="test_qantas.TestQantas" name="test_login" time="0.00016164779663085938"/><testcase classname="test_papa_johns.TestPapaJohns" name="test_balance" time="0.12689876556396484"/><testcase classname="test_papa_johns.TestPapaJohns" name="test_login" time="0.00011873245239257812"/><testcase classname="test_papa_johns.TestPapaJohns" name="test_transactions" time="0.0036308765411376953"/><testcase classname="test_papa_johns.TestPapaJohnsFail" name="test_login_fail" time="0.697615385055542"/><testcase classname="test_rewards4fishing.TestRewards4Fishing" name="test_balance" time="0.24063658714294434"/><testcase classname="test_paperchase.TestPaperchase" name="test_balance" time="1.0089633464813232"/><testcase classname="test_paperchase.TestPaperchase" name="test_login" time="0.0001392364501953125"/><testcase classname="test_rewards4golf.TestRewards4Golf" name="test_transactions" time="0.0005431175231933594"/><testcase classname="test_rewards4fishing.TestRewards4Fishing" name="test_login" time="0.0002803802490234375"/><testcase classname="test_rewards4fishing.TestRewards4Fishing" name="test_transactions" time="0.0006315708160400391"/><testcase classname="test_rewards4racing.TestRewards4RacingFail" name="test_login_fail" time="0.6271271705627441"/><testcase classname="test_rewards4golf.TestRewards4GolfFail" name="test_login_fail" time="0.713294267654419"/><testcase classname="test_rewards4fishing.TestRewards4FishingFail" name="test_login_fail" time="0.6766200065612793"/><testcase classname="test_rewards4golf.TestRewards4Golf" name="test_balance" time="0.07735800743103027"/><testcase classname="test_rewards4golf.TestRewards4Golf" name="test_login" time="0.00014138221740722656"/><testcase classname="test_rewards4racing.TestRewards4Racing" name="test_balance" time="0.12127518653869629"/><testcase classname="test_rewards4racing.TestRewards4Racing" name="test_login" time="0.00011134147644042969"/><testcase classname="test_rewards4racing.TestRewards4Racing" name="test_transactions" time="0.0002961158752441406"/><testcase classname="test_space_nk.TestSpaceNK" name="test_login" time="0.00033354759216308594"/><testcase classname="test_space_nk.TestSpaceNK" name="test_transactions" time="0.0006208419799804688"/><testcase classname="test_sparks.TestSparks" name="test_transactions" time="0.0005090236663818359"/><testcase classname="test_space_nk.TestSpaceNKFail" name="test_login_fail" time="1.786414384841919"/><testcase classname="test_sparks.TestSparksFail" name="test_login_fail" time="1.907026767730713"/><testcase classname="test_sparks.TestSparks" name="test_balance" time="0.1782536506652832"/><testcase classname="test_sparks.TestSparks" name="test_login" time="0.00020360946655273438"/><testcase classname="test_starwood.TestStarwood" name="test_balance" time="0.9180803298950195"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_starwood.TestStarwood&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = Starwood(1, 1)
+&gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
+
+app/tests/service/test_starwood.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starwood.py:19: in login
+    (&apos;#genericBEError&apos;, STATUS_ACCOUNT_LOCKED, &apos;Your account is locked&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.starwood.Starwood object at 0x7f93b1b9d320&gt;
+incorrect = &apos;/preferredguest/account/sign_in.html&apos;
+error_causes = ((&apos;#genericBEError&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Correct any errors&apos;), (&apos;#genericBEError&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;Your account is locked&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Account locked on end site: We could not update your account because it appears your account has been locked. This usually results from too many unsuccessful login attempts in a short period of time. Please visit the site or contact its customer support to resolve this issue. Once done, please update your account credentials in case they are changed. code: 434
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_starwood.TestStarwood" name="test_login" time="0.00014519691467285156"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_starwood.TestStarwood&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = Starwood(1, 1)
+&gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
+
+app/tests/service/test_starwood.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starwood.py:19: in login
+    (&apos;#genericBEError&apos;, STATUS_ACCOUNT_LOCKED, &apos;Your account is locked&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.starwood.Starwood object at 0x7f93b1b9d320&gt;
+incorrect = &apos;/preferredguest/account/sign_in.html&apos;
+error_causes = ((&apos;#genericBEError&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Correct any errors&apos;), (&apos;#genericBEError&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;Your account is locked&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Account locked on end site: We could not update your account because it appears your account has been locked. This usually results from too many unsuccessful login attempts in a short period of time. Please visit the site or contact its customer support to resolve this issue. Once done, please update your account credentials in case they are changed. code: 434
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_starwood.TestStarwood" name="test_transactions" time="0.00010704994201660156"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_starwood.TestStarwood&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = Starwood(1, 1)
+&gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
+
+app/tests/service/test_starwood.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starwood.py:19: in login
+    (&apos;#genericBEError&apos;, STATUS_ACCOUNT_LOCKED, &apos;Your account is locked&apos;), ))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;app.agents.starwood.Starwood object at 0x7f93b1b9d320&gt;
+incorrect = &apos;/preferredguest/account/sign_in.html&apos;
+error_causes = ((&apos;#genericBEError&apos;, &apos;STATUS_LOGIN_FAILED&apos;, &apos;Correct any errors&apos;), (&apos;#genericBEError&apos;, &apos;STATUS_ACCOUNT_LOCKED&apos;, &apos;Your account is locked&apos;))
+url_part = &apos;path&apos;
+
+    def check_error(self, incorrect, error_causes, url_part=&quot;path&quot;):
+        parts = urlsplit(self.browser.url)
+        if getattr(parts, url_part) != incorrect:
+            return
+    
+        for error in error_causes:
+            selector, error_name, error_match = error
+            message = self.browser.select(selector)
+            if message and message[0].get_text().strip().startswith(error_match):
+&gt;               raise LoginError(error_name)
+E               app.agents.exceptions.LoginError: Account locked on end site: We could not update your account because it appears your account has been locked. This usually results from too many unsuccessful login attempts in a short period of time. Please visit the site or contact its customer support to resolve this issue. Once done, please update your account credentials in case they are changed. code: 434
+
+app/agents/base.py:131: LoginError</error></testcase><testcase classname="test_malaysia_airlines.TestMalaysiaAirlines" name="test_transactions" time="30.5432710647583"/><testcase classname="test_starwood.TestStarwoodFail" name="test_login_bad_mfa" time="0.9082019329071045"><failure message="self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_bad_mfa&gt;
+
+    def test_login_bad_mfa(self):
+        m = Starwood(1, 1)
+        credentials = CREDENTIALS[&apos;starwood-preferred-guest&apos;].copy()
+        credentials[&apos;favourite_place&apos;] = &apos;totally incorrect&apos;
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid mfa&apos;)
+E       AssertionError: &apos;Account locked on end site&apos; != &apos;Invalid mfa&apos;
+E       - Account locked on end site
+E       + Invalid mfa
+
+app/tests/service/test_starwood.py:45: AssertionError">self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_bad_mfa&gt;
+
+    def test_login_bad_mfa(self):
+        m = Starwood(1, 1)
+        credentials = CREDENTIALS[&apos;starwood-preferred-guest&apos;].copy()
+        credentials[&apos;favourite_place&apos;] = &apos;totally incorrect&apos;
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid mfa&apos;)
+E       AssertionError: &apos;Account locked on end site&apos; != &apos;Invalid mfa&apos;
+E       - Account locked on end site
+E       + Invalid mfa
+
+app/tests/service/test_starwood.py:45: AssertionError</failure></testcase><testcase classname="test_starwood.TestStarwoodFail" name="test_login_fail" time="0.9437527656555176"><failure message="self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        m = Starwood(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;321321321&apos;,
+            &apos;password&apos;: &apos;321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
+E       AssertionError: &apos;An unknown error has occurred&apos; != &apos;Invalid credentials&apos;
+E       - An unknown error has occurred
+E       + Invalid credentials
+
+app/tests/service/test_starwood.py:37: AssertionError">self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        m = Starwood(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;321321321&apos;,
+            &apos;password&apos;: &apos;321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+            m.attempt_login(credentials)
+&gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
+E       AssertionError: &apos;An unknown error has occurred&apos; != &apos;Invalid credentials&apos;
+E       - An unknown error has occurred
+E       + Invalid credentials
+
+app/tests/service/test_starwood.py:37: AssertionError</failure></testcase><testcase classname="test_shell.TestShell" name="test_balance" time="0.054175615310668945"/><testcase classname="test_shell.TestShell" name="test_login" time="0.00013518333435058594"/><testcase classname="test_shell.TestShell" name="test_transactions" time="0.0030562877655029297"/><testcase classname="test_shell.TestShellFail" name="test_login_fail" time="1.3242690563201904"/><testcase classname="test_superdrug.TestSuperDrug" name="test_balance" time="0.11388087272644043"/><testcase classname="test_superdrug.TestSuperDrug" name="test_login" time="0.0003159046173095703"/><testcase classname="test_malaysia_airlines.TestMalaysiaAirlinesFail" name="test_login_fail" time="6.0004189014434814"/><testcase classname="test_space_nk.TestSpaceNK" name="test_balance" time="0.0007658004760742188"/><testcase classname="test_mandco.TestMandCo" name="test_balance" time="0.0033533573150634766"/><testcase classname="test_mandco.TestMandCo" name="test_login" time="0.00011801719665527344"/><testcase classname="test_mandco.TestMandCo" name="test_transactions" time="0.0003609657287597656"/><testcase classname="test_tabletable.TestTabletable" name="test_login" time="0.0001952648162841797"/><testcase classname="test_mandco.TestMandCoFail" name="test_login_bad_credentials" time="0.7983825206756592"/><testcase classname="test_tabletable.TestTabletable" name="test_transactions" time="1.017132043838501"/><testcase classname="test_tabletable.TestTabletableFail" name="test_login_fail" time="0.7067523002624512"/><testcase classname="test_superdrug.TestSuperDrug" name="test_transactions" time="0.0005810260772705078"/><testcase classname="test_maximiles.TestMaximiles" name="test_balance" time="0.012607812881469727"/><testcase classname="test_maximiles.TestMaximiles" name="test_login" time="0.0001232624053955078"/><testcase classname="test_maximiles.TestMaximiles" name="test_transactions" time="0.0004215240478515625"/><testcase classname="test_superdrug.TestSuperDrugFail" name="test_login_fail" time="0.5952069759368896"/><testcase classname="test_maximiles.TestMaximilesFail" name="test_login_fail" time="0.7108674049377441"/><testcase classname="test_tesco.TestTesco" name="test_balance" time="0.020966529846191406"/><testcase classname="test_tesco.TestTesco" name="test_login" time="0.00015997886657714844"/><testcase classname="test_tabletable.TestTabletable" name="test_balance" time="0.013723134994506836"/><testcase classname="test_tesco.TestTescoFail" name="test_login_fail" time="0.37758708000183105"/><testcase classname="test_tesco.TestTescoFail" name="test_login_mfa_fail" time="1.4461345672607422"/><testcase classname="test_tesco.TestTesco" name="test_transactions" time="0.3376190662384033"/><testcase classname="test_tesco.TestTescoUtil" name="test_get_card_number" time="0.0005173683166503906"/><testcase classname="test_thai_airways.TestThaiAirways" name="test_balance" time="0.018794536590576172"/><testcase classname="test_thai_airways.TestThaiAirways" name="test_login" time="0.00016260147094726562"/><testcase classname="test_the_perfume_shop.TestThePerfumeShop" name="test_login" time="0.00019812583923339844"/><testcase classname="test_the_perfume_shop.TestThePerfumeShop" name="test_transactions" time="0.00066375732421875"/><testcase classname="test_thai_airways.TestThaiAirways" name="test_transactions" time="0.0009906291961669922"/><testcase classname="test_thai_airways.TestThaiAirwaysFail" name="test_login_bad_username" time="1.7460663318634033"><failure message="self = &lt;app.tests.service.test_thai_airways.TestThaiAirwaysFail testMethod=test_login_bad_username&gt;
+
+    def test_login_bad_username(self):
+        m = ThaiAirways(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;321321321&apos;,
+            &apos;password&apos;: &apos;321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+&gt;           m.attempt_login(credentials)
+
+app/tests/service/test_thai_airways.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/thai_airways.py:18: in login
+    self.open_url(url, method=&apos;post&apos;, data=data)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def open_url(self, url, verify=True, method=&apos;get&apos;, data=None, json=None, read_timeout=5):
+        &quot;&quot;&quot;
+            Sensible defaults and error handling for opening url
+            http://www.mobify.com/blog/http-requests-are-hard/
+            &quot;&quot;&quot;
+        connect_timeout = 1
+    
+        try:
+            self.browser.open(url, timeout=(connect_timeout, read_timeout),
+                              headers=self.headers, verify=verify, method=method, data=data, json=json)
+        except ReadTimeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+    
+        try:
+            self.browser.response.raise_for_status()
+        except HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+&gt;           raise AgentError(END_SITE_DOWN) from e
+E           app.agents.exceptions.AgentError: End site down: The scheme end site is currently down. code: 530
+
+app/agents/base.py:83: AgentError">self = &lt;app.tests.service.test_thai_airways.TestThaiAirwaysFail testMethod=test_login_bad_username&gt;
+
+    def test_login_bad_username(self):
+        m = ThaiAirways(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;321321321&apos;,
+            &apos;password&apos;: &apos;321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+&gt;           m.attempt_login(credentials)
+
+app/tests/service/test_thai_airways.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/thai_airways.py:18: in login
+    self.open_url(url, method=&apos;post&apos;, data=data)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def open_url(self, url, verify=True, method=&apos;get&apos;, data=None, json=None, read_timeout=5):
+        &quot;&quot;&quot;
+            Sensible defaults and error handling for opening url
+            http://www.mobify.com/blog/http-requests-are-hard/
+            &quot;&quot;&quot;
+        connect_timeout = 1
+    
+        try:
+            self.browser.open(url, timeout=(connect_timeout, read_timeout),
+                              headers=self.headers, verify=verify, method=method, data=data, json=json)
+        except ReadTimeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+    
+        try:
+            self.browser.response.raise_for_status()
+        except HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+&gt;           raise AgentError(END_SITE_DOWN) from e
+E           app.agents.exceptions.AgentError: End site down: The scheme end site is currently down. code: 530
+
+app/agents/base.py:83: AgentError</failure></testcase><testcase classname="test_the_perfume_shop.TestThePerfumeShopFail" name="test_login_fail" time="0.673206090927124"/><testcase classname="test_thai_airways.TestThaiAirwaysFail" name="test_login_bad_password" time="1.271888256072998"/><testcase classname="test_the_perfume_shop.TestThePerfumeShop" name="test_balance" time="0.052687883377075195"/><testcase classname="test_the_works.TestTheWorks" name="test_balance" time="1.1481037139892578"/><testcase classname="test_the_works.TestTheWorks" name="test_login" time="0.00020503997802734375"/><testcase classname="test_the_works.TestTheWorksFail" name="test_login_fail" time="1.2201628684997559"/><testcase classname="test_the_works.TestTheWorks" name="test_transactions" time="1.0451292991638184"/><testcase classname="test_toysrus.TestToysrusFail" name="test_login_bad_credentials" time="0.38454627990722656"/><testcase classname="test_toysrus.TestToysrus" name="test_balance" time="0.1634809970855713"/><testcase classname="test_toysrus.TestToysrus" name="test_login" time="0.00036835670471191406"/><testcase classname="test_virgin.TestVirgin" name="test_login" time="0.00034308433532714844"/><testcase classname="test_virgin.TestVirgin" name="test_balance" time="0.02371072769165039"/><testcase classname="test_virgin.TestVirginFail" name="test_login_fail" time="0.27831196784973145"/><testcase classname="test_virgin.TestVirgin" name="test_transactions" time="0.02627873420715332"/><testcase classname="test_waterstones.TestWaterstones" name="test_balance" time="0.3192884922027588"/><testcase classname="test_starbucks.TestStarbucks" name="test_balance" time="30.25442910194397"><error message="test setup failure">cls = &lt;class &apos;app.tests.service.test_starbucks.TestStarbucks&apos;&gt;
+
+    @classmethod
+    def setUpClass(cls):
+        cls.s = Starbucks(1, 1)
+&gt;       cls.s.attempt_login(CREDENTIALS[&apos;starbucks&apos;])
+
+app/tests/service/test_starbucks.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starbucks.py:25: in login
+    web_driver = webdriver.Chrome(chrome_options=chrome_options)
+../lib/python3.4/site-packages/selenium/webdriver/chrome/webdriver.py:61: in __init__
+    self.service.start()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;selenium.webdriver.chrome.service.Service object at 0x7f85725eec50&gt;
+
+    def start(self):
+        &quot;&quot;&quot;
+            Starts the ChromeDriver Service.
+    
+            :Exceptions:
+             - WebDriverException : Raised either when it cannot find the
+               executable, when it does not have permissions for the
+               executable, or when it cannot connect to the service.
+             - Possibly other Exceptions in rare circumstances (OSError, etc).
+            &quot;&quot;&quot;
+        env = self.env or os.environ
+        try:
+            self.process = subprocess.Popen([
+              self.path,
+              &quot;--port=%d&quot; % self.port] +
+              self.service_args, env=env, stdout=PIPE, stderr=PIPE)
+        except OSError as err:
+            docs_msg = &quot;Please see &quot; \
+                   &quot;https://sites.google.com/a/chromium.org/chromedriver/home&quot;
+            if err.errno == errno.ENOENT:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable needs to be in PATH. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            elif err.errno == errno.EACCES:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable may have wrong permissions. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            else:
+                raise
+        count = 0
+        while not utils.is_connectable(self.port):
+            count += 1
+            time.sleep(1)
+            if count == 30:
+                raise WebDriverException(&quot;Can not connect to the &apos;&quot; +
+&gt;                                        os.path.basename(self.path) + &quot;&apos;&quot;)
+E               selenium.common.exceptions.WebDriverException: Message: Can not connect to the &apos;chromedriver&apos;
+
+../lib/python3.4/site-packages/selenium/webdriver/chrome/service.py:88: WebDriverException</error></testcase><testcase classname="test_waterstones.TestWaterstonesFail" name="test_login_fail" time="0.4809150695800781"/><testcase classname="test_waterstones.TestWaterstones" name="test_login" time="0.00032591819763183594"/><testcase classname="test_waterstones.TestWaterstones" name="test_transactions" time="0.20121550559997559"/><testcase classname="test_starbucks.TestStarbucksFail" name="test_login_fail" time="30.256720542907715"><failure message="self = &lt;app.tests.service.test_starbucks.TestStarbucksFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        s = Starbucks(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;bad@bad.com&apos;,
+            &apos;password&apos;: &apos;321321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+&gt;           s.attempt_login(credentials)
+
+app/tests/service/test_starbucks.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starbucks.py:25: in login
+    web_driver = webdriver.Chrome(chrome_options=chrome_options)
+../lib/python3.4/site-packages/selenium/webdriver/chrome/webdriver.py:61: in __init__
+    self.service.start()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def start(self):
+        &quot;&quot;&quot;
+            Starts the ChromeDriver Service.
+    
+            :Exceptions:
+             - WebDriverException : Raised either when it cannot find the
+               executable, when it does not have permissions for the
+               executable, or when it cannot connect to the service.
+             - Possibly other Exceptions in rare circumstances (OSError, etc).
+            &quot;&quot;&quot;
+        env = self.env or os.environ
+        try:
+            self.process = subprocess.Popen([
+              self.path,
+              &quot;--port=%d&quot; % self.port] +
+              self.service_args, env=env, stdout=PIPE, stderr=PIPE)
+        except OSError as err:
+            docs_msg = &quot;Please see &quot; \
+                   &quot;https://sites.google.com/a/chromium.org/chromedriver/home&quot;
+            if err.errno == errno.ENOENT:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable needs to be in PATH. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            elif err.errno == errno.EACCES:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable may have wrong permissions. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            else:
+                raise
+        count = 0
+        while not utils.is_connectable(self.port):
+            count += 1
+            time.sleep(1)
+            if count == 30:
+                raise WebDriverException(&quot;Can not connect to the &apos;&quot; +
+&gt;                                        os.path.basename(self.path) + &quot;&apos;&quot;)
+E               selenium.common.exceptions.WebDriverException: Message: Can not connect to the &apos;chromedriver&apos;
+
+../lib/python3.4/site-packages/selenium/webdriver/chrome/service.py:88: WebDriverException">self = &lt;app.tests.service.test_starbucks.TestStarbucksFail testMethod=test_login_fail&gt;
+
+    def test_login_fail(self):
+        s = Starbucks(1, 1)
+        credentials = {
+            &apos;username&apos;: &apos;bad@bad.com&apos;,
+            &apos;password&apos;: &apos;321321321321&apos;,
+        }
+        with self.assertRaises(LoginError) as e:
+&gt;           s.attempt_login(credentials)
+
+app/tests/service/test_starbucks.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/agents/base.py:59: in attempt_login
+    self.login(credentials)
+app/agents/starbucks.py:25: in login
+    web_driver = webdriver.Chrome(chrome_options=chrome_options)
+../lib/python3.4/site-packages/selenium/webdriver/chrome/webdriver.py:61: in __init__
+    self.service.start()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def start(self):
+        &quot;&quot;&quot;
+            Starts the ChromeDriver Service.
+    
+            :Exceptions:
+             - WebDriverException : Raised either when it cannot find the
+               executable, when it does not have permissions for the
+               executable, or when it cannot connect to the service.
+             - Possibly other Exceptions in rare circumstances (OSError, etc).
+            &quot;&quot;&quot;
+        env = self.env or os.environ
+        try:
+            self.process = subprocess.Popen([
+              self.path,
+              &quot;--port=%d&quot; % self.port] +
+              self.service_args, env=env, stdout=PIPE, stderr=PIPE)
+        except OSError as err:
+            docs_msg = &quot;Please see &quot; \
+                   &quot;https://sites.google.com/a/chromium.org/chromedriver/home&quot;
+            if err.errno == errno.ENOENT:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable needs to be in PATH. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            elif err.errno == errno.EACCES:
+                raise WebDriverException(
+                    &quot;&apos;%s&apos; executable may have wrong permissions. %s&quot; % (
+                        os.path.basename(self.path), docs_msg)
+                )
+            else:
+                raise
+        count = 0
+        while not utils.is_connectable(self.port):
+            count += 1
+            time.sleep(1)
+            if count == 30:
+                raise WebDriverException(&quot;Can not connect to the &apos;&quot; +
+&gt;                                        os.path.basename(self.path) + &quot;&apos;&quot;)
+E               selenium.common.exceptions.WebDriverException: Message: Can not connect to the &apos;chromedriver&apos;
+
+../lib/python3.4/site-packages/selenium/webdriver/chrome/service.py:88: WebDriverException</failure></testcase></testsuite>
