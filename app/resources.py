@@ -1,5 +1,6 @@
 import json
 import functools
+from flask.ext.restful.utils.cors import crossdomain
 import settings
 
 from app.exceptions import agent_abort, unknown_abort
@@ -150,6 +151,20 @@ class AccountOverview(Resource):
 
 
 api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
+
+
+class TestResults(Resource):
+    """
+    This is used for Apollo to access the results of the agent tests run by a cron
+    """
+    @crossdomain(origin='*')
+    def get(self):
+        with open(settings.JUNIT_XML_FILENAME) as xml:
+            response = make_response(xml.read(), 200)
+        response.headers['Content-Type'] = "text/xml"
+        return response
+
+api.add_resource(TestResults, '/test_results', endpoint="api.test_results")
 
 
 def decrypt_credentials(credentials):

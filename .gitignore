@@ -4,3 +4,4 @@
 .coverage
 *pyw
 .env
+test_results.xml
