@@ -3,12 +3,15 @@
 This script is to run as a cron to provide the junit xml for the apollo service to view
 """
 
-from collections import defaultdict
-import xmltodict
-import subprocess
+import sys
+import os
+from os.path import join
 import requests
-from slacker import Slacker
+import subprocess
+import xmltodict
+from collections import defaultdict
 from settings import SLACK_API_KEY, APOLLO_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL
+from slacker import Slacker
 
 test_path = "app/tests/service/"
 parallel_processes = 4
@@ -36,7 +39,8 @@ def generate_message(test_results):
 
 
 if __name__ == '__main__':
-    result = subprocess.call(["py.test", "-n", str(parallel_processes), "--junitxml", JUNIT_XML_FILENAME, test_path])
+    py_test = join(os.path.dirname(sys.executable), "py.test")
+    result = subprocess.call([py_test, "-n", str(parallel_processes), "--junitxml", JUNIT_XML_FILENAME, test_path])
 
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
