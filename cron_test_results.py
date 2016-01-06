@@ -35,7 +35,8 @@ def generate_message(test_results):
     failures_str = "\n".join(["{0}: {1}".format(agent.title(), errors) for agent, errors in failures.items()])
 
     return "*Total errors:* {0} \n*Time:* {3} seconds \n\n{1} \n\n *End site down:* {2}\n {4}".format(
-        error_count, failures_str, ", ".join(end_site_down), test_suite['@time'], APOLLO_URL)
+        error_count, failures_str, ", ".join(end_site_down), test_suite['@time'], "{0}/#/exceptions/".format(APOLLO_URL)
+    )
 
 
 if __name__ == '__main__':
