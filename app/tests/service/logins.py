@@ -263,7 +263,11 @@ CREDENTIALS = {
     "bonus-club": {
         "email": "chris.gormley2@me.com",
         "password": "DSHansbrics10",
-    }
+    },
+    "love-your-body": {
+        "email": "Dkmudway@gmail.com",
+        "password": "Loyalty2016",
+    },
 }
 
 
