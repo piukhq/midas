@@ -23,18 +23,18 @@ class Decathlon(Miner):
 
         mdp = result['mdp']
         email = result['email']
-        url = ('https://back.mydecathlon.com/mydkt-server-mvc/ajax'
-               '/private/authentification/connexion'
-               '?ppays=GB'
-               '&codeAppli=NetCardV2'
-               '&langue=EN'
-               '&resterConnecter=true'
-               '&mdp={}'
-               '&email={}'
-               '&callback='
-               ).format(mdp, email)
+        url = 'https://back.mydecathlon.com/mydkt-server-mvc/ajax/private/authentification/connexion'
+        params = {
+            'ppays': 'GB',
+            'codeAppli': 'NetCardV2',
+            'langue': 'EN',
+            'resterConnecter': 'true',
+            'mdp': mdp,
+            'email': email,
+            'callback': '',
+        }
+        self.open_url(url, params = params)
 
-        self.open_url(url)
         resp = json.loads(self.browser.response.text[1:-1])
 
         if resp['data']['codeRetour'] == '404':
@@ -43,12 +43,14 @@ class Decathlon(Miner):
         self.token = resp['data']['token']
 
     def balance(self):
-        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax'
-                      '/private/synthesePersonne/getInfoPersonne'
-                      '?ppays=GB'
-                      '&personneId=0'
-                      '&esdljkdl={}'
-                      '&callback='.format(self.token))
+        url = 'https://back.mydecathlon.com/mydkt-server-mvc/ajax/private/synthesePersonne/getInfoPersonne'
+        params = {
+            'ppays': 'GB',
+            'personneId': '0',
+            'esdljkdl': self.token,
+            'callback': '',
+        }
+        self.open_url(url, params=params)
 
         resp = json.loads(self.browser.response.text[1:-1])
         points = Decimal(resp['data']['soldePoint']['solde'])
@@ -72,27 +74,31 @@ class Decathlon(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
-                      '/tickets/liste'
-                      '?ppays=GB'
-                      '&idPersonne=0'
-                      '&isStoreReceipt=t'
-                      '&isTransfert=false'
-                      '&esdljkdl={}'
-                      '&callback='.format(self.token))
+        url = 'https://back.mydecathlon.com/mydkt-server-mvc/ajax/private/tickets/liste'
+        params = {
+            'ppays': 'GB',
+            'idPersonne': '0',
+            'isStoreReceipt': 't',
+            'isTransfert': 'false',
+            'esdljkdl': self.token,
+            'callback': '',
+        }
+        self.open_url(url, params=params)
 
         list = json.loads(self.browser.response.text[1:-1])
 
-        self.open_url('https://back.mydecathlon.com/mydkt-server-mvc/ajax/private'
-                      '/tickets/listeDetail'
-                      '?ppays=GB'
-                      '&idPersonne=0'
-                      '&isStoreReceipt=t'
-                      '&isTransfert=false'
-                      '&entetes=%5B%7B%22typeTiers%22%3A7%2C+%22sousNumTiers%22%3A718%2C'
-                      '+%22numTiers%22%3A718%2C+%22tetId%22%3A404543%7D%5D'
-                      '&esdljkdl={}'
-                      '&callback='.format(self.token))
+        url = 'https://back.mydecathlon.com/mydkt-server-mvc/ajax/private/tickets/listeDetail'
+        params = {
+            'ppays': 'GB',
+            'idPersonne': '0',
+            'isStoreReceipt': 't',
+            'isTransfert': 'false',
+            'entetes': '[{"typeTiers":7, "sousNumTiers":718, "numTiers":718, "tetId":404543}]',
+            'esdljkdl': self.token,
+            'callback': '',
+        }
+
+        self.open_url(url, params=params)
 
         detail = json.loads(self.browser.response.text[1:-1])
 

@@ -18,9 +18,15 @@ class Accor(Miner):
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
-        url = 'https://secure.accorhotels.com/bean/getViewBeans.action?beans=LoyaltyAccountViewBean&httpSessionId={}'
         sid = self.browser.session.cookies._cookies['.accorhotels.com']['/']['JSESSIONID'].value
-        self.open_url(url.format(sid))
+
+        url = 'https://secure.accorhotels.com/bean/getViewBeans.action'
+        params = {
+            'beans': 'LoyaltyAccountViewBean',
+            'httpSessionId': sid,
+        }
+        self.open_url(url, params=params)
+
         response_text = self.browser.response.text[5:]
         self.account_data = json.loads(response_text)
 
