@@ -33,7 +33,7 @@ class Decathlon(Miner):
             'email': email,
             'callback': '',
         }
-        self.open_url(url, params = params)
+        self.open_url(url, params=params)
 
         resp = json.loads(self.browser.response.text[1:-1])
 
