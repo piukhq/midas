@@ -21,7 +21,13 @@ class Superdrug(Miner):
         self.check_error("loginError=true", errors, url_part="query")
 
     def balance(self):
-        value = extract_decimal(self.browser.select(".greybg")[0].contents[0])
+        value_box = self.browser.select(".greybg")
+
+        if value_box:
+            value = extract_decimal(value_box[0].contents[0])
+        else:
+            value = Decimal('0')
+
         return {
             "points": extract_decimal(self.browser.select(".bc_points")[0].contents[0]),
             "value": value,
