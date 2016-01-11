@@ -36,17 +36,34 @@ class TestTescoUtil(unittest.TestCase):
 class TestTescoFail(unittest.TestCase):
     def test_login_fail(self):
         b = Tesco(1, 1)
+        credentials = {
+            'barcode': '979999999999999',
+            'email': 'magnanimiter@crucem.sustine',
+            'password': 'noblesseoblige',
+        }
         with self.assertRaises(LoginError) as e:
-            b.attempt_login(CREDENTIALS["bad"])
+            b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
     def test_login_mfa_fail(self):
         b = Tesco(1, 1)
         credentials = CREDENTIALS["tesco-clubcard"]
-        credentials['barcode'] = '999999999999999'
+        credentials['barcode'] = '979999999999999'
+
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid mfa")
+
+    def test_login_card_number(self):
+        b = Tesco(1, 1)
+        credentials = {
+            'barcode': '634000000000000000',
+            'email': 'magnanimiter@crucem.sustine',
+            'password': 'noblesseoblige',
+        }
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(credentials)
+        self.assertEqual(e.exception.name, 'Wrong credential type entered')
 
 
 if __name__ == '__main__':
