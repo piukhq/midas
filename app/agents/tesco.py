@@ -1,5 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED,\
+    WRONG_CREDENTIAL_TYPE
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -12,6 +13,9 @@ class Tesco(Miner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
+        if not credentials['barcode'].startswith('979'):
+            raise LoginError(WRONG_CREDENTIAL_TYPE)
+
         self.open_url("https://secure.tesco.com/register/default.aspx")
 
         signup_form = self.browser.get_form(id='fSignin')

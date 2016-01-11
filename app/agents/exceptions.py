@@ -17,6 +17,7 @@ RETRY_LIMIT_REACHED = "RETRY_LIMIT_REACHED"
 IP_BLOCKED = "IP_BLOCKED"
 TRIPPED_CAPTCHA = "TRIPPED_CAPTCHA"
 PASSWORD_EXPIRED = "PASSWORD_EXPIRED"
+WRONG_CREDENTIAL_TYPE = "WRONG_CREDENTIAL_TYPE"
 
 
 errors = {
@@ -38,6 +39,11 @@ errors = {
                                        "customer support to resolve this issue. Once done, please update your "
                                        "account credentials in case they are changed.",
                             "name": "Account locked on end site"},
+    WRONG_CREDENTIAL_TYPE: {"code": 435,
+                            "message": "One of the account credentials you have entered is the wrong type. For example,"
+                                       " you may have entered your card number instead of your barcode. Please correct "
+                                       "this information and try again.",
+                            "name": "Wrong credential type entered"},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down.",
                     "name": "End site down"},
