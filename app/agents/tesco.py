@@ -1,5 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED, WRONG_CREDENTIAL_TYPE
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, INVALID_MFA_INFO, PASSWORD_EXPIRED,\
+    WRONG_CREDENTIAL_TYPE
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
