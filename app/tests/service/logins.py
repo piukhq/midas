@@ -268,6 +268,10 @@ CREDENTIALS = {
         "email": "Dkmudway@gmail.com",
         "password": "Loyalty2016",
     },
+    "recognition-reward-card": {
+        "email": "chris.gormley2@gmail.com",
+        "password": "QGHansbric13",
+    }
 }
 
 

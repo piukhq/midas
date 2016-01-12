@@ -67,4 +67,5 @@ AGENTS = {
     'mymail': 'mymail.MyMail',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',
+    'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
 }
