@@ -8,7 +8,7 @@ class HouseOfFraser(Miner):
     error_message_pattern = re.compile(r'showErrorMsg\("","(.*)"\)')
 
     def login(self, credentials):
-        self.open_url('https://www.houseoffraser.co.uk/on/demandware.store/Sites-hof-Site/default/Login-Show')
+        self.open_url('https://www.houseoffraser.co.uk/on/demandware.store/Sites-hof-Site/default/Loyalty-ViewSummary')
 
         login_form = self.browser.get_form('dwfrm_login')
         login_form['dwfrm_login_username'].value = credentials['email']
@@ -24,7 +24,6 @@ class HouseOfFraser(Miner):
                 raise LoginError(UNKNOWN)
 
     def balance(self):
-        self.open_url('https://www.houseoffraser.co.uk/on/demandware.store/Sites-hof-Site/default/Loyalty-ViewSummary')
         loyalty_data_elements = self.browser.select('td.hof-title.text-align-right.compact')
         value = extract_decimal(loyalty_data_elements[1].text.strip())
         return {
