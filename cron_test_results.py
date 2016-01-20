@@ -32,7 +32,7 @@ def generate_message(test_results):
             error_count += 1
             failures[key_name].append(test_case["@name"].replace('_', ' '))
 
-    failures_str = "\n".join(["{0}: {1}".format(agent.title(), errors) for agent, errors in failures.items()])
+    failures_str = "\n".join(["{0}: {1}".format(agent.title(), errors) for agent, errors in sorted(failures.items())])
 
     return "*Total errors:* {0}/{5} \n*Time:* {3} seconds \n\n{1} \n\n *End site down:* {2}\n {4}".format(
         error_count, failures_str, ", ".join(end_site_down) or None, test_suite['@time'],
