@@ -8,8 +8,9 @@ flake8:
     - flake8 *
 
 deploy:
+  image: boloyaltyangels/ansible
   stage: deploy
   script:
-  - curl http://deployer.loyaltyangels.local/deploy/dev/midas
+  - cd /ansible && ansible-playbook playbooks/deploy/flask.yml -e project=midas -e hosts=dev_web
   only:
   - master
