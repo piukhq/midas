@@ -24,11 +24,12 @@ def post(url, data, tid):
                  background_callback=log_errors)
 
 
-def transactions(transactions_items, scheme_account_id, tid):
+def transactions(transactions_items, scheme_account_id, user_id, tid):
     if not transactions_items:
         return None
     for transaction_item in transactions_items:
         transaction_item['scheme_account_id'] = scheme_account_id
+        transaction_item['user_id'] = user_id
     post("{}/transactions".format(HADES_URL), transactions_items, tid)
     return transactions_items
 

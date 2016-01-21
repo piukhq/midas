@@ -35,7 +35,8 @@ class TestResources(TestCase):
     def test_transactions(self, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
         credentials = logins.encrypt("superdrug")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -47,7 +48,8 @@ class TestResources(TestCase):
     def test_transactions_none(self, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
         credentials = logins.encrypt("superdrug")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}".format(credentials, 3)
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)

@@ -65,14 +65,15 @@ class Balance(Resource):
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])
+        user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
             status = 1
-            balance = publish.balance(agent_instance.balance(), scheme_account_id,  int(request.args['user_id']), tid)
+            balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
-            thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, tid)
+            thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
@@ -88,9 +89,9 @@ class Balance(Resource):
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 
-def publish_transactions(agent_instance, scheme_account_id, tid):
+def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
     transactions = agent_instance.transactions()
-    publish.transactions(transactions, scheme_account_id, tid)
+    publish.transactions(transactions, scheme_account_id, user_id, tid)
 
 
 class Transactions(Resource):
@@ -103,13 +104,14 @@ class Transactions(Resource):
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
         scheme_account_id = int(request.args['scheme_account_id'])
+        user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
         tid = request.headers.get('transaction')
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
             status = 1
-            transactions = publish.transactions(agent_instance.transactions(), scheme_account_id, tid)
+            transactions = publish.transactions(agent_instance.transactions(), scheme_account_id, user_id, tid)
             return create_response(transactions)
         except (LoginError, AgentError) as e:
             status = e.code
@@ -135,13 +137,14 @@ class AccountOverview(Resource):
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])
+        user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
             account_overview = agent_instance.account_overview()
-            publish.balance(account_overview["balance"], scheme_account_id, int(request.args['user_id']), tid)
-            publish.transactions(account_overview["transactions"], scheme_account_id, tid)
+            publish.balance(account_overview["balance"], scheme_account_id, user_id, tid)
+            publish.transactions(account_overview["transactions"], scheme_account_id, user_id, tid)
 
             return create_response(account_overview)
         except (LoginError, AgentError) as e:
