@@ -13,9 +13,6 @@ class Tesco(Miner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
-        if not credentials['barcode'].startswith('979'):
-            raise LoginError(WRONG_CREDENTIAL_TYPE)
-
         self.open_url("https://secure.tesco.com/register/default.aspx")
 
         signup_form = self.browser.get_form(id='fSignin')
@@ -37,7 +34,10 @@ class Tesco(Miner):
 
         fields = self.browser.select(".security_questions .textfield")
 
-        card_number = self.get_card_number(credentials['barcode'])
+        if 'barcode' in credentials:
+            card_number = self.get_card_number(credentials['barcode'])
+        else:
+            card_number = credentials['card_number']
 
         digit_form['ctl00$PageContainer$txtSecurityAnswer1'].value = card_number[self.digit_index(fields[0])]
         digit_form['ctl00$PageContainer$txtSecurityAnswer2'].value = card_number[self.digit_index(fields[1])]
