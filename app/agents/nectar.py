@@ -11,8 +11,13 @@ class Nectar(Miner):
     def login(self, credentials):
         self.open_url("https://www.nectar.com/login")
 
+        if 'barcode' in credentials:
+            username = credentials['barcode'][-11:]
+        else:
+            username = credentials['card_number'][-11:]
+
         login_form = self.browser.get_form(id='loginform')
-        login_form['username'].value = credentials['barcode'][-11:]  # we dont need the card prefix
+        login_form['username'].value = username
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 

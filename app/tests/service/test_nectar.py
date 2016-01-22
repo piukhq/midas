@@ -15,6 +15,16 @@ class TestNectar(unittest.TestCase):
         self.assertEqual(self.b.browser.response.status_code, 200)
         self.assertEqual(urlsplit(self.b.browser.url).path, '/')
 
+    def test_login_with_card_number(self):
+        b = Nectar(1, 1)
+        credentials = {
+            'card_number': '9826300030842203013',
+            'password': 'QMHansbrics6',
+        }
+        b.attempt_login(credentials)
+        self.assertEqual(b.browser.response.status_code, 200)
+        self.assertEqual(urlsplit(b.browser.url).path, '/')
+
     def test_transactions(self):
         transactions = self.b.transactions()
         self.assertTrue(transactions)
