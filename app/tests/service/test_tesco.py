@@ -16,6 +16,17 @@ class TestTesco(unittest.TestCase):
         self.assertEqual(self.b.browser.response.status_code, 200)
         self.assertEqual(urlsplit(self.b.browser.url).path, '/Clubcard/MyAccount/Home.aspx')
 
+    def test_login_with_card_number(self):
+        b = Tesco(1, 1)
+        credentials = {
+            'email': 'julie.gormley100@gmail.com',
+            'password': 'NSHansbrics5',
+            'card_number': '634004024051328070'
+        }
+        b.attempt_login(credentials)
+        self.assertEqual(b.browser.response.status_code, 200)
+        self.assertEqual(urlsplit(b.browser.url).path, '/Clubcard/MyAccount/Home.aspx')
+
     def test_transactions(self):
         transactions = self.b.transactions()
         self.assertTrue(transactions)
@@ -53,17 +64,6 @@ class TestTescoFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid mfa")
-
-    def test_login_card_number(self):
-        b = Tesco(1, 1)
-        credentials = {
-            'barcode': '634000000000000000',
-            'email': 'magnanimiter@crucem.sustine',
-            'password': 'noblesseoblige',
-        }
-        with self.assertRaises(LoginError) as e:
-            b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Wrong credential type entered')
 
 
 if __name__ == '__main__':
