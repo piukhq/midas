@@ -1,7 +1,7 @@
 import arrow
 import re
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
 from app.utils import extract_decimal
 from decimal import Decimal
 
@@ -21,7 +21,8 @@ class BritishAirways(Miner):
         login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
         self.check_error("/travel/loginr/public/en_gb",
-                         (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"), ))
+                         (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"),
+                          ('#t-main-fragment > div > h1', TRIPPED_CAPTCHA, 'Validation question')))
 
     def balance(self):
         points_span = self.browser.select('.nowrap')[0]
