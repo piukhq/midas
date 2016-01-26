@@ -37,7 +37,7 @@ pytest-cov==2.1.0
 pytest-xdist==1.13.1
 python-dateutil==2.4.2
 pytz==2015.7
-raven==5.8.1
+raven==5.10.1
 redis==2.10.3
 requests==2.7.0
 requests-futures==0.9.5

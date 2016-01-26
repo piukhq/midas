@@ -4,15 +4,18 @@ import builtins
 from flask.ext.testing import TestCase
 
 from app.agents.avios import Avios
-from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED
+from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
+    errors
 from app.resources import agent_login
 from app.tests.service import logins
-from app import create_app
+from app import create_app, AgentException
 from unittest import mock
 from decimal import Decimal
 
 
 class TestResources(TestCase):
+    TESTING = True
+
     def create_app(self):
         return create_app(self, )
 
@@ -45,7 +48,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_transactions_none(self, mock_agent_login, mock_publish_transactions):
+    def test_transactions_none_exeption(self, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
         credentials = logins.encrypt("superdrug")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
@@ -54,7 +57,41 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_agent_login.called)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, None)
+        self.assertIsNone(response.json)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+        mock_publish_transactions.side_effect = Exception('test error')
+        credentials = logins.encrypt("superdrug")
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json['name'], 'Unknown Error')
+        self.assertEqual(response.json['message'], 'test error')
+        self.assertEqual(response.json['code'], 520)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+        mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
+        credentials = logins.encrypt("superdrug")
+        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json['name'], errors[STATUS_LOGIN_FAILED]['name'])
+        self.assertEqual(response.json['message'], errors[STATUS_LOGIN_FAILED]['message'])
+        self.assertEqual(response.json['code'], errors[STATUS_LOGIN_FAILED]['code'])
 
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=True)
@@ -83,23 +120,25 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
 
-    @mock.patch('app.resources.agent_abort', autospec=True)
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(Avios, 'attempt_login')
-    def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry, mock_agent_abort):
+    def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
-        agent_login(Avios, {}, 5)
+        with self.assertRaises(AgentException):
+            agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.max_out_count.called)
-        self.assertTrue(mock_agent_abort.called)
 
-    @mock.patch('app.resources.agent_abort', autospec=True)
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(Avios, 'attempt_login')
-    def test_agent_login_inc(self, mock_attempt_login, mock_retry, mock_agent_abort):
+    def test_agent_login_inc(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
-        agent_login(Avios, {}, 5)
+        with self.assertRaises(AgentException) as e:
+            agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.inc_count.called)
-        self.assertTrue(mock_agent_abort.called)
+        self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
+                                                      'of login tries please wait 15 minutes.')
+        self.assertEqual(e.exception.args[0].code, 429)
+        self.assertEqual(e.exception.args[0].name, 'Retry limit reached')
 
     @mock.patch.object(builtins, 'open', mock_open(read_data='<xml></xml>'))
     def test_test_results(self):
