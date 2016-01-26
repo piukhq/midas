@@ -3,7 +3,7 @@ import functools
 from flask.ext.restful.utils.cors import crossdomain
 import settings
 
-from app.exceptions import agent_abort, unknown_abort
+from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import LoginError, AgentError, errors, RetryLimitError
 from app.utils import resolve_agent
@@ -78,10 +78,10 @@ class Balance(Resource):
             return create_response(balance)
         except (LoginError, AgentError) as e:
             status = e.code
-            agent_abort(e)
+            raise AgentException(e)
         except Exception as e:
             status = 520
-            unknown_abort(e)
+            raise UnknownException(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
 
@@ -115,10 +115,10 @@ class Transactions(Resource):
             return create_response(transactions)
         except (LoginError, AgentError) as e:
             status = e.code
-            agent_abort(e)
+            raise AgentException(e)
         except Exception as e:
             status = 520
-            unknown_abort(e)
+            raise UnknownException(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
 
@@ -148,9 +148,9 @@ class AccountOverview(Resource):
 
             return create_response(account_overview)
         except (LoginError, AgentError) as e:
-            agent_abort(e)
+            raise AgentException(e)
         except Exception as e:
-            unknown_abort(e)
+            raise UnknownException(e)
 
 
 api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
@@ -196,11 +196,11 @@ def agent_login(agent_class, credentials, scheme_account_id):
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
-        agent_abort(e)
+        raise AgentException(e)
     except (LoginError, AgentError) as e:
         retry.inc_count(key)
-        agent_abort(e)
+        raise AgentException(e)
     except Exception as e:
-        unknown_abort(e)
+        raise UnknownException(e)
 
     return agent_instance

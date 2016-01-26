@@ -1,6 +1,7 @@
 import os
 import logging
 import graypy
+from app import AgentException
 from environment import env_var, read_env
 
 read_env()
@@ -35,3 +36,5 @@ HEARTBEAT_URL = env_var("HEARTBEAT_URL", "https://hchk.io/22d1bb0c-daae-43db-8ab
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
 SENTRY_DNS = env_var("MIDAS_SENTRY_DNS", None)
+
+RAVEN_IGNORE_EXCEPTIONS = [AgentException]
