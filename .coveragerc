@@ -1,5 +1,9 @@
 [run]
 omit = *migrations*
        *tests*
+       app/agents*
 
 branch = True
+
+[report]
+fail_under = 85
