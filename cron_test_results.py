@@ -17,9 +17,60 @@ test_path = "app/tests/service/"
 parallel_processes = 4
 
 
-def generate_message(test_results):
+def format_table(failures):
+    # invert the dictionary
+    columns = defaultdict(list)
+    for name, failure_set in failures.items():
+        for failure in failure_set:
+            columns[failure].append(name)
+
+    # get the Y axis width as the maximum length of a scheme name.
+    bar_width = max((len(x) for x in failures.keys())) + 1
+    inner_bar_width = bar_width - 1
+
+    # generate a heading containing all column names and a horizontal rule below them
+    heading = '{0}│'.format(' ' * inner_bar_width)
+    column_widths = {}
+    for column in columns.keys():
+        column_widths[column] = len(column) + 4
+        heading += '{0:^{1}}'.format(column, column_widths[column])
+
+    # build the separator between headings and values
+    total_width = sum(column_widths.values())
+    heading += '\n{0}┼{1}'.format('─' * inner_bar_width, '─' * total_width)
+
+    # fill in the Y axis names, and put X's in each column where that row has a failure.
+    lines = [''] * len(failures.keys())
+    for line, name in enumerate(failures.keys()):
+        lines[line] = '{0:>{1}s}│'.format(name.title(), inner_bar_width)
+
+        failure_set = failures[name]
+        for column in columns.keys():
+            width = column_widths[column]
+            if column in failure_set:
+                lines[line] += '{0:·^{1}}'.format('╳', width)
+            else:
+                lines[line] += '·' * width
+
+    return '{0}\n{1}'.format(heading, '\n'.join(lines))
+
+
+def parse_test_results(test_results):
     test_suite = test_results["testsuite"]
     failures = defaultdict(list)
+
+    for test_case in test_suite["testcase"]:
+        key_name = test_case["@classname"].split(".")[0][5:].replace('_', ' ')
+        if "failure" in test_case or "error" in test_case:
+            failures[key_name].append(test_case["@name"].replace('_', ' '))
+
+    return failures
+
+
+def generate_message(test_results):
+    failures = parse_test_results(test_results)
+
+    test_suite = test_results["testsuite"]
     end_site_down = []
     error_count = 0
 
@@ -30,9 +81,8 @@ def generate_message(test_results):
                 end_site_down.append(key_name)
                 continue
             error_count += 1
-            failures[key_name].append(test_case["@name"].replace('_', ' '))
 
-    failures_str = "\n".join(["{0}: {1}".format(agent.title(), errors) for agent, errors in sorted(failures.items())])
+    failures_str = '```{}```'.format(format_table(failures))
 
     return "*Total errors:* {0}/{5} \n*Time:* {3} seconds \n\n{1} \n\n *End site down:* {2}\n {4}".format(
         error_count, failures_str, ", ".join(end_site_down) or None, test_suite['@time'],
