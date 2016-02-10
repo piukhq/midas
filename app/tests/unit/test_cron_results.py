@@ -1,10 +1,9 @@
 import unittest
-from collections import defaultdict
-
 import xmltodict
 import os
 from os.path import join
 from cron_test_results import generate_message, format_table, parse_test_results
+from collections import defaultdict
 
 
 class TestCronResults(unittest.TestCase):
