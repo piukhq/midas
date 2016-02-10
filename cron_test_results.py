@@ -18,6 +18,10 @@ parallel_processes = 4
 
 
 def format_table(failures):
+    # strip the 'test ' off the beginning of each failure.
+    for scheme in failures.keys():
+        failures[scheme] = [failure.replace('test ', '', 1) for failure in failures[scheme]]
+
     # invert the dictionary
     columns = defaultdict(list)
     for name, failure_set in failures.items():
@@ -103,4 +107,5 @@ if __name__ == '__main__':
         with open(JUNIT_XML_FILENAME) as f:
             test_results = xmltodict.parse(f.read())
         message = generate_message(test_results)
-        Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', message)
+        #Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', message)
+        Slacker(SLACK_API_KEY).chat.post_message('@chris', message)
