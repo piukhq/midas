@@ -42,7 +42,7 @@ def format_table(failures):
     # fill in the Y axis names, and put X's in each column where that row has a failure.
     lines = [''] * len(failures.keys())
     for line, name in enumerate(failures.keys()):
-        lines[line] = '{0:>{1}s}│'.format(name, inner_bar_width)
+        lines[line] = '{0:>{1}s}│'.format(name.title(), inner_bar_width)
 
         failure_set = failures[name]
         for column in columns.keys():
