@@ -107,5 +107,4 @@ if __name__ == '__main__':
         with open(JUNIT_XML_FILENAME) as f:
             test_results = xmltodict.parse(f.read())
         message = generate_message(test_results)
-        #Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', message)
-        Slacker(SLACK_API_KEY).chat.post_message('@chris', message)
+        Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', message)
