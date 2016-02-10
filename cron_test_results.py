@@ -55,9 +55,22 @@ def format_table(failures):
     return '{0}\n{1}'.format(heading, '\n'.join(lines))
 
 
-def generate_message(test_results):
+def parse_test_results(test_results):
     test_suite = test_results["testsuite"]
     failures = defaultdict(list)
+
+    for test_case in test_suite["testcase"]:
+        key_name = test_case["@classname"].split(".")[0][5:].replace('_', ' ')
+        if "failure" in test_case or "error" in test_case:
+            failures[key_name].append(test_case["@name"].replace('_', ' '))
+
+    return failures
+
+
+def generate_message(test_results):
+    failures = parse_test_results(test_results)
+
+    test_suite = test_results["testsuite"]
     end_site_down = []
     error_count = 0
 
@@ -68,7 +81,6 @@ def generate_message(test_results):
                 end_site_down.append(key_name)
                 continue
             error_count += 1
-            failures[key_name].append(test_case["@name"].replace('_', ' '))
 
     failures_str = '```{}```'.format(format_table(failures))
 
