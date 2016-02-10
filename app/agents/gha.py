@@ -16,7 +16,7 @@ class Gha(Miner):
         self.open_url(url, data=data, method='post')
 
         self.check_error('/member/login',
-                         (('div.Message--error > ul > li', STATUS_LOGIN_FAILED, "Your login doesn't seem to be in"), ))
+                         (('div.Message--error > p', STATUS_LOGIN_FAILED, "Your login doesn't seem to be in"), ))
 
     def balance(self):
         points = extract_decimal(self.browser.select('span.l-status-progress-value')[0].text)
