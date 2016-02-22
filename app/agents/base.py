@@ -6,7 +6,7 @@ from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
@@ -87,6 +87,17 @@ class Miner(object):
             elif e.response.status_code == 403:
                 raise AgentError(IP_BLOCKED) from e
             raise AgentError(END_SITE_DOWN) from e
+
+        # Look for CAPTCHA on the page.
+        known_captcha_signatures = [
+            'captcha',
+            'Incapsula',
+        ]
+        frame_urls = (frame['src'] for frame in self.browser.select('iframe'))
+        for url in frame_urls:
+            for sig in known_captcha_signatures:
+                if sig in url:
+                    raise AgentError(TRIPPED_CAPTCHA)
 
     def login(self, credentials):
         raise NotImplementedError()
