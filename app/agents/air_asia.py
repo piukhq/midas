@@ -7,23 +7,23 @@ import arrow
 
 class AirAsia(Miner):
     def login(self, credentials):
-        self.open_url('https://member.airasia.com/login.aspx?culture=en-GB&BIGredirect=AABIG')
+        self.open_url('https://member.airasia.com/login.aspx?culture=en-GB&BIGredirect=AABIG', verify=False)
 
         login_form = self.browser.get_form('form1')
         login_form['ctl00$body$txtUsername'].value = credentials['email']
         login_form['ctl00$body$txtPassword'].value = credentials['password']
-        self.browser.submit_form(login_form, submit=login_form.submit_fields['ctl00$body$btnLogin'])
+        self.browser.submit_form(login_form, submit=login_form.submit_fields['ctl00$body$btnLogin'], verify=False)
 
         # Submit auth form.
         auth_form = self.browser.get_form()
         if auth_form and auth_form.action == 'https://loyalty.airasiabig.com/web/sso':
-            self.browser.submit_form(auth_form)
+            self.browser.submit_form(auth_form, verify=False)
 
         self.check_error('/login.aspx',
                          (('#body_divErrorMsg > span', STATUS_LOGIN_FAILED, 'Sorry, you have entered'), ))
 
     def balance(self):
-        points = extract_decimal(self.browser.select('span.pts')[0].text)
+        points = extract_decimal(self.browser.select('div.header-right > div > div')[2].text)
         return {
             'points': points,
             'value': Decimal('0'),
