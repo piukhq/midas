@@ -71,16 +71,22 @@ class Balance(Resource):
 
         try:
             status = 1
+            settings.logger.error("Before getting balance: {}, Agent".format(agent_instance))
+            settings.logger.error("Before getting balance: USer_id: {}, scheme_account_id: {}, credentials: {}".format(user_id, scheme_account_id, credentials))
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
+            settings.logger.error("After getting balance: {0}".format(balance))
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
             status = e.code
+            settings.logger.error("Error getting balance: Status Code: {0}".format(e.code))
             raise AgentException(e)
         except Exception as e:
             status = 520
+            settings.logger.error("Error getting balance, Unknown Exception: {0}".format(e))
+
             raise UnknownException(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
@@ -193,14 +199,18 @@ def agent_login(agent_class, credentials, scheme_account_id):
     retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
+        settings.logger.error("In Agent login")
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
+        settings.logger.error("Agent login, Retry Limit Error: {0}".format(agent_instance.retry_limit))
         raise AgentException(e)
     except (LoginError, AgentError) as e:
         retry.inc_count(key)
+        settings.logger.error("Agent login, Agent Error: {0}".format(e.code))
         raise AgentException(e)
     except Exception as e:
+        settings.logger.error("Agent login, Unknown Error: {0}".format(e))
         raise UnknownException(e)
 
     return agent_instance

@@ -33,6 +33,35 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'user_id': 2, 'scheme_account_id': 4})
 
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_balance_none_exeption(self, mock_pool, mock_agent_login, mock_publish_balance):
+        mock_publish_balance.return_value = None
+        credentials = logins.encrypt("tesco-clubcard")
+        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json)
+
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_balance_unknown_error(self, mock_pool, mock_agent_login, mock_publish_balance):
+        mock_publish_balance.side_effect = Exception('test error')
+        credentials = logins.encrypt("tesco-clubcard")
+        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json['name'], 'Unknown Error')
+        self.assertEqual(response.json['message'], 'test error')
+        self.assertEqual(response.json['code'], 520)
+
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions(self, mock_agent_login, mock_publish_transactions):
