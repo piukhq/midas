@@ -72,7 +72,8 @@ class Balance(Resource):
         try:
             status = 1
             settings.logger.error("Before getting balance: {}, Agent".format(agent_instance))
-            settings.logger.error("Before getting balance: USer_id: {}, scheme_account_id: {}, credentials: {}".format(user_id, scheme_account_id, credentials))
+            settings.logger.error("Before getting balance: User_id: {}, scheme_account_id: {},"
+                                  " credentials: {}".format(user_id, scheme_account_id, credentials))
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             settings.logger.error("After getting balance: {0}".format(balance))
@@ -85,7 +86,7 @@ class Balance(Resource):
             raise AgentException(e)
         except Exception as e:
             status = 520
-            settings.logger.error("Error getting balance, Unknown Exception: {0}".format(e))
+            settings.logger.error("Error getting balance:, Unknown Exception: {0}".format(e))
 
             raise UnknownException(e)
         finally:
