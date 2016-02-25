@@ -35,8 +35,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    def test_balance_none_exeption(self, mock_pool, mock_agent_login, mock_publish_balance):
+    def test_balance_none_exception(self, mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -77,7 +76,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_transactions_none_exeption(self, mock_agent_login, mock_publish_transactions):
+    def test_transactions_none_exception(self, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
         credentials = logins.encrypt("superdrug")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
