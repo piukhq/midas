@@ -62,7 +62,6 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
-        settings.logger.error("In getting balance: {}, scheme_slug".format(scheme_slug))
 
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
@@ -76,7 +75,6 @@ class Balance(Resource):
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
-            settings.logger.error("After getting balance: {}, balance".format(balance))
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
