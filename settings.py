@@ -8,11 +8,15 @@ read_env()
 
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
+focus_logger = True
 
 GRAYLOG_HOST = env_var('GRAYLOG_HOST')
 if GRAYLOG_HOST:
     handler = graypy.GELFHandler(GRAYLOG_HOST, 12201)
     logger.addHandler(handler)
+elif focus_logger:
+    handler_loc = logging.FileHandler('/var/tmp/midas_focus.log')
+    logger.addHandler(handler_loc)
 
 
 SLACK_API_KEY = "xoxp-10814716850-10810422998-11484111571-159b7e873a"
