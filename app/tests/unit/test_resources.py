@@ -152,7 +152,7 @@ class TestResources(TestCase):
     @mock.patch.object(Avios, 'attempt_login')
     def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
-        with self.assertRaises(RetryLimitError):
+        with self.assertRaises(AgentException):
             agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.max_out_count.called)
 

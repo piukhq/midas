@@ -76,7 +76,7 @@ class Balance(Resource):
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
 
             return create_response(balance)
-        except (LoginError, AgentError, RetryLimitError) as e:
+        except (LoginError, AgentError, AgentException) as e:
             status = e.code
             raise AgentException(e)
         except Exception as e:
@@ -196,7 +196,7 @@ def agent_login(agent_class, credentials, scheme_account_id):
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
-        raise e
+        raise AgentException(e)
     except (LoginError, AgentError) as e:
         retry.inc_count(key)
         raise AgentException(e)
