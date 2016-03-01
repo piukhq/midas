@@ -69,8 +69,8 @@ class Balance(Resource):
         tid = request.headers.get('transaction')
 
         try:
-            agent_instance = agent_login(agent_class, credentials, scheme_account_id)
             status = 1
+            agent_instance = agent_login(agent_class, credentials, scheme_account_id)
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
