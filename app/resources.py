@@ -62,25 +62,27 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
+
         agent_class = get_agent_class(scheme_slug)
         credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
-            agent_instance = agent_login(agent_class, credentials, scheme_account_id)
             status = 1
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
 
             return create_response(balance)
-        except (LoginError, AgentError, AgentException) as e:
+        except (LoginError, AgentError) as e:
             status = e.code
             raise AgentException(e)
         except Exception as e:
             status = 520
+
             raise UnknownException(e)
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
