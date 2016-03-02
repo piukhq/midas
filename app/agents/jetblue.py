@@ -19,7 +19,7 @@ class JetBlue(Miner):
 
     def balance(self):
         return {
-            'points': extract_decimal(self.browser.select('p.points')[0].contents[2]),
+            'points': extract_decimal(self.browser.select('p.points')[2].contents[0]),
             'value': Decimal('0'),
             'value_label': '',
         }
