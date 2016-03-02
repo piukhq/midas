@@ -22,8 +22,8 @@ class FlyingBlue(Miner):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        self.open_url('https://www.flyingblue.com/index.html')
-        points = extract_decimal(self.browser.select('div.fb-memberinfo-milesbalance')[0].text)
+        self.open_url('https://www.flyingblue.com/api/account/home.html')
+        points = extract_decimal(self.browser.select('h3.fb-h3-awardmiles > span > a')[0].text)
         return {
             'points': points,
             'value': Decimal('0'),
