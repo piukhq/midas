@@ -18,6 +18,10 @@ parallel_processes = 4
 
 
 def format_table(failures):
+    # strip the 'test ' off the beginning of each failure.
+    for scheme in failures.keys():
+        failures[scheme] = [failure.replace('test ', '', 1) for failure in failures[scheme]]
+
     # invert the dictionary
     columns = defaultdict(list)
     for name, failure_set in failures.items():
