@@ -69,22 +69,41 @@ class Balance(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
-        settings.logger.error("Date: {}, Start agent Balance request: {}, user_id: {},"
-                              "scheme_account_id: scheme_account_id".format(arrow.now(),
-                                                                            user_id,
-                                                                            scheme_account_id))
+        settings.logger.info("Date: {}, Start agent Login request, user_id: {},"
+                             "scheme_account_id: {}".format(arrow.now(),
+                                                            user_id,
+                                                            scheme_account_id))
 
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
+        settings.logger.info("Date: {}, After agent Login request, user_id: {},"
+                             "scheme_account_id: {}".format(arrow.now(),
+                                                            user_id,
+                                                            scheme_account_id))
 
         try:
             status = 1
+            settings.logger.info("Date: {}, Start agent balance request, user_id: {},"
+                                 "scheme_account_id: {}".format(arrow.now(),
+                                                                user_id,
+                                                                scheme_account_id))
+
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
+            settings.logger.info("Date: {}, After agent balance request, user_id: {},"
+                                 "scheme_account_id: {}".format(arrow.now(),
+                                                                user_id,
+                                                                scheme_account_id))
+
             # Asynchronously get the transactions for the a user
+            settings.logger.info("Date: {}, Start agent transaction request, user_id: {},"
+                                 "scheme_account_id: {}".format(arrow.now(),
+                                                                user_id,
+                                                                scheme_account_id))
+
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
-            settings.logger.error("Date: {}, Respond to Zeus Balance : {}, user_id: {},"
-                                  "scheme_account_id: scheme_account_id".format(arrow.now(),
-                                                                                user_id,
-                                                                                scheme_account_id))
+            settings.logger.info("Date: {}, After agent transaction request, user_id: {},"
+                                 "scheme_account_id: {}".format(arrow.now(),
+                                                                user_id,
+                                                                scheme_account_id))
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
