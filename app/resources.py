@@ -2,6 +2,7 @@ import json
 import functools
 from flask.ext.restful.utils.cors import crossdomain
 import settings
+import arrow
 
 from app.exceptions import AgentException, UnknownException
 from app import retry
@@ -68,6 +69,11 @@ class Balance(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
+        settings.logger.error("Date: {}, Start agent Balance request: {}, user_id: {},"
+                              "scheme_account_id: scheme_account_id".format(arrow.now(),
+                                                                            user_id,
+                                                                            scheme_account_id))
+
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
@@ -75,6 +81,10 @@ class Balance(Resource):
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
+            settings.logger.error("Date: {}, Respond to Zeus Balance : {}, user_id: {},"
+                                  "scheme_account_id: scheme_account_id".format(arrow.now(),
+                                                                                user_id,
+                                                                                scheme_account_id))
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
