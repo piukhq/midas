@@ -5,7 +5,7 @@ tests:
 
 complexity:
   script:
-    - xenon --max-average A .
+    - xenon --max-average A --max-modules B --max-absolute B .
 
 flake8:
   script:
