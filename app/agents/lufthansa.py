@@ -10,32 +10,22 @@ class Lufthansa(Miner):
         self.open_url('https://www.miles-and-more.com/online/myportal/mam/uk/account/account_statement')
 
         # Both the form's ID and its field names are partially scrambled.
-        login_form = [x for x in self.browser.get_forms()
-                      if x.action.startswith('https://www.miles-and-more.com/online/portal/mam/uk/profilelogin')][0]
-
-        card_number_done = False
-        pin_done = False
-        for field in login_form.fields:
-            if field.endswith('userId'):
-                login_form[field] = credentials['card_number']
-                card_number_done = True
-            elif field.endswith('password'):
-                login_form[field] = credentials['pin']
-                pin_done = True
-
-            # Don't waste time searching for more inputs if we've already found them both.
-            if card_number_done and pin_done:
-                break
-
+        login_form = self.browser.get_form('PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_mam-usm-cardnr-form')
+        login_form['PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_userId'] = credentials['card_number']
+        login_form['PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_password'] = credentials['pin']
         self.browser.submit_form(login_form)
 
+        errors = [
+            'Please check your Miles & More service card number',
+            'Invalid PIN. Please try again',
+            'Your login details are incorrect.'
+        ]
+
         error_box = self.browser.select('span.alert-label')
-        if len(error_box) > 0 and error_box[0].text.startswith('Please check your Miles & More service card number'):
-            raise LoginError(STATUS_LOGIN_FAILED)
-        elif len(error_box) > 0 and error_box[0].text.startswith('Invalid PIN. Please try again'):
-            raise LoginError(STATUS_LOGIN_FAILED)
-        elif len(error_box) > 0 and error_box[0].text.startswith('Your login details are incorrect.'):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        if len(error_box) > 0:
+            for error in errors:
+                if error_box[0].text.startswith(error):
+                    raise LoginError(STATUS_LOGIN_FAILED)
         elif self.browser.url.startswith('https://www.miles-and-more.com/online/portal/mam/uk/homepage'):
             raise LoginError(STATUS_ACCOUNT_LOCKED)
 
