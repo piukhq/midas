@@ -224,7 +224,15 @@ def agent_login(agent_class, credentials, scheme_account_id):
     retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
+        settings.logger.info("Date: {}, In agent_login attempt_login, "
+                             "scheme_account_id: {}".format(arrow.now(),
+                                                            scheme_account_id))
+
         agent_instance.attempt_login(credentials)
+        settings.logger.info("Date: {}, In agent_login after attempt_login, "
+                             "scheme_account_id: {}".format(arrow.now(),
+                                                            scheme_account_id))
+
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
