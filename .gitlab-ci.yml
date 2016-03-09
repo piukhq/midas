@@ -3,6 +3,10 @@ tests:
   - pip3 install -r requirements.txt
   - py.test app/tests/unit --cov=app
 
+complexity:
+  script:
+    - xenon --max-average A .
+
 flake8:
   script:
     - flake8 *
