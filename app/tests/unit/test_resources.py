@@ -35,13 +35,15 @@ class TestResources(TestCase):
 
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_balance_none_exception(self, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_balance_none_exception(self, mock_pool, mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
@@ -63,7 +65,8 @@ class TestResources(TestCase):
 
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_transactions(self, mock_agent_login, mock_publish_transactions):
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
         credentials = logins.encrypt("superdrug")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
@@ -71,12 +74,14 @@ class TestResources(TestCase):
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, [{'points': 10.0}, ])
 
     @mock.patch('app.publish.transactions', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_transactions_none_exception(self, mock_agent_login, mock_publish_transactions):
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
         credentials = logins.encrypt("superdrug")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
@@ -84,6 +89,7 @@ class TestResources(TestCase):
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
@@ -135,7 +141,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transactions.called)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json,  {'balance': {}, 'transactions': []})
+        self.assertEqual(response.json, {'balance': {}, 'transactions': []})
 
     def test_bad_agent(self):
         url = "/bad-agent-key/transaction?credentials=234&scheme_account_id=1"
