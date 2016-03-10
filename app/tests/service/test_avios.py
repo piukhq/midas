@@ -22,7 +22,7 @@ class TestAvios(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d+$')
+        self.assertEqual('', balance['value_label'])
 
 
 class TestAviosFail(unittest.TestCase):
