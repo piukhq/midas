@@ -6,8 +6,6 @@ from decimal import Decimal
 
 
 class Avios(Miner):
-    point_conversion_rate = Decimal('0.0068')
-
     def login(self, credentials):
         self.open_url("https://www.avios.com/gb/en_gb/")
         login_form = self.browser.get_form(action='https://www.avios.com/my-account/login-process')
@@ -31,12 +29,11 @@ class Avios(Miner):
 
     def balance(self):
         points = extract_decimal(self.browser.find('div', {'id': 'acc-status'}).find('strong').text)
-        value = self.calculate_point_value(points)
 
         return {
             'points': points,
-            'value': value,
-            'value_label': '£{}'.format(value)
+            'value': Decimal('0'),
+            'value_label': ''
         }
 
     @staticmethod
