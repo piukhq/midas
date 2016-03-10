@@ -75,30 +75,11 @@ class Balance(Resource):
                                                             scheme_account_id))
 
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
-        settings.logger.info("Date: {}, After agent Login request, user_id: {},"
-                             "scheme_account_id: {}".format(arrow.now(),
-                                                            user_id,
-                                                            scheme_account_id))
 
         try:
             status = 1
-            settings.logger.info("Date: {}, Start agent balance request, user_id: {},"
-                                 "scheme_account_id: {}".format(arrow.now(),
-                                                                user_id,
-                                                                scheme_account_id))
-
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
-            settings.logger.info("Date: {}, After agent balance request, user_id: {},"
-                                 "scheme_account_id: {}".format(arrow.now(),
-                                                                user_id,
-                                                                scheme_account_id))
-
             # Asynchronously get the transactions for the a user
-            settings.logger.info("Date: {}, Start agent transaction request, user_id: {},"
-                                 "scheme_account_id: {}".format(arrow.now(),
-                                                                user_id,
-                                                                scheme_account_id))
-
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
             settings.logger.info("Date: {}, After agent transaction request, user_id: {},"
                                  "scheme_account_id: {}".format(arrow.now(),
@@ -220,8 +201,21 @@ def get_agent_class(scheme_slug):
 
 
 def agent_login(agent_class, credentials, scheme_account_id):
+    settings.logger.info("Date: {}, In agent_login get_key, "
+                         "scheme_account_id: {}".format(arrow.now(),
+                                                        scheme_account_id))
+
     key = retry.get_key(agent_class.__name__, scheme_account_id)
+    settings.logger.info("Date: {}, In agent_login after get_key,"
+                         "scheme_account_id: {}, key: {}".format(arrow.now(),
+                                                                 scheme_account_id,
+                                                                 key))
     retry_count = retry.get_count(key)
+    settings.logger.info("Date: {}, In agent_login after retry_count,"
+                         "scheme_account_id: {}, retry_count: {}".format(arrow.now(),
+                                                                         scheme_account_id,
+                                                                         retry_count))
+
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
         settings.logger.info("Date: {}, In agent_login attempt_login, "
