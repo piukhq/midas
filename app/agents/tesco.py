@@ -60,11 +60,16 @@ class Tesco(Miner):
         points = extract_decimal(balances[0].contents[0].strip())
         value = self.calculate_point_value(points)
 
+        if len(self.browser.select('#ctl00_ctl00_PageContainer_MyAccountContainer_symPound')) > 0:
+            balance = extract_decimal(balances[1].contents[2].strip())
+        else:
+            balance = Decimal('0')
+
         return {
             "points": points,
             'value': value,
             'value_label': '£{}'.format(value),
-            'balance': extract_decimal(balances[1].contents[2].strip()),
+            'balance': balance
         }
 
     @staticmethod
