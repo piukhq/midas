@@ -33,7 +33,7 @@ class Odeon(Miner):
     def balance(self):
         try:
             points = extract_decimal(self.browser.select('div.span5 span')[0].text)
-        except:
+        except AttributeError:
             return {
                 'points': Decimal('0'),
                 'value': Decimal('0'),
