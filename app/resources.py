@@ -2,7 +2,6 @@ import json
 import functools
 from flask.ext.restful.utils.cors import crossdomain
 import settings
-import arrow
 
 from app.exceptions import AgentException, UnknownException
 from app import retry
@@ -69,11 +68,6 @@ class Balance(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
-        settings.logger.info("Date: {}, Start agent Login request, user_id: {},"
-                             "scheme_account_id: {}".format(arrow.now(),
-                                                            user_id,
-                                                            scheme_account_id))
-
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:
@@ -81,10 +75,6 @@ class Balance(Resource):
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
             # Asynchronously get the transactions for the a user
             thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
-            settings.logger.info("Date: {}, After agent transaction request, user_id: {},"
-                                 "scheme_account_id: {}".format(arrow.now(),
-                                                                user_id,
-                                                                scheme_account_id))
 
             return create_response(balance)
         except (LoginError, AgentError) as e:
@@ -201,32 +191,11 @@ def get_agent_class(scheme_slug):
 
 
 def agent_login(agent_class, credentials, scheme_account_id):
-    settings.logger.info("Date: {}, In agent_login get_key, "
-                         "scheme_account_id: {}".format(arrow.now(),
-                                                        scheme_account_id))
-
     key = retry.get_key(agent_class.__name__, scheme_account_id)
-    settings.logger.info("Date: {}, In agent_login after get_key,"
-                         "scheme_account_id: {}, key: {}".format(arrow.now(),
-                                                                 scheme_account_id,
-                                                                 key))
     retry_count = retry.get_count(key)
-    settings.logger.info("Date: {}, In agent_login after retry_count,"
-                         "scheme_account_id: {}, retry_count: {}".format(arrow.now(),
-                                                                         scheme_account_id,
-                                                                         retry_count))
-
     agent_instance = agent_class(retry_count, scheme_account_id)
     try:
-        settings.logger.info("Date: {}, In agent_login attempt_login, "
-                             "scheme_account_id: {}".format(arrow.now(),
-                                                            scheme_account_id))
-
         agent_instance.attempt_login(credentials)
-        settings.logger.info("Date: {}, In agent_login after attempt_login, "
-                             "scheme_account_id: {}".format(arrow.now(),
-                                                            scheme_account_id))
-
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
