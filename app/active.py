@@ -63,7 +63,7 @@ AGENTS = {
     'clubcarlson': 'carlson.Carlson',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
-    'mystarbucks-rewards': 'starbucks.Starbucks',
+    # 'mystarbucks-rewards': 'starbucks.Starbucks',      # starbucks has added several mesaures to stop us scraping them
     'mymail': 'mymail.MyMail',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',
