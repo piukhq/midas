@@ -20,6 +20,12 @@ class Quidco(Miner):
         selector = 'div.alert'
         self.check_error('/sign-in/', ((selector, STATUS_LOGIN_FAILED, 'Invalid username'),))
 
+        # check for the interstitial page.
+        interstitial = self.browser.select('.mixpanel-interstitial-continue')
+        if interstitial:
+            self.browser.follow_link(interstitial[0])
+
+        # Every second row is a hidden element we can't parse, so skip it.
         self.transaction_rows = self.browser.select('#activity-table tbody tr')[0::2]
 
     def balance(self):
@@ -47,5 +53,4 @@ class Quidco(Miner):
         }
 
     def scrape_transactions(self):
-        # Every second row is a hidden element we can't parse, so skip it.
         return self.transaction_rows
