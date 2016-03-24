@@ -14,7 +14,7 @@ from app.publish import thread_pool_executor
 from flask import make_response, request
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
-
+from werkzeug.exceptions import NotFound
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
@@ -62,12 +62,18 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
-
-        agent_class = get_agent_class(scheme_slug)
-        credentials = decrypt_credentials(request.args['credentials'])
         scheme_account_id = int(request.args['scheme_account_id'])
-        user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
+
+        try:
+            agent_class = get_agent_class(scheme_slug)
+        except NotFound as e:
+            # Update the scheme status on hermes to WALLET_ONLY (10)
+            thread_pool_executor.submit(publish.status, scheme_account_id, 10, tid)
+            abort(e.code, message=e.data['message'])
+
+        user_id = int(request.args['user_id'])
+        credentials = decrypt_credentials(request.args['credentials'])
         agent_instance = agent_login(agent_class, credentials, scheme_account_id)
 
         try:

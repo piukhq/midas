@@ -11,6 +11,7 @@ from app.tests.service import logins
 from app import create_app, AgentException
 from unittest import mock
 from decimal import Decimal
+from app import publish
 
 
 class TestResources(TestCase):
@@ -144,9 +145,16 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {'balance': {}, 'transactions': []})
 
     def test_bad_agent(self):
-        url = "/bad-agent-key/transaction?credentials=234&scheme_account_id=1"
+        url = "/bad-agent-key/transactions?credentials=234&scheme_account_id=1"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_bad_agent_updates_status(self, mock_submit):
+        url = '/bad-agent-key/balance?credentials=234&scheme_account_id=1&user_id=1'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+        mock_submit.assert_called_with(publish.status, 1, 10, None)
 
     def test_bad_parameters(self):
         url = "/tesco-clubcard/transactions?credentials=234"
