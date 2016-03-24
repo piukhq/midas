@@ -15,7 +15,7 @@ class TestGourmetBurgerKitchen(unittest.TestCase):
         self.assertEqual(self.m.browser.response.status_code, 200)
 
     def test_transactions(self):
-        with self.assertRaises(NotImplementedError) as e:
+        with self.assertRaises(NotImplementedError):
             self.m.transactions()
 
     def test_balance(self):
