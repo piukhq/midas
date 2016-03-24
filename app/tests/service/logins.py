@@ -271,7 +271,11 @@ CREDENTIALS = {
     "recognition-reward-card": {
         "email": "chris.gormley2@gmail.com",
         "password": "QGHansbric13",
-    }
+    },
+    "gbk-rewards": {
+        "email": "chris.gormley2@me.com",
+        "pin": "9876",
+    },
 }
 
 
