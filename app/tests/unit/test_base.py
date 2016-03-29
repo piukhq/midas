@@ -39,14 +39,14 @@ class TestBase(TestCase):
         self.assertEqual(len(hashes), len(set(hashes)))
 
     def test_attempt_login_exception(self):
-        m = Miner(retry_count=3, scheme_id=2)
+        m = Miner(3, 2)
         with self.assertRaises(RetryLimitError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "Retry limit reached")
 
     @mock.patch.object(Miner, 'login')
     def test_attempt_login(self, mocked_login):
-        m = Miner(0, 2)
+        m = Miner(1, 2)
 
         m.attempt_login(credentials={})
         self.assertTrue(mocked_login.called)
@@ -98,7 +98,7 @@ class TestBase(TestCase):
         self.assertEqual('', m.format_label(0, 'vote'))
 
     def test_agent_login_missing_credentials(self):
-        m = Avios(2, 2)
+        m = Avios(1, 2)
         with self.assertRaises(Exception) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.args[0], "missing the credential 'email'")
@@ -111,7 +111,7 @@ class TestOpenURL(TestCase):
         m_cls = Miner
         m_cls.proxy = False
 
-        m = m_cls(2, 2)
+        m = m_cls(1, 2)
         m.proxy = False
         with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")
