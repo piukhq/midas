@@ -39,7 +39,7 @@ class TestBase(TestCase):
         self.assertEqual(len(hashes), len(set(hashes)))
 
     def test_attempt_login_exception(self):
-        m = Miner(retry_count=6, scheme_id=2)
+        m = Miner(retry_count=3, scheme_id=2)
         with self.assertRaises(RetryLimitError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "Retry limit reached")
