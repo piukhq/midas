@@ -46,7 +46,7 @@ class TestBase(TestCase):
 
     @mock.patch.object(Miner, 'login')
     def test_attempt_login(self, mocked_login):
-        m = Miner(2, 2)
+        m = Miner(0, 2)
 
         m.attempt_login(credentials={})
         self.assertTrue(mocked_login.called)
