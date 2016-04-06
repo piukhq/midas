@@ -53,36 +53,49 @@ def generate_message(test_results, bad_agents):
         failures.append('_There are currently no notable agent failures._')
 
     return '*Total errors:* {0}/{5}\n*Time:* {3} seconds\n\n{1}\n\n *End site down:* {2}\n{4}'.format(
-        error_count, '\n'.join('>{}'.format(f) for f in failures), ', '.join(end_site_down) or None, test_suite['@time'],
-        '{0}/#/exceptions/'.format(APOLLO_URL), test_suite['@tests']
+        error_count,
+        '\n'.join('>{}'.format(f) for f in failures),
+        ', '.join(end_site_down) or None,
+        test_suite['@time'],
+        '{0}/#/exceptions/'.format(APOLLO_URL),
+        test_suite['@tests']
     )
 
 
-def write_to_influx(test_results):
+def get_error_from_test_case(test_case):
+    has_error = False
+
+    error_text = None
+    if 'error' in test_case:
+        has_error = True
+        error_text = test_case['error']['#text']
+    elif 'failure' in test_case:
+        has_error = True
+        error_text = test_case['failure']['#text']
+    return has_error, error_text
+
+
+def get_error_cause(error_text):
+    # attempt to pick out an error cause in the error text.
+    error_cause = '(no cause)'
+    if error_text:
+        for regex in error_cause_regexes:
+            match = regex.findall(error_text)
+            if len(match) > 0:
+                error_cause = next(s for s in match if s)[0:128]
+                break
+    return error_cause
+
+
+def parse_test_results(test_results):
     test_suite = test_results['testsuite']
     parsed_results = {}
 
     for test_case in test_suite['testcase']:
         classname = test_case['@classname'].split('.')[0]
 
-        has_error = False
-
-        error_text = None
-        if 'error' in test_case:
-            has_error = True
-            error_text = test_case['error']['#text']
-        elif 'failure' in test_case:
-            has_error = True
-            error_text = test_case['failure']['#text']
-
-        # attempt to pick out an error cause in the error text.
-        error_cause = '(no cause)'
-        if error_text:
-            for regex in error_cause_regexes:
-                match = regex.findall(error_text)
-                if len(match) > 0:
-                    error_cause = next(s for s in match if s)[0:128]
-                    break
+        has_error, error_text = get_error_from_test_case(test_case)
+        error_cause = get_error_cause(error_text)
 
         if classname in parsed_results:
             if has_error:
@@ -94,7 +107,11 @@ def write_to_influx(test_results):
                 'count': 1 if has_error else 0,
                 'cause': None,
             }
+    return parsed_results
 
+
+def write_to_influx(test_results):
+    parsed_results = parse_test_results(test_results)
     points = []
     for classname, error in parsed_results.items():
         points.append({
