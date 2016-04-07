@@ -24,6 +24,19 @@ class TestAirAsia(unittest.TestCase):
         schemas.balance(balance)
 
 
+class TestAirAsiaUtilities(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.m = AirAsia(1, 1)
+
+    def test_parse_sso_cookie(self):
+        data = self.m.parse_sso_cookie('test1=test2&test3=test4')
+        self.assertEqual({
+            'test1': 'test2',
+            'test3': 'test4'
+        }, data)
+
+
 class TestAirAsiaFail(unittest.TestCase):
     def test_login_fail(self):
         m = AirAsia(1, 1)
