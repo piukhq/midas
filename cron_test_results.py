@@ -60,6 +60,7 @@ def generate_failures_and_warnings(self, bad_agents):
 
     return failures, warnings
 
+
 def generate_message(test_results, bad_agents):
     test_suite = test_results['testsuite']
     end_site_down = []
