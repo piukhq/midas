@@ -32,19 +32,7 @@ error_cause_regexes = [
 ]
 
 
-def generate_message(test_results, bad_agents):
-    test_suite = test_results['testsuite']
-    end_site_down = []
-    error_count = 0
-
-    for test_case in test_suite['testcase']:
-        key_name = test_case['@classname'].split('.')[0][5:].replace('_', ' ')
-        if 'failure' in test_case or 'error' in test_case:
-            if 'failure' in test_case and 'END_SITE_DOWN' in test_case['failure']['@message']:
-                end_site_down.append(key_name)
-                continue
-            error_count += 1
-
+def generate_failures_and_warnings(self, bad_agents):
     failures = []
     warnings = []
 
@@ -69,6 +57,23 @@ def generate_message(test_results, bad_agents):
 
     if len(warnings) == 0:
         warnings.append('_There are currently no notable agent warnings._')
+
+    return failures, warnings
+
+def generate_message(test_results, bad_agents):
+    test_suite = test_results['testsuite']
+    end_site_down = []
+    error_count = 0
+
+    for test_case in test_suite['testcase']:
+        key_name = test_case['@classname'].split('.')[0][5:].replace('_', ' ')
+        if 'failure' in test_case or 'error' in test_case:
+            if 'failure' in test_case and 'END_SITE_DOWN' in test_case['failure']['@message']:
+                end_site_down.append(key_name)
+                continue
+            error_count += 1
+
+    failures, warnings = generate_failures_and_warnings(bad_agents)
 
     return ('*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n'
             '*Errors*\n{1}\n\n*Warnings*\n{2}\n\n*End site down:* {3}\n{5}').format(
