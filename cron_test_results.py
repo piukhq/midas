@@ -70,7 +70,8 @@ def generate_message(test_results, bad_agents):
     if len(warnings) == 0:
         warnings.append('_There are currently no notable agent warnings._')
 
-    return '*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n*Errors*\n{1}\n\n*Warnings*\n{2}\n\n*End site down:* {3}\n{5}'.format(
+    return ('*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n'
+            '*Errors*\n{1}\n\n*Warnings*\n{2}\n\n*End site down:* {3}\n{5}').format(
         error_count,
         '\n'.join('>{}'.format(f) for f in failures),
         '\n'.join('>{}'.format(w) for w in warnings),
