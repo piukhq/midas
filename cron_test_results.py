@@ -32,7 +32,7 @@ error_cause_regexes = [
 ]
 
 
-def generate_failures_and_warnings(self, bad_agents):
+def generate_failures_and_warnings(bad_agents):
     failures = []
     warnings = []
 
