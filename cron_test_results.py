@@ -46,15 +46,34 @@ def generate_message(test_results, bad_agents):
             error_count += 1
 
     failures = []
+    warnings = []
+
+    warning_flags = [
+        'locked',
+        'captcha',
+        'ip blocked',
+        'end site down',
+        'invalid credentials',
+    ]
+
     for agent in bad_agents:
-        failures.append('{} - {}'.format(agent['name'], agent['cause']))
+        for warning_flag in warning_flags:
+            if warning_flag in agent['cause'].lower():
+                warnings.append('{} - {}'.format(agent['name'], agent['cause']))
+                break
+        else:
+            failures.append('{} - {}'.format(agent['name'], agent['cause']))
 
     if len(failures) == 0:
         failures.append('_There are currently no notable agent failures._')
 
-    return '*Total errors:* {0}/{5}\n*Time:* {3} seconds\n\n{1}\n\n *End site down:* {2}\n{4}'.format(
+    if len(warnings) == 0:
+        warnings.append('_There are currently no notable agent warnings._')
+
+    return '*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n*Errors*\n{1}\n\n*Warnings*\n{2}\n\n*End site down:* {3}\n{5}'.format(
         error_count,
         '\n'.join('>{}'.format(f) for f in failures),
+        '\n'.join('>{}'.format(w) for w in warnings),
         ', '.join(end_site_down) or None,
         test_suite['@time'],
         '{0}/#/exceptions/'.format(APOLLO_URL),
