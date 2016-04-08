@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from decimal import Decimal
 import arrow
 import re
@@ -19,6 +19,9 @@ class HollandAndBarrett(Miner):
 
         self.check_error('/my-account/login.jsp',
                          (('.form-errors > ul', STATUS_LOGIN_FAILED, 'Please enter valid email address'),))
+
+        self.check_error('/defaultPage.jsp',
+                         (('body', STATUS_ACCOUNT_LOCKED, 'Your session expired due to inactivity.'),))
 
     def balance(self):
         info_box = self.browser.select('section.s-account-module.rfl-summary > div > div > h3')[0]
