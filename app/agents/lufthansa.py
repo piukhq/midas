@@ -6,13 +6,20 @@ import arrow
 
 
 class Lufthansa(Miner):
+    @staticmethod
+    def scan_and_fill_field(form, fragment, value):
+        for name, field in form.fields.items():
+            if name.endswith(fragment):
+                form[name].value = value
+                return
+
     def login(self, credentials):
         self.open_url('https://www.miles-and-more.com/online/myportal/mam/uk/account/account_statement')
 
         # Both the form's ID and its field names are partially scrambled.
-        login_form = self.browser.get_form('PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_mam-usm-cardnr-form')
-        login_form['PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_userId'] = credentials['card_number']
-        login_form['PC_7_CO19VHUC6NQ4B0APSQO3UH2QM50n3046_password'] = credentials['pin']
+        login_form = self.browser.get_forms()[4]
+        self.scan_and_fill_field(login_form, 'userId', credentials['card_number'])
+        self.scan_and_fill_field(login_form, 'password', credentials['pin'])
         self.browser.submit_form(login_form)
 
         errors = [
