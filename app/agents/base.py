@@ -99,6 +99,9 @@ class Miner(object):
                 if sig in url:
                     raise AgentError(TRIPPED_CAPTCHA)
 
+        if self.browser.select('#recaptcha_widget'):
+            raise AgentError(TRIPPED_CAPTCHA)
+
     def login(self, credentials):
         raise NotImplementedError()
 
