@@ -48,7 +48,7 @@ class Nectar(Miner):
         collector = extra_details.select('.collector')[0].text[10:]
 
         transaction = {
-            'date': arrow.get(row.select('.date')[0].text, 'MMM D, YYYY'),
+            'date': arrow.get(row.select('.date')[0].text, 'D MMM YYYY'),
             'description': 'Partner: {0}, Collector: {1},'.format(partner, collector),
             'points': extract_decimal(row.select('.points')[0].text.strip().rstrip('pts')),
         }
