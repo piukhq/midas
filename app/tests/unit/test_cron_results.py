@@ -32,8 +32,8 @@ class TestCronResults(unittest.TestCase):
 *Time:* 128.817 seconds
 
 *Errors*
->test1 - test2
->test3 - test4
+>(<http://dev.midas.loyaltyangels.local/resolve_issue/test0|resolve>) test1 - test2
+>(<http://dev.midas.loyaltyangels.local/resolve_issue/test2.5|resolve>) test3 - test4
 
 *Warnings*
 >_There are currently no notable agent warnings._
