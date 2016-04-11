@@ -22,8 +22,8 @@ class TestCronResults(unittest.TestCase):
             test_results = xmltodict.parse(f.read())
 
         bad_agents = [
-            {'name': 'test1', 'cause': 'test2'},
-            {'name': 'test3', 'cause': 'test4'},
+            {'classname': 'test0', 'name': 'test1', 'cause': 'test2'},
+            {'classname': 'test2.5', 'name': 'test3', 'cause': 'test4'},
         ]
 
         message = generate_message(test_results, bad_agents)
