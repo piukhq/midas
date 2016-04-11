@@ -181,7 +181,7 @@ class TestResults(Resource):
 api.add_resource(TestResults, '/test_results', endpoint="api.test_results")
 
 
-class ResolveAgentErrors(Resource):
+class ResolveAgentIssue(Resource):
     """
     Called by clicking a 'resolve' link in slack.
     """
@@ -192,7 +192,7 @@ class ResolveAgentErrors(Resource):
             pass
         return 'The specified issue has been resolved.'
 
-api.add_resource(ResolveAgentErrors, '/resolve_error/<string:classname>', endpoint='api.resolve_error')
+api.add_resource(ResolveAgentIssue, '/resolve_issue/<string:classname>', endpoint='api.resolve_issue')
 
 
 def decrypt_credentials(credentials):
