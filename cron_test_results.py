@@ -45,12 +45,13 @@ def generate_failures_and_warnings(bad_agents):
     ]
 
     for agent in bad_agents:
+        resolve_url = 'http://dev.midas.loyaltyangels.local/resolve_issue/{}'.format(agent['classname'])
         for warning_flag in warning_flags:
             if warning_flag in agent['cause'].lower():
-                warnings.append('{} - {}'.format(agent['name'], agent['cause']))
+                warnings.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
                 break
         else:
-            failures.append('{} - {}'.format(agent['name'], agent['cause']))
+            failures.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
 
     if len(failures) == 0:
         failures.append('_There are currently no notable agent failures._')
@@ -166,10 +167,15 @@ def get_problematic_agents():
         points = list(errors.get_points())
         if len(points) >= PROBLEMATICAL_THRESHOLD:
             bad_agents.append({
+                'classname': tag['classname'],
                 'name': tag['classname'].replace('test_', '', 1).replace('_', ' '),
                 'cause': points[0]['cause'],
             })
     return bad_agents
+
+
+def resolve_issue(classname):
+    influx.query("drop series from test_results where classname = '{}'".format(classname))
 
 if __name__ == '__main__':
     py_test = join(os.path.dirname(sys.executable), 'py.test')
