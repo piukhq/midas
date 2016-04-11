@@ -1,6 +1,8 @@
 import json
 import functools
 from flask.ext.restful.utils.cors import crossdomain
+from influxdb.exceptions import InfluxDBClientError
+
 import settings
 
 from app.exceptions import AgentException, UnknownException
@@ -11,6 +13,7 @@ from app.encoding import JsonEncoder
 from app import publish
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
+from cron_test_results import resolve_issue
 from flask import make_response, request
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
@@ -176,6 +179,20 @@ class TestResults(Resource):
         return response
 
 api.add_resource(TestResults, '/test_results', endpoint="api.test_results")
+
+
+class ResolveAgentErrors(Resource):
+    """
+    Called by clicking a 'resolve' link in slack.
+    """
+    def get(self, classname):
+        try:
+            resolve_issue(classname)
+        except InfluxDBClientError:
+            pass
+        return 'The specified issue has been resolved.'
+
+api.add_resource(ResolveAgentErrors, '/resolve_error/<string:classname>', endpoint='api.resolve_error')
 
 
 def decrypt_credentials(credentials):
