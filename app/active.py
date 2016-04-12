@@ -56,7 +56,7 @@ AGENTS = {
     'treat-me': 'paperchase.Paperchase',
     'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
     'delta-skymiles': 'delta.Delta',
-    'klm-flying-blue': 'flying_blue.FlyingBlue',
+    # 'klm-flying-blue': 'flying_blue.FlyingBlue',      # captcha
     'le-club': 'accor.Accor',
     'choicehotels': 'choicehotels.ChoiceHotels',
     'discovery': 'gha.Gha',
