@@ -38,8 +38,9 @@ class Debenhams(Miner):
         self.check_error('/chopinweb/scareMyLogin.do',
                          ((selector, STATUS_LOGIN_FAILED, 'Please correct the following errors'), ))
 
-    def balance(self):
         self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
+
+    def balance(self):
         points = extract_decimal(self.browser.select("td#clearedBalance span.balanceValue")[1].text)
         value = self.calculate_point_value(points)
 
@@ -49,17 +50,22 @@ class Debenhams(Miner):
             'value_label': '£{}'.format(value),
         }
 
-    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
-        return row
+        return {
+            'date': arrow.get(row.select('td')[0].text.strip(), 'DD/MM/YY'),
+            'description': ' '.join(row.select('td')[2].text.split()[1:]),
+            'points': Decimal(row.select('td')[3].text.strip()),
+        }
 
     def scrape_transactions(self):
-        # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
-        # transaction_table = self.browser.select('table.txnHistory')
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        transactions = self.browser.select('table.txnHistory > tr')[2::2]
+
+        # switch to the 'Points' tab
+        search_form = self.browser.get_form('searchForm')
+        search_form['selectedTab'].value = 'WALLET1'
+        self.browser.submit_form(search_form)
+
+        transactions += self.browser.select('table.txnHistory > tr')[2::2]
+
+        return sorted(transactions, key=lambda t: arrow.get(t.select('td')[0].text.strip(), 'DD/MM/YY'))

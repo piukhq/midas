@@ -62,7 +62,7 @@ CREDENTIALS = {
         "password": "RRHansbrics9",
     },
     "debenhams": {
-        "username": "gormleyc1",
+        "username": "gormleyj1",
         "password": "RCHansbrics9",
         "memorable_date": "28/08/2004",
     },
