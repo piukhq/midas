@@ -42,6 +42,7 @@ def generate_failures_and_warnings(bad_agents):
         'ip blocked',
         'end site down',
         'invalid credentials',
+        'requests.exceptions.connecttimeout',
     ]
 
     for agent in bad_agents:
