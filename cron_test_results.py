@@ -63,13 +63,17 @@ def generate_failures_and_warnings(bad_agents):
     return failures, warnings
 
 
+def get_key_from_classname(classname):
+    return classname.split('.')[0][5:].replace('_', ' ')
+
+
 def generate_message(test_results, bad_agents):
     test_suite = test_results['testsuite']
     end_site_down = []
     error_count = 0
 
     for test_case in test_suite['testcase']:
-        key_name = test_case['@classname'].split('.')[0][5:].replace('_', ' ')
+        key_name = get_key_from_classname(test_case['@classname'])
         if 'failure' in test_case or 'error' in test_case:
             if 'failure' in test_case and 'END_SITE_DOWN' in test_case['failure']['@message']:
                 end_site_down.append(key_name)
@@ -177,6 +181,8 @@ def get_problematic_agents():
 
 def resolve_issue(classname):
     influx.query("drop series from test_results where classname = '{}'".format(classname))
+    key = get_key_from_classname(classname)
+    Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', '_The issue with {} has been marked as resolved._'.format(key))
 
 if __name__ == '__main__':
     py_test = join(os.path.dirname(sys.executable), 'py.test')
