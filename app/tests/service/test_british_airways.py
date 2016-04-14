@@ -1,5 +1,6 @@
 import unittest
 from urllib.parse import urlsplit
+from decimal import Decimal
 from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.british_airways import BritishAirways
@@ -24,7 +25,8 @@ class TestBritishAirways(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+        self.assertEqual(balance['value'], Decimal('0'))
+        self.assertEqual(balance['value_label'], '')
 
 
 class TestBritishAirwaysFail(unittest.TestCase):
