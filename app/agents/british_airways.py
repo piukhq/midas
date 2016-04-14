@@ -10,8 +10,6 @@ class BritishAirways(Miner):
     # TODO: REPLACE WITH REAL LIMIT
     retry_limit = 3
 
-    point_conversion_rate = Decimal('0.0068')
-
     def login(self, credentials):
         self.open_url("https://www.britishairways.com/travel/loginr/public/en_gb")
 
@@ -27,12 +25,11 @@ class BritishAirways(Miner):
     def balance(self):
         points_span = self.browser.select('.nowrap')[0]
         points = Decimal(points_span.text.strip('My Avios:  |').strip().replace(',', ''))
-        value = self.calculate_point_value(points)
 
         return {
             'points': points,
-            'value': value,
-            'value_label': '£{}'.format(value)
+            'value': Decimal('0'),
+            'value_label': ''
         }
 
     def scrape_transactions(self):
