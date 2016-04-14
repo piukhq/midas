@@ -182,7 +182,8 @@ def get_problematic_agents():
 def resolve_issue(classname):
     influx.query("drop series from test_results where classname = '{}'".format(classname))
     key = get_key_from_classname(classname)
-    Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', '_The issue with {} has been marked as resolved._'.format(key))
+    Slacker(SLACK_API_KEY).chat.post_message('#errors-agents',
+                                             '_The issue with {} has been marked as resolved._'.format(key))
 
 if __name__ == '__main__':
     py_test = join(os.path.dirname(sys.executable), 'py.test')
