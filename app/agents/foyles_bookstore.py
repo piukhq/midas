@@ -16,7 +16,7 @@ class FoylesBookstore(Miner):
         login_form['ctl00$HeaderInfo$txtPassword'].value = credentials['email']
         self.browser.submit_form(login_form)
 
-        self.check_error('/Default.aspx',
+        self.check_error('/default.aspx',
                          (('#ctl00_HeaderInfo_lblErrors', STATUS_LOGIN_FAILED, 'Incorrect Username or Password'), ))
 
     def balance(self):
