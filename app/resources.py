@@ -195,6 +195,21 @@ class ResolveAgentIssue(Resource):
 api.add_resource(ResolveAgentIssue, '/resolve_issue/<string:classname>', endpoint='api.resolve_issue')
 
 
+class AgentQuestions(Resource):
+    def post(self):
+        scheme_slug = request.form['scheme_slug']
+
+        questions = {}
+        for k, v in request.form.items():
+            if k != 'scheme_slug':
+                questions[k] = v
+
+        agent = get_agent_class(scheme_slug)(1, 1)
+        return agent.update_questions(questions)
+
+api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questions')
+
+
 def decrypt_credentials(credentials):
     aes = AESCipher(settings.AES_KEY.encode())
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
