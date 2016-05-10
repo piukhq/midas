@@ -171,6 +171,10 @@ class Miner(object):
                 return reward
         return ''
 
+    @staticmethod
+    def update_questions(questions):
+        return questions
+
     def view(self):
         """
         Open the RoboBrowser object in a browser in its current state

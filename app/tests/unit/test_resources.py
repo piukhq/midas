@@ -1,10 +1,8 @@
-from unittest.mock import mock_open
-
 import builtins
+from unittest.mock import mock_open
 from flask.ext.testing import TestCase
-
 from app.agents.avios import Avios
-from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
+from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED,\
     errors
 from app.resources import agent_login
 from app.tests.service import logins
@@ -189,3 +187,29 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b'<xml></xml>')
         self.assertEqual(response.content_type, 'text/xml')
+
+    def test_tier2_agent_questions(self):
+        resp = self.client.post('/agent_questions', data={
+            'scheme_slug': 'advantage-card',
+            'username': 'test-username',
+            'password': 'test-password',
+        })
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('username', resp.json)
+        self.assertIn('password', resp.json)
+        self.assertEqual(resp.json['username'], 'test-username')
+        self.assertEqual(resp.json['password'], 'test-password')
+
+    def test_tier1_agent_questions(self):
+        resp = self.client.post('/agent_questions', data={
+            'scheme_slug': 'avios',
+            'username': 'test-username',
+            'password': 'test-password',
+        })
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('api_key', resp.json)
+        self.assertEqual(resp.json['api_key'], 'test-api-key')
+        self.assertNotIn('username', resp.json)
+        self.assertNotIn('password', resp.json)

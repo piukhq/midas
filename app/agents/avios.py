@@ -60,3 +60,10 @@ class Avios(Miner):
     def scrape_transactions(self):
         self.open_url("https://www.avios.com/gb/en_gb/my-account/your-avios-account?from=accNav")
         return self.browser.find('div', {'id': 'transactions'}).select('table tbody tr')
+
+    @staticmethod
+    def update_questions(questions):
+        # TODO: use the given credentials to obtain the refresh token.
+        return {
+            'api_key': 'test-api-key'
+        }
