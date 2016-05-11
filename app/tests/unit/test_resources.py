@@ -196,10 +196,15 @@ class TestResources(TestCase):
         })
 
         self.assertEqual(resp.status_code, 200)
-        self.assertIn('username', resp.json)
-        self.assertIn('password', resp.json)
-        self.assertEqual(resp.json['username'], 'test-username')
-        self.assertEqual(resp.json['password'], 'test-password')
+
+        j = resp.json
+        self.assertIn('store', j)
+        self.assertIn('transient', j)
+        self.assertIn('username', j['store'])
+        self.assertIn('password', j['store'])
+        self.assertEqual(j['transient'], {})
+        self.assertEqual(j['store']['username'], 'test-username')
+        self.assertEqual(j['store']['password'], 'test-password')
 
     def test_tier1_agent_questions(self):
         resp = self.client.post('/agent_questions', data={
@@ -209,7 +214,13 @@ class TestResources(TestCase):
         })
 
         self.assertEqual(resp.status_code, 200)
-        self.assertIn('api_key', resp.json)
-        self.assertEqual(resp.json['api_key'], 'test-api-key')
-        self.assertNotIn('username', resp.json)
-        self.assertNotIn('password', resp.json)
+
+        j = resp.json
+        self.assertIn('store', j)
+        self.assertIn('transient', j)
+        self.assertIn('refresh_token', j['store'])
+        self.assertIn('access_token', j['transient'])
+        self.assertEqual(j['store']['refresh_token'], 'qwertyuiop')
+        self.assertEqual(j['transient']['access_token'], 'asdfghjkl')
+        self.assertNotIn('username', j['store'])
+        self.assertNotIn('password', j['store'])
