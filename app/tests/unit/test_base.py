@@ -97,8 +97,11 @@ class TestBase(TestCase):
 
         self.assertEqual('', m.format_label(0, 'vote'))
 
-    def test_agent_login_missing_credentials(self):
+    @mock.patch.object(Avios, 'open_url')
+    def test_agent_login_missing_credentials(self, mock_open_url):
         m = Avios(1, 2)
+        m.browser = mock.MagicMock()
+
         with self.assertRaises(Exception) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.args[0], "missing the credential 'email'")
