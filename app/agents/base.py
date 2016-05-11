@@ -173,7 +173,10 @@ class Miner(object):
 
     @staticmethod
     def update_questions(questions):
-        return questions
+        return {
+            'store': questions,
+            'transient': {}
+        }
 
     def view(self):
         """
