@@ -65,10 +65,5 @@ class Avios(Miner):
     def update_questions(questions):
         # TODO: use the given credentials to obtain the refresh token.
         return {
-            'store': {
-                'refresh_token': 'qwertyuiop'
-            },
-            'transient': {
-                'access_token': 'asdfghjkl'
-            }
+            'api_key': 'test-api-key'
         }
