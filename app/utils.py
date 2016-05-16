@@ -48,6 +48,8 @@ units = ['K', 'M', 'B', 'T']
 
 
 def minify_number(n):
+    n = int(n)
+
     if n < 10000:
         return str(n)
 
