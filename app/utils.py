@@ -42,3 +42,22 @@ def pluralise(count, plural_suffix):
         return ''
     singular, plural = parts[:2]
     return singular if count == 1 else plural
+
+
+units = ['K', 'M', 'B', 'T']
+
+
+def minify_number(n):
+    if n < 10000:
+        return str(n)
+
+    count = 0
+    total = n
+    while True:
+        if total / 1000 > 1:
+            total //= 1000
+            count += 1
+        else:
+            break
+
+    return '{0}{1}'.format(total, units[count - 1])

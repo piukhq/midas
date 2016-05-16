@@ -1,5 +1,7 @@
 from app.encoding import JsonEncoder
 import json
+
+from app.utils import minify_number
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
@@ -37,6 +39,7 @@ def transactions(transactions_items, scheme_account_id, user_id, tid):
 def balance(balance_item, scheme_account_id, user_id, tid):
     balance_item['scheme_account_id'] = scheme_account_id
     balance_item['user_id'] = user_id
+    balance_item['points_label'] = minify_number(balance_item['points'])
     post("{}/balance".format(HADES_URL), balance_item, tid)
     return balance_item
 

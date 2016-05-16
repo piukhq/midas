@@ -1,4 +1,5 @@
 import unittest
+from decimal import Decimal
 from unittest.mock import patch
 from app.publish import transactions, balance
 
@@ -13,8 +14,20 @@ class TestRetry(unittest.TestCase):
 
     @patch('app.publish.post', autospec=True)
     def test_balance(self, mock_post):
-        item = balance({}, 5, 8, '123-12')
-        self.assertEqual(item, {'user_id': 8, 'scheme_account_id': 5})
+        b = {
+            'points': Decimal('51251285'),
+            'value': Decimal('9.44'),
+            'value_label': '£9.44',
+        }
+        item = balance(b, 5, 8, '123-12')
+        self.assertEqual(item, {
+            'user_id': 8,
+            'value': Decimal('9.44'),
+            'scheme_account_id': 5,
+            'points': Decimal('51251285'),
+            'value_label': '£9.44',
+            'points_label': '51M'
+        })
         self.assertTrue(mock_post.called)
 
     def test_transactions_none(self):
