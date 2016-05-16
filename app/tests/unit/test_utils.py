@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from app.utils import extract_decimal, generate_random_key
+from app.utils import extract_decimal, generate_random_key, minify_number
 
 
 class TestUtils(unittest.TestCase):
@@ -13,3 +13,19 @@ class TestUtils(unittest.TestCase):
 
     def test_generate_random_key(self):
         self.assertEqual(type(generate_random_key(1)), bytes)
+
+    def test_minify_number(self):
+        test_cases = [
+            (0, '0'),
+            (10, '10'),
+            (501, '501'),
+            (5214, '5214'),
+            (60563, '60K'),
+            (5329582, '5M'),
+            (59235820935, '59B'),
+            (24135802938509, '24T')
+        ]
+
+        for test_case in test_cases:
+            n = minify_number(test_case[0])
+            self.assertEqual(n, test_case[1])
