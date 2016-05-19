@@ -35,7 +35,7 @@ AGENTS = {
     'trueblue': 'jetblue.JetBlue',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
-    'rewards4fishing': 'rewards4fishing.Rewards4Fishing',
+    # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',     # scheme is being/has been shut down.
     'rewards4golf': 'rewards4golf.Rewards4Golf',
     'rewards4racing': 'rewards4racing.Rewards4Racing',
     'space-nk': 'space_nk.SpaceNK',
