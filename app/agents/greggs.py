@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, PASSWORD_EXPIRED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
 from collections import Counter
@@ -8,20 +8,14 @@ import arrow
 
 class Greggs(Miner):
     def login(self, credentials):
-        url = 'https://www.greggs.co.uk/Security/login?BackURL=%2Fhome%2F&ajax=1'
-        self.open_url(url)
+        self.open_url('https://api.greggs.co.uk/1.0/user/login', method='post', json=credentials)
 
-        if self.browser.response.status_code != 200:
-            raise LoginError(END_SITE_DOWN)
-
-        login_form = self.browser.get_form(id='AccountLoginForm_LoginForm')
-        login_form['Email'].value = credentials['email']
-        login_form['Password'].value = credentials['password']
-
-        self.browser.submit_form(login_form)
-
-        selector = '#AccountLoginForm_LoginForm_error'
-        self.check_error('/Security/login', ((selector, STATUS_LOGIN_FAILED, "The details you entered don't seem"),))
+        response = self.browser.response.json()
+        if response['error'] == 'invalid_grant':
+            if response['error_description'] == 'Migrated user':
+                raise LoginError(PASSWORD_EXPIRED)
+            else:
+                raise LoginError(UNKNOWN)
 
     def balance(self):
         self.open_url('https://www.greggs.co.uk/my-account/my-coffees#content_start')
