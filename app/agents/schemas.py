@@ -15,7 +15,7 @@ transactions = Schema([{
 balance = Schema({
     Required('points'): Decimal,
     Required('value'): Decimal,
-    Optional('balance'): Decimal,  # This is a Tesco only field
+    Optional('balance'): Decimal,
     Required('value_label'): str,
 })
 
