@@ -27,7 +27,10 @@ class TestGreggs(unittest.TestCase):
 
 class TestGreggsFail(unittest.TestCase):
     def test_login_bad_credentials(self):
-        credentials = CREDENTIALS["bad"]
+        credentials = {
+            'email': 'bad@bad.com',
+            'password': '145RAfwafwf2'
+        }
         g = Greggs(1, 1)
         with self.assertRaises(LoginError) as e:
             g.attempt_login(credentials)

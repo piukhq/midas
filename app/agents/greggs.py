@@ -1,62 +1,66 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, END_SITE_DOWN, STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+from app.agents.exceptions import LoginError, PASSWORD_EXPIRED, UNKNOWN, STATUS_LOGIN_FAILED
 from decimal import Decimal
-from collections import Counter
 import arrow
 
 
 class Greggs(Miner):
+    access_details = {}
+
     def login(self, credentials):
-        url = 'https://www.greggs.co.uk/Security/login?BackURL=%2Fhome%2F&ajax=1'
-        self.open_url(url)
+        self.browser.open('https://api.greggs.co.uk/1.0/user/login', method='post', json=credentials)
+        response = self.browser.response.json()
 
-        if self.browser.response.status_code != 200:
-            raise LoginError(END_SITE_DOWN)
+        if 'error' in response:
+            if response['error_description'] == 'Migrated user':
+                raise LoginError(PASSWORD_EXPIRED)
+            elif response['error_description'] == 'Invalid username and password combination':
+                raise LoginError(STATUS_LOGIN_FAILED)
+            else:
+                raise LoginError(UNKNOWN)
+        # this is likely (but perhaps not necessarily?) going to be invalid credentials.
+        # this could mean to long/short password, or no capital letters, or something like that.
+        elif 'status' in response:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
-        login_form = self.browser.get_form(id='AccountLoginForm_LoginForm')
-        login_form['Email'].value = credentials['email']
-        login_form['Password'].value = credentials['password']
-
-        self.browser.submit_form(login_form)
-
-        selector = '#AccountLoginForm_LoginForm_error'
-        self.check_error('/Security/login', ((selector, STATUS_LOGIN_FAILED, "The details you entered don't seem"),))
+        self.headers['Authorization'] = 'Bearer {}'.format(response['access_token'])
 
     def balance(self):
-        self.open_url('https://www.greggs.co.uk/my-account/my-coffees#content_start')
-        coffees = self.browser.select('ul#coffee li')
-        points = Decimal(len([x for x in coffees if 'done' in x.attrs['class']]))
+        self.open_url('https://api.greggs.co.uk/1.0/wallet')
+        response = self.browser.response.json()
+
+        stamp_details = next(x for x in response['results'] if x['type'] == 'STAMP')
+        debit_details = next(x for x in response['results'] if x['type'] == 'DEBIT')
+
+        points = stamp_details['balance']['points']
 
         return {
-            'points': points,
+            'points': Decimal(points),
             'value': Decimal('0'),
             'value_label': '{}/7 coffees'.format(points),
-            'balance': extract_decimal(self.browser.select('p.current_balance_amount strong span')[0].text),
+            'balance': Decimal(debit_details['balance']['available']) / 100,
         }
 
     @staticmethod
     def parse_transaction(row):
-        data = row.select('td')
-
-        """
-        Calling most_common sorts the Counter's contents, ensuring the order of items in the description of a single
-        transaction never changes.
-        """
-        item_counts = Counter(data[2].contents[0::2]).most_common()
-
         return {
-            'date': arrow.get('{} {}'.format(data[0].text, data[1].text), 'DD/MM/YYYY h:mma'),
-            'description': ', '.join('{} x{}'.format(item, qty) for (item, qty) in item_counts),
-            'points': Decimal('0'),
+            'date': arrow.get(row['date'], 'YYYY-MM-DD hh:mm:ss'),
+            'description': 'PURCHASE',
+            'points': Decimal('1'),
+            'value': Decimal(row['value']) / 100,
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.greggs.co.uk/my-account/purchase-history#content_start')
+        self.open_url('https://api.greggs.co.uk/1.0/wallet/receipts')
+        receipts = self.browser.response.json()
 
-        data = self.browser.select('#page_account_purchase_history > table > tbody > tr')
+        # returns transactions that do not represent in-store purchases. we may need this in the future.
+        # self.open_url('https://api.greggs.co.uk/1.0/wallet/transactions')
+        # transactions = self.browser.response.json()
 
-        if data[0].select('td')[0].text == 'You have no purchase history for this month':
-            return []
+        data = [{
+                'date': x['transactionDate'],
+                'value': x['total'],
+                } for x in receipts['results']]
 
         return data

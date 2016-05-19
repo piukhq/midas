@@ -18,9 +18,13 @@ class Ihg(Miner):
         error_box = self.browser.select('#loginError > div.alert-content')
         if error_box:
             message = error_box[0].text.strip()
-            if (message.startswith('We cannot find the email address') or
-                message.startswith('The IHG® Rewards Club Member Number or PIN provided cannot be found.') or
-                    message.startswith('Your PIN must be 4-digits in length.')):
+            failures = [
+                'We cannot find the email address',
+                'The IHG® Rewards Club Member Number, email address or PIN provided',
+                'Your PIN must be 4-digits in length.'
+            ]
+
+            if any(message.startswith(x) for x in failures):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
         self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
