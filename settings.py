@@ -46,3 +46,5 @@ INFLUX_PORT = env_var('INFLUX_PORT', '8086')
 INFLUX_USER = env_var('INFLUX_USER', 'root')
 INFLUX_PASSWORD = env_var('INFLUX_PASSWORD', 'root')
 INFLUX_DATABASE = env_var('INFLUX_DATABSE', 'test_results')
+
+MAX_VALUE_LABEL_LENGTH = 11

@@ -32,3 +32,14 @@ class TestRetry(unittest.TestCase):
 
     def test_transactions_none(self):
         self.assertIsNone(transactions(None, 5, 2, '123-12'))
+
+    @patch('app.publish.post', autospec=True)
+    def test_balance_long_value_label(self, mock_post):
+        b = {
+            'points': Decimal('0'),
+            'value': Decimal('0'),
+            'value_label': 'this is far too long...'
+        }
+        item = balance(b, 5, 8, '123-12')
+
+        self.assertEqual(item['value_label'], 'Reward')

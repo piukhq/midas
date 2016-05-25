@@ -2,7 +2,7 @@ from app.encoding import JsonEncoder
 import json
 
 from app.utils import minify_number
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger, MAX_VALUE_LABEL_LENGTH
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
 import socket
@@ -40,6 +40,10 @@ def balance(balance_item, scheme_account_id, user_id, tid):
     balance_item['scheme_account_id'] = scheme_account_id
     balance_item['user_id'] = user_id
     balance_item['points_label'] = minify_number(balance_item['points'])
+
+    if len(balance_item['value_label']) > MAX_VALUE_LABEL_LENGTH:
+        balance_item['value_label'] = 'Reward'
+
     post("{}/balance".format(HADES_URL), balance_item, tid)
     return balance_item
 
