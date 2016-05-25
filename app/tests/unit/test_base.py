@@ -101,6 +101,7 @@ class TestBase(TestCase):
     def test_agent_login_missing_credentials(self, mock_open_url):
         m = Avios(1, 2)
         m.browser = mock.MagicMock()
+        m.browser.find.return_value = '0'
 
         with self.assertRaises(Exception) as e:
             m.attempt_login(credentials={})
