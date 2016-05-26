@@ -12,6 +12,11 @@ CREDENTIALS = {
         'email': 'chris.smith4@gmx.co.uk',
         'password': 'Loyalty1',
     },
+    "avios_api": {
+        'card_number': '3081471018143650',
+        'date_of_birth': '1985-03-11',
+        'last_name': 'AEAKPN',
+    },
     "british-airways": {
         'username': "49932498",
         'password': 'Loyalty1'
