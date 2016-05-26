@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 from decimal import Decimal
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED
+import arrow
 
 
 class Avios(Miner):
@@ -10,7 +11,7 @@ class Avios(Miner):
     def login(self, credentials):
         url = 'https://api.avios.com/test/v1/programmes/ATRP/accounts/{0}'.format(credentials['card_number'])
         query = {
-            'date-of-birth': credentials['date_of_birth'],
+            'date-of-birth': arrow.get(credentials['date_of_birth'], 'DD/MM/YYYY').format('YYYY-MM-DD'),
             'family-name': credentials['last_name'],
             'api_key': 'gra5b3qbkc4zphy8jxarrq43',
         }
@@ -25,6 +26,8 @@ class Avios(Miner):
             if error_code == 'ACCOUNT_NOT_FOUND':
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif error_code == 'CUSTOMER_DETAILS_INVALID':
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif error_code == 'REQUEST_INVALID':
                 raise LoginError(STATUS_LOGIN_FAILED)
             else:
                 raise LoginError(UNKNOWN)
