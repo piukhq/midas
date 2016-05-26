@@ -28,7 +28,7 @@ class TestAviosFail(unittest.TestCase):
     def test_login_bad_card_number(self):
         credentials = {
             'card_number': '0000000000000000',
-            'date_of_birth': '1985-03-11',
+            'date_of_birth': '11/03/1985',
             'last_name': 'AEAKPN',
         }
 
@@ -41,7 +41,7 @@ class TestAviosFail(unittest.TestCase):
     def test_login_bad_date_of_birth(self):
         credentials = {
             'card_number': '3081471018143650',
-            'date_of_birth': '1984-09-26',
+            'date_of_birth': '24/09/1984',
             'last_name': 'AEAKPN',
         }
 
@@ -54,7 +54,7 @@ class TestAviosFail(unittest.TestCase):
     def test_login_bad_last_name(self):
         credentials = {
             'card_number': '3081471018143650',
-            'date_of_birth': '1985-03-11',
+            'date_of_birth': '11/03/1985',
             'last_name': 'badbadbad',
         }
 

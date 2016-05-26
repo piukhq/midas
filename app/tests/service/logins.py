@@ -14,7 +14,7 @@ CREDENTIALS = {
     },
     "avios_api": {
         'card_number': '3081471018143650',
-        'date_of_birth': '1985-03-11',
+        'date_of_birth': '11/03/1985',
         'last_name': 'AEAKPN',
     },
     "british-airways": {
