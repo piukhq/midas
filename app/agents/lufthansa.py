@@ -36,6 +36,10 @@ class Lufthansa(Miner):
         elif self.browser.url.startswith('https://www.miles-and-more.com/online/portal/mam/uk/homepage'):
             raise LoginError(STATUS_ACCOUNT_LOCKED)
 
+        mtce_form = self.browser.select('#mam-pre-hp-form')
+        if mtce_form:
+            raise LoginError(CONFIRMATION_REQUIRED)
+
     def balance(self):
         miles_elements = self.browser.select('div.account-status dl.dl-horizontal dd')
         award_miles = extract_decimal(miles_elements[0].text)
