@@ -18,7 +18,7 @@ class Enterprise(Miner):
 
         self.account_data = json.loads(self.browser.response.text)
 
-        if len(self.account_data['messages']):
+        if self.account_data['messages'] and len(self.account_data['messages']):
             message = self.account_data['messages'][0]['message']
             if message.startswith('We') or message.startswith('Please'):
                 raise LoginError(STATUS_LOGIN_FAILED)
