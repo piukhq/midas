@@ -14,7 +14,7 @@ class TestTesco(unittest.TestCase):
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(self.b.browser.url).path, '/Clubcard/MyAccount/Home.aspx')
+        self.assertEqual(urlsplit(self.b.browser.url).path, '/Clubcard/MyAccount/Alpha443/home/Home')
 
     def test_login_with_card_number(self):
         b = Tesco(1, 1)
@@ -25,7 +25,7 @@ class TestTesco(unittest.TestCase):
         }
         b.attempt_login(credentials)
         self.assertEqual(b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(b.browser.url).path, '/Clubcard/MyAccount/Home.aspx')
+        self.assertEqual(urlsplit(b.browser.url).path, '/Clubcard/MyAccount/Alpha443/home/Home')
 
     def test_transactions(self):
         transactions = self.b.transactions()
