@@ -18,6 +18,7 @@ IP_BLOCKED = "IP_BLOCKED"
 TRIPPED_CAPTCHA = "TRIPPED_CAPTCHA"
 PASSWORD_EXPIRED = "PASSWORD_EXPIRED"
 WRONG_CREDENTIAL_TYPE = "WRONG_CREDENTIAL_TYPE"
+CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 
 
 errors = {
@@ -57,6 +58,11 @@ errors = {
                        "message": "We could not update your account because the end site requires that you reset your "
                                   "password. Please visit the site and resolve this issue before trying again.",
                        "name": "Password expired"},
+    CONFIRMATION_REQUIRED: {"code": 534,
+                            "message": "The end-site requires that you confirm some information before we can "
+                                       "continue. Please log into your account on the end-site and follow through any "
+                                       "confirmation steps shown, then try again.",
+                            "name": "Confirmation required"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"}

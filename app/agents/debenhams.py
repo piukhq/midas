@@ -38,7 +38,8 @@ class Debenhams(Miner):
         self.check_error('/chopinweb/scareMyLogin.do',
                          ((selector, STATUS_LOGIN_FAILED, 'Please correct the following errors'), ))
 
-        self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
+        statement_link = self.browser.select('#menu-statement')[0]
+        self.browser.follow_link(statement_link.parent)
 
     def balance(self):
         points = extract_decimal(self.browser.select("td#clearedBalance span.balanceValue")[1].text)
