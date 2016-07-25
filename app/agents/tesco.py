@@ -55,7 +55,13 @@ class Tesco(Miner):
     def balance(self):
         points = extract_decimal(self.browser.select("#pointsTotal")[0].contents[0].strip())
         value = self.calculate_point_value(points)
-        balance = extract_decimal(self.browser.select("#vouchersTotal")[0].contents[0].strip())
+
+        balance_field = self.browser.select("#vouchersTotal")
+
+        if len(balance_field) > 0:
+            balance = extract_decimal(balance_field[0].contents[0].strip())
+        else:
+            balance = Decimal('0')
 
         return {
             "points": points,
