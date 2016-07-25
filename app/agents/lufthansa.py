@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED, CONFIRMATION_REQUIRED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -17,7 +17,7 @@ class Lufthansa(Miner):
         self.open_url('https://www.miles-and-more.com/online/myportal/mam/uk/account/account_statement')
 
         # Both the form's ID and its field names are partially scrambled.
-        login_form = self.browser.get_forms()[4]
+        login_form = self.browser.get_forms()[5]
         self.scan_and_fill_field(login_form, 'userId', credentials['card_number'])
         self.scan_and_fill_field(login_form, 'password', credentials['pin'])
         self.browser.submit_form(login_form)
@@ -35,6 +35,10 @@ class Lufthansa(Miner):
                     raise LoginError(STATUS_LOGIN_FAILED)
         elif self.browser.url.startswith('https://www.miles-and-more.com/online/portal/mam/uk/homepage'):
             raise LoginError(STATUS_ACCOUNT_LOCKED)
+
+        mtce_form = self.browser.select('#mam-pre-hp-form')
+        if mtce_form:
+            raise LoginError(CONFIRMATION_REQUIRED)
 
     def balance(self):
         miles_elements = self.browser.select('div.account-status dl.dl-horizontal dd')
