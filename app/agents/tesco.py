@@ -1,8 +1,9 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO
+from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
+import json
 import re
 
 # TODO: add STATUS_ACCOUNT_LOCKED
@@ -23,6 +24,12 @@ class Tesco(Miner):
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)
+
+        result_json_element = self.browser.select('#initial-data')
+        if result_json_element:
+            result_json = json.loads(result_json_element[0].contents[0])
+            if 'accountLocked' in result_json and result_json['accountLocked']:
+                raise LoginError(STATUS_ACCOUNT_LOCKED)
 
         selector = 'p.ui-component__notice__error-text'
         url = '/account/en-GB/login'
