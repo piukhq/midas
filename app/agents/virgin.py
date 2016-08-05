@@ -19,7 +19,7 @@ class Virgin(Miner):
                          'netloc')
 
     def balance(self):
-        points = extract_decimal(self.browser.select('#mainContent div.boxOutsideIndent.boxCopy')[1].contents[0])
+        points = extract_decimal(self.browser.select('#mainContent > div > strong')[2].contents[0])
         return {
             'points': points,
             'value': Decimal('0'),
