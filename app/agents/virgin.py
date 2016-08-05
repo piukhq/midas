@@ -31,7 +31,7 @@ class Virgin(Miner):
         return {
             'date': arrow.get(row.contents[1].text.strip(), 'DD MMM YYYY'),
             'description': row.contents[3].text.strip(),
-            'points': extract_decimal(row.contents[7].text.strip()),
+            'points': extract_decimal(row.contents[5].text.strip()),
         }
 
     def scrape_transactions(self):
