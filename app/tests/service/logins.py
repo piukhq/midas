@@ -180,8 +180,8 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "virgin": {
-        "username": "gormleyc",
-        "password": "MUHansb6",
+        "username": "greg6908",
+        "password": "BusTer69",
     },
     "ihg": {
         "username": "la@loyaltyangels.com",
