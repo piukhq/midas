@@ -87,5 +87,6 @@ class Tesco(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Points/PointsDetail.aspx")
-        return self.browser.select("table.tbl tr")[1:-1]
+        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/PointsDetail?period=current")
+        return self.browser.select(
+            '#page-body > div > div > div.l-column.padded-left > div > div > form > table > tbody > tr')
