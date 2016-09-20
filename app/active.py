@@ -69,4 +69,5 @@ AGENTS = {
     'love-your-body': 'the_body_shop.TheBodyShop',
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
+    'pure-hmv': 'hmv.HMV',
 }
