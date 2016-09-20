@@ -9,7 +9,7 @@ class TestHMV(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = HMV(1, 1)
-        cls.b.attempt_login(CREDENTIALS["avios"])
+        cls.b.attempt_login(CREDENTIALS["pureHMV"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

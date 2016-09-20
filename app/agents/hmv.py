@@ -1,10 +1,10 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal
+
+
 import arrow
-import json
-import re
 
 
 class HMV(Miner):
@@ -21,15 +21,17 @@ class HMV(Miner):
         self.browser.submit_form(signup_form, submit=signup_form['Root$Main$ctl00$btnLogin'])
 
         if self.browser.url != 'https://purehmv.com/gb/Pages/Home.html':
-             raise LoginError(STATUS_LOGIN_FAILED)
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
 
         points = extract_decimal(self.browser.find('div', {'class': 'rightside balance'}).text)
 
         return {
-            "points": points,
-        }
+            'points': points,
+            'value': Decimal('0'),
+            'value_label': ''
+            }
 
     # assumption here is that row is one element of the list that is returned by scrape_transactions
     @staticmethod

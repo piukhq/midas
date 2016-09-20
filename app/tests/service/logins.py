@@ -281,6 +281,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "pin": "9876",
     },
+    "pureHMV": {
+        "email": "chris.gormley2@me.com",
+        "password": "UOHansbrics7",
+    },
 }
 
 
