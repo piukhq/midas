@@ -17,7 +17,7 @@ class Tesco(Miner):
 
     def login(self, credentials):
         self.open_url("https://secure.tesco.com/account/en-GB/login"
-                      "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fhome")
+                      "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fHome")
 
         signup_form = self.browser.get_form(id='sign-in-form')
         signup_form['username'].value = credentials['email']
@@ -40,7 +40,8 @@ class Tesco(Miner):
         return '634004' + barcode[4:]
 
     def balance(self):
-        points = extract_decimal(self.browser.select("#pointsTotal")[0].contents[0].strip())
+
+        points = extract_decimal(self.browser.select("#pointsTotal")[0].text.strip())
         value = self.calculate_point_value(points)
 
         balance_field = self.browser.select("#vouchersTotal")
