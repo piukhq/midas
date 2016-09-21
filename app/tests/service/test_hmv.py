@@ -16,7 +16,7 @@ class TestHMV(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.b.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
@@ -25,7 +25,7 @@ class TestHMV(unittest.TestCase):
         self.assertEqual('', balance['value_label'])
 
 
-class TestAviosFail(unittest.TestCase):
+class TestHMVFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
         b = HMV(1, 1)
