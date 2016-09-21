@@ -25,7 +25,7 @@ class TestTesco(unittest.TestCase):
         }
         b.attempt_login(credentials)
         self.assertEqual(b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(b.browser.url).path, '/Clubcard/MyAccount/Alpha443/Home/Home')
+        self.assertEqual(urlsplit(b.browser.url).path, '/Clubcard/MyAccount/Alpha443/home/Home')
 
     def test_transactions(self):
         transactions = self.b.transactions()
@@ -55,6 +55,16 @@ class TestTescoFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
+
+    def test_login_mfa_fail(self):
+        b = Tesco(1, 1)
+        credentials = CREDENTIALS["tesco-clubcard"]
+        credentials['barcode'] = '979999999999999'
+
+        with self.assertRaises(LoginError) as e:
+            b.attempt_login(credentials)
+        self.assertEqual(e.exception.name, "Invalid mfa")
+
 
 if __name__ == '__main__':
     unittest.main()
