@@ -35,9 +35,6 @@ class Tesco(Miner):
         url = '/account/en-GB/login'
         self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
 
-        digit_form = self.browser.get_form()
-        print(digit_form)
-
     @staticmethod
     def get_card_number(barcode):
         return '634004' + barcode[4:]
