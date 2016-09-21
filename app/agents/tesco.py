@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -34,26 +34,6 @@ class Tesco(Miner):
         selector = 'p.ui-component__notice__error-text'
         url = '/account/en-GB/login'
         self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
-
-        if 'barcode' in credentials:
-            card_number = self.get_card_number(credentials['barcode'])
-        else:
-            card_number = credentials['card_number']
-
-        digit_form = self.browser.get_form()
-
-        fields = self.browser.select('form.form.cf > fieldset > div.security')
-        for field in fields:
-            label_text = field.select('label')[0].text.strip()
-            digit_index = int(self.mfa_digit_regex.match(label_text).group(1))
-
-            input_name = field.select('input')[1].attrs['name']
-            digit_form[input_name].value = card_number[digit_index - 1]
-
-        self.browser.submit_form(digit_form)
-
-        self.check_error("/Clubcard/MyAccount/Alpha443/Account/SecurityHome",
-                         (("#errMsgHead", INVALID_MFA_INFO, "The details you have entered do not"), ))
 
     @staticmethod
     def get_card_number(barcode):
