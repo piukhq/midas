@@ -45,7 +45,7 @@ class HMV(Miner):
 
     def scrape_transactions(self):
         self.open_url("https://purehmv.com/gb/Pages/Member/Profile/Balance.html")
-        if self.browser.find('table', {'id': 'Main_ctl01_gridList'}).select('tr')[0].text.strip() == \
-                "There is no transaction to display.":
+        rows = self.browser.find('table', {'id': 'Main_ctl01_gridList'}).select('tr')
+        if rows[0].text.strip() == "There is no transaction to display.":
             return []
-        return self.browser.find('table', {'id': 'Main_ctl01_gridList'}).select('tr')
+        return rows
