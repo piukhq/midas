@@ -7,8 +7,7 @@ import arrow
 
 class Ihg(Miner):
     def login(self, credentials):
-        self.open_url('http://www.ihg.com/rewardsclub/gb/en/sign-in/?'
-                      'fwdest=https://www.ihg.com/rewardsclub/gb/en/account/home')
+        self.open_url('https://www.ihg.com/rewardsclub/gb/en/account/home')
 
         login_form = self.browser.get_form('walletLoginForm')
         login_form['emailOrPcrNumber'] = credentials['username']
@@ -20,14 +19,15 @@ class Ihg(Miner):
             message = error_box[0].text.strip()
             failures = [
                 'We cannot find the email address',
-                'The IHG® Rewards Club Member Number, email address or PIN provided',
-                'Your PIN must be 4-digits in length.'
+                'The IHG Rewards Club member number, email address or pin provided',
+                'Your PIN must be 4-digits in length.',
             ]
 
             if any(message.startswith(x) for x in failures):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
-        self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
+        if not error_box:
+            self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
 
     def balance(self):
         point_text = self.browser.select('#reflectionBg > div > div.value.large.withCommas')[0].text.strip()
