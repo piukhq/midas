@@ -9,14 +9,15 @@ class Avios(Miner):
     loyalty_data = {}
 
     def login(self, credentials):
-        url = 'https://api.avios.com/test/v1/programmes/ATRP/accounts/{0}'.format(credentials['card_number'])
+        url = 'https://api.avios.com/v1/programmes/ATRP/accounts/{0}'.format(credentials['card_number'])
         query = {
             'date-of-birth': arrow.get(credentials['date_of_birth'], 'DD/MM/YYYY').format('YYYY-MM-DD'),
             'family-name': credentials['last_name'],
-            'api_key': 'gra5b3qbkc4zphy8jxarrq43',
+            'api_key': 'snkd3k4pvr5agqeeprs7ytqp',
         }
 
         self.headers['Accept'] = 'application/json'
+        self.headers['X-Forward-For'] = '172.128.25.24'
 
         self.browser.open('{0}?{1}'.format(url, urlencode(query)))
         resp = self.browser.response.json()

@@ -13,9 +13,9 @@ CREDENTIALS = {
         'password': 'Loyalty1',
     },
     "avios_api": {
-        'card_number': '3081471018143650',
-        'date_of_birth': '11/03/1985',
-        'last_name': 'AEAKPN',
+        'card_number': '3081471022657083',
+        'date_of_birth': '01/01/1974',
+        'last_name': 'GORMLEY',
     },
     "british-airways": {
         'username': "49932498",
