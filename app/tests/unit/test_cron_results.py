@@ -35,8 +35,8 @@ class TestCronResults(unittest.TestCase):
 >(<http://dev.midas.loyaltyangels.local/resolve_issue/test0|resolve>) test1 - test2
 >(<http://dev.midas.loyaltyangels.local/resolve_issue/test2.5|resolve>) test3 - test4
 
-*Warnings*
->_There are currently no notable agent warnings._
+*The Unscrapables*
+>_There are currently no notable unscrappable agents._
 
 *End site down:* harrods, thai airways
 http://dev.apollo.loyaltyangels.local/#/exceptions/'''
