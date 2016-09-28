@@ -3,7 +3,7 @@
 # These could be strings, if we end up with too many imports
 # Commented entries are agents whose tests are currently not passing.
 AGENTS = {
-    'avios': 'avios.Avios',
+    'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'executive-club': 'british_airways.BritishAirways',
     'the-co-operative-membership': 'cooperative.Cooperative',
