@@ -48,3 +48,10 @@ class Avios(Miner):
 
     def scrape_transactions(self):
         return None
+
+    @staticmethod
+    def update_questions(questions):
+        # TODO: use the given credentials to obtain the refresh token.
+        return {
+            'api_key': 'test-api-key'
+        }
