@@ -34,33 +34,41 @@ error_cause_regexes = [
 
 def generate_failures_and_warnings(bad_agents):
     failures = []
-    warnings = []
+    captcha = []
 
-    warning_flags = [
-        'locked',
+    captcha_flags = [
         'captcha',
         'ip blocked',
+    ]
+
+    # makes sure end site down errors are not considered again
+    ignored_flags = [
         'end site down',
-        'invalid credentials',
-        'requests.exceptions.connecttimeout',
     ]
 
     for agent in bad_agents:
         resolve_url = 'http://dev.midas.loyaltyangels.local/resolve_issue/{}'.format(agent['classname'])
-        for warning_flag in warning_flags:
-            if warning_flag in agent['cause'].lower():
-                warnings.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
+        for captcha_flag in captcha_flags:
+            if captcha_flag in agent['cause'].lower():
+                captcha.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
                 break
-        else:
-            failures.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
+            else:
+                failures.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
+                break
+        # takes out all the errors that should be ignored
+        for ignored_flag in ignored_flags:
+            if ignored_flag in agent['cause'].lower():
+                if '(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url) in failures:
+                    failures.remove('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
+                    break
 
     if len(failures) == 0:
         failures.append('_There are currently no notable agent failures._')
 
-    if len(warnings) == 0:
-        warnings.append('_There are currently no notable agent warnings._')
+    if len(captcha) == 0:
+        captcha.append('_There are currently no notable unscrappable agents._')
 
-    return failures, warnings
+    return failures, captcha
 
 
 def get_key_from_classname(classname):
@@ -80,13 +88,13 @@ def generate_message(test_results, bad_agents):
                 continue
             error_count += 1
 
-    failures, warnings = generate_failures_and_warnings(bad_agents)
+    failures, captcha = generate_failures_and_warnings(bad_agents)
 
     return ('*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n'
-            '*Errors*\n{1}\n\n*Warnings*\n{2}\n\n*End site down:* {3}\n{5}').format(
+            '*Errors*\n{1}\n\n*The Unscrapables*\n{2}\n\n*End site down:* {3}\n{5}').format(
         error_count,
         '\n'.join('>{}'.format(f) for f in failures),
-        '\n'.join('>{}'.format(w) for w in warnings),
+        '\n'.join('>{}'.format(w) for w in captcha),
         ', '.join(end_site_down) or None,
         test_suite['@time'],
         '{0}/#/exceptions/'.format(APOLLO_URL),
