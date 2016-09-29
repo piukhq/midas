@@ -37,7 +37,6 @@ class Tesco(Miner):
         selector = 'p.ui-component__notice__error-text'
         url = '/account/en-GB/login'
         self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
-        print(self.browser.url)
 
     def balance(self):
         points = extract_decimal(self.browser.select("#pointsTotal")[0].text.strip())
