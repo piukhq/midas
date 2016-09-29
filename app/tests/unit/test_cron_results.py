@@ -36,7 +36,7 @@ class TestCronResults(unittest.TestCase):
 >(<http://dev.midas.loyaltyangels.local/resolve_issue/test2.5|resolve>) test3 - test4
 
 *The Unscrapables*
->_There are currently no notable unscrappable agents._
+>_There are currently no notable unscrapable agents._
 
 *End site down:* harrods, thai airways
 http://dev.apollo.loyaltyangels.local/#/exceptions/'''
