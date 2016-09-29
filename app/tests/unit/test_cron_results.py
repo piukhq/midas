@@ -38,7 +38,7 @@ class TestCronResults(unittest.TestCase):
 *The Unscrapables*
 >_There are currently no notable unscrapable agents._
 
-*End site down:* harrods, thai airways
+*End site down:* thai airways, harrods
 http://dev.apollo.loyaltyangels.local/#/exceptions/'''
 
         self.assertEqual(expected_message, message)
