@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
@@ -16,6 +17,8 @@ class Tesco(Miner):
     mfa_digit_regex = re.compile('Please enter (\d+).*? digit')
 
     def login(self, credentials):
+
+        self.card_number = credentials["card_number"]
         self.open_url("https://secure.tesco.com/account/en-GB/login"
                       "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fHome")
 
@@ -34,13 +37,9 @@ class Tesco(Miner):
         selector = 'p.ui-component__notice__error-text'
         url = '/account/en-GB/login'
         self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
-
-    @staticmethod
-    def get_card_number(barcode):
-        return '634004' + barcode[4:]
+        print(self.browser.url)
 
     def balance(self):
-
         points = extract_decimal(self.browser.select("#pointsTotal")[0].text.strip())
         value = self.calculate_point_value(points)
 
@@ -69,5 +68,25 @@ class Tesco(Miner):
 
     def scrape_transactions(self):
         self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/PointsDetail?period=current")
+
+        # check if there's a security layer
+        if self.browser.url.startswith("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Account/SecurityHome"):
+            security_form = self.browser.get_form(class_="form cf")
+
+            labels = self.browser.select("label")
+            indexes = []
+
+            for label in labels:
+                indexes.append(re.search(r'\d+', label.text).group(0))
+
+            security_form['txtfirstSecureDigit'].value = self.card_number[int(indexes[0])-1]
+            security_form['txtsecondSecureDigit'].value = self.card_number[int(indexes[1])-1]
+            security_form['txtthirdSecureDigit'].value = self.card_number[int(indexes[2])-1]
+
+            self.browser.submit_form(security_form)
+
+        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/"
+                      "Points/PointsDetail?offerid=6&period=current")
+
         return self.browser.select(
             '#page-body > div > div > div.l-column.padded-left > div > div > form > table > tbody > tr')
