@@ -9,7 +9,6 @@ import arrow
 
 class Morrisons(Miner):
     card_number = None
-    point_conversion_rate = Decimal('0')
 
     def login(self, credentials):
         # this url is built from the values found in https://www.morrisons.com/matchandmore/js/apigeeService.js
@@ -36,8 +35,8 @@ class Morrisons(Miner):
 
         return {
             'points': points,
-            'value': value,
-            'value_label': '£{}'.format(value),
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     @staticmethod
