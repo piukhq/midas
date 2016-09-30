@@ -95,7 +95,7 @@ def generate_message(test_results, bad_agents):
         error_count,
         '\n'.join('>{}'.format(f) for f in failures),
         '\n'.join('>{}'.format(w) for w in captcha),
-        ', '.join(set(end_site_down)) or None,
+        ', '.join(list(set(end_site_down)).sort(reverse=True)) or None,
         test_suite['@time'],
         '{0}/#/exceptions/'.format(APOLLO_URL),
         test_suite['@tests']
