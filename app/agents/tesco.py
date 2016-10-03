@@ -22,21 +22,22 @@ class Tesco(Miner):
         self.open_url("https://secure.tesco.com/account/en-GB/login"
                       "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fHome")
 
-        signup_form = self.browser.get_form(id='sign-in-form')
-        signup_form['username'].value = credentials['email']
-        signup_form['password'].value = credentials['password']
+        if not self.browser.url.lower() == "https://secure.tesco.com/clubcard/myaccount/alpha443/home/home".lower():
+            signup_form = self.browser.get_form(id='sign-in-form')
+            signup_form['username'].value = credentials['email']
+            signup_form['password'].value = credentials['password']
 
-        self.browser.submit_form(signup_form)
+            self.browser.submit_form(signup_form)
 
-        result_json_element = self.browser.select('#initial-data')
-        if result_json_element:
-            result_json = json.loads(result_json_element[0].contents[0])
-            if 'accountLocked' in result_json and result_json['accountLocked']:
-                raise LoginError(STATUS_ACCOUNT_LOCKED)
+            result_json_element = self.browser.select('#initial-data')
+            if result_json_element:
+                result_json = json.loads(result_json_element[0].contents[0])
+                if 'accountLocked' in result_json and result_json['accountLocked']:
+                    raise LoginError(STATUS_ACCOUNT_LOCKED)
 
-        selector = 'p.ui-component__notice__error-text'
-        url = '/account/en-GB/login'
-        self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
+            selector = 'p.ui-component__notice__error-text'
+            url = '/account/en-GB/login'
+            self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
 
     def balance(self):
         points = extract_decimal(self.browser.select("#pointsTotal")[0].text.strip())
