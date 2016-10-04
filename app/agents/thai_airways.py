@@ -7,7 +7,7 @@ import arrow
 
 class ThaiAirways(Miner):
     def login(self, credentials):
-        url = 'http://www.thaiair.com/AIP_ROP/Logon'
+        url = 'https://www.thaiairways.com/en_TH/rop/index.page'
         data = {
             'LanguagePreference': 'EN',
             'submit': '',

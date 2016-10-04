@@ -10,7 +10,7 @@ class GourmetBurgerKitchen(Miner):
             'X-Requested-With': 'XMLHttpRequest',
         }
 
-        self.open_url('http://www.gbk.co.uk/a/bootstrap', method='post', data={
+        self.open_url('https://order.gbk.co.uk/login', method='post', data={
             'deviceToken': '9e7c56ef47aed4f7296f43a1ac005d0e',
             'platform': 'web',
             'platformVersion':

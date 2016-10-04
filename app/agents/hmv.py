@@ -48,4 +48,4 @@ class HMV(Miner):
         rows = self.browser.find('table', {'id': 'Main_ctl01_gridList'}).select('tr')
         if rows[0].text.strip() == "There is no transaction to display.":
             return []
-        return rows
+        return rows[1:]

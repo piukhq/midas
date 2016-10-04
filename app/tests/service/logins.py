@@ -6,7 +6,7 @@ CREDENTIALS = {
     "tesco-clubcard": {
         'email': 'julie.gormley100@gmail.com',
         'password': 'NSHansbrics5',
-        'barcode': '9794024051328070'
+        'card_number': '634004024051328070'
     },
     "avios": {
         'email': 'chris.smith4@gmx.co.uk',

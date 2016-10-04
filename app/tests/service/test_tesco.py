@@ -37,18 +37,11 @@ class TestTesco(unittest.TestCase):
         schemas.balance(balance)
 
 
-class TestTescoUtil(unittest.TestCase):
-    def test_get_card_number(self):
-        t = Tesco(1, 1)
-        card_number = t.get_card_number('9794024051328070')
-        self.assertEqual('634004024051328070', card_number)
-
-
 class TestTescoFail(unittest.TestCase):
     def test_login_fail(self):
         b = Tesco(1, 1)
         credentials = {
-            'barcode': '979999999999999',
+            'card_number': '979999999999999',
             'email': 'magnanimiter@crucem.sustine',
             'password': 'noblesseoblige',
         }
