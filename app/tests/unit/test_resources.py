@@ -200,16 +200,3 @@ class TestResources(TestCase):
         self.assertIn('password', resp.json)
         self.assertEqual(resp.json['username'], 'test-username')
         self.assertEqual(resp.json['password'], 'test-password')
-
-    def test_tier1_agent_questions(self):
-        resp = self.client.post('/agent_questions', data={
-            'scheme_slug': 'avios',
-            'username': 'test-username',
-            'password': 'test-password',
-        })
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn('api_key', resp.json)
-        self.assertEqual(resp.json['api_key'], 'test-api-key')
-        self.assertNotIn('username', resp.json)
-        self.assertNotIn('password', resp.json)
