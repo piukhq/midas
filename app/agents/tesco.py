@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
