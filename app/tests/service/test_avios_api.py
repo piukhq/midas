@@ -6,6 +6,7 @@ from app.agents import schemas
 
 
 class TestAviosAPI(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.b = Avios(1, 1)
@@ -21,6 +22,7 @@ class TestAviosAPI(unittest.TestCase):
 
 
 class TestAviosFail(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.a = Avios(1, 1)
