@@ -6,6 +6,9 @@ from environment import env_var, read_env
 
 read_env()
 
+DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
+DEV_PORT = env_var('DEV_PORT', '8000')
+
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
 
