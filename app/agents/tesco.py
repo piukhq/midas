@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -16,30 +16,52 @@ class Tesco(Miner):
     mfa_digit_regex = re.compile('Please enter (\d+).*? digit')
 
     def login(self, credentials):
-
-        self.card_number = credentials["card_number"]
         self.open_url("https://secure.tesco.com/account/en-GB/login"
-                      "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fHome")
+                      "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fhome")
 
-        if not self.browser.url.lower() == "https://secure.tesco.com/clubcard/myaccount/alpha443/home/home".lower():
-            signup_form = self.browser.get_form(id='sign-in-form')
-            signup_form['username'].value = credentials['email']
-            signup_form['password'].value = credentials['password']
+        signup_form = self.browser.get_form(id='sign-in-form')
+        signup_form['username'].value = credentials['email']
+        signup_form['password'].value = credentials['password']
 
-            self.browser.submit_form(signup_form)
+        self.browser.submit_form(signup_form)
 
-            result_json_element = self.browser.select('#initial-data')
-            if result_json_element:
-                result_json = json.loads(result_json_element[0].contents[0])
-                if 'accountLocked' in result_json and result_json['accountLocked']:
-                    raise LoginError(STATUS_ACCOUNT_LOCKED)
+        result_json_element = self.browser.select('#initial-data')
+        if result_json_element:
+            result_json = json.loads(result_json_element[0].contents[0])
+            if 'accountLocked' in result_json and result_json['accountLocked']:
+                raise LoginError(STATUS_ACCOUNT_LOCKED)
 
-            selector = 'p.ui-component__notice__error-text'
-            url = '/account/en-GB/login'
-            self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
+        selector = 'p.ui-component__notice__error-text'
+        url = '/account/en-GB/login'
+        self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
+
+        if 'barcode' in credentials:
+            self.card_number = self.get_card_number(credentials['barcode'])
+        else:
+            self.card_number = credentials['card_number']
+
+    def do_mfa_login(self):
+        digit_form = self.browser.get_form()
+
+        fields = self.browser.select('form.form.cf > fieldset > div.security')
+        for field in fields:
+            label_text = field.select('label')[0].text.strip()
+            digit_index = int(self.mfa_digit_regex.match(label_text).group(1))
+
+            input_name = field.select('input')[1].attrs['name']
+            digit_form[input_name].value = self.card_number[digit_index - 1]
+
+        self.browser.submit_form(digit_form)
+
+        self.check_error("/Clubcard/MyAccount/Alpha443/Account/SecurityHome",
+                         (("#errMsgHead", INVALID_MFA_INFO, "The details you have entered do not"), ))
+
+    @staticmethod
+    def get_card_number(barcode):
+        return '634004' + barcode[4:]
 
     def balance(self):
-        points = extract_decimal(self.browser.select("#pointsTotal")[0].text.strip())
+        points = extract_decimal(self.browser.select("#pointsTotal")[0].contents[0].strip())
         value = self.calculate_point_value(points)
 
         balance_field = self.browser.select("#vouchersTotal")
@@ -67,25 +89,5 @@ class Tesco(Miner):
 
     def scrape_transactions(self):
         self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/PointsDetail?period=current")
-
-        # check if there's a security layer
-        if self.browser.url.startswith("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Account/SecurityHome"):
-            security_form = self.browser.get_form(class_="form cf")
-
-            labels = self.browser.select("label")
-            indexes = []
-
-            for label in labels:
-                indexes.append(re.search(r'\d+', label.text).group(0))
-
-            security_form['txtfirstSecureDigit'].value = self.card_number[int(indexes[0])-1]
-            security_form['txtsecondSecureDigit'].value = self.card_number[int(indexes[1])-1]
-            security_form['txtthirdSecureDigit'].value = self.card_number[int(indexes[2])-1]
-
-            self.browser.submit_form(security_form)
-
-        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/"
-                      "Points/PointsDetail?offerid=6&period=current")
-
         return self.browser.select(
             '#page-body > div > div > div.l-column.padded-left > div > div > form > table > tbody > tr')
