@@ -47,7 +47,12 @@ class Avios(Miner):
 
     def balance(self):
         if self.faking_login:
-            return None
+            # we return a fake balance of 0, this will update when we fix the regex and chronos pulls the real balance
+            return {
+                'points': Decimal('0'),
+                'value': Decimal('0'),
+                'value_label': '',
+            }
 
         return {
             'points': Decimal(self.loyalty_data['loyaltyProgramAccount']['balance']['amount']),
