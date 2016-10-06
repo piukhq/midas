@@ -6,12 +6,13 @@ import arrow
 
 
 class Carlson(Miner):
+
     def login(self, credentials):
         url = 'https://www.clubcarlson.com/secure/login.do'
         data = {
             'accountEmail': '',
             'linkToken': '',
-            'successURL': '/home.do',
+            'successURL': 'https://www.clubcarlson.com/myaccount/secure/?login=true',
             'rightSide': '',
             'userId': credentials['username'],
             'password': credentials['password'],
@@ -20,7 +21,7 @@ class Carlson(Miner):
         self.open_url(url, method='post', data=data)
 
         self.check_error('/secure/login.do',
-                         (('div.globalerrors', STATUS_LOGIN_FAILED, 'Your sign in was unsuccessful.'), ))
+                         (('div.globalerrors', STATUS_LOGIN_FAILED, 'Your email or password'), ))
 
     def balance(self):
         points = extract_decimal(self.browser.select('span.goldpointsBalance')[0].text)
