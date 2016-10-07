@@ -51,13 +51,6 @@ class Miner(object):
                                               "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
 
-        # prevents responses from failing because of limited set of accepted content types
-        self.headers['Accept'] = '*/*'
-
-    # setter method for headers
-    def set_headers(self, headers):
-            self.headers = headers
-
     def attempt_login(self, credentials):
         if self.retry_count >= self.retry_limit:
             raise RetryLimitError(RETRY_LIMIT_REACHED)
