@@ -89,5 +89,12 @@ class Tesco(Miner):
 
     def scrape_transactions(self):
         self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/PointsDetail?period=current")
+
+        # check if there's a security layer
+        if self.browser.url.startswith("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Account/SecurityHome"):
+            self.do_mfa_login()
+
+        self.open_url("https://secure.tesco.com/Clubcard/MyAccount/Alpha443/"
+                      "Points/PointsDetail?offerid=6&period=current")
         return self.browser.select(
             '#page-body > div > div > div.l-column.padded-left > div > div > form > table > tbody > tr')
