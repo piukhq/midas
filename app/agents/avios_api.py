@@ -34,6 +34,12 @@ class Avios(Miner):
 
         if self.browser.response.status_code >= 500:
             error_code = resp['error']['code']
+
+            # temporarily here for testing purposes
+            sentry.captureMessage('Avios API login failed! Status code: {} :: Error code: {}'.format(
+                self.browser.response.status_code,
+                error_code))
+
             if error_code == 'ACCOUNT_NOT_FOUND':
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif error_code == 'CUSTOMER_DETAILS_INVALID':
