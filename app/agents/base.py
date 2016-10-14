@@ -30,15 +30,15 @@ class SSLAdapter(HTTPAdapter):
 
 class Miner(object):
 
+    retry_limit = 2
+    point_conversion_rate = Decimal('0')
+
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
 
-        self.retry_limit = 2
         self.headers = {}
         self.use_tls_v1 = False
         self.proxy = False
-
-        self.point_conversion_rate = Decimal('0')
 
         session = Session()
 
