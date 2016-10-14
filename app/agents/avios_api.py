@@ -3,7 +3,7 @@ from decimal import Decimal
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED
 from app import sentry
-import arrow
+# import arrow
 
 
 class Avios(Miner):
@@ -21,7 +21,8 @@ class Avios(Miner):
 
         url = 'https://api.avios.com/v1/programmes/ATRP/accounts/{0}'.format(credentials['card_number'])
         query = {
-            'date-of-birth': arrow.get(credentials['date_of_birth'], 'DD/MM/YYYY').format('YYYY-MM-DD'),
+            # 'date-of-birth': arrow.get(credentials['date_of_birth'], 'DD/MM/YYYY').format('YYYY-MM-DD'),
+            'date-of-birth': '1900-01-01',
             'family-name': credentials['last_name'],
             'api_key': 'snkd3k4pvr5agqeeprs7ytqp',
         }
