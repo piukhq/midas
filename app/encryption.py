@@ -14,7 +14,7 @@ class AESCipher(object):
             raise TypeError('Cannot encrypt nothing')
         raw = self._pad(raw)
         iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        cipher = AES.new(self.key, AES.MODE_CFB, iv)
         return base64.b64encode(iv + cipher.encrypt(raw))
 
     def decrypt(self, enc):
@@ -22,7 +22,7 @@ class AESCipher(object):
             raise TypeError('Cannot decrypt nothing')
         enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        cipher = AES.new(self.key, AES.MODE_CFB, iv)
         return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
 
     def _pad(self, s):
