@@ -1,9 +1,8 @@
 from urllib.parse import urlencode
 from decimal import Decimal
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN
 from app import sentry
-# import arrow
 
 
 class Avios(Miner):
@@ -31,7 +30,12 @@ class Avios(Miner):
         self.headers['X-Forward-For'] = '172.128.25.24'
 
         self.browser.open('{0}?{1}'.format(url, urlencode(query)))
-        resp = self.browser.response.json()
+
+        try:
+            resp = self.browser.response.json()
+        except Exception as e:
+            sentry.captureException(e)
+            raise LoginError(END_SITE_DOWN)
 
         if self.browser.response.status_code >= 500:
             error_code = resp['error']['code']
