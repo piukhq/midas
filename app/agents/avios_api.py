@@ -37,7 +37,7 @@ class Avios(Miner):
             sentry.captureException(e)
             raise LoginError(END_SITE_DOWN)
 
-        if self.browser.response.status_code >= 500:
+        if self.browser.response.status_code is not 200:
             error_code = resp['error']['code']
 
             # temporarily here for testing purposes

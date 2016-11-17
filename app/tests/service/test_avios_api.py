@@ -42,7 +42,7 @@ class TestAviosFakeLogin(unittest.TestCase):
         self.assertTrue(self.a.faking_login)
 
         # confirm that no actual scraping is done now that we're faking logins
-        self.assertIsNone(self.a.balance())
+        self.assertEqual(self.a.balance().get('points'), 0)
 
 
 class TestAviosFail(unittest.TestCase):
@@ -51,7 +51,8 @@ class TestAviosFail(unittest.TestCase):
     def setUpClass(cls):
         cls.a = Avios(1, 1)
 
-    def test_login_bad_card_number(self):
+    @mock.patch('app.agents.avios_api.sentry')
+    def test_login_bad_card_number(self, mock_sentry):
         credentials = {
             'card_number': '0000000000000000',
             'date_of_birth': '11/03/1985',
