@@ -19,7 +19,7 @@ AGENTS = {
     'colonels-club': 'kfc.Kfc',
     'maximiles': 'maximiles.Maximiles',
     'match-more': 'morrisons.Morrisons',
-    'nectar': 'nectar.Nectar',
+    # 'nectar': 'nectar.Nectar',  # c&d from nectar means we need to not scrape their site
     'my-opc': 'odeon.Odeon',
     'quidco': 'quidco.Quidco',
     'shell-drivers-club': 'shell.Shell',
