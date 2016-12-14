@@ -13,7 +13,7 @@ class Virgin(Miner):
     def login(self, credentials):
         data = credentials
         self.browser.open('https://www.virginatlantic.com/custlogin/login.action', method='post', data=data)
-        self.browser.open('https://www.virginatlantic.com', method='get')
+        self.open_url('https://www.virginatlantic.com')
 
         pretty_html = self.browser.parsed.prettify()
         result = self.login_result_pattern.findall(pretty_html)[0]
@@ -21,8 +21,6 @@ class Virgin(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        self.browser.open('https://www.virginatlantic.com', method='get')
-
         pretty_html = self.browser.parsed.prettify()
 
         points = self.point_value_pattern.findall(pretty_html)[0]
