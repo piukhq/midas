@@ -59,6 +59,7 @@ class Morrisons(Miner):
         }
 
     def scrape_transactions(self):
-        self.browser.open('https://api.morrisons.com/card/v1/cards/{}/transactions?pageLength=50&pageNumber=1&includeLinkedCards=true'.format(self.card_number),
-                      method='get', headers=self.headers)
+        self.browser.open('https://api.morrisons.com/card/v1/cards/{}/transactions?pageLength=50&pageNumber=1'
+                          '&includeLinkedCards=true'.format(self.card_number),
+                          method='get', headers=self.headers)
         return self.browser.response.json()['transactions']
