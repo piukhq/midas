@@ -91,7 +91,10 @@ class Miner(object):
                 raise AgentError(IP_BLOCKED) from e
             raise AgentError(END_SITE_DOWN) from e
 
-        # Look for CAPTCHA on the page.
+        self.find_captcha()
+
+    def find_captcha(self):
+        """Look for CAPTCHA on the page"""
         known_captcha_signatures = [
             'captcha',
             'Incapsula',
