@@ -36,12 +36,8 @@ class Morrisons(Miner):
         self.card_number = self.browser.response.json()['cardNumber']
 
     def balance(self):
-
-        url = 'https://api.morrisons.com/card/v1/cards/{}/balance'.format(self.card_number)
-        self.browser.open(url, method='get', headers=self.headers)
-
-        pretty_html = self.browser.parsed.prettify()
-        points = Decimal(self.current_points_pattern.findall(pretty_html)[0])
+        self.open_url('https://api.morrisons.com/card/v1/cards/{0}/balance'.format(self.card_number))
+        points = Decimal(self.browser.response.json()['currentPoints'])
 
         return {
             'points': points,
@@ -59,7 +55,6 @@ class Morrisons(Miner):
         }
 
     def scrape_transactions(self):
-        self.browser.open('https://api.morrisons.com/card/v1/cards/{}/transactions?pageLength=50&pageNumber=1'
-                          '&includeLinkedCards=true'.format(self.card_number),
-                          method='get', headers=self.headers)
+        self.open_url('https://api.morrisons.com/card/v1/cards/{0}/transactions?'
+                      'pageLength=50&pageNumber=1&includeLinkedCards=true'.format(self.card_number))
         return self.browser.response.json()['transactions']
