@@ -100,7 +100,6 @@ class Miner(object):
             'Incapsula',
         ]
         frame_urls = (frame['src'] for frame in self.browser.select('iframe') if 'src' in frame)
-        #frame_urls = (frame['src'] for frame in self.browser.select('iframe'))
         for url in frame_urls:
             for sig in known_captcha_signatures:
                 if sig in url:
