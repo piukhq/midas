@@ -39,6 +39,7 @@ CREDENTIALS = {
     },
     "nectar": {
         'barcode': '29930842203013',
+        'card_number': '9826300030842203013',
         'password': 'QMHansbrics6',
     },
     "bad": {
@@ -46,9 +47,10 @@ CREDENTIALS = {
         'password': '234234',
     },
     "cooperative": {
-        'barcode': '633174911212875989',
-        'postcode': 'BH23 1HT',
-        'place_of_birth': "cheltenham",
+            'email': 'chris.gormley2@me.com',
+            'password': 'OBHansbrics4',
+            'barcode': '633174911212875989',
+            'place_of_birth': "Cheltenham",
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
