@@ -73,15 +73,15 @@ class Cooperative(Miner):
     @staticmethod
     def parse_transaction(row):
         # Commented for now since web page has changed and no transactions are available for us to test.
-        #items = row.find_all("td")
-        #return {
+        # items = row.find_all("td")
+        # return {
         #    "date": arrow.get(items[2].contents[0].strip(), 'DD MMMM YYYY'),
         #    "description": items[0].contents[0].strip(),
         #    "location": items[1].contents[0].strip(),
         #    "points": extract_decimal(items[3].contents[0].strip()),
-        #}
+        # }
         return None
 
     def scrape_transactions(self):
         self.open_url("https://www.membership.coop/transactions")
-        return None #self.browser.select("#gridViewMemberTransactions tr")[1:]
+        return None # self.browser.select("#gridViewMemberTransactions tr")[1:]
