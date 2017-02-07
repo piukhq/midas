@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestTabletable(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.t = Tabletable(1, 1)
@@ -25,11 +26,13 @@ class TestTabletable(unittest.TestCase):
 
 
 class TestTabletableFail(unittest.TestCase):
+
     def test_login_fail(self):
         t = Tabletable(1, 1)
         with self.assertRaises(LoginError) as e:
             t.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

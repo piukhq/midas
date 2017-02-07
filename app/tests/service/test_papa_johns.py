@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestPapaJohns(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.b = PapaJohns(1, 1)
@@ -25,11 +26,13 @@ class TestPapaJohns(unittest.TestCase):
 
 
 class TestPapaJohnsFail(unittest.TestCase):
+
     def test_login_fail(self):
         b = PapaJohns(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

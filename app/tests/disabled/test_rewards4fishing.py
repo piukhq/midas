@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestRewards4Fishing(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.r = Rewards4Fishing(1, 1)
@@ -25,11 +26,13 @@ class TestRewards4Fishing(unittest.TestCase):
 
 
 class TestRewards4FishingFail(unittest.TestCase):
+
     def test_login_fail(self):
         r = Rewards4Fishing(1, 1)
         with self.assertRaises(LoginError) as e:
             r.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

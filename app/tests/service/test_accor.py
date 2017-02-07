@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestAccor(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Accor(1, 1)
@@ -26,6 +27,7 @@ class TestAccor(unittest.TestCase):
 
 
 class TestAccorFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Accor(1, 1)
         credentials = {
@@ -35,6 +37,7 @@ class TestAccorFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

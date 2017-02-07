@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestStarbucks(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.s = Starbucks(1, 1)
@@ -19,6 +20,7 @@ class TestStarbucks(unittest.TestCase):
 
 
 class TestStarbucksFail(unittest.TestCase):
+
     def test_login_fail(self):
         s = Starbucks(1, 1)
         credentials = {
@@ -28,6 +30,7 @@ class TestStarbucksFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             s.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()
