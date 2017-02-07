@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestPriorityGuestRewards(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = PriorityGuestRewards(1, 1)
@@ -25,6 +26,7 @@ class TestPriorityGuestRewards(unittest.TestCase):
 
 
 class TestPriorityGuestRewardsFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = PriorityGuestRewards(1, 1)
         credentials = {
@@ -34,6 +36,7 @@ class TestPriorityGuestRewardsFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

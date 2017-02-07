@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestMyMail(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = MyMail(1, 1)
@@ -26,11 +27,13 @@ class TestMyMail(unittest.TestCase):
 
 
 class TestMyMailFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = MyMail(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

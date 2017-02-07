@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestStarwood(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Starwood(1, 1)
@@ -26,6 +27,7 @@ class TestStarwood(unittest.TestCase):
 
 
 class TestStarwoodFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Starwood(1, 1)
         credentials = {
@@ -43,6 +45,7 @@ class TestStarwoodFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid mfa')
+
 
 if __name__ == '__main__':
     unittest.main()

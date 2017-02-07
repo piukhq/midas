@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestBeefeater(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.b = Beefeater(1, 1)
@@ -26,11 +27,13 @@ class TestBeefeater(unittest.TestCase):
 
 
 class TestBeefeaterFail(unittest.TestCase):
+
     def test_login_fail(self):
         b = Beefeater(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

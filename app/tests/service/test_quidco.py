@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestQuidco(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.q = Quidco(1, 1)
@@ -25,6 +26,7 @@ class TestQuidco(unittest.TestCase):
 
 
 class TestQuidcoFail(unittest.TestCase):
+
     def test_login_fail(self):
         q = Quidco(1, 1)
         credentials = {
@@ -34,6 +36,7 @@ class TestQuidcoFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             q.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()
