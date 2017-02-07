@@ -9,13 +9,19 @@ class Debenhams(Miner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
-        self.open_url('https://www.debenhams.com/webapp/wcs/stores/servlet/BeautyClubDashboard?langId=-1&storeId=10701&catalogId=10001&headerLink=true&showLoginOnly=true')
+        self.open_url('https://www.debenhams.com'
+                      '/webapp/wcs/stores/servlet/BeautyClubDashboard'
+                      '?langId=-1&storeId=10701&catalogId=10001&headerLink=true&showLoginOnly=true')
 
         url = 'https://www.debenhams.com/webapp/wcs/stores/servlet/Logon'
         data = {
             'isUserSupplied': 'Y',
-            'reLogonURL': 'https://www.debenhams.com/webapp/wcs/stores/servlet/BeautyClubDashboard?catalogId=10001&showLoginOnly=true&langId=-1&storeId=10701',
-            'URL': 'OrderItemMove?page=account&URL=OrderCalculate%3FURL%3DBeautyClubSetupCustomer&calculationUsageId=-1&calculationUsageId=-2&calculationUsageId=-7&bcLogin=true',
+            'reLogonURL': ('https://www.debenhams.com'
+                           '/webapp/wcs/stores/servlet/BeautyClubDashboard'
+                           '?catalogId=10001&showLoginOnly=true&langId=-1&storeId=10701'),
+            'URL': ('OrderItemMove'
+                    '?page=account&URL=OrderCalculate%3FURL%3DBeautyClubSetupCustomer'
+                    '&calculationUsageId=-1&calculationUsageId=-2&calculationUsageId=-7&bcLogin=true'),
             'logonId': credentials['email'],
             'logonPassword': credentials['password'],
         }
@@ -51,7 +57,8 @@ class Debenhams(Miner):
     def scrape_transactions(self):
         # we need some transactions in the test account before we can see the format of 'transactionHistory'.
         #
-        # self.open_url('https://www.debenhams.com/wcs/resources/store/10701/person/@self/BCReg/card/history/wallet/points')
+        # self.open_url('https://www.debenhams.com'
+        #               '/wcs/resources/store/10701/person/@self/BCReg/card/history/wallet/points')
         # json = self.browser.response.json()
         # transactions = json['transactionHistory']
         return None
