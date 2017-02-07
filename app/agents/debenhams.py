@@ -1,72 +1,57 @@
-from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
-import arrow
 from decimal import Decimal
+
+from app.agents.base import Miner
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
+from app.utils import extract_decimal
 
 
 class Debenhams(Miner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
-        url = ('https://portal.prepaytec.com/chopinweb/scareMyLogin.do?customerCode=452519111525&loc=en'
-               '&brandingCode=myscare_uk')
-        self.open_url(url)
+        self.open_url('https://www.debenhams.com/webapp/wcs/stores/servlet/BeautyClubDashboard?langId=-1&storeId=10701&catalogId=10001&headerLink=true&showLoginOnly=true')
 
-        login_form = self.browser.get_form('login')
-        login_form['username'].value = credentials['username']
-        login_form['password'].value = credentials['password']
+        url = 'https://www.debenhams.com/webapp/wcs/stores/servlet/Logon'
+        data = {
+            'isUserSupplied': 'Y',
+            'reLogonURL': 'https://www.debenhams.com/webapp/wcs/stores/servlet/BeautyClubDashboard?catalogId=10001&showLoginOnly=true&langId=-1&storeId=10701',
+            'URL': 'OrderItemMove?page=account&URL=OrderCalculate%3FURL%3DBeautyClubSetupCustomer&calculationUsageId=-1&calculationUsageId=-2&calculationUsageId=-7&bcLogin=true',
+            'logonId': credentials['email'],
+            'logonPassword': credentials['password'],
+        }
+        self.open_url(url, method='post', data=data)
 
-        self.browser.submit_form(login_form)
+        # can't use check_error because the url path is the same regardless of login failure or success.
+        error = self.browser.select('.title')
+        if error and error[0].get_text().strip().startswith("We can't find an account"):
+            raise LoginError(STATUS_LOGIN_FAILED)
 
-        # Obtain the memorable date form.
-        date_form = self.browser.get_form('login')
-
-        # The first 12 cells are just for formatting.
-        date_table = self.browser.select("table.memorable tr td")[12:]
-        correct = credentials['memorable_date']
-
-        for index, cell in enumerate(date_table):
-            # Cells with an input field contain three elements, others just one.
-            if len(cell.contents) == 3:
-                input_field = cell.contents[1]
-                date_form[input_field.attrs['name']] = correct[index]
-
-        self.browser.submit_form(date_form)
-
-        selector = '#login > p.error'
-        self.check_error('/chopinweb/scareMyLogin.do',
-                         ((selector, STATUS_LOGIN_FAILED, 'Please correct the following errors'), ))
-
-        statement_link = self.browser.select('#menu-statement')[0]
-        self.browser.follow_link(statement_link.parent)
+        error = self.browser.select('.error-message')
+        if error and error[0].get_text().strip().startswith('Password incorrect'):
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        points = extract_decimal(self.browser.select("td#clearedBalance span.balanceValue")[1].text)
+        self.open_url('https://www.debenhams.com/wcs/resources/store/10701/person/@self/BCReg/card')
+        json = self.browser.response.json()
+
+        points = Decimal(json['pointsBalance'])
         value = self.calculate_point_value(points)
 
         return {
             'points': points,
             'value': value,
             'value_label': '£{}'.format(value),
+            'balance': extract_decimal(json['availableToSpend']),
         }
 
     @staticmethod
     def parse_transaction(row):
-        return {
-            'date': arrow.get(row.select('td')[0].text.strip(), 'DD/MM/YY'),
-            'description': ' '.join(row.select('td')[2].text.split()[1:]),
-            'points': Decimal(row.select('td')[3].text.strip()),
-        }
+        return None
 
     def scrape_transactions(self):
-        transactions = self.browser.select('table.txnHistory > tr')[2::2]
-
-        # switch to the 'Points' tab
-        search_form = self.browser.get_form('searchForm')
-        search_form['selectedTab'].value = 'WALLET1'
-        self.browser.submit_form(search_form)
-
-        transactions += self.browser.select('table.txnHistory > tr')[2::2]
-
-        return sorted(transactions, key=lambda t: arrow.get(t.select('td')[0].text.strip(), 'DD/MM/YY'))
+        # we need some transactions in the test account before we can see the format of 'transactionHistory'.
+        #
+        # self.open_url('https://www.debenhams.com/wcs/resources/store/10701/person/@self/BCReg/card/history/wallet/points')
+        # json = self.browser.response.json()
+        # transactions = json['transactionHistory']
+        return None

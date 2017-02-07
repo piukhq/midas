@@ -69,6 +69,7 @@ CREDENTIALS = {
         "password": "RRHansbrics9",
     },
     "debenhams": {
+        "email": "chris.gormley2@me.com",
         "username": "gormleyj1",
         "password": "RCHansbrics9",
         "memorable_date": "28/08/2004",
