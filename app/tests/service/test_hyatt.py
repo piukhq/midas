@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestHyatt(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Hyatt(1, 1)
@@ -20,6 +21,7 @@ class TestHyatt(unittest.TestCase):
 
 
 class TestHyattFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Hyatt(1, 1)
         credentials = {
@@ -29,6 +31,7 @@ class TestHyattFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

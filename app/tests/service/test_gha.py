@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestGha(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Gha(1, 1)
@@ -26,6 +27,7 @@ class TestGha(unittest.TestCase):
 
 
 class TestGhaFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Gha(1, 1)
         credentials = {
@@ -35,6 +37,7 @@ class TestGhaFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestJetBlue(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.j = JetBlue(1, 1)
@@ -25,11 +26,13 @@ class TestJetBlue(unittest.TestCase):
 
 
 class TestJetBlueFail(unittest.TestCase):
+
     def test_login_fail(self):
         j = JetBlue(1, 1)
         with self.assertRaises(LoginError) as e:
             j.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

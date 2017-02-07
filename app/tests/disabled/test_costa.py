@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestCosta(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.b = Costa(1, 1)
@@ -25,11 +26,13 @@ class TestCosta(unittest.TestCase):
 
 
 class TestCostaFail(unittest.TestCase):
+
     def test_login_fail(self):
         b = Costa(1, 1)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "Invalid credentials")
+
 
 if __name__ == '__main__':
     unittest.main()

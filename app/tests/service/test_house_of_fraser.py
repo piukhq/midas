@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestHouseOfFraser(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = HouseOfFraser(1, 1)
@@ -20,11 +21,13 @@ class TestHouseOfFraser(unittest.TestCase):
 
 
 class TestHouseOfFraserFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = HouseOfFraser(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

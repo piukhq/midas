@@ -193,6 +193,7 @@ def resolve_issue(classname):
     Slacker(SLACK_API_KEY).chat.post_message('#errors-agents',
                                              '_The issue with {} has been marked as resolved._'.format(key))
 
+
 if __name__ == '__main__':
     py_test = join(os.path.dirname(sys.executable), 'py.test')
     result = subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])

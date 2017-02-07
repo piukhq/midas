@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestMaximiles(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Maximiles(1, 1)
@@ -26,11 +27,13 @@ class TestMaximiles(unittest.TestCase):
 
 
 class TestMaximilesFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Maximiles(1, 1)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

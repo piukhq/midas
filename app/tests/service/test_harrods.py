@@ -6,6 +6,7 @@ from app.agents import schemas
 
 
 class TestHarrods(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.h = Harrods(1, 1)
@@ -26,11 +27,13 @@ class TestHarrods(unittest.TestCase):
 
 
 class TestHarrodsFail(unittest.TestCase):
+
     def test_bad_login(self):
         h = Harrods(1, 1)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

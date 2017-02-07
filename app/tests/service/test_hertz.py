@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestHertz(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.h = Hertz(1, 1)
@@ -26,6 +27,7 @@ class TestHertz(unittest.TestCase):
 
 
 class TestHertzFail(unittest.TestCase):
+
     def test_login_fail(self):
         h = Hertz(1, 1)
         credentials = {
@@ -35,6 +37,7 @@ class TestHertzFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             h.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

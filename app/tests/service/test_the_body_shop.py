@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestTheBodyShop(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = TheBodyShop(1, 1)
@@ -25,6 +26,7 @@ class TestTheBodyShop(unittest.TestCase):
 
 
 class TestTheBodyShopFail(unittest.TestCase):
+
     def test_login_bad_email(self):
         m = TheBodyShop(1, 1)
         credentials = {
@@ -44,6 +46,7 @@ class TestTheBodyShopFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestNandos(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.n = Nandos(1, 1)
@@ -26,11 +27,13 @@ class TestNandos(unittest.TestCase):
 
 
 class TestNandosFail(unittest.TestCase):
+
     def test_login_fail(self):
         n = Nandos(1, 1)
         with self.assertRaises(LoginError) as e:
             n.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

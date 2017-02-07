@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestOdeon(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.o = Odeon(1, 1)
@@ -25,11 +26,13 @@ class TestOdeon(unittest.TestCase):
 
 
 class TestOdeonFail(unittest.TestCase):
+
     def test_login_fail(self):
         o = Odeon(1, 1)
         with self.assertRaises(LoginError) as e:
             o.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

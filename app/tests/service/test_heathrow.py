@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestHeathrow(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.h = Heathrow(1, 1)
@@ -26,11 +27,13 @@ class TestHeathrow(unittest.TestCase):
 
 
 class TestHeathrowFail(unittest.TestCase):
+
     def test_login_fail(self):
         h = Heathrow(1, 1)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()
