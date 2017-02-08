@@ -1,5 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED, END_SITE_DOWN
+from app.agents.exceptions import (STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED,
+                                   END_SITE_DOWN)
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
