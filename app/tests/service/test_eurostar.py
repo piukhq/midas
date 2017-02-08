@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestEurostar(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.e = Eurostar(1, 1)
@@ -21,6 +22,7 @@ class TestEurostar(unittest.TestCase):
 
 
 class TestEurostarFail(unittest.TestCase):
+
     def test_login_fail(self):
         eu = Eurostar(1, 1)
         with self.assertRaises(LoginError) as e:
@@ -36,6 +38,7 @@ class TestEurostarFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             eu.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

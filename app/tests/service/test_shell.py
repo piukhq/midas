@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestShell(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.b = Shell(1, 1)
@@ -25,6 +26,7 @@ class TestShell(unittest.TestCase):
 
 
 class TestShellFail(unittest.TestCase):
+
     def test_login_fail(self):
         b = Shell(1, 1)
         credentials = {
@@ -34,6 +36,7 @@ class TestShellFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
+
 
 if __name__ == '__main__':
     unittest.main()

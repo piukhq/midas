@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestQantas(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Qantas(1, 1)
@@ -25,6 +26,7 @@ class TestQantas(unittest.TestCase):
 
 
 class TestQantasFail(unittest.TestCase):
+
     def test_login_fail(self):
         m = Qantas(1, 1)
         credentials = {
@@ -35,6 +37,7 @@ class TestQantasFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

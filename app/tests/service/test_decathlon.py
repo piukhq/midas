@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestDecathlon(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.d = Decathlon(1, 1)
@@ -26,11 +27,13 @@ class TestDecathlon(unittest.TestCase):
 
 
 class TestDecathlonFail(unittest.TestCase):
+
     def test_login_fail(self):
         d = Decathlon(1, 1)
         with self.assertRaises(LoginError) as e:
             d.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

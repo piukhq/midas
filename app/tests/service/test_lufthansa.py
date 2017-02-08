@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestLufthansa(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = Lufthansa(1, 1)
@@ -25,6 +26,7 @@ class TestLufthansa(unittest.TestCase):
 
 
 class TestLufthansaFail(unittest.TestCase):
+
     def test_login_bad_pin(self):
         m = Lufthansa(1, 1)
         credentials = {
@@ -44,6 +46,7 @@ class TestLufthansaFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -51,5 +51,6 @@ class TestTescoFail(unittest.TestCase):
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
+
 if __name__ == '__main__':
     unittest.main()

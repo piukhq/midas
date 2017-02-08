@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestEsprit(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.e = Esprit(1, 1)
@@ -26,6 +27,7 @@ class TestEsprit(unittest.TestCase):
 
 
 class TestEspritFail(unittest.TestCase):
+
     def test_login_fail(self):
         es = Esprit(1, 1)
         credentials = {
@@ -35,6 +37,7 @@ class TestEspritFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             es.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

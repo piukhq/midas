@@ -58,6 +58,7 @@ def validate_parameters(method):
 
 
 class Balance(Resource):
+
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
@@ -106,6 +107,7 @@ def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
 
 
 class Transactions(Resource):
+
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
@@ -178,6 +180,7 @@ class TestResults(Resource):
         response.headers['Content-Type'] = "text/xml"
         return response
 
+
 api.add_resource(TestResults, '/test_results', endpoint="api.test_results")
 
 
@@ -185,6 +188,7 @@ class ResolveAgentIssue(Resource):
     """
     Called by clicking a 'resolve' link in slack.
     """
+
     def get(self, classname):
         try:
             resolve_issue(classname)
@@ -192,10 +196,12 @@ class ResolveAgentIssue(Resource):
             pass
         return 'The specified issue has been resolved.'
 
+
 api.add_resource(ResolveAgentIssue, '/resolve_issue/<string:classname>', endpoint='api.resolve_issue')
 
 
 class AgentQuestions(Resource):
+
     def post(self):
         scheme_slug = request.form['scheme_slug']
 
@@ -206,6 +212,7 @@ class AgentQuestions(Resource):
 
         agent = get_agent_class(scheme_slug)(1, 1)
         return agent.update_questions(questions)
+
 
 api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questions')
 
