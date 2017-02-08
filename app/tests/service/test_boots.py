@@ -1,6 +1,5 @@
 import unittest
 from app.agents.boots import Boots
-from urllib.parse import urlsplit
 from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS

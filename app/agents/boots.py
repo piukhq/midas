@@ -10,7 +10,8 @@ class Boots(Miner):
     login_result_pattern = re.compile(r'hello')
     login_locked_result_pattern = re.compile(r'Account locked')
     points_result_pattern = re.compile(r'You have <span class="bold_span">([0-9]+)</span> points')
-    value_result_pattern =  re.compile(r'worth <span class="bold_span">£([0-9]+\.[0-9]+)</span>')
+    value_result_pattern = re.compile(r'worth <span class="bold_span">£([0-9]+\.[0-9]+)</span>')
+
     def login(self, credentials):
         self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352')
 
@@ -23,7 +24,7 @@ class Boots(Miner):
         result = self.login_result_pattern.findall(pretty_html)
         if len(result) > 0:
             if result[0] == 'hello':
-                pass # Login success
+                pass  # Login success
             else:
                 raise LoginError(STATUS_LOGIN_FAILED)
         else:
