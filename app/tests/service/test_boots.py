@@ -14,17 +14,16 @@ class TestBoots(unittest.TestCase):
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
-        self.assertEqual(urlsplit(self.b.browser.url).path, '/webapp/wcs/stores/servlet/ADCAccountSummary')
-
-    def test_transactions(self):
-        transactions = self.b.transactions()
-        self.assertTrue(transactions)
-        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
         self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+
+    def test_transactions(self):
+        transactions = self.b.transactions()
+        self.assertTrue(transactions)
+        schemas.transactions(transactions)
 
 
 class TestBootsFail(unittest.TestCase):
