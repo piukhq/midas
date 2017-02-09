@@ -23,7 +23,7 @@ class Boots(Miner):
         sel = 'a[href*="logonError"]'
         self.check_error('/webapp/wcs/stores/servlet/Logon', (
                          (sel, STATUS_LOGIN_FAILED,
-                         'The email address and/or password you entered has not been recognised.'), ))
+                          'The email address and/or password you entered has not been recognised.'), ))
 
     def balance(self):
         elements = self.browser.select("p#advantageCardDetails")
