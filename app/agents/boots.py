@@ -1,8 +1,7 @@
 import arrow
-import re
 
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED, LoginError
+from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
