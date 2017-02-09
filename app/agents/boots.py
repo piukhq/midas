@@ -15,15 +15,10 @@ class Boots(Miner):
 
         self.browser.submit_form(login_form)
 
-        sel = 'p.overlay_head'
         self.check_error('/webapp/wcs/stores/servlet/Logon', (
-                         (sel, STATUS_ACCOUNT_LOCKED,
-                          'Account locked'), ))
-
-        sel = 'a[href*="logonError"]'
-        self.check_error('/webapp/wcs/stores/servlet/Logon', (
-                         (sel, STATUS_LOGIN_FAILED,
-                          'The email address and/or password you entered has not been recognised.'), ))
+            ('p.overlay_head', STATUS_ACCOUNT_LOCKED, 'Account locked'),
+            ('a[href*="logonError"]', STATUS_LOGIN_FAILED,
+             'The email address and/or password you entered has not been recognised.')))
 
     def balance(self):
         elements = self.browser.select("p#advantageCardDetails")
