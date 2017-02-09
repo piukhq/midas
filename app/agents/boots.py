@@ -7,7 +7,8 @@ from app.utils import extract_decimal
 
 class Boots(Miner):
     def login(self, credentials):
-        self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352', read_timeout=15)
+        self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352',
+                      read_timeout=15)
 
         login_form = self.browser.get_form('Logon')
         login_form['logonId'].value = credentials['email']
