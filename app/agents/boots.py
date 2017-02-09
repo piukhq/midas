@@ -7,11 +7,6 @@ from app.utils import extract_decimal
 
 
 class Boots(Miner):
-    login_result_pattern = re.compile(r'hello')
-    login_locked_result_pattern = re.compile(r'Account locked')
-    points_result_pattern = re.compile(r'You have <span class="bold_span">([0-9]+)</span> points')
-    value_result_pattern = re.compile(r'worth <span class="bold_span">£([0-9]+\.[0-9]+)</span>')
-
     def login(self, credentials):
         self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352')
 
@@ -20,27 +15,22 @@ class Boots(Miner):
         login_form['logonPassword'].value = credentials['password']
 
         self.browser.submit_form(login_form)
-        pretty_html = self.browser.parsed.prettify()
-        result = self.login_result_pattern.findall(pretty_html)
-        if len(result) > 0:
-            if result[0] == 'hello':
-                pass  # Login success
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
-        else:
-            result = self.login_locked_result_pattern.findall(pretty_html)
-            if len(result) > 0:
-                if result[0] == 'Account locked':
-                    raise LoginError(STATUS_ACCOUNT_LOCKED)
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
+
+        sel = 'p.overlay_head'
+        self.check_error('/webapp/wcs/stores/servlet/Logon', (
+                         (sel, STATUS_ACCOUNT_LOCKED,
+                          'Account locked'), ))
+
+        sel = 'a[href*="logonError"]'
+        self.check_error('/webapp/wcs/stores/servlet/Logon', (
+                         (sel, STATUS_LOGIN_FAILED,
+                         'The email address and/or password you entered has not been recognised.'), ))
 
     def balance(self):
         elements = self.browser.select("p#advantageCardDetails")
-        points = self.points_result_pattern.findall(str(elements[0]))
-        true_points = extract_decimal(points[0])
-        value = self.value_result_pattern.findall(str(elements[0]))
-        true_value = extract_decimal(value[0])
+        spans = elements[0].select("span")
+        true_points = extract_decimal(spans[0].text)
+        true_value = extract_decimal(spans[1].text)
 
         return {
             'points': true_points,
