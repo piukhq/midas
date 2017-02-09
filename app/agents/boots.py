@@ -1,42 +1,41 @@
+import arrow
+
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-import arrow
 
 
 class Boots(Miner):
     def login(self, credentials):
-        query = 'https://www.boots.com/webapp/wcs/stores/servlet/LoginRequestDispatcher'
-        data = {
-            'storeId': '10052',
-            'reLogonURL': 'LogonForm',
-            'URL': ('/webapp/wcs/stores/servlet/ADCAccountSummary?catalogId=10552&langId=-1&storeId=10052'
-                    '&krypto=KaymTKtLMpduxnlSzanOzfyb0aQbcMtqR8beC08WV1OdWxhhD3AETPwwqqGZ6TlP26fQ2DYU0OCSl'
-                    'KDlRUUsufo4WJiFvxRcZjI8sg7APBilxu8YivmvRDC3s1z6GXiL'),
-            'logonId': credentials['email'],
-            'logonPassword': credentials['password'],
-        }
+        self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352')
 
-        self.open_url(query, method='post', data=data)
+        login_form = self.browser.get_form('Logon')
+        login_form['logonId'].value = credentials['email']
+        login_form['logonPassword'].value = credentials['password']
 
-        selector = "#formErrorContainer > div > div > ul > li > a"
-        self.check_error("/webapp/wcs/stores/servlet/LoginRequestDispatcher",
-                         ((selector, STATUS_LOGIN_FAILED, "The email address and password you entered has not been"),
-                          (selector, STATUS_ACCOUNT_LOCKED, "You have exceeded the maximum number of attempts"), ))
+        self.browser.submit_form(login_form)
+
+        self.check_error('/webapp/wcs/stores/servlet/Logon', (
+            ('p.overlay_head', STATUS_ACCOUNT_LOCKED, 'Account locked'),
+            ('a[href*="logonError"]', STATUS_LOGIN_FAILED,
+             'The email address and/or password you entered has not been recognised.')))
 
     def balance(self):
-        elements = self.browser.select(".pointsValue")
-        value = extract_decimal(elements[1].contents[0])
+        elements = self.browser.select("p#advantageCardDetails")
+        spans = elements[0].select("span")
+        true_points = extract_decimal(spans[0].text)
+        true_value = extract_decimal(spans[1].text)
 
         return {
-            'points': extract_decimal(elements[0].contents[0]),
-            'value': value,
-            'value_label': '£{}'.format(value)
+            'points': true_points,
+            'value': true_value,
+            'value_label': '£{}'.format(true_value)
         }
 
     @staticmethod
     def parse_transaction(row):
         items = row.find_all("td")
+
         return {
             "date": arrow.get(items[0].contents[0], 'DD/MM/YYYY'),
             "description": items[1].contents[0],
@@ -44,4 +43,5 @@ class Boots(Miner):
         }
 
     def scrape_transactions(self):
-        return self.browser.select(".transactionsList tr")[1:]
+        self.open_url('https://www.boots.com/ADCAccountSummary')
+        return self.browser.select("#adcardPointStatement tr")[1:]
