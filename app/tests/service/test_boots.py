@@ -21,7 +21,7 @@ class TestBoots(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.b.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
 
