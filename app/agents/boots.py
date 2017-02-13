@@ -14,7 +14,7 @@ class Boots(Miner):
         login_form['logonId'].value = credentials['email']
         login_form['logonPassword'].value = credentials['password']
 
-        self.browser.submit_form(login_form)
+        self.browser.submit_form(login_form, timeout=(1, 15, ))
 
         self.check_error('/webapp/wcs/stores/servlet/Logon', (
             ('p.overlay_head', STATUS_ACCOUNT_LOCKED, 'Account locked'),
