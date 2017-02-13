@@ -44,5 +44,5 @@ class Boots(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.boots.com/ADCAccountSummary')
+        self.open_url('https://www.boots.com/ADCAccountSummary', read_timeout=15)
         return self.browser.select("#adcardPointStatement tr")[1:]
