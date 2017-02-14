@@ -44,7 +44,7 @@ def pluralise(count, plural_suffix):
     return singular if count == 1 else plural
 
 
-units = ['K', 'M', 'B', 'T']
+units = ['k', 'M', 'B', 'T']
 
 
 def minify_number(n):
