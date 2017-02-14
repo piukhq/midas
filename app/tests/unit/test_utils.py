@@ -4,6 +4,7 @@ from app.utils import extract_decimal, generate_random_key, minify_number
 
 
 class TestUtils(unittest.TestCase):
+
     def test_extract_decimal(self):
         self.assertEqual(extract_decimal("sdfg -23.33 dfg"), Decimal("-23.33"))
         self.assertEqual(extract_decimal("sdfg 23.33 dfg"), Decimal("23.33"))
@@ -20,7 +21,7 @@ class TestUtils(unittest.TestCase):
             (10, '10'),
             (501, '501'),
             (5214, '5214'),
-            (60563, '60K'),
+            (60563, '60k'),
             (5329582, '5M'),
             (59235820935, '59B'),
             (24135802938509, '24T')
