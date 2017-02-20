@@ -1,5 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import (STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED,
+                                   END_SITE_DOWN)
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -24,6 +25,11 @@ class Tesco(Miner):
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)
+
+        # check for 'problems with our system' message
+        problem_header = self.browser.select('.container > h2')
+        if problem_header and problem_header[0].get_text().strip().startswith('Sorry, we are currently experiencing'):
+            raise LoginError(END_SITE_DOWN)
 
         result_json_element = self.browser.select('#initial-data')
         if result_json_element:
