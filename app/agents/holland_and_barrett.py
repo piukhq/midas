@@ -6,7 +6,8 @@ import re
 
 
 class HollandAndBarrett(Miner):
-    point_value_re = re.compile("^You've collected (\d+) points so far this quarter which will be worth £(\d*\.\d\d)")
+    #point_value_re = re.compile("^You've collected (\d+) points so far this quarter which will be worth £(\d*\.\d\d)")
+    point_value_re = re.compile("^You've collected (\d+) points so far this quarter(?:\.| which will be worth £(\d*\.\d\d))")
     balance_re = re.compile('^You also have   £(\d*\.\d\d) worth of vouchers waiting to be spent')
 
     def login(self, credentials):
@@ -28,7 +29,12 @@ class HollandAndBarrett(Miner):
         point_text = info_box.contents[0].strip()
         value_text = info_box.contents[3].strip()
 
-        points, value = self.point_value_re.findall(point_text)[0]
+        points_value = self.point_value_re.findall(point_text)[0]
+        points = points_value[0]
+        value = points_value[1]
+
+        if not value:
+            value = '0.00'
 
         if value_text == 'You have no Cash Vouchers available.':
             balance = '0'
