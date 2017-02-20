@@ -22,8 +22,8 @@ CREDENTIALS = {
         'password': 'Loyalty1'
     },
     "advantage-card": {
-        'email': 'julie.gormley100@gmail.com',
-        'password': 'RAHansbrics5'
+        'email': 'loyaltycards01@gmail.com',
+        'password': 'Loyalty01'
     },
     "superdrug": {
         'email': 'julie.gormley100@gmail.com',
