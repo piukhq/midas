@@ -29,9 +29,7 @@ class HollandAndBarrett(Miner):
         point_text = info_box.contents[0].strip()
         value_text = info_box.contents[3].strip()
 
-        points_value = self.point_value_re.findall(point_text)[0]
-        points = points_value[0]
-        value = points_value[1]
+        points, value = self.point_value_re.findall(point_text)[0]
 
         if not value:
             value = '0.00'
