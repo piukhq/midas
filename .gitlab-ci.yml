@@ -1,21 +1,54 @@
 tests:
   script:
-  - pip3 install -r requirements.txt
-  - py.test app/tests/unit --cov=app
+    - pip3 install -r requirements.txt
+    - py.test app/tests/unit --cov=app
+  tags:
+    - docker
 
 complexity:
   script:
     - xenon --max-average A --max-modules B --max-absolute B .
+  tags:
+    - docker
 
 flake8:
   script:
     - flake8 *
+  tags:
+    - docker
 
-deploy:
-  image: hellobink/ansible
+deploy_dev:
   stage: deploy
   environment: dev
   script:
-  - cd /ansible && ansible-playbook playbooks/deploy/flask.yml -e project=midas -e hosts=dev_web
+    - docker build -t hellobink/midas:dev .
+    - docker login -u binkautomation -p epitome-generic-basilisk
+    - docker push hellobink/midas:dev
   only:
-  - master
+    - master
+  tags:
+    - shell
+
+deploy_staging:
+  stage: deploy
+  environment: staging
+  script:
+    - docker build -t hellobink/midas:staging .
+    - docker login -u binkautomation -p epitome-generic-basilisk
+    - docker push hellobink/midas:staging
+  only:
+    - staging
+  tags:
+    - shell
+
+deploy_production:
+  stage: deploy
+  environment: production
+  script:
+    - docker build -t hellobink/midas:production .
+    - docker login -u binkautomation -p epitome-generic-basilisk
+    - docker push hellobink/midas:production
+  only:
+    - production
+  tags:
+    - shell
