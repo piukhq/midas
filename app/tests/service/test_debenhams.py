@@ -14,10 +14,10 @@ class TestDebenhams(unittest.TestCase):
     def test_login(self):
         self.assertEqual(self.d.browser.response.status_code, 200)
 
-    def test_transactions(self):
-        transactions = self.d.transactions()
-        self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
+    # def test_transactions(self):
+    #     transactions = self.d.transactions()
+    #     self.assertIsNotNone(transactions)
+    #     schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.d.balance()
@@ -26,11 +26,20 @@ class TestDebenhams(unittest.TestCase):
 
 
 class TestDebenhamsFail(unittest.TestCase):
-    def test_login_bad_credentials(self):
+    def test_login_bad_email(self):
         credentials = {
-            'username': '234234',
+            'email': '234234',
             'password': '234234',
-            'memorable_date': '01/01/1970',
+        }
+        d = Debenhams(1, 1)
+        with self.assertRaises(LoginError) as e:
+            d.attempt_login(credentials)
+        self.assertEqual(e.exception.name, "Invalid credentials")
+
+    def test_login_bad_password(self):
+        credentials = {
+            'email': 'chris.gormley2@me.com',
+            'password': '234234',
         }
         d = Debenhams(1, 1)
         with self.assertRaises(LoginError) as e:

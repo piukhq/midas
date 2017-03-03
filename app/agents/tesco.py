@@ -1,5 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import (STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED,
+                                   END_SITE_DOWN)
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -17,13 +18,18 @@ class Tesco(Miner):
 
     def login(self, credentials):
         self.open_url("https://secure.tesco.com/account/en-GB/login"
-                      "?from=https%3a%2f%2fsecure.tesco.com%2fclubcard%2fmyaccount%2falpha443%2fhome")
+                      "?from=https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/Home")
 
         signup_form = self.browser.get_form(id='sign-in-form')
         signup_form['username'].value = credentials['email']
         signup_form['password'].value = credentials['password']
 
         self.browser.submit_form(signup_form)
+
+        # check for 'problems with our system' message
+        problem_header = self.browser.select('.container > h2')
+        if problem_header and problem_header[0].get_text().strip().startswith('Sorry, we are currently experiencing'):
+            raise LoginError(END_SITE_DOWN)
 
         result_json_element = self.browser.select('#initial-data')
         if result_json_element:
@@ -35,10 +41,13 @@ class Tesco(Miner):
         url = '/account/en-GB/login'
         self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
 
-        if 'barcode' in credentials:
+        if 'card_number' not in credentials:
             self.card_number = self.get_card_number(credentials['barcode'])
         else:
             self.card_number = credentials['card_number']
+        self.do_mfa_login()
+
+        self.open_url('https://secure.tesco.com/clubcard/myaccount/alpha443/points/home')
 
     def do_mfa_login(self):
         digit_form = self.browser.get_form()
@@ -64,7 +73,7 @@ class Tesco(Miner):
         points = extract_decimal(self.browser.select("#pointsTotal")[0].contents[0].strip())
         value = self.calculate_point_value(points)
 
-        balance_field = self.browser.select("#vouchersTotal")
+        balance_field = self.browser.select("#ltrCurrofferVuchers")
 
         if len(balance_field) > 0:
             balance = extract_decimal(balance_field[0].contents[0].strip())
