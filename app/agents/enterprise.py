@@ -3,19 +3,24 @@ from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 import arrow
 import json
+import time
 
 
 class Enterprise(Miner):
+    connect_timeout = 10
+
     def login(self, credentials):
-        url = 'https://prd.webapi.enterprise.co.uk/enterprise-ewt/ecom-service/login/EP?locale=en_GB'
+        url = 'https://prd.webapi.enterprise.co.uk/enterprise-ewt/ecom-service/login/EP?&' + str(int(time.time()))
         login_data = {
             'username': credentials['username'],
             'password': credentials['password'],
             'remember_credentials': 'false',
         }
 
-        self.open_url(url, method='post', json=login_data)
+        self.headers["origin"] = "https://www.enterprise.co.uk"
+        self.headers["referer"] = "https://www.enterprise.co.uk/en/home.html"
 
+        self.open_url(url, method='post', json=login_data)
         self.account_data = json.loads(self.browser.response.text)
 
         if self.account_data['messages'] and len(self.account_data['messages']):

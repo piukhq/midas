@@ -72,6 +72,7 @@ errors = {
 class AgentError(Exception):
     """Exception raised for errors in the input.
     """
+
     def __init__(self, name):
         self.name = errors[name]['name']
         self.message = errors[name]['message']
@@ -86,4 +87,8 @@ class LoginError(AgentError):
 
 
 class RetryLimitError(AgentError):
+    pass
+
+
+class AgentModifiedError(Exception):
     pass
