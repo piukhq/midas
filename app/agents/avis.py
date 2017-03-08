@@ -2,11 +2,45 @@ from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-from urllib.parse import urlsplit
 import arrow
 
 
 class Avis(Miner):
+    def login_failed(self, credentials):
+        query = "https://secure.avis.co.uk/JsonProviderServlet/" \
+                "?requestType=updateTncStatus"
+        data = {"id": credentials["email"], "password": credentials["password"]}
+        self.open_url(query, method="POST", data=data)
+        response = self.browser.response.json()
+        key = "errorMessage"
+        if key not in response.keys():
+            raise ValueError(
+                "The response does not contain mandatory key \"%s\"." % key)
+        else:
+            if response[key] is None:
+                # empty error= successful login
+                return False
+
+        expected_error_message = "Sorry, your email address and password" \
+                                 "don't match."
+        error = response[key]
+        if expected_error_message in error:
+            return True
+        else:
+            raise ValueError(
+                "Error message does not contain \"%s\"." % expected_error_message)
+
+    @staticmethod
+    def get_value_from_balance_response(response, key, fallback):
+        if key not in response.keys():
+            raise ValueError("The response does not contain mandatory key "
+                             "\"%s\" and cannot continue without it." % key)
+        else:
+            value = response[key]
+            if value is None:
+                value = fallback
+        return value
+
     def login(self, credentials):
         query = 'https://www.avis.co.uk/loyalty-statement'
         data = {
@@ -17,15 +51,20 @@ class Avis(Miner):
 
         self.open_url(query, method='post', data=data)
 
-        parts = urlsplit(self.browser.url)
-        if getattr(parts, 'query').startswith('require-login=true'):
+        if self.login_failed(credentials):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        value = extract_decimal(self.browser.select('.loyal-spend-text p strong')[1].text)
+        self.browser.open(
+            "https://secure.avis.co.uk/JsonProviderServlet/?requestType=userdetails")
+        response = self.browser.response.json()
+        points = self.get_value_from_balance_response(response, "rentals", 0.0)
+        value = self.get_value_from_balance_response(response, "rentalsSpent",
+                                                     "0.00")
+
         return {
-            'points': extract_decimal(self.browser.select('.loyal-spend-text p strong')[0].text),
-            'value': value,
+            'points': Decimal(points),
+            'value': extract_decimal(value),
             'value_label': '£{}'.format(value),
         }
 

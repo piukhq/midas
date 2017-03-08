@@ -32,6 +32,7 @@ class Miner(object):
 
     retry_limit = 2
     point_conversion_rate = Decimal('0')
+    connect_timeout = 1
 
     def __init__(self, retry_count, scheme_id):
         self.scheme_id = scheme_id
@@ -68,7 +69,7 @@ class Miner(object):
         Sensible defaults and error handling for opening url
         http://www.mobify.com/blog/http-requests-are-hard/
         """
-        connect_timeout = 1
+        connect_timeout = self.connect_timeout
 
         # Combine the passed kwargs with our headers and timeout values.
         args = {

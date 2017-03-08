@@ -43,6 +43,9 @@ class Eurostar(Miner):
             if message.startswith('Sorry') or message.startswith('You have been locked out of your account.'):
                 self.determine_login_failure(credentials)
 
+            if message.startswith('Your e-mail address and/or password has not been recognised.'):
+                raise LoginError(STATUS_LOGIN_FAILED)
+
     def balance(self):
         points = extract_decimal(
             self.browser.select('div.pane-you-are-epp-member-markup div.pane-content div.row div.right')[1].text)

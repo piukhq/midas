@@ -1,74 +1,39 @@
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
+from app.utils import extract_decimal
 from decimal import Decimal
 import base64
 import arrow
 
 
 class TheBodyShop(Miner):
-    loyalty_data = None
+    loyalty_data = []
 
     def login(self, credentials):
-        url = 'https://crmemeaws-c.thebodyshop.com/api/v1/en-gb/customers/createsessionforloginwithchecks'
-        params = {
-            'callback': '',
-            'callingSystem': 'ecomcore',
-            'cardLoginId': ' ',
-            'isAddressCityMandatory': 'false',
-            'isAddressLine1Mandatory': 'false',
-            'isAddressLine2Mandatory': 'false',
-            'isAddressLine3Mandatory': 'false',
-            'isAddressProvinceMandatory': 'false',
-            'isDateOfBirthMandatory': 'false',
-            'isEmailAddressMandatory': 'true',
-            'isFirstNameMandatory': 'true',
-            'isGenderMandatory': 'true',
-            'isLastNameMandatory': 'true',
-            'isMiddleNameMandatory': 'false',
-            'isMobileNumberMandatory': 'false',
-            'isNationalIdMandatory': 'false',
-            'isPhoneNumberMandatory': 'false',
-            'isPreferredLanguageMandatory': 'false',
-            'isTitleMandatory': 'false',
-            'loginEmail': credentials['email'],
-            'password': credentials['password'],
-            'socialLoginId': '',
-            'socialProvider': '',
-        }
+        self.open_url('https://www.thebodyshop.com/en-gb/login')
 
-        self.open_url(url, params=params)
+        login_form = self.browser.get_form('loginForm')
+        login_form['j_username'] = credentials['email']
+        login_form['j_password'] = credentials['password']
+        self.browser.submit_form(login_form)
+        self.find_captcha()
 
-        data = self.browser.response.json()
-
-        success = data['isSuccess']
-        if not success:
-            error_code = data['errorCodes'][0]
-            # error_data = data['errorData']
-
-            if (error_code == 'ERROR_OUTPUT_LOGIN_EMAIL_NOT_FOUND' or
-               error_code == 'ERROR_OUTPUT_LOGIN_PASSWORD_DOES_NOT_MATCH'):
-                raise LoginError(STATUS_LOGIN_FAILED)
-            else:
-                raise LoginError(UNKNOWN)
-
-        self.auth_token = base64.encodebytes(data['authenticationToken'].encode('utf-8')).decode('utf-8')
-
-        # Get points and transaction data in one call.
-        url = 'https://crmemeaws-c.thebodyshop.com/api/v1/en-gb/customers/loyaltymemberpointshistory'
-        params = {
-            'authtoken': self.auth_token,
-            'callback': '',
-            'callingSystem': 'ecomcore',
-        }
-
-        self.open_url(url, params=params)
-        self.loyalty_data = self.browser.response.json()
+        selector = ".message-container.error p"
+        self.check_error('/en-gb/login', (
+                             (selector, STATUS_LOGIN_FAILED, 'Incorrect username or password.'),
+                             (selector, STATUS_LOGIN_FAILED, 'Problem with captcha verification')))
 
     def balance(self):
+        # Get points and transaction data in one call.
+        self.open_url('https://www.thebodyshop.com/en-gb/my-account/points')
+        points = extract_decimal(self.browser.select('.progress-number')[0].text)
+        self.open_url('https://www.thebodyshop.com/en-gb/my-account/vouchers')
+        value = extract_decimal(self.browser.select('#formattedTotalVoucherAmount')[0].text)
+
         return {
-            'points': Decimal(self.loyalty_data['currentPointBalance']),
-            'value': Decimal('0'),
-            'value_label': '',
+            'points': points,
+            'value': value,
+            'value_label': '£{}'.format(value),
         }
 
     @staticmethod
@@ -89,4 +54,4 @@ class TheBodyShop(Miner):
         }
 
     def scrape_transactions(self):
-        return self.loyalty_data['pointsTransactions']
+        return self.loyalty_data

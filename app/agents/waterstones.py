@@ -23,7 +23,7 @@ class Waterstones(Miner):
 
     def balance(self):
         self.open_url('https://www.waterstones.com/account/waterstonescard')
-        points = extract_decimal(self.browser.select('div.span4 span')[0].text)
+        points = extract_decimal(self.browser.select('.payment-card-block .span4 span')[0].text)
         value = extract_decimal(self.browser.select('div.span12 h2')[0].text)
 
         return {

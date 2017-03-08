@@ -15,6 +15,8 @@ class JetBlue(Miner):
         login_form['password'] = credentials['password']
         self.browser.submit_form(login_form)
 
+        self.browser.open('https://trueblue.jetblue.com/group/trueblue/my-trueblue-home')
+
         self.check_error('book.jetblue.com', (('#errorMessage', STATUS_LOGIN_FAILED, ''),), url_part='netloc')
 
         mtce_message = self.browser.select('#mailing-address > p > legend')
@@ -28,7 +30,7 @@ class JetBlue(Miner):
 
     def balance(self):
         return {
-            'points': extract_decimal(self.browser.select('p.points')[2].contents[0]),
+            'points': extract_decimal(self.browser.select('.points-info p')[0].contents[0]),
             'value': Decimal('0'),
             'value_label': '',
         }

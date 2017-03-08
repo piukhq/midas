@@ -9,7 +9,7 @@ class SpaceNK(Miner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
-        query = 'https://wwws.givex.com/cws/spacenk_uk/consumer/clp/balance_check.py'
+        query = 'https://cws.givex.com/cws/spacenk_uk/consumer/clp/balance_check.py'
         data = {
             '_FUNCTION_': 'balance',
             'history_type': 'loyalty',
