@@ -1,8 +1,7 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-import base64
 import arrow
 
 
@@ -20,8 +19,8 @@ class TheBodyShop(Miner):
 
         selector = ".message-container.error p"
         self.check_error('/en-gb/login', (
-                             (selector, STATUS_LOGIN_FAILED, 'Incorrect username or password.'),
-                             (selector, STATUS_LOGIN_FAILED, 'Problem with captcha verification')))
+            (selector, STATUS_LOGIN_FAILED, 'Incorrect username or password.'),
+            (selector, STATUS_LOGIN_FAILED, 'Problem with captcha verification')))
 
     def balance(self):
         # Get points and transaction data in one call.
