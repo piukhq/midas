@@ -6,12 +6,9 @@ from urllib.parse import urlsplit
 import time
 import re
 
-
 class Hyatt(Miner):
-
     def get_csrf(self):
-        import re
-        import json
+        import re, json
         self.open_url("https://hyatt.com/bin/atgProfile?_=" + str(
             int(time.time())))
         res = str(self.browser.state.parsed)
