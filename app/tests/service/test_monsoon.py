@@ -4,6 +4,7 @@ from app.agents.monsoon import Monsoon
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
+
 class TestMonsoon(unittest.TestCase):
 
     @classmethod
@@ -23,6 +24,7 @@ class TestMonsoon(unittest.TestCase):
         balance = self.m.balance()
         schemas.balance(balance)
         self.assertRegex(balance['value_label'], '^£\d+\.\d\d$')
+
 
 class TestMonsoonFail(unittest.TestCase):
 
