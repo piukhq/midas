@@ -9,7 +9,7 @@ from os.path import join
 import requests
 import subprocess
 import xmltodict
-from settings import SLACK_API_KEY, APOLLO_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
+from settings import SLACK_API_KEY, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
     INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, INFLUX_DATABASE
 from slacker import Slacker
 from influxdb import InfluxDBClient
@@ -32,28 +32,28 @@ error_cause_regexes = [
 ]
 
 
-def post_formatted_slack_message(message):
+def post_formatted_slack_message(message, channel='#errors-agents'):
     from slacker import Slacker
     Slacker(SLACK_API_KEY).chat.post_message(
-        '#errors-agents',
+        channel,
         text=message['error_info'],
         attachments=[
             {
                 "color": "#F90400",
                 "title": "Errors",
-                "title_link": "https://api.slack.com/",
+                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
                 "fields": [{"value": i} for i in message['failures']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "Login Failures",
-                "title_link": "https://api.slack.com/",
+                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
                 "fields": [{"value": i} for i in message['credentials']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "The Unscrapables",
-                "title_link": "https://api.slack.com/",
+                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
                 "fields": [{"value": i} for i in message['captcha']]
             },
             {
@@ -75,7 +75,11 @@ def generate_failures_and_warnings(bad_agents):
         'captcha',
         'ip blocked',
     ]
-    invalid_credential_flag = 'invalid credentials'
+
+    credential_flags = [
+        'invalid credentials',
+        'missing the credential'
+    ]
 
     # makes sure end site down errors are not considered again
     ignored_flags = [
@@ -87,7 +91,7 @@ def generate_failures_and_warnings(bad_agents):
             if captcha_flag in agent['cause'].lower():
                 captcha.append('{0} - {1}'.format(agent['name'], agent['cause']))
                 break
-            elif invalid_credential_flag in agent['cause'].lower():
+            elif any(credential_flag in agent['cause'].lower() for credential_flag in credential_flags):
                 credentials.append('{0} - {1}'.format(agent['name'], agent['cause']))
                 break
             else:
