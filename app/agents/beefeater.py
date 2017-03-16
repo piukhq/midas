@@ -10,12 +10,18 @@ class Beefeater(Miner):
 
     def login(self, credentials):
         self.open_url('https://www.beefeatergrillrewardclub.co.uk/web/guest/home')
+        form_action = self.browser.select('#_58_fm')[0]['action']
 
-        login_form = self.browser.get_form('_58_fm')
-        login_form['_58_login'].value = credentials['email']
-        login_form['_58_password'].value = credentials['password']
+        data = {
+            '_58_login': credentials['email'],
+            '_58_password': credentials['password'],
+            '_58_redirect': ''
+        }
 
-        self.browser.submit_form(login_form)
+        self.headers["origin"] = "https://www.beefeatergrillrewardclub.co.uk"
+        self.headers["referrer"] = "https://www.beefeatergrillrewardclub.co.uk/group/beefeater/member-user-private"
+
+        self.open_url(form_action, method='post', data=data)
 
         sel = '#_58_fm > div.portlet-msg-error'
         self.check_error(
