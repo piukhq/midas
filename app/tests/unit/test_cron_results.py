@@ -42,4 +42,3 @@ class TestCronResults(unittest.TestCase):
         self.assertEqual(len(message['credentials']), 2, msg="Should filter 3 messages as credentials.")
         self.assertEquals(message['error_info'], '*Total errors:* 17/234\n*Time:* 128.817 seconds\n')
         self.assertEquals(message['end_site_down'], 'thai airways, harrods')
-

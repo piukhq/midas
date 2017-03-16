@@ -33,7 +33,6 @@ error_cause_regexes = [
 
 
 def post_formatted_slack_message(message, channel='#errors-agents'):
-    from slacker import Slacker
     Slacker(SLACK_API_KEY).chat.post_message(
         channel,
         text=message['error_info'],
