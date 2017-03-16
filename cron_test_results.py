@@ -65,6 +65,10 @@ def post_formatted_slack_message(message, channel='#errors-agents'):
     )
 
 
+def is_flagged(agent, flags):
+    return any(flag in agent['cause'].lower() for flag in flags)
+
+
 def generate_failures_and_warnings(bad_agents):
     failures = []
     captcha = []
@@ -86,9 +90,9 @@ def generate_failures_and_warnings(bad_agents):
     ]
 
     for agent in bad_agents:
-        if any(captcha_flag in agent['cause'].lower() for captcha_flag in captcha_flags):
+        if is_flagged(agent, captcha_flags):
             captcha.append('{0} - {1}'.format(agent['name'], agent['cause']))
-        elif any(credential_flag in agent['cause'].lower() for credential_flag in credential_flags):
+        elif is_flagged(agent, credential_flags):
             credentials.append('{0} - {1}'.format(agent['name'], agent['cause']))
         else:
             failures.append('{0} - {1}'.format(agent['name'], agent['cause']))
