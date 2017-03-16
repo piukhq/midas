@@ -86,16 +86,12 @@ def generate_failures_and_warnings(bad_agents):
     ]
 
     for agent in bad_agents:
-        for captcha_flag in captcha_flags:
-            if captcha_flag in agent['cause'].lower():
-                captcha.append('{0} - {1}'.format(agent['name'], agent['cause']))
-                break
-            elif any(credential_flag in agent['cause'].lower() for credential_flag in credential_flags):
-                credentials.append('{0} - {1}'.format(agent['name'], agent['cause']))
-                break
-            else:
-                failures.append('{0} - {1}'.format(agent['name'], agent['cause']))
-                break
+        if any(captcha_flag in agent['cause'].lower() for captcha_flag in captcha_flags):
+            captcha.append('{0} - {1}'.format(agent['name'], agent['cause']))
+        elif any(credential_flag in agent['cause'].lower() for credential_flag in credential_flags):
+            credentials.append('{0} - {1}'.format(agent['name'], agent['cause']))
+        else:
+            failures.append('{0} - {1}'.format(agent['name'], agent['cause']))
         # takes out all the errors that should be ignored
         for ignored_flag in ignored_flags:
             if ignored_flag in agent['cause'].lower():
