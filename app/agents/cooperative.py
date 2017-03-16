@@ -56,8 +56,11 @@ class Cooperative(Miner):
             if login_fail:
                 raise LoginError(STATUS_LOGIN_FAILED)
         except IndexError:
-            self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=cb710208dd084d37a94837d9c5fc'
-                          'a0a1&UIDSignature=%2FzSnTuufeLxyzGnwr6w0kdzemhA%3D&signatureTimestamp=1482489324')
+            timestamp = re.compile(r'"signatureTimestamp":\s"(\d+)"').findall(pretty_html)[0]
+            uid = re.compile(r'"UID":\s"(.+)"').findall(pretty_html)[0]
+            uid_signature = re.compile(r'"UIDSignature":\s"(.+)"').findall(pretty_html)[0]
+            self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=' +
+                          uid + '&UIDSignature=' + uid_signature + '&signatureTimestamp=' + timestamp)
 
     def balance(self):
         self.open_url('https://membership.coop.co.uk/dashboard')
