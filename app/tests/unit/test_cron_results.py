@@ -17,7 +17,7 @@ class TestCronResults(unittest.TestCase):
                          'LoginError: Tripped captcha: The agent has tripped the scheme capture code: 532...')
         self.assertEqual(failures['test_nandos']['count'], 4)
 
-    def test_generate_message_filter_by_causes(self):
+    def test_generate_message_filter_by_cause(self):
         bad_agents = [
             {'classname': 'test_captcha_1', 'name': 'avis',
              'cause': 'LoginError: Tripped captcha: The agent has tripped the scheme capture code'},
