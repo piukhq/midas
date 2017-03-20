@@ -9,7 +9,7 @@ from os.path import join
 import requests
 import subprocess
 import xmltodict
-from settings import SLACK_API_KEY, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
+from settings import SLACK_API_KEY, APOLLO_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
     INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, INFLUX_DATABASE
 from slacker import Slacker
 from influxdb import InfluxDBClient
@@ -40,19 +40,19 @@ def post_formatted_slack_message(message, channel='#errors-agents'):
             {
                 "color": "#F90400",
                 "title": "Errors",
-                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
                 "fields": [{"value": i} for i in message['failures']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "Login Failures",
-                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
                 "fields": [{"value": i} for i in message['credentials']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "The Unscrapables",
-                "title_link": "http://dev.apollo.loyaltyangels.local/#/exceptions/",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
                 "fields": [{"value": i} for i in message['captcha']]
             },
             {
