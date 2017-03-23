@@ -193,23 +193,6 @@ def parse_test_results(test_results):
     return parsed_results
 
 
-def write_to_influx(test_results):
-    parsed_results = parse_test_results(test_results)
-    points = []
-    for classname, error in parsed_results.items():
-        points.append({
-            'measurement': 'test_results',
-            'tags': {
-                'classname': classname
-            },
-            'fields': {
-                'errored': error['count'] > 0,
-                'cause': error['cause']
-            }
-        })
-    influx.write_points(points)
-
-
 def get_problematic_agents():
     bad_agents = []
     tags = influx.query('show tag values from test_results with key = classname')
@@ -246,7 +229,7 @@ if __name__ == '__main__':
 
     with open(JUNIT_XML_FILENAME) as f:
         test_results = xmltodict.parse(f.read())
-    write_to_influx(test_results)
+
     bad_agents = get_problematic_agents()
     message = generate_message(test_results, bad_agents)
     post_formatted_slack_message(message)
