@@ -170,29 +170,6 @@ def get_error_cause(error_text):
     return error_cause
 
 
-def parse_test_results(test_results):
-    test_suite = test_results['testsuite']
-    parsed_results = {}
-
-    for test_case in test_suite['testcase']:
-        classname = test_case['@classname'].split('.')[0]
-
-        has_error, error_text = get_error_from_test_case(test_case)
-        error_cause = get_error_cause(error_text)
-
-        if classname in parsed_results:
-            if has_error:
-                parsed_results[classname]['count'] += 1
-                if not parsed_results[classname]['cause']:
-                    parsed_results[classname]['cause'] = '{}...'.format(error_cause.strip())
-        else:
-            parsed_results[classname] = {
-                'count': 1 if has_error else 0,
-                'cause': None,
-            }
-    return parsed_results
-
-
 def get_problematic_agents():
     bad_agents = []
     tags = influx.query('show tag values from test_results with key = classname')
