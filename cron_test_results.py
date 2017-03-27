@@ -32,13 +32,56 @@ error_cause_regexes = [
 ]
 
 
+def post_formatted_slack_message(message, channel='#errors-agents'):
+    Slacker(SLACK_API_KEY).chat.post_message(
+        channel,
+        text=message['error_info'],
+        attachments=[
+            {
+                "color": "#F90400",
+                "title": "Errors",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "fields": [{"value": i} for i in message['failures']]
+            },
+            {
+                "color": "#ADE0FF",
+                "title": "Login Failures",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "fields": [{"value": i} for i in message['credentials']]
+            },
+            {
+                "color": "#ADE0FF",
+                "title": "The Unscrapables",
+                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "fields": [{"value": i} for i in message['captcha']]
+            },
+            {
+                "color": "#C9C9CF",
+                "title": "End site down",
+                "text": message['end_site_down'],
+
+            }
+        ]
+    )
+
+
+def is_flagged(agent, flags):
+    return any(flag in agent['cause'].lower() for flag in flags)
+
+
 def generate_failures_and_warnings(bad_agents):
     failures = []
     captcha = []
+    credentials = []
 
     captcha_flags = [
         'captcha',
         'ip blocked',
+    ]
+
+    credential_flags = [
+        'invalid credentials',
+        'missing the credential'
     ]
 
     # makes sure end site down errors are not considered again
@@ -47,28 +90,29 @@ def generate_failures_and_warnings(bad_agents):
     ]
 
     for agent in bad_agents:
-        resolve_url = 'http://dev.midas.loyaltyangels.local/resolve_issue/{}'.format(agent['classname'])
-        for captcha_flag in captcha_flags:
-            if captcha_flag in agent['cause'].lower():
-                captcha.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
-                break
-            else:
-                failures.append('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
-                break
+        if is_flagged(agent, captcha_flags):
+            captcha.append('{0} - {1}'.format(agent['name'], agent['cause']))
+        elif is_flagged(agent, credential_flags):
+            credentials.append('{0} - {1}'.format(agent['name'], agent['cause']))
+        else:
+            failures.append('{0} - {1}'.format(agent['name'], agent['cause']))
         # takes out all the errors that should be ignored
         for ignored_flag in ignored_flags:
             if ignored_flag in agent['cause'].lower():
-                if '(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url) in failures:
-                    failures.remove('(<{2}|resolve>) {0} - {1}'.format(agent['name'], agent['cause'], resolve_url))
+                if '{0} - {1}'.format(agent['name'], agent['cause']) in failures:
+                    failures.remove('{0} - {1}'.format(agent['name'], agent['cause']))
                     break
 
-    if len(failures) == 0:
-        failures.append('_There are currently no notable agent failures._')
+    if not failures:
+        failures.append('There are currently no notable agent failures.')
 
-    if len(captcha) == 0:
-        captcha.append('_There are currently no notable unscrapable agents._')
+    if not captcha:
+        captcha.append('There are currently no notable unscrapable agents.')
 
-    return failures, captcha
+    if not credentials:
+        credentials.append('There are currently no notable login credential agents falures.')
+
+    return failures, captcha, credentials
 
 
 def get_key_from_classname(classname):
@@ -88,18 +132,17 @@ def generate_message(test_results, bad_agents):
                 continue
             error_count += 1
 
-    failures, captcha = generate_failures_and_warnings(bad_agents)
+    failures, captcha, credentials = generate_failures_and_warnings(bad_agents)
 
-    return ('*Total errors:* {0}/{6}\n*Time:* {4} seconds\n\n'
-            '*Errors*\n{1}\n\n*The Unscrapables*\n{2}\n\n*End site down:* {3}\n{5}').format(
-        error_count,
-        '\n'.join('>{}'.format(f) for f in failures),
-        '\n'.join('>{}'.format(w) for w in captcha),
-        ', '.join(sorted(list(set(end_site_down)), reverse=True)) or None,
-        test_suite['@time'],
-        '{0}/#/exceptions/'.format(APOLLO_URL),
-        test_suite['@tests']
-    )
+    return {
+        'failures': failures,
+        'captcha': captcha,
+        'credentials': credentials,
+        'end_site_down': ', '.join(sorted(list(set(end_site_down)), reverse=True)) or None,
+        'error_info': '*Total errors:* {0}/{1}\n*Time:* {2} seconds\n'.format(error_count,
+                                                                              test_suite['@tests'],
+                                                                              test_suite['@time']),
+    }
 
 
 def get_error_from_test_case(test_case):
@@ -125,46 +168,6 @@ def get_error_cause(error_text):
                 error_cause = next(s for s in match if s)[0:128]
                 break
     return error_cause
-
-
-def parse_test_results(test_results):
-    test_suite = test_results['testsuite']
-    parsed_results = {}
-
-    for test_case in test_suite['testcase']:
-        classname = test_case['@classname'].split('.')[0]
-
-        has_error, error_text = get_error_from_test_case(test_case)
-        error_cause = get_error_cause(error_text)
-
-        if classname in parsed_results:
-            if has_error:
-                parsed_results[classname]['count'] += 1
-                if not parsed_results[classname]['cause']:
-                    parsed_results[classname]['cause'] = '{}...'.format(error_cause.strip())
-        else:
-            parsed_results[classname] = {
-                'count': 1 if has_error else 0,
-                'cause': None,
-            }
-    return parsed_results
-
-
-def write_to_influx(test_results):
-    parsed_results = parse_test_results(test_results)
-    points = []
-    for classname, error in parsed_results.items():
-        points.append({
-            'measurement': 'test_results',
-            'tags': {
-                'classname': classname
-            },
-            'fields': {
-                'errored': error['count'] > 0,
-                'cause': error['cause']
-            }
-        })
-    influx.write_points(points)
 
 
 def get_problematic_agents():
@@ -203,7 +206,7 @@ if __name__ == '__main__':
 
     with open(JUNIT_XML_FILENAME) as f:
         test_results = xmltodict.parse(f.read())
-    write_to_influx(test_results)
+
     bad_agents = get_problematic_agents()
     message = generate_message(test_results, bad_agents)
-    Slacker(SLACK_API_KEY).chat.post_message('#errors-agents', message)
+    post_formatted_slack_message(message)
