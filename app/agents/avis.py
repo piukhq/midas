@@ -21,7 +21,7 @@ class Avis(Miner):
                 # empty error= successful login
                 return False
 
-        expected_error_message = "Sorry, your email address and password" \
+        expected_error_message = "Sorry, your email address and password " \
                                  "don't match."
         error = response[key]
         if expected_error_message in error:
