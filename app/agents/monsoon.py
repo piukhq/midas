@@ -6,7 +6,7 @@ import arrow
 
 
 class Monsoon(Miner):
-    domain = 'https://uk.monsoon.co.uk'
+    domain = 'https://eu.monsoon.co.uk'
 
     login_path = '/view/secured/content/login'
 
