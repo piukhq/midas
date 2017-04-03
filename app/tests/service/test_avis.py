@@ -14,10 +14,10 @@ class TestAvis(unittest.TestCase):
     def test_login(self):
         self.assertEqual(self.d.browser.response.status_code, 200)
 
-    # def test_transactions(self):
-    #     transactions = self.d.transactions()
-    #     self.assertTrue(transactions)
-    #     schemas.transactions(transactions)
+    def test_transactions(self):
+        transactions = self.d.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.d.balance()
