@@ -33,7 +33,10 @@ class Hyatt(Miner):
             "csrf": self.get_csrf(),
             "username": credentials["username"],
             "password": credentials["password"]
-        }, headers={"Referer": "https://www.hyatt.com/"})
+        }, headers={
+            "origin": "https://www.hyatt.com",
+            "Referer": "https://www.hyatt.com/",
+        })
 
         if self.is_login_failed():
             raise LoginError(STATUS_LOGIN_FAILED)
