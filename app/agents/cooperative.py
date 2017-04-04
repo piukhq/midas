@@ -59,8 +59,7 @@ class Cooperative(Miner):
             timestamp = re.compile(r'"signatureTimestamp":\s"(\d+)"').findall(pretty_html)[0]
             uid = re.compile(r'"UID":\s"(.+)"').findall(pretty_html)[0]
             uid_signature = re.compile(r'"UIDSignature":\s"(.+)"').findall(pretty_html)[0]
-            self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=' +
-                          uid + '&UIDSignature=' + uid_signature + '&signatureTimestamp=' + timestamp)
+            self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=' + uid + '&UIDSignature=' + uid_signature + '&signatureTimestamp=' + timestamp)
 
     def balance(self):
         self.open_url('https://membership.coop.co.uk/dashboard')
