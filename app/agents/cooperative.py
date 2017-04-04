@@ -88,7 +88,7 @@ class Cooperative(Miner):
         date = row.find_all("th")
         return {
             "date": arrow.get(date[0].contents[0].strip(), 'DD MMMM YYYY'),
-            "description": date[0].contents[0].strip(),
+            "description": '',
             "value": Decimal(items[0].contents[0].strip('£')),
             "points": extract_decimal(items[2].contents[0].strip()),
         }
