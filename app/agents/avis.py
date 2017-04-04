@@ -2,7 +2,6 @@ from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
 class Avis(Miner):
@@ -21,7 +20,7 @@ class Avis(Miner):
                 # empty error= successful login
                 return False
 
-        expected_error_message = "Sorry, your email address and password" \
+        expected_error_message = "Sorry, your email address and password " \
                                  "don't match."
         error = response[key]
         if expected_error_message in error:
@@ -74,9 +73,4 @@ class Avis(Miner):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
