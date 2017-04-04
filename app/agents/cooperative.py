@@ -2,13 +2,16 @@ import re
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED  # , STATUS_ACCOUNT_LOCKED
 from decimal import Decimal
+from app.utils import extract_decimal
+import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 # TODO: add negative transaction handling
 
 
 class Cooperative(Miner):
-    points_pattern = re.compile(r'<span class="wallet-x-value">([0-9.0-9]+)')
+    value_pattern = re.compile(r'<span class="wallet-x-value">([0-9.0-9]+)')
+    points_pattern = re.compile(r'<span class="z-points-value">([0-9.0-9]+)')
     logged_in_pattern = re.compile(r'("invalid loginID or password")')
 
     def login(self, credentials):
@@ -64,30 +67,32 @@ class Cooperative(Miner):
 
     def balance(self):
         self.open_url('https://membership.coop.co.uk/dashboard')
-        points_html = self.browser.select('span.wallet-x-value')
+        value_html = self.browser.select('span.wallet-x-value')
+        points_html = self.browser.select('span.z-points-value')
 
+        value_string = self.value_pattern.findall(str(value_html))[0]
         points_string = self.points_pattern.findall(str(points_html))[0]
 
+        value = Decimal(value_string)
         points = Decimal(points_string)
 
         return {
             'points': points,
-            'value': Decimal('0'),
-            'value_label': '',
+            'value': value,
+            'value_label': str(value) + " GBP",
         }
 
     @staticmethod
     def parse_transaction(row):
-        # Commented for now since web page has changed and no transactions are available for us to test.
-        # items = row.find_all("td")
-        # return {
-        #    "date": arrow.get(items[2].contents[0].strip(), 'DD MMMM YYYY'),
-        #    "description": items[0].contents[0].strip(),
-        #    "location": items[1].contents[0].strip(),
-        #    "points": extract_decimal(items[3].contents[0].strip()),
-        # }
-        return None
+        items = row.find_all("td")
+        date = row.find_all("th")
+        return {
+            "date": arrow.get(date[0].contents[0].strip(), 'DD MMMM YYYY'),
+            "description": date[0].contents[0].strip(),
+            "value": Decimal(items[0].contents[0].strip('£')),
+            "points": extract_decimal(items[2].contents[0].strip()),
+        }
 
     def scrape_transactions(self):
-        self.open_url("https://www.membership.coop/transactions")
-        return None  # self.browser.select("#gridViewMemberTransactions tr")[1:]
+        self.open_url("https://membership.coop.co.uk/transactions")
+        return(self.browser.select(".transaction-row"))

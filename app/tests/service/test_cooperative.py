@@ -16,12 +16,9 @@ class TestCooperative(unittest.TestCase):
         self.assertEqual(self.b.browser.response.status_code, 200)
 
     def test_transactions(self):
-        # transactions = self.b.transactions()
-        # self.assertTrue(transactions)
-        # schemas.transactions(transactions)
-
-        # No transactions available to test at present.
-        return None
+        transactions = self.b.transactions()
+        self.assertTrue(transactions)
+        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
