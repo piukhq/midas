@@ -5,6 +5,7 @@ from decimal import Decimal
 import arrow
 import base64
 
+
 class ThaiAirways(Miner):
     token = None
     member_id = None

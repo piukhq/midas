@@ -6,6 +6,7 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestThaiAirways(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = ThaiAirways(1, 1)
@@ -13,7 +14,6 @@ class TestThaiAirways(unittest.TestCase):
 
     def test_login(self):
         self.assertTrue(self.m.is_login_successful())
-
 
     def test_transactions(self):
         transactions = self.m.transactions()
@@ -24,7 +24,9 @@ class TestThaiAirways(unittest.TestCase):
         balance = self.m.balance()
         schemas.balance(balance)
 
+
 class TestThaiAirwaysFail(unittest.TestCase):
+
     def test_login_bad_username(self):
         m = ThaiAirways(1, 1)
         credentials = {
