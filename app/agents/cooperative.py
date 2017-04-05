@@ -77,9 +77,9 @@ class Cooperative(Miner):
         points = Decimal(points_string)
 
         return {
-            'points': points,
-            'value': value,
-            'value_label': str(value) + " GBP",
+            'points': value,
+            'value': Decimal('0'),
+            'value_label': '',
         }
 
     @staticmethod
