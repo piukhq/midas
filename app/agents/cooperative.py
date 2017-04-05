@@ -68,13 +68,13 @@ class Cooperative(Miner):
     def balance(self):
         self.open_url('https://membership.coop.co.uk/dashboard')
         value_html = self.browser.select('span.wallet-x-value')
-        points_html = self.browser.select('span.z-points-value')
+        # points_html = self.browser.select('span.z-points-value')
 
         value_string = self.value_pattern.findall(str(value_html))[0]
-        points_string = self.points_pattern.findall(str(points_html))[0]
+        # points_string = self.points_pattern.findall(str(points_html))[0]
 
         value = Decimal(value_string)
-        points = Decimal(points_string)
+        # points = Decimal(points_string)
 
         return {
             'points': value,
