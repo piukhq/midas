@@ -245,7 +245,7 @@ CREDENTIALS = {
         "pin": "1234",
     },
     "le-club": {
-        "username": "3081031370906043",
+        "username": "ssc@bink.com",
         "password": "Loyalty1",
     },
     "choicehotels": {
