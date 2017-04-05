@@ -95,4 +95,4 @@ class Cooperative(Miner):
 
     def scrape_transactions(self):
         self.open_url("https://membership.coop.co.uk/transactions")
-        return(self.browser.select(".transaction-row"))
+        return self.browser.select(".transaction-row")
