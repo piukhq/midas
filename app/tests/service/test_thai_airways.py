@@ -6,13 +6,14 @@ from app.tests.service.logins import CREDENTIALS
 
 
 class TestThaiAirways(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.m = ThaiAirways(1, 1)
         cls.m.attempt_login(CREDENTIALS['royal-orchid-plus'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful())
 
     def test_transactions(self):
         transactions = self.m.transactions()
@@ -25,6 +26,7 @@ class TestThaiAirways(unittest.TestCase):
 
 
 class TestThaiAirwaysFail(unittest.TestCase):
+
     def test_login_bad_username(self):
         m = ThaiAirways(1, 1)
         credentials = {
