@@ -11,12 +11,12 @@ class Accor(Miner):
 
     def login(self, credentials):
         self.open_url('https://secure.accorhotels.com/authentication/login.jsp?appContext=&lang=gb&forceLogin=true'
-                      '&gotoUrl=%2Fuser%2Fdashboard.action')
+                      '&gotoUrl=%2Fuser%2Fdashboard.action', verify=False)
 
         login_form = self.browser.get_form('login-form')
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
-        self.browser.submit_form(login_form)
+        self.browser.submit_form(login_form, verify=False)
 
         sid = self.browser.session.cookies._cookies['.accorhotels.com']['/']['JSESSIONID'].value
 
@@ -25,7 +25,7 @@ class Accor(Miner):
             'beans': 'LoyaltyAccountViewBean',
             'httpSessionId': sid,
         }
-        self.open_url(url, params=params)
+        self.open_url(url, params=params, verify=False)
 
         response_text = self.browser.response.text[5:]
         self.account_data = json.loads(response_text)
