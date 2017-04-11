@@ -64,7 +64,7 @@ class Avis(Miner):
         return {
             'points': Decimal(points),
             'value': extract_decimal(value),
-            'value_label': '£{}'.format(value),
+            'value_label': '€{}'.format(value),
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
