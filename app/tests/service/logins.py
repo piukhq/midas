@@ -49,8 +49,8 @@ CREDENTIALS = {
     "cooperative": {
             'email': 'chris.gormley2@me.com',
             'password': 'OBHansbrics4',
-            'barcode': '633174911212875989',
-            'place_of_birth': "Cheltenham",
+            # Card number for this account, not used in login
+            # 'barcode': '633174913210282267'
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
