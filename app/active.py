@@ -70,4 +70,5 @@ AGENTS = {
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
     'pure-hmv': 'hmv.HMV',
+    'star-rewards': 'star_rewards.StarRewards',
 }

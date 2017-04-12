@@ -29,8 +29,12 @@ class TestStarRewardsFail(unittest.TestCase):
 
     def test_login_fail(self):
         s = StarRewards(1, 1)
+        credentials = {
+            "card_number": "7000000000000000001",
+            'password': '234234',
+        }
         with self.assertRaises(LoginError) as e:
-            s.attempt_login(CREDENTIALS['bad'])
+            s.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
