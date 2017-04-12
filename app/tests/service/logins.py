@@ -68,6 +68,10 @@ CREDENTIALS = {
         "username": "chris.gormley2@me.com",
         "password": "RRHansbrics9",
     },
+    "star_rewards": {
+        "card_number": "7076550200868547905",
+        "password": "dZ13ep5z",
+    },
     "debenhams": {
         "email": "chris.gormley2@me.com",
         "username": "gormleyj1",
