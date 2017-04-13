@@ -8,6 +8,7 @@ import json
 class Accor(Miner):
     point_conversion_rate = Decimal('0.0005')
     account_data = {}
+    sid = ""
 
     def login(self, credentials):
         self.open_url('https://secure.accorhotels.com/authentication/login.jsp?appContext=&lang=gb&forceLogin=true'
@@ -18,12 +19,12 @@ class Accor(Miner):
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form, verify=False)
 
-        sid = self.browser.session.cookies._cookies['.accorhotels.com']['/']['JSESSIONID'].value
+        self.sid = self.browser.session.cookies._cookies['.accorhotels.com']['/']['JSESSIONID'].value
 
         url = 'https://secure.accorhotels.com/bean/getViewBeans.action'
         params = {
             'beans': 'LoyaltyAccountViewBean',
-            'httpSessionId': sid,
+            'httpSessionId': self.sid,
         }
         self.open_url(url, params=params, verify=False)
 
@@ -48,12 +49,19 @@ class Accor(Miner):
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
-        return row
+
+        return {
+            'date': arrow.get(row.get('transactionDate')),
+            'description': row.get('description'),
+            'points': Decimal(row.get('rewardPoints')),
+        }
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        transaction_url = 'https://secure.accorhotels.com/ajax/loyalty/transactions.action'
+        parameters = {'httpSessionId': self.sid}
+        self.open_url(transaction_url, params=parameters, verify=False)
+        transaction_response = self.browser.response.text[5:]
+        transactions_data = json.loads(transaction_response)
+        transactions = transactions_data['viewBeans']['LoyaltyTransactionsViewBean']['loyaltyWrapper']['historyLines']
+
+        return transactions
