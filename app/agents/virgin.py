@@ -34,7 +34,6 @@ class Virgin(Miner):
     def parse_transaction(row):
         items = row.find_all("td")
         return {
-            # add arrow
             'date': Virgin.clean_date(items[0].contents[0]),
             'description': Virgin.clean_description(items[1].text),
             'points': extract_decimal(items[2].contents[0].strip()),
