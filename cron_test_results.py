@@ -32,7 +32,7 @@ error_cause_regexes = [
 ]
 
 
-def post_formatted_slack_message(message, channel='@jmonetti'):
+def post_formatted_slack_message(message, channel='#errors-agents'):
     Slacker(SLACK_API_KEY).chat.post_message(
         channel,
         text=message['error_info'],
@@ -190,7 +190,6 @@ def parse_test_results(test_results):
 
     for test_case in test_suite['testcase']:
         classname = test_case['@classname'].split('.')[0]
-        name = classname.replace('test_', '', 1).replace('_', ' ')
 
         has_error, error_text = get_error_from_test_case(test_case)
         error_cause = get_error_cause(error_text)
@@ -216,8 +215,8 @@ def resolve_issue(classname):
 
 
 if __name__ == '__main__':
-    # py_test = join(os.path.dirname(sys.executable), 'py.test')
-    # subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
+    py_test = join(os.path.dirname(sys.executable), 'py.test')
+    subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
