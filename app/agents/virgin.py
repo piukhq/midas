@@ -22,7 +22,6 @@ class Virgin(Miner):
 
     def balance(self):
         pretty_html = self.browser.parsed.prettify()
-
         points = self.point_value_pattern.findall(pretty_html)[0]
 
         return {
@@ -33,11 +32,24 @@ class Virgin(Miner):
 
     @staticmethod
     def parse_transaction(row):
+        items = row.find_all("td")
         return {
-            'date': arrow.get(row.contents[1].text.strip(), 'DD MMM YYYY'),
-            'description': row.contents[3].text.strip(),
-            'points': extract_decimal(row.contents[5].text.strip()),
+            # add arrow
+            'date': Virgin.clean_date(items[0].contents[0]),
+            'description': Virgin.clean_description(items[1].text),
+            'points': extract_decimal(items[2].contents[0].strip()),
         }
 
+    @staticmethod
+    def clean_date(date):
+        date = arrow.get(date.strip(), "DD/MM/YY")
+        return date
+
+    @staticmethod
+    def clean_description(description):
+        description = description.replace('\xa0►\xa0', " > ")
+        return description.strip()
+
     def scrape_transactions(self):
-        return self.browser.select('#account table.centerTable.tableCopy.borderPurple.boxContainer tr')[1:]
+        self.open_url("https://www.virginatlantic.com/myprofile/displayMySkyMiles.action")
+        return self.browser.select('.myAccountStatement')
