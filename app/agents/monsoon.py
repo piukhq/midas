@@ -1,8 +1,6 @@
 from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-from decimal import Decimal
-import arrow
 
 
 class Monsoon(Miner):
@@ -52,9 +50,4 @@ class Monsoon(Miner):
 
     def scrape_transactions(self):
         # self.open_url('https://uk.monsoon.co.uk/view/secured/content/myaccount?activeTab=cs_myaccounttab')
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
