@@ -187,7 +187,8 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "virgin": {
-        "username": "1069267746",
+        "card_number": "1069267746",
+        "username": "mt@bink.com",
         "password": "Loyalty1",
     },
     "ihg": {

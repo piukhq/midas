@@ -32,6 +32,7 @@ class TestVirginFail(unittest.TestCase):
         credentials = {
             'username': 'bad',
             'password': '321321321',
+            'card_number': '1000000000',
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)

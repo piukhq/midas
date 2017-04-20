@@ -11,7 +11,10 @@ class Virgin(Miner):
     login_result_pattern = re.compile(r'"loggedIn":[a-z]+')
 
     def login(self, credentials):
-        data = credentials
+        data = {
+            'username': credentials['card_number'],
+            'password': credentials['password'],
+        }
         self.browser.open('https://www.virginatlantic.com/custlogin/login.action', method='post', data=data)
         self.open_url('https://www.virginatlantic.com')
 
@@ -32,7 +35,7 @@ class Virgin(Miner):
 
     @staticmethod
     def parse_transaction(row):
-        items = row.find_all("td")
+        items = row.find_all('td')
         return {
             'date': Virgin.clean_date(items[0].contents[0]),
             'description': Virgin.clean_description(items[1].text),
@@ -41,14 +44,14 @@ class Virgin(Miner):
 
     @staticmethod
     def clean_date(date):
-        date = arrow.get(date.strip(), "DD/MM/YY")
+        date = arrow.get(date.strip(), 'DD/MM/YY')
         return date
 
     @staticmethod
     def clean_description(description):
-        description = description.replace('\xa0►\xa0', " > ")
+        description = description.replace('\xa0►\xa0', ' > ')
         return description.strip()
 
     def scrape_transactions(self):
-        self.open_url("https://www.virginatlantic.com/myprofile/displayMySkyMiles.action")
+        self.open_url('https://www.virginatlantic.com/myprofile/displayMySkyMiles.action')
         return self.browser.select('.myAccountStatement')
