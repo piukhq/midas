@@ -170,24 +170,41 @@ def get_error_cause(error_text):
     return error_cause
 
 
-def get_problematic_agents():
-    bad_agents = []
-    tags = influx.query('show tag values from test_results with key = classname')
-    for tag in tags.get_points():
-        errors = influx.query("select cause "
-                              "from test_results "
-                              "where time > now() - 24h "
-                              "and errored = true "
-                              "and classname = '{}'".format(tag['classname']))
+def get_problematic_agents(test_results):
+    parsed_results = parse_test_results(test_results)
 
-        points = list(errors.get_points())
-        if len(points) >= PROBLEMATICAL_THRESHOLD:
-            bad_agents.append({
-                'classname': tag['classname'],
-                'name': tag['classname'].replace('test_', '', 1).replace('_', ' '),
-                'cause': points[0]['cause'],
+    agents = []
+    for class_name, result in parsed_results.items():
+        if result['count'] > 0:
+            agents.append({
+                'classname': class_name,
+                'name': class_name.replace('test_', '', 1).replace('_', ' '),
+                'cause': result['cause']
             })
-    return bad_agents
+    return agents
+
+
+def parse_test_results(test_results):
+    test_suite = test_results['testsuite']
+    parsed_results = {}
+
+    for test_case in test_suite['testcase']:
+        classname = test_case['@classname'].split('.')[0]
+
+        has_error, error_text = get_error_from_test_case(test_case)
+        error_cause = get_error_cause(error_text)
+
+        if classname in parsed_results:
+            if has_error:
+                parsed_results[classname]['count'] += 1
+                if not parsed_results[classname]['cause']:
+                    parsed_results[classname]['cause'] = '{}...'.format(error_cause.strip())
+        else:
+            parsed_results[classname] = {
+                'count': 1 if has_error else 0,
+                'cause': '{}...'.format(error_cause.strip()) if has_error else None,
+            }
+    return parsed_results
 
 
 def resolve_issue(classname):
@@ -199,7 +216,7 @@ def resolve_issue(classname):
 
 if __name__ == '__main__':
     py_test = join(os.path.dirname(sys.executable), 'py.test')
-    result = subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
+    subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
@@ -207,6 +224,6 @@ if __name__ == '__main__':
     with open(JUNIT_XML_FILENAME) as f:
         test_results = xmltodict.parse(f.read())
 
-    bad_agents = get_problematic_agents()
+    bad_agents = get_problematic_agents(test_results)
     message = generate_message(test_results, bad_agents)
     post_formatted_slack_message(message)
