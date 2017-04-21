@@ -143,13 +143,13 @@ CREDENTIALS = {
         "password": "MLHansbrics7",
     },
     "jetblue": {
-        "email": "la@loyaltyangels.com",
-        "password": "LAngels2015",
+        "email": "loyaltycards01@gmail.com",
+        "password": "2xMA8hazn7",
     },
     "qantas": {
-        "card_number": "1925645176",
-        "last_name": "angels",
-        "pin": "1290",
+        "card_number": "1933441600",
+        "last_name": "walsh",
+        "pin": "2124",
     },
     "the_perfume_shop": {
         "email": "la@loyaltyangels.com",
@@ -169,6 +169,8 @@ CREDENTIALS = {
     },
     "space_nk": {
         "barcode": "63385283721106029252",
+        "email": "ssc@bink.com",
+        "password": "Loyalty1",
     },
     "lufthansa": {
         "card_number": "992000656640646",
@@ -187,8 +189,8 @@ CREDENTIALS = {
         "password": "Loyalty1",
     },
     "virgin": {
-        "card_number": "1069267746",
         "username": "mt@bink.com",
+        "last_name": "Thomas",
         "password": "Loyalty1",
     },
     "ihg": {
@@ -204,9 +206,12 @@ CREDENTIALS = {
         "password": "SGHansbr17",
     },
     "starwood-preferred-guest": {
-        "username": "la@loyaltyangels.com",
+        "username": "LAngelBink",
         "password": "Loyalty1",
-        "favourite_place": "bagshot",
+        "favourite_food": "Chinese",
+        "favourite_destination": "Ascot",
+        "favourite_attraction": "The Bink Office",
+        "location_first_job": "Bagshot",
     },
     "the_works": {
         "email": "chris.gormley2@me.com",
@@ -218,11 +223,11 @@ CREDENTIALS = {
         "password": "KLHansbrics6",
     },
     "malaysia_airlines": {
-        "card_number": "MH315377635",
+        "card_number": "315377635",
         "password": "Loyalty1",
     },
     "royal-orchid-plus": {
-        "username": "NX31265",
+        "username": "NZ57271",
         "password": "Loyalty1",
     },
     "big-rewards": {
