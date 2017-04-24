@@ -23,7 +23,7 @@ CREDENTIALS = {
     },
     "advantage-card": {
         'email': 'loyaltycards01@gmail.com',
-        'password': 'Loyalty01'
+        'password': 'ejUu3Z82in'
     },
     "superdrug": {
         'email': 'julie.gormley100@gmail.com',
@@ -152,8 +152,8 @@ CREDENTIALS = {
         "pin": "2124",
     },
     "the_perfume_shop": {
-        "email": "la@loyaltyangels.com",
-        "password": "LAngels2015!",
+        "email": "chris.gormley2@me.com",
+        "password": "OSHansbrics14",
     },
     "rewards4fishing": {
         "email": "la@loyaltyangels.com",
@@ -161,11 +161,11 @@ CREDENTIALS = {
     },
     "rewards4golf": {
         "email": "la@loyaltyangels.com",
-        "password": "LAngels2015!",
+        "password": "gyYfRh26D2",
     },
     "rewards4racing": {
         "email": "la@loyaltyangels.com",
-        "password": "LAngels2015!",
+        "password": "YRKnQuP822",
     },
     "space_nk": {
         "barcode": "63385283721106029252",
@@ -182,15 +182,14 @@ CREDENTIALS = {
     },
     "mandco": {
         "username": "la@loyaltyangels.com",
-        "password": "LAngels2015!",
+        "password": "f946HhpdMx",
     },
     "sparks": {
         "email": "chris.smith4@gmx.co.uk",
         "password": "Loyalty1",
     },
     "virgin": {
-        "username": "mt@bink.com",
-        "last_name": "Thomas",
+        "username": "1069267746",
         "password": "Loyalty1",
     },
     "ihg": {
@@ -199,7 +198,7 @@ CREDENTIALS = {
     },
     "hyatt": {
         "username": "528180109F",
-        "password": "Bagshot1",
+        "password": "Y2bRrPJ39V",
     },
     "holland_and_barrett": {
         "email": "chris.gormley2@me.com",
@@ -207,9 +206,9 @@ CREDENTIALS = {
     },
     "starwood-preferred-guest": {
         "username": "LAngelBink",
-        "password": "Loyalty1",
+        "password": "8n4Q9cjuPU",
         "favourite_food": "Chinese",
-        "favourite_destination": "Ascot",
+        "favourite_place": "Ascot",
         "favourite_attraction": "The Bink Office",
         "location_first_job": "Bagshot",
     },
@@ -224,11 +223,11 @@ CREDENTIALS = {
     },
     "malaysia_airlines": {
         "card_number": "315377635",
-        "password": "Loyalty1",
+        "password": "nA6AGt7G2Y",
     },
     "royal-orchid-plus": {
         "username": "NZ57271",
-        "password": "Loyalty1",
+        "password": "d4Hgvf47",
     },
     "big-rewards": {
         "email": "la@loyaltyangels.com",
@@ -240,15 +239,15 @@ CREDENTIALS = {
     },
     "treat-me": {
         "email": "la@loyaltyangels.com",
-        "password": "Loyalty1",
+        "password": "3Ws2BZ6Qod",
     },
     "priority-guest-rewards": {
-        "username": "R2103483",
-        "password": "Loyalty1",
+        "username": "la@loyaltyangels.com",
+        "password": "V6Z3p4LFoB",
     },
     "delta-skymiles": {
         "username": "9118431866",
-        "password": "Loyalty1",
+        "password": "9Pv8nsv8hv",
     },
     "klm-flying-blue": {
         "username": "1109882571",
@@ -260,19 +259,19 @@ CREDENTIALS = {
     },
     "choicehotels": {
         "username": "LoyaltyAngels",
-        "password": "Loyalty1",
+        "password": "ji7qM3i2jd",
     },
     "discovery": {
         "username": "LoyaltyAngels",
-        "password": "Loyalty1",
+        "password": "CnMQY9YM83",
     },
     "clubcarlson": {
         "username": "6015995055905023",
-        "password": "Loyalty1!",
+        "password": "7dA84LCrGq",
     },
     "omni": {
         "email": "la@loyaltyangels.com",
-        "password": "Loyalty1",
+        "password": "UgL88sd9ZG",
     },
     "papa_johns": {
         "email": "chris.gormley2@me.com",
@@ -283,8 +282,8 @@ CREDENTIALS = {
         "password": "DSHansbrics10",
     },
     "love-your-body": {
-        "email": "Dkmudway@gmail.com",
-        "password": "Loyalty2016",
+        "email": "chris.gormley2@me.com",
+        "password": "OSHansbrics11",
     },
     "recognition-reward-card": {
         "email": "chris.gormley2@gmail.com",
