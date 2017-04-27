@@ -12,7 +12,7 @@ class Virgin(Miner):
 
     def login(self, credentials):
         data = {
-            'username': credentials['card_number'],
+            'username': credentials['username'],
             'password': credentials['password'],
         }
         self.browser.open('https://www.virginatlantic.com/custlogin/login.action', method='post', data=data)
