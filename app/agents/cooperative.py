@@ -91,5 +91,14 @@ class Cooperative(Miner):
         }
 
     def scrape_transactions(self):
+        transactions = []
         self.open_url("https://membership.coop.co.uk/transactions")
-        return self.browser.select(".transaction-row")
+        list_all = self.browser.select(".transaction-row")
+        for row in list_all:
+            items = row.find_all("td")
+            try:
+                items[2].contents[0]
+                transactions.append(row)
+            except:
+                pass
+        return transactions
