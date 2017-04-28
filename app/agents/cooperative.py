@@ -96,9 +96,8 @@ class Cooperative(Miner):
         list_all = self.browser.select(".transaction-row")
         for row in list_all:
             items = row.find_all("td")
-            try:
-                items[2].contents[0]
+            if len(items[2].contents) >= 1:
                 transactions.append(row)
-            except:
+            else:
                 pass
         return transactions
