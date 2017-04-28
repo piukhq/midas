@@ -30,9 +30,8 @@ class TestVirginFail(unittest.TestCase):
     def test_login_fail(self):
         m = Virgin(1, 1)
         credentials = {
-            'username': 'bad',
+            'username': '1000000000',
             'password': '321321321',
-            'card_number': '1000000000',
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
