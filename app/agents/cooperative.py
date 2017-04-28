@@ -98,6 +98,4 @@ class Cooperative(Miner):
             items = row.find_all("td")
             if len(items[2].contents) >= 1:
                 transactions.append(row)
-            else:
-                pass
         return transactions
