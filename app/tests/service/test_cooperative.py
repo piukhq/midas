@@ -27,12 +27,9 @@ class TestCooperative(unittest.TestCase):
 
 class TestCooperativeFail(unittest.TestCase):
     def test_failed_login(self):
-        credentials = {}
-        credentials['email'] = 'chris.gormley2@me.com.com'
-        credentials['password'] = 'test'
         b = Cooperative(1, 1)
         with self.assertRaises(LoginError) as e:
-            b.attempt_login(credentials)
+            b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 
