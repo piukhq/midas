@@ -14,8 +14,9 @@ CREDENTIALS = {
     },
     "avios_api": {
         'card_number': '3081471022657083',
-        'date_of_birth': '01/01/1974',
         'last_name': 'GORMLEY',
+        #  DoB not used for login or asked for in Hermes
+        # 'date_of_birth': '01/01/1974',
     },
     "british-airways": {
         'username': "49932498",
