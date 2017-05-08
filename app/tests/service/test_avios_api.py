@@ -9,7 +9,8 @@ from app.agents import schemas
 class TestAviosAPI(unittest.TestCase):
 
     @classmethod
-    def setUpClass(cls):
+    @mock.patch('app.agents.avios_api.sentry')
+    def setUpClass(cls, mock_sentry):
         cls.b = Avios(1, 1)
         cls.b.attempt_login(CREDENTIALS["avios_api"])
 
@@ -31,8 +32,7 @@ class TestAviosFakeLogin(unittest.TestCase):
     @mock.patch('app.agents.avios_api.sentry')
     def test_missing_card_number(self, mock_sentry):
         credentials = {
-            'date_of_birth': '11/03/1985',
-            'last_name': 'AEAKPN',
+            CREDENTIALS["avios_api"]["last_name"],
         }
 
         self.a.attempt_login(credentials)
@@ -53,11 +53,8 @@ class TestAviosFail(unittest.TestCase):
 
     @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_card_number(self, mock_sentry):
-        credentials = {
-            'card_number': '0000000000000000',
-            'date_of_birth': '11/03/1985',
-            'last_name': 'AEAKPN',
-        }
+        credentials = CREDENTIALS["avios_api"]
+        credentials['card_number'] = '0000000000000000'
 
         with self.assertRaises(LoginError) as e:
             self.a.attempt_login(credentials)
@@ -65,25 +62,10 @@ class TestAviosFail(unittest.TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    def test_login_bad_date_of_birth(self):
-        credentials = {
-            'card_number': '3081471018143650',
-            'date_of_birth': '24/09/1984',
-            'last_name': 'AEAKPN',
-        }
-
-        with self.assertRaises(LoginError) as e:
-            self.a.attempt_login(credentials)
-
-        self.assertEqual(e.exception.code, 403)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
-
-    def test_login_bad_last_name(self):
-        credentials = {
-            'card_number': '3081471018143650',
-            'date_of_birth': '11/03/1985',
-            'last_name': 'badbadbad',
-        }
+    @mock.patch('app.agents.avios_api.sentry')
+    def test_login_bad_last_name(self, mock_sentry):
+        credentials = CREDENTIALS["avios_api"]
+        credentials['last_name'] = 'badbadbad'
 
         with self.assertRaises(LoginError) as e:
             self.a.attempt_login(credentials)
