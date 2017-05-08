@@ -12,7 +12,7 @@ class TestAviosAPI(unittest.TestCase):
     @mock.patch('app.agents.avios_api.sentry')
     def setUpClass(cls, mock_sentry):
         cls.b = Avios(1, 1)
-        cls.b.attempt_login(CREDENTIALS["avios_api"])
+        cls.b.attempt_login(CREDENTIALS['avios_api'])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
@@ -32,7 +32,7 @@ class TestAviosFakeLogin(unittest.TestCase):
     @mock.patch('app.agents.avios_api.sentry')
     def test_missing_card_number(self, mock_sentry):
         credentials = {
-            CREDENTIALS["avios_api"]["last_name"],
+            'last_name': CREDENTIALS['avios_api']['last_name'],
         }
 
         self.a.attempt_login(credentials)
@@ -53,7 +53,7 @@ class TestAviosFail(unittest.TestCase):
 
     @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_card_number(self, mock_sentry):
-        credentials = CREDENTIALS["avios_api"]
+        credentials = CREDENTIALS['avios_api']
         credentials['card_number'] = '0000000000000000'
 
         with self.assertRaises(LoginError) as e:
@@ -64,7 +64,7 @@ class TestAviosFail(unittest.TestCase):
 
     @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_last_name(self, mock_sentry):
-        credentials = CREDENTIALS["avios_api"]
+        credentials = CREDENTIALS['avios_api']
         credentials['last_name'] = 'badbadbad'
 
         with self.assertRaises(LoginError) as e:
