@@ -74,7 +74,7 @@ class Tesco(Miner):
             self.browser.select('span#pointsTotal')[0].contents[0].strip()
             )
         value = self.calculate_point_value(points)
-        balance_field = self.browser.select('#ltrCurrofferVuchers')
+        balance_field = self.browser.select('td#vouchersTotal')
 
         if len(balance_field) > 0:
             balance = extract_decimal(balance_field[0].contents[0].strip())
@@ -101,9 +101,7 @@ class Tesco(Miner):
         self.open_url('https://secure.tesco.com/Clubcard/MyAccount/Points/Home')
 
         # check if there's a security layer
-        mfa_url = ('https://secure.tesco.com/Clubcard/MyAccount/Account'
-                   '/SecurityHome?from=https%3A%2F%2Fsecure.tesco.com'
-                   '%2Fclubcard%2Fmyaccount%2Fpoints%2Fhome')
+        mfa_url = ('https://secure.tesco.com/Clubcard/MyAccount/Account/SecurityHome')
 
         if self.browser.url.startswith(mfa_url):
             self.do_mfa_login()
