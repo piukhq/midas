@@ -298,10 +298,14 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "UOHansbrics7",
     },
+    "marriott": {
+        "email": "chris.gormley2@me.com",
+        "password": "Password123",
+    },
     "hilton-honors": {
         "username": "591806745",
         "password": "MGHansbrics6"
-    }
+    },
 }
 
 
