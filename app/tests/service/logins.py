@@ -298,6 +298,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "UOHansbrics7",
     },
+    "hilton-honors": {
+        "username": "591806745",
+        "password": "MGHansbrics6"
+    }
 }
 
 
