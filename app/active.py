@@ -71,4 +71,5 @@ AGENTS = {
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
     'pure-hmv': 'hmv.HMV',
     'star-rewards': 'star_rewards.StarRewards',
+    'hilton_honors': 'hilton_honors.Hilton'
 }
