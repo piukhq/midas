@@ -17,38 +17,17 @@ flake8:
   tags:
     - docker
 
-deploy_dev:
+deploy:
   stage: deploy
-  environment: dev
   script:
-    - docker build -t hellobink/midas:dev .
-    - docker login -u binkautomation -p epitome-generic-basilisk
-    - docker push hellobink/midas:dev
+    - docker build -t registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID -t registry.gitlab.com/hellobink/olympus/midas/image:latest .
+    - docker login registry.gitlab.com -u binkautomation -p $REPO_PASS
+    - docker push registry.gitlab.com/hellobink/olympus/midas/image:latest
+    - docker push registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID
+    - docker rmi registry.gitlab.com/hellobink/olympus/midas/image:latest
+    - docker rmi registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID
   only:
     - master
   tags:
     - shell
 
-deploy_staging:
-  stage: deploy
-  environment: staging
-  script:
-    - docker build -t hellobink/midas:staging .
-    - docker login -u binkautomation -p epitome-generic-basilisk
-    - docker push hellobink/midas:staging
-  only:
-    - staging
-  tags:
-    - shell
-
-deploy_production:
-  stage: deploy
-  environment: production
-  script:
-    - docker build -t hellobink/midas:production .
-    - docker login -u binkautomation -p epitome-generic-basilisk
-    - docker push hellobink/midas:production
-  only:
-    - production
-  tags:
-    - shell
