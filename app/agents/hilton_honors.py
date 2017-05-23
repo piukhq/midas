@@ -4,7 +4,7 @@ import time
 
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, AgentError, TRIPPED_CAPTCHA
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
 from selenium import webdriver
@@ -34,22 +34,27 @@ class Hilton(Miner):
 
         self.scheme_id = scheme_id
         self.retry_count = retry_count
-        self.points = 0
+        self.points = None
 
     def login(self, credentials):
-        self.browser.get(self.LOGIN_URL)
+        try:
+            self.browser.get(self.LOGIN_URL)
 
-        # set username
-        self.browser.find_element_by_xpath('//input[@id="username"]').send_keys(credentials['username'])
-        time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
+            # set username
+            self.browser.find_element_by_xpath('//input[@id="username"]').send_keys(credentials['username'])
+            time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
 
-        # set password
-        self.browser.find_element_by_xpath('//input[@id="password"]').send_keys(credentials['password'])
-        time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
+            # set password
+            self.browser.find_element_by_xpath('//input[@id="password"]').send_keys(credentials['password'])
+            time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
 
-        # submit the form and login!
-        self.browser.find_element_by_xpath('//div[@id="main"]/form/p/a[@class="linkBtn"]').click()
-        time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
+            # submit the form and login!
+            self.browser.find_element_by_xpath('//div[@id="main"]/form/p/a[@class="linkBtn"]').click()
+            time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
+
+        except:
+            self.quit_selenium()
+            raise AgentError(UNKNOWN)
 
         self._find_captcha()
 
@@ -59,9 +64,9 @@ class Hilton(Miner):
             time.sleep(random.randint(5, 10) * 0.1)
 
             self.points = extract_decimal(points_elem.text)
+
         except:
-            self.browser.quit()
-            self.display.stop()
+            self.quit_selenium()
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
@@ -80,31 +85,45 @@ class Hilton(Miner):
         }
 
     def scrape_transactions(self):
-        self.browser.get(self.ALL_TRANSACTION_URL)
+        try:
+            self.browser.get(self.ALL_TRANSACTION_URL)
 
-        transactions = []
-        table = self.browser.find_element_by_xpath(self.TRANSACTION_TABLE_PATH)
-        rows = table.find_elements_by_tag_name('tr')
+            transactions = []
+            table = self.browser.find_element_by_xpath(self.TRANSACTION_TABLE_PATH)
+            rows = table.find_elements_by_tag_name('tr')
 
-        for row in rows:
-            columns = row.find_elements_by_tag_name('td')
+            for row in rows:
+                columns = row.find_elements_by_tag_name('td')
 
-            if len(columns) > 1:
-                # Filter row with 1 column as they are just empty
-                # Expected structure: [0]Date| [1]''[2]Description[3]''| [4]Points Earned| [5] Miles earned| [6]Action
-                transactions.append({
-                    'date': columns[0].text,
-                    'description': columns[2].text,
-                    'points_earned': columns[4].text,
-                    'miles_earned': columns[5].text,
-                    'action': columns[6].text
-                })
-        return transactions
+                if len(columns) > 1:
+                    # Filter row with 1 column as they are just empty
+                    # Expected structure: [0]Date| [1]''| [2]Description| [3]''|
+                    #                     [4]Points Earned| [5] Miles earned| [6]Action
+                    transactions.append({
+                        'date': columns[0].text,
+                        'description': columns[2].text,
+                        'points_earned': columns[4].text,
+                        'miles_earned': columns[5].text,
+                        'action': columns[6].text
+                    })
+            return transactions
+
+        except:
+            raise AgentError(UNKNOWN)
+
+        finally:
+            self.quit_selenium()
 
     def _find_captcha(self):
         try:
             self.browser.find_element_by_id('divcaptcha')
             # if does not raise NoSuchElementException we have a captcha
+            self.quit_selenium()
             raise AgentError(TRIPPED_CAPTCHA)
+
         except NoSuchElementException:
             pass  # all good captcha not present
+
+    def quit_selenium(self):
+        self.browser.quit()
+        self.display.stop()
