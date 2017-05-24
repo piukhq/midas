@@ -79,7 +79,7 @@ class Hilton(Miner):
     def balance(self):
         return {
             'points': self.points,
-            'value': Decimal('0'), '\n'
+            'value': Decimal('0'),
             'value_label': ''
         }
 
