@@ -18,6 +18,9 @@ RUN addgroup --gid 1550 apps && \
  pip3 install uwsgi && \
  pip3 install -r /usr/local/src/midas/requirements.txt && \
  chown apps:apps /usr/local/src -R && \
+ curl -L 'https://github.com/mozilla/geckodriver/releases/download/v0.16.1/geckodriver-v0.16.1-linux64.tar.gz' -o /tmp/geckodriver.tar.gz && \
+ tar xzf /tmp/geckodriver.tar.gz && \
+ mv geckodriver /usr/local/bin/  && \
  apt-get -y remove rsync git git-core curl && \
  apt-get -y autoremove && \
  apt-get clean && \
