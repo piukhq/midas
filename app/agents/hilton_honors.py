@@ -10,7 +10,6 @@ from decimal import Decimal
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from xvfbwrapper import Xvfb
-from selenium.webdriver.common.keys import Keys
 
 
 class Hilton(Miner):
@@ -50,7 +49,7 @@ class Hilton(Miner):
             time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
 
             # submit the form and login!
-            self.browser.find_element_by_xpath('//input[@id="password"]').send_keys(Keys.RETURN)
+            self.browser.find_element_by_xpath('//div[@id="main"]/form/p/a[@class="linkBtn"]').click()
             time.sleep(random.randint(10, 20) * 0.1)  # we have less chances to get captcha
 
         except:
@@ -67,19 +66,13 @@ class Hilton(Miner):
             self.points = extract_decimal(points_elem.text)
 
         except:
-            self.browser.implicitly_wait(0)
-            error_message = self.browser.find_elements_by_id('invalidCredentials')
             self.quit_selenium()
-            if len(error_message) == 0:
-                raise AgentError(UNKNOWN)
-
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         return {
             'points': self.points,
-            'value': Decimal('0'), '\n'
+            'value': Decimal('0'),
             'value_label': ''
         }
 
