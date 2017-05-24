@@ -10,6 +10,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 class Marriott(Miner):
 
+    web_driver = None
+    points = None
+
     def login(self, credentials):
         try:
             self.display = Xvfb()
@@ -33,7 +36,8 @@ class Marriott(Miner):
                 lambda web_driver: self.web_driver.find_element_by_id(id)
             )
 
-            points_xpath = '//a[@id="header-rewards-panel-trigger"]/span[@class="t-header-subtext"]'
+            points_xpath = '//dl[@class="l-password-actions l-margin-bottom-three-quarters"]' \
+                           '/dd[@class="t-font-semi-bold t-form-font"]'
             points_element = self.web_driver.find_element_by_xpath(points_xpath)
             self.points = extract_decimal(points_element.text)
 
