@@ -1,6 +1,7 @@
 from decimal import Decimal
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN, TRIPPED_CAPTCHA
+
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 
@@ -12,11 +13,13 @@ class Kfc(Miner):
                 "grant_type": "password",
                 "client_id": "14_1ympi31f1tk0kco8kkc4cko48gg804csowcs4g4w4ckco80w0k"}
 
-        self.browser.open("https://www.kfc.co.uk/ccapi/oauth/v2/token", method='post', json=data)
+        self.browser.open("https://www.kfc.co.uk/ccapi/oauth/v2/token", method="post", json=data)
 
         if self.browser.response.status_code != 200:
-            if self.browser.response.json().get('error') == 'invalid_grant':
+            if self.browser.response.json().get("error") == "invalid_grant":
                 raise LoginError(STATUS_LOGIN_FAILED)
+            elif "Recaptcha" in self.browser.response.json().get("error"):
+                raise LoginError(TRIPPED_CAPTCHA)
             raise LoginError(UNKNOWN)
 
         access_token = self.browser.response.json()["access_token"]
@@ -24,9 +27,9 @@ class Kfc(Miner):
 
     def calculate_label(self, points):
         return self.calculate_tiered_reward(points, [
-            (11, '£5 off'),
-            (7, 'free snack'),
-            (3, 'free side'),
+            (11, "£5 off"),
+            (7, "free snack"),
+            (3, "free side"),
         ])
 
     def balance(self):
@@ -38,10 +41,10 @@ class Kfc(Miner):
         points %= 11
 
         return {
-            'points': points,
-            'value': Decimal('0'),
-            'value_label': self.calculate_label(points),
+            "points": points,
+            "value": Decimal("0"),
+            "value_label": self.calculate_label(points),
         }
 
     def scrape_transactions(self):
-        return None
+        return []
