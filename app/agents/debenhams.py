@@ -35,7 +35,6 @@ class Debenhams(Miner):
         elif error and error[0].get_text().strip().startswith('Account locked'):
             raise LoginError(STATUS_ACCOUNT_LOCKED)
 
-
         error = self.browser.select('.error-message')
         if error and error[0].get_text().strip().startswith('Password incorrect'):
             raise LoginError(STATUS_LOGIN_FAILED)
