@@ -1,6 +1,6 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, AgentError
-from app.agents.exceptions import STATUS_LOGIN_FAILED, UNKNOWN
+from app.agents.exceptions import LoginError
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from selenium import webdriver
 from xvfbwrapper import Xvfb
@@ -40,6 +40,7 @@ class Marriott(Miner):
                            '/dd[@class="t-font-semi-bold t-form-font"]'
             points_element = self.web_driver.find_element_by_xpath(points_xpath)
             self.points = extract_decimal(points_element.text)
+            self.quit_selenium()
 
         except:
             try:
@@ -47,14 +48,12 @@ class Marriott(Miner):
                 error_text = 'Incorrect email address, Rewards number and/or password.'
                 self.web_driver.implicitly_wait(0)
                 if self.web_driver.find_element_by_xpath(error_element).text == error_text:
+                    self.quit_selenium()
+                    raise LoginError(STATUS_LOGIN_FAILED)
                     pass
-            except:
-                raise AgentError(UNKNOWN)
-
-            raise LoginError(STATUS_LOGIN_FAILED)
-
-        finally:
-            self.quit_selenium()
+            except Exception as e:
+                self.quit_selenium()
+                raise e
 
     def balance(self):
         return {
@@ -71,5 +70,10 @@ class Marriott(Miner):
         return []
 
     def quit_selenium(self):
-        self.web_driver.quit()
-        self.display.stop()
+        try:
+            self.web_driver.quit()
+            self.display.stop()
+
+        except Exception as e:
+            self.display.stop()
+            raise e
