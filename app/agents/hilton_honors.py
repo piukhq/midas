@@ -17,10 +17,8 @@ class Hilton(Miner):
 
     MAX_WAITING_TIME_SELENIUM = 5
     LOGIN_URL = 'https://secure3.hilton.com/en/hh/customer/login/index.htm'
-    ALL_TRANSACTION_URL = 'https://secure3.hilton.com/en/hh/customer/account/allPointActivity.htm'
-    POINTS_PATH = '//div[@id="my_account_grid_top_middle"]/h2/strong[@class="points"]'
-    TRANSACTION_TABLE_PATH = '//html/body/div[@id="body_wrapper"]/div/div[@id="main_content"]/div/div/div/' \
-        'table[@class="hhonors_table accordion "]/tbody'
+    POINTS_PATH = '//div[@class="account_info_summary_sub"]/dl/dd[3]'
+    TRANSACTION_TABLE_PATH = '//table[@class="hhonors_table accordion "]/tbody'
 
     def __init__(self, retry_count, scheme_id):
         try:
@@ -84,8 +82,6 @@ class Hilton(Miner):
 
         # transaction scraping - done here so we can quit selenium no matter what is asked for
         try:
-            self.browser.get(self.ALL_TRANSACTION_URL)
-
             self.transactions_list = []
             table = self.browser.find_element_by_xpath(self.TRANSACTION_TABLE_PATH)
             rows = table.find_elements_by_tag_name('tr')
@@ -93,7 +89,7 @@ class Hilton(Miner):
             for row in rows:
                 columns = row.find_elements_by_tag_name('td')
 
-                if len(columns) > 1:
+                if len(columns) > 3:
                     # Filter row with 1 column as they are just empty
                     # Expected structure: [0]Date| [1]''| [2]Description| [3]''|
                     #                     [4]Points Earned| [5] Miles earned| [6]Action
