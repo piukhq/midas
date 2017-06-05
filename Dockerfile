@@ -16,6 +16,7 @@ RUN addgroup --gid 1550 apps && \
  rsync -a --remove-source-files /usr/local/src/midas/docker_root/ / && \
  pip3 install --upgrade pip && \
  pip3 install uwsgi && \
+ pip3 install pytest && \
  pip3 install -r /usr/local/src/midas/requirements.txt && \
  chown apps:apps /usr/local/src -R && \
  curl -L 'https://github.com/mozilla/geckodriver/releases/download/v0.16.1/geckodriver-v0.16.1-linux64.tar.gz' -o /tmp/geckodriver.tar.gz && \
