@@ -20,7 +20,6 @@ class Marriott(Miner):
 
             firefox_profile = webdriver.FirefoxProfile()
             firefox_profile.set_preference('permissions.default.image', 2)
-            firefox_profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
 
             self.web_driver = webdriver.Firefox(firefox_profile=firefox_profile)
             self.web_driver.implicitly_wait(15)
