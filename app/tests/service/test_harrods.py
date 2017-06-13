@@ -13,7 +13,7 @@ class TestHarrods(unittest.TestCase):
         cls.h.attempt_login(CREDENTIALS['harrods'])
 
     def test_login(self):
-        self.assertEqual(self.h.browser.url, 'https://www.harrods.com/Pages/Account/Secure/AccountHome.aspx')
+        self.assertTrue(self.h.is_login_successful())
 
     def test_balance(self):
         b = self.h.balance()
