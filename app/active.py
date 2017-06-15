@@ -71,6 +71,6 @@ AGENTS = {
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
     'pure-hmv': 'hmv.HMV',
     'star-rewards': 'star_rewards.StarRewards',
-    'marriott-rewards-card': 'marriott.Marriott',
-    'hilton-hhonors': 'hilton_honors.Hilton',
+    # 'marriott-rewards-card': 'marriott.Marriott',     # Selenium agent disabled until the Docker-py work is complete
+    # 'hilton-hhonors': 'hilton_honors.Hilton',         # Selenium agent disabled until the Docker-py work is complete
 }
