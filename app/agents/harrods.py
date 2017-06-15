@@ -48,7 +48,7 @@ class Harrods(Miner):
         return {
             'date': arrow.get(row[0], 'DD/MM/YYYY'),
             'description': row[1],
-            'points': Decimal(row[2]),
+            'points': row[2],
         }
 
     def scrape_transactions(self):
@@ -65,7 +65,9 @@ class Harrods(Miner):
             self.open_url(order_detail_page)
             date = data[0].contents[0].strip()
             description = order_number + ' - ' + status
-            points = self.browser.select('li.oitem_detail-item--points > div.oitem_detail-value')[0].contents[0]
+            total_selector = 'li.oitem_detail-item--total > div.oitem_detail-value > div.price > span.price_amount'
+            total_value = extract_decimal(self.browser.select(total_selector)[0].contents[0])
+            points = round(total_value, 0)
 
             transaction_list.append([
                 date,
