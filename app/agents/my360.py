@@ -38,10 +38,10 @@ class My360(Miner):
                 raise LoginError(END_SITE_DOWN)
 
         if all(key in ['points', 'valid', 'uid'] for key in loyalty_data.keys()):
-            if loyalty_data['valid'] == False:
+            if not loyalty_data['valid']:
                 raise LoginError(STATUS_LOGIN_FAILED)
 
-            elif loyalty_data['valid'] == True:
+            elif loyalty_data['valid']:
                 self.points = loyalty_data['points']
 
         elif 'error' in loyalty_data:
