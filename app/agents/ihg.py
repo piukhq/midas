@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, AgentError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
@@ -7,26 +7,67 @@ import arrow
 
 class Ihg(Miner):
     def login(self, credentials):
-        self.open_url('https://www.ihg.com/rewardsclub/gb/en/account/home')
 
-        login_form = self.browser.get_form('walletLoginForm')
-        login_form['emailOrPcrNumber'] = credentials['username']
-        login_form['password'] = credentials['pin']
-        self.browser.submit_form(login_form)
-
-        error_box = self.browser.select('#loginError > div.alert-content')
-        if error_box:
-            message = error_box[0].text.strip()
-            failures = [
+        def error_message_check(message):
+            known_error_messages = [
                 'We cannot find the email address',
                 'The IHG Rewards Club member number, email address or pin provided',
-                'Your PIN must be 4-digits in length.',
+                'The page you are trying to view'
             ]
 
-            if any(message.startswith(x) for x in failures):
+            if any(message.startswith(error) for error in known_error_messages):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
-        if not error_box:
+        self.open_url('https://www.ihg.com/rewardsclub/gb/en/account/home')
+
+        login_url = 'https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=' \
+                    'https://www.ihg.com/rewardsclub/gb/en/account/home'
+
+        form_fields_html = self.browser.select('div.stand-out > div.form-element')
+        for field in form_fields_html:
+            field_text = field.select('label.field-label')[0].text
+            if field_text.startswith('Email or Member #'):
+                user_field = field['class'][2]
+
+            elif field_text.startswith('PIN #'):
+                password_field = field['class'][2]
+
+            else:
+                empty_form_field = field['class'][2]
+
+        for field_class in user_field, password_field, empty_form_field:
+            check = 'pPRfurr'
+
+            if not field_class.startswith(check):
+                raise AgentError('Login form classes should start with: "' + check + '". Not found on page')
+
+        headers = {
+            'Referer': login_url,
+            'Origin': 'https://www.ihg.com'
+        }
+
+        data = {
+            'formSubmit': 'true',
+            'currentUrl': login_url,
+            'cookieFlag': 'true',
+            user_field: credentials['username'],
+            password_field: credentials['pin'],
+            empty_form_field: ''
+        }
+
+        self.browser.open(login_url, method='post', headers=headers, data=data)
+
+        error_box = self.browser.select('p.error-server')
+        long_pin_error_box = self.browser.select('div#tpiSignHeaderCont > p')
+        if error_box:
+            message = error_box[0].text.strip()
+            error_message_check(message)
+
+        elif long_pin_error_box:
+            message = long_pin_error_box[0].text.strip()
+            error_message_check(message)
+
+        else:
             self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
 
     def balance(self):
