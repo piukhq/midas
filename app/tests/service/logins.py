@@ -306,7 +306,7 @@ CREDENTIALS = {
         "username": "591806745",
         "password": "MGHansbrics6"
     },
-    "food-cellar": {
+    "the-food-cellar": {
         "barcode": "7JQv4LGHwz",
         "scheme_identifier": "-fdK4i",
     }

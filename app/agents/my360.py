@@ -5,10 +5,13 @@ from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_
 from app.active import AGENTS
 import json
 
-# Make agent work for all schemes
+
 # list_of_active_my360_schemes = [my360_scheme for scheme in AGENTS if AGENTS[scheme] == 'my360.My360']
 class My360(Miner):
     points = None
+    scheme_dictionary = {
+        'the-food-cellar': '-fdK4i',
+    }
 
     def is_login_successful(self):
         if self.points:
@@ -19,10 +22,10 @@ class My360(Miner):
 
     def login(self, credentials):
         user_identifier = credentials['barcode']
-        scheme_identifier = credentials['scheme_identifier']
+        scheme_api_identifier = self.scheme_dictionary[self.scheme_slug]
 
         url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
-            scheme_identifier,
+            scheme_api_identifier,
             user_identifier
         )
         self.browser.open(url)

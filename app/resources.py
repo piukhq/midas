@@ -78,7 +78,7 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
 
         try:
             status = 1
@@ -120,7 +120,7 @@ class Transactions(Resource):
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
 
         try:
             status = 1
@@ -152,7 +152,7 @@ class AccountOverview(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
 
         try:
             account_overview = agent_instance.account_overview()
@@ -210,7 +210,7 @@ class AgentQuestions(Resource):
             if k != 'scheme_slug':
                 questions[k] = v
 
-        agent = get_agent_class(scheme_slug)(1, 1)
+        agent = get_agent_class(scheme_slug)(1, 1, scheme_slug)
         return agent.update_questions(questions)
 
 
@@ -235,10 +235,10 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials, scheme_account_id):
+def agent_login(agent_class, credentials, scheme_account_id, scheme_slug):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
     retry_count = retry.get_count(key)
-    agent_instance = agent_class(retry_count, scheme_account_id)
+    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug)
     try:
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:
