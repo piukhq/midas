@@ -304,12 +304,165 @@ CREDENTIALS = {
     },
     "hilton-honors": {
         "username": "591806745",
-        "password": "MGHansbrics6"
+        "password": "MGHansbrics6",
     },
     "the-food-cellar": {
         "barcode": "7JQv4LGHwz",
-        "scheme_identifier": "-fdK4i",
-    }
+    },
+    'stansted-farm': {
+        "barcode": "",
+    },
+    'the-courtyard': {
+        "barcode": "",
+    },
+    '19-fourteas-tea-rooms': {
+        "barcode": "",
+    },
+    'bored-of-southsea': {
+        "barcode": "",
+    },
+    'game-over-café': {
+        "barcode": "",
+    },
+    'mad-hatters': {
+        "barcode": "",
+    },
+    'watkins-and-faux': {
+        "barcode": "",
+    },
+    'northney-farm-tea-room': {
+        "barcode": "",
+    },
+    'shakeadelic': {
+        "barcode": "",
+    },
+    'drift-bar': {
+        "barcode": "",
+    },
+    'poppins-restaurant': {
+        "barcode": "",
+    },
+    'polka-dot-piercing': {
+        "barcode": "",
+    },
+    'nanoo-hair': {
+        "barcode": "",
+    },
+    'comics-games-and-coffee': {
+        "barcode": "",
+    },
+    'the-richmond': {
+        "barcode": "",
+    },
+    'tennessee-chicken': {
+        "barcode": "",
+    },
+    'cliff-roe-sports': {
+        "barcode": "",
+    },
+    'michael-chell': {
+        "barcode": "",
+    },
+    'the-food-cellar': '-fdK4i',
+    'hewetts': {
+        "barcode": "",
+    },
+    'fit-stuff': {
+        "barcode": "",
+    },
+    'café-copia': {
+        "barcode": "",
+    },
+    'bear-garden': {
+        "barcode": "",
+    },
+    'fresco-delikafessen': {
+        "barcode": "",
+    },
+    'henley-sports': {
+        "barcode": "",
+    },
+    'the-chocolate-café': {
+        "barcode": "",
+    },
+    'ted-james-barbershop': {
+        "barcode": "",
+    },
+    'bubble-city': {
+        "barcode": "",
+    },
+    'peewees': {
+        "barcode": "",
+    },
+    'turners-pies': {
+        "barcode": "",
+    },
+    'the-vestry': {
+        "barcode": "",
+    },
+    'laurence-menswear': {
+        "barcode": "",
+    },
+    'gatsby-menswear': {
+        "barcode": "",
+    },
+    'celo-tan-and-lash': {
+        "barcode": "",
+    },
+    'linda-h': {
+        "barcode": "",
+    },
+    'moffats': {
+        "barcode": "",
+    },
+    'tiffin-tea-rooms': {
+        "barcode": "",
+    },
+    'strawberry-vibes': {
+        "barcode": "",
+    },
+    'magoos': {
+        "barcode": "",
+    },
+    'ians-barbers': {
+        "barcode": "",
+    },
+    'everybody-pilates': {
+        "barcode": "",
+    },
+    'nevaeh-hair': {
+        "barcode": "",
+    },
+    'the-marmion': {
+        "barcode": "",
+    },
+    'funland': {
+        "barcode": "",
+    },
+    'the-nags-head': {
+        "barcode": "",
+    },
+    'beauty-clinic': {
+        "barcode": "",
+    },
+    'grit-gym-mma-and-fitness': {
+        "barcode": "",
+    },
+    'hilites-hair-and-beauty': {
+        "barcode": "",
+    },
+    'the-coffee-co': {
+        "barcode": "",
+    },
+    'thousand-hills': {
+        "barcode": "",
+    },
+    'urban-food': {
+        "barcode": "",
+    },
+    'dhaba-lane': {
+        "barcode": "",
+    },
 }
 
 
