@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 from app.agents.my360 import My360
 from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS
@@ -64,7 +63,7 @@ class TestMy360Fail(unittest.TestCase):
         credentials = dict(CREDENTIALS['the-food-cellar'])
         SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
         self.m.scheme_slug = 'test_wrong'
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             self.m.attempt_login(credentials)
         self.assertEqual(self.m.browser.response.status_code, 401)
 

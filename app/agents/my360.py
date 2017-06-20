@@ -1,10 +1,7 @@
-from urllib.parse import urlencode
 from decimal import Decimal
 from app.agents.base import Miner
 from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN
 from app.my360endpoints import SCHEME_API_DICTIONARY
-from app.active import AGENTS
-import json
 
 
 # list_of_active_my360_schemes = [my360_scheme for scheme in AGENTS if AGENTS[scheme] == 'my360.My360']
