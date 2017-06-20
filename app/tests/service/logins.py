@@ -4,58 +4,58 @@ import json
 
 CREDENTIALS = {
     "tesco-clubcard": {
-        'email': 'julie.gormley100@gmail.com',
-        'password': 'NSHansbrics5',
-        'card_number': '634004024051328070'
+        "email": "julie.gormley100@gmail.com",
+        "password": "NSHansbrics5",
+        "card_number": "634004024051328070"
     },
     "avios": {
-        'email': 'chris.smith4@gmx.co.uk',
-        'password': 'Loyalty1',
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "Loyalty1",
     },
     "avios_api": {
-        'card_number': '3081471022657083',
-        'last_name': 'GORMLEY',
+        "card_number": "3081471022657083",
+        "last_name": "GORMLEY",
         #  DoB not used for login or asked for in Hermes
-        # 'date_of_birth': '01/01/1974',
+        # "date_of_birth": "01/01/1974",
     },
     "british-airways": {
-        'username': "49932498",
-        'password': 'Loyalty1'
+        "username": "49932498",
+        "password": "Loyalty1"
     },
     "advantage-card": {
-        'email': 'loyaltycards01@gmail.com',
-        'password': 'ejUu3Z82in'
+        "email": "loyaltycards01@gmail.com",
+        "password": "ejUu3Z82in"
     },
     "superdrug": {
-        'email': 'julie.gormley100@gmail.com',
-        'password': 'FRHansbrics9'
+        "email": "julie.gormley100@gmail.com",
+        "password": "FRHansbrics9"
     },
     "costa": {
-        'email': 'chris.smith4@gmx.co.uk',
-        'password': 'ZBHansbrics5',
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "ZBHansbrics5",
     },
     "shell": {
-        'username': 'chris.gormley2@me.com',
-        'password': 'KRHansbrics5',
+        "username": "chris.gormley2@me.com",
+        "password": "KRHansbrics5",
     },
     "nectar": {
-        'barcode': '29930842203013',
-        'card_number': '9826300030842203013',
-        'password': 'QMHansbrics6',
+        "barcode": "29930842203013",
+        "card_number": "9826300030842203013",
+        "password": "QMHansbrics6",
     },
     "bad": {
-        'email': '234234@bad.com',
-        'password': '234234',
+        "email": "234234@bad.com",
+        "password": "234234",
     },
     "cooperative": {
-            'email': 'chris.gormley2@me.com',
-            'password': 'OBHansbrics4',
+            "email": "chris.gormley2@me.com",
+            "password": "OBHansbrics4",
             # Card number for this account, not used in login
-            # 'barcode': '633174913210282267'
+            # "barcode": "633174913210282267"
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
-        'password': 'Loyalty1',
+        "password": "Loyalty1",
     },
     "kfc": {
         "email": "chris.gormley2@me.com",
@@ -309,158 +309,157 @@ CREDENTIALS = {
     "the-food-cellar": {
         "barcode": "7JQv4LGHwz",
     },
-    'stansted-farm': {
+    "stansted-farm": {
         "barcode": "",
     },
-    'the-courtyard': {
+    "the-courtyard": {
         "barcode": "",
     },
-    '19-fourteas-tea-rooms': {
+    "19-fourteas-tea-rooms": {
         "barcode": "",
     },
-    'bored-of-southsea': {
+    "bored-of-southsea": {
         "barcode": "",
     },
-    'game-over-café': {
+    "game-over-café": {
         "barcode": "",
     },
-    'mad-hatters': {
+    "mad-hatters": {
         "barcode": "",
     },
-    'watkins-and-faux': {
+    "watkins-and-faux": {
         "barcode": "",
     },
-    'northney-farm-tea-room': {
+    "northney-farm-tea-room": {
         "barcode": "",
     },
-    'shakeadelic': {
+    "shakeadelic": {
         "barcode": "",
     },
-    'drift-bar': {
+    "drift-bar": {
         "barcode": "",
     },
-    'poppins-restaurant': {
+    "poppins-restaurant": {
         "barcode": "",
     },
-    'polka-dot-piercing': {
+    "polka-dot-piercing": {
         "barcode": "",
     },
-    'nanoo-hair': {
+    "nanoo-hair": {
         "barcode": "",
     },
-    'comics-games-and-coffee': {
+    "comics-games-and-coffee": {
         "barcode": "",
     },
-    'the-richmond': {
+    "the-richmond": {
         "barcode": "",
     },
-    'tennessee-chicken': {
+    "tennessee-chicken": {
         "barcode": "",
     },
-    'cliff-roe-sports': {
+    "cliff-roe-sports": {
         "barcode": "",
     },
-    'michael-chell': {
+    "michael-chell": {
         "barcode": "",
     },
-    'the-food-cellar': '-fdK4i',
-    'hewetts': {
+    "hewetts": {
         "barcode": "",
     },
-    'fit-stuff': {
+    "fit-stuff": {
         "barcode": "",
     },
-    'café-copia': {
+    "café-copia": {
         "barcode": "",
     },
-    'bear-garden': {
+    "bear-garden": {
         "barcode": "",
     },
-    'fresco-delikafessen': {
+    "fresco-delikafessen": {
         "barcode": "",
     },
-    'henley-sports': {
+    "henley-sports": {
         "barcode": "",
     },
-    'the-chocolate-café': {
+    "the-chocolate-café": {
         "barcode": "",
     },
-    'ted-james-barbershop': {
+    "ted-james-barbershop": {
         "barcode": "",
     },
-    'bubble-city': {
+    "bubble-city": {
         "barcode": "",
     },
-    'peewees': {
+    "peewees": {
         "barcode": "",
     },
-    'turners-pies': {
+    "turners-pies": {
         "barcode": "",
     },
-    'the-vestry': {
+    "the-vestry": {
         "barcode": "",
     },
-    'laurence-menswear': {
+    "laurence-menswear": {
         "barcode": "",
     },
-    'gatsby-menswear': {
+    "gatsby-menswear": {
         "barcode": "",
     },
-    'celo-tan-and-lash': {
+    "celo-tan-and-lash": {
         "barcode": "",
     },
-    'linda-h': {
+    "linda-h": {
         "barcode": "",
     },
-    'moffats': {
+    "moffats": {
         "barcode": "",
     },
-    'tiffin-tea-rooms': {
+    "tiffin-tea-rooms": {
         "barcode": "",
     },
-    'strawberry-vibes': {
+    "strawberry-vibes": {
         "barcode": "",
     },
-    'magoos': {
+    "magoos": {
         "barcode": "",
     },
-    'ians-barbers': {
+    "ians-barbers": {
         "barcode": "",
     },
-    'everybody-pilates': {
+    "everybody-pilates": {
         "barcode": "",
     },
-    'nevaeh-hair': {
+    "nevaeh-hair": {
         "barcode": "",
     },
-    'the-marmion': {
+    "the-marmion": {
         "barcode": "",
     },
-    'funland': {
+    "funland": {
         "barcode": "",
     },
-    'the-nags-head': {
+    "the-nags-head": {
         "barcode": "",
     },
-    'beauty-clinic': {
+    "beauty-clinic": {
         "barcode": "",
     },
-    'grit-gym-mma-and-fitness': {
+    "grit-gym-mma-and-fitness": {
         "barcode": "",
     },
-    'hilites-hair-and-beauty': {
+    "hilites-hair-and-beauty": {
         "barcode": "",
     },
-    'the-coffee-co': {
+    "the-coffee-co": {
         "barcode": "",
     },
-    'thousand-hills': {
+    "thousand-hills": {
         "barcode": "",
     },
-    'urban-food': {
+    "urban-food": {
         "barcode": "",
     },
-    'dhaba-lane': {
+    "dhaba-lane": {
         "barcode": "",
     },
 }

@@ -3,7 +3,11 @@ from unittest import mock
 from app.agents.my360 import My360
 from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS
+from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
+
+# scheme_list = list(SCHEME_API_DICTIONARY) testing with two at the moment
+scheme_list = ['the-food-cellar', 'hewetts']
 
 
 class TestMy360API(unittest.TestCase):
@@ -58,7 +62,7 @@ class TestMy360Fail(unittest.TestCase):
 
     def test_wrong_scheme(self):
         credentials = dict(CREDENTIALS['the-food-cellar'])
-        self.m.scheme_dictionary['test_wrong'] = 'zzzzzzz'
+        SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
         self.m.scheme_slug = 'test_wrong'
         with self.assertRaises(ValueError) as e:
             self.m.attempt_login(credentials)
@@ -66,7 +70,7 @@ class TestMy360Fail(unittest.TestCase):
 
     def test_missing_scheme(self):
         credentials = dict(CREDENTIALS['the-food-cellar'])
-        self.m.scheme_dictionary['test_none'] = ''
+        SCHEME_API_DICTIONARY['test_none'] = ''
         self.m.scheme_slug = 'test_none'
         with self.assertRaises(ValueError):
             self.m.attempt_login(credentials)
