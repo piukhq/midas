@@ -310,158 +310,165 @@ CREDENTIALS = {
         "barcode": "7JQv4LGHwz",
     },
     "stansted-farm": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "the-courtyard": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "19-fourteas-tea-rooms": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "bored-of-southsea": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "game-over-café": {
-        "barcode": "",
-    },
-    "mad-hatters": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "watkins-and-faux": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "northney-farm-tea-room": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "shakeadelic": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "drift-bar": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "poppins-restaurant": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "polka-dot-piercing": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "nanoo-hair": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "comics-games-and-coffee": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "the-richmond": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "tennessee-chicken": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "cliff-roe-sports": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "michael-chell": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "hewetts": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "fit-stuff": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "café-copia": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "bear-garden": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "fresco-delikafessen": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "henley-sports": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "the-chocolate-café": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "ted-james-barbershop": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "bubble-city": {
-        "barcode": "",
-    },
-    "peewees": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "turners-pies": {
-        "barcode": "",
-    },
-    "the-vestry": {
-        "barcode": "",
-    },
-    "laurence-menswear": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "gatsby-menswear": {
-        "barcode": "",
-    },
-    "celo-tan-and-lash": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "linda-h": {
-        "barcode": "",
-    },
-    "moffats": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "tiffin-tea-rooms": {
-        "barcode": "",
-    },
-    "strawberry-vibes": {
-        "barcode": "",
-    },
-    "magoos": {
-        "barcode": "",
-    },
-    "ians-barbers": {
-        "barcode": "",
-    },
-    "everybody-pilates": {
-        "barcode": "",
-    },
-    "nevaeh-hair": {
-        "barcode": "",
-    },
-    "the-marmion": {
-        "barcode": "",
-    },
-    "funland": {
-        "barcode": "",
-    },
-    "the-nags-head": {
-        "barcode": "",
-    },
-    "beauty-clinic": {
-        "barcode": "",
-    },
-    "grit-gym-mma-and-fitness": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "hilites-hair-and-beauty": {
-        "barcode": "",
-    },
-    "the-coffee-co": {
-        "barcode": "",
-    },
-    "thousand-hills": {
-        "barcode": "",
-    },
-    "urban-food": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
     "dhaba-lane": {
-        "barcode": "",
+        "email": "wpagriffiths@gmail.com",
     },
+    "el-mexicana": {
+        "email": "wpagriffiths@gmail.com",
+    },
+    "deep-blue-restaurants": {
+        "email": "wpagriffiths@gmail.com",
+    },
+    # Other my360 schemes with no test login
+    # "mad-hatters": {
+    #     "": "",
+    # },
+    # "peewees": {
+    #     "": "",
+    # },
+    # "the-vestry": {
+    #     "": "",
+    # },
+    # "laurence-menswear": {
+    #     "": "",
+    # },
+    # "celo-tan-and-lash": {
+    #     "": "",
+    # },
+    # "moffats": {
+    #     "": "",
+    # },
+    # "strawberry-vibes": {
+    #     "": "",
+    # },
+    # "magoos": {
+    #     "": "",
+    # },
+    # "ians-barbers": {
+    #     "": "",
+    # },
+    # "everybody-pilates": {
+    #     "": "",
+    # },
+    # "nevaeh-hair": {
+    #     "": "",
+    # },
+    # "the-marmion": {
+    #     "": "",
+    # },
+    # "funland": {
+    #     "": "",
+    # },
+    # "the-nags-head": {
+    #     "": "",
+    # },
+    # "beauty-clinic": {
+    #     "": "",
+    # },
+    # "grit-gym-mma-and-fitness": {
+    #     "": "",
+    # },
+    # "the-coffee-co":  {
+    #     "": "",
+    # },
+    # "thousand-hills": {
+    #     "": "",
+    # },
+    # "urban-food": {
+    #     "": "",
+    # },
 }
 
 

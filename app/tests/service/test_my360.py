@@ -5,16 +5,16 @@ from app.tests.service.logins import CREDENTIALS
 from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
 
-# scheme_list = list(SCHEME_API_DICTIONARY) testing with two at the moment
-scheme_list = ['the-food-cellar', 'hewetts']
 
-
-class TestMy360API(unittest.TestCase):
+class StandardLoginTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, 'the-food-cellar')
-        cls.m.attempt_login(CREDENTIALS['the-food-cellar'])
+        cls.m = My360(1, 1, '')
+
+    def setUp(self):
+        self.m.scheme_slug = self.SCHEME_NAME
+        self.m.attempt_login(self.SAVED_CREDENTIALS)
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -32,45 +32,76 @@ class TestMy360API(unittest.TestCase):
         schemas.transactions(transactions)
 
 
-class TestMy360Fail(unittest.TestCase):
+class StandardLoginFailTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, 'the-food-cellar')
+        cls.m = My360(1, 1, '')
+
+    def setUp(self):
+        self.m.scheme_slug = self.SCHEME_NAME
+        self.credentials = dict(self.SAVED_CREDENTIALS)
+        self.credential_type = next(iter(self.credentials))
 
     def test_login_wrong_barcode(self):
-        credentials = dict(CREDENTIALS['the-food-cellar'])
-        credentials['barcode'] = 'zzzzzzz'
+        self.credentials[self.credential_type] = 'zzzzzzz'
         with self.assertRaises(LoginError) as e:
-            self.m.attempt_login(credentials)
+            self.m.attempt_login(self.credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_long_barcode(self):
-        credentials = dict(CREDENTIALS['the-food-cellar'])
-        credentials['barcode'] = 'zzzzzzzzzzzzzzzzzzzzzzzzz'
+        self.credentials[self.credential_type] = 'zzzzzzzzzzzzzzzzzzzzzzzzz'
         with self.assertRaises(LoginError) as e:
-            self.m.attempt_login(credentials)
+            self.m.attempt_login(self.credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_missing_barcode(self):
-        credentials = dict(CREDENTIALS['the-food-cellar'])
-        credentials['barcode'] = ''
+        self.credentials[self.credential_type] = ''
         with self.assertRaises(ValueError):
-            self.m.attempt_login(credentials)
+            self.m.attempt_login(self.credentials)
         self.assertEqual(self.m.browser.response.status_code, 404)
 
     def test_wrong_scheme(self):
-        credentials = dict(CREDENTIALS['the-food-cellar'])
         SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
         self.m.scheme_slug = 'test_wrong'
         with self.assertRaises(ValueError):
-            self.m.attempt_login(credentials)
+            self.m.attempt_login(self.credentials)
         self.assertEqual(self.m.browser.response.status_code, 401)
 
     def test_missing_scheme(self):
-        credentials = dict(CREDENTIALS['the-food-cellar'])
         SCHEME_API_DICTIONARY['test_none'] = ''
         self.m.scheme_slug = 'test_none'
         with self.assertRaises(ValueError):
-            self.m.attempt_login(credentials)
+            self.m.attempt_login(self.credentials)
         self.assertEqual(self.m.browser.response.status_code, 404)
+
+
+# Test three my360 agents
+class My360LoginUserIDFoodCellarTest(StandardLoginTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'the-food-cellar'
+    SAVED_CREDENTIALS = CREDENTIALS['the-food-cellar']
+
+
+class My360LoginFailUserIDFoodCellarTest(StandardLoginFailTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'the-food-cellar'
+    SAVED_CREDENTIALS = CREDENTIALS['the-food-cellar']
+
+
+class My360LoginUserEmailDeepBlueTest(StandardLoginTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'deep-blue-restaurants'
+    SAVED_CREDENTIALS = CREDENTIALS['deep-blue-restaurants']
+
+
+class My360LoginFailUserEmailDeepBlueTest(StandardLoginFailTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'deep-blue-restaurants'
+    SAVED_CREDENTIALS = CREDENTIALS['deep-blue-restaurants']
+
+
+class My360LoginUserEmailGameOverTest(StandardLoginTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'game-over-café'
+    SAVED_CREDENTIALS = CREDENTIALS['game-over-café']
+
+
+class My360LoginFailUserEmailGameOverTest(StandardLoginFailTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'game-over-café'
+    SAVED_CREDENTIALS = CREDENTIALS['game-over-café']

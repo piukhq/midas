@@ -16,7 +16,15 @@ class My360(Miner):
             return False
 
     def login(self, credentials):
-        user_identifier = credentials['barcode']
+        if credentials.get('barcode'):
+            user_identifier = credentials['barcode']
+
+        elif credentials.get('email'):
+            user_identifier = credentials['email']
+
+        else:
+            raise ValueError('No valid user details found (Expected: Barcode or Email)')
+
         scheme_api_identifier = SCHEME_API_DICTIONARY[self.scheme_slug]
 
         url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
@@ -46,7 +54,7 @@ class My360(Miner):
             if self.browser.response.status_code == 401:
                 raise ValueError('Invalid scheme ID used')
 
-            elif loyalty_data['error'].startswith("500"):
+            elif loyalty_data['error'].startswith('500'):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
             else:
