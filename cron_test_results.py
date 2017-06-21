@@ -116,7 +116,7 @@ def generate_failures_and_warnings(bad_agents):
 
 
 def get_key_from_classname(classname):
-    return classname.split('.')[0][5:].replace('_', ' ')
+    return classname.split('.')[3][5:].replace('_', ' ')
 
 
 def generate_message(test_results, bad_agents):
@@ -189,7 +189,7 @@ def parse_test_results(test_results):
     parsed_results = {}
 
     for test_case in test_suite['testcase']:
-        classname = test_case['@classname'].split('.')[0]
+        classname = test_case['@classname'].split('.')[3]
 
         has_error, error_text = get_error_from_test_case(test_case)
         error_cause = get_error_cause(error_text)
