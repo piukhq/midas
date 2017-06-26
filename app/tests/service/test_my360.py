@@ -44,29 +44,22 @@ class StandardLoginFailTestsMixin(object):
         self.credential_type = next(iter(self.credentials))
 
     def test_login_wrong_barcode(self):
-        self.credentials[self.credential_type] = 'zzzzzzz'
+        self.credentials['barcode'] = 'zzzzzzz'
         with self.assertRaises(LoginError) as e:
             self.m.attempt_login(self.credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_long_barcode(self):
-        self.credentials[self.credential_type] = 'zzzzzzzzzzzzzzzzzzzzzzzzz'
-        with self.assertRaises(LoginError) as e:
-            self.m.attempt_login(self.credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
-
-    def test_missing_barcode(self):
-        self.credentials[self.credential_type] = ''
+        self.credentials['barcode'] = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
         with self.assertRaises(ValueError):
             self.m.attempt_login(self.credentials)
-        self.assertEqual(self.m.browser.response.status_code, 404)
+        self.assertEqual(self.m.browser.response.status_code, 500)
 
     def test_wrong_scheme(self):
         SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
         self.m.scheme_slug = 'test_wrong'
         with self.assertRaises(ValueError):
             self.m.attempt_login(self.credentials)
-        self.assertEqual(self.m.browser.response.status_code, 401)
 
     def test_missing_scheme(self):
         SCHEME_API_DICTIONARY['test_none'] = ''
@@ -87,21 +80,21 @@ class My360LoginFailUserIDFoodCellarTest(StandardLoginFailTestsMixin, unittest.T
     SAVED_CREDENTIALS = CREDENTIALS['the-food-cellar']
 
 
-class My360LoginUserEmailDeepBlueTest(StandardLoginTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'deep-blue-restaurants'
-    SAVED_CREDENTIALS = CREDENTIALS['deep-blue-restaurants']
+class My360LoginUserEmailCafeCopiaTest(StandardLoginTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'café-copia'
+    SAVED_CREDENTIALS = CREDENTIALS['café-copia']
 
 
-class My360LoginFailUserEmailDeepBlueTest(StandardLoginFailTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'deep-blue-restaurants'
-    SAVED_CREDENTIALS = CREDENTIALS['deep-blue-restaurants']
+class My360LoginFailUserEmailCafeCopiaTest(StandardLoginFailTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'café-copia'
+    SAVED_CREDENTIALS = CREDENTIALS['café-copia']
 
 
-class My360LoginUserEmailGameOverTest(StandardLoginTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'game-over-café'
-    SAVED_CREDENTIALS = CREDENTIALS['game-over-café']
+class My360LoginUserEmailFitStuffTest(StandardLoginTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'fit-stuff'
+    SAVED_CREDENTIALS = CREDENTIALS['fit-stuff']
 
 
-class My360LoginFailUserEmailGameOverTest(StandardLoginFailTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'game-over-café'
-    SAVED_CREDENTIALS = CREDENTIALS['game-over-café']
+class My360LoginFailUserEmailFitStuffTest(StandardLoginFailTestsMixin, unittest.TestCase):
+    SCHEME_NAME = 'fit-stuff'
+    SAVED_CREDENTIALS = CREDENTIALS['fit-stuff']

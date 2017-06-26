@@ -15,50 +15,77 @@ class My360(Miner):
         else:
             return False
 
+    def get_points(self, loyalty_data):
+        if not loyalty_data['valid']:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
+        elif loyalty_data['valid']:
+            return(loyalty_data['points'])
+
+    def email_api_conversion(self, email):
+        keyStr = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-+"
+        ord_email = []
+        encoded_email = ''
+
+        for character in list(email):
+            ord_email.append(ord(character))
+
+        for x in ord_email:
+            if 48 <= x <= 57 or 65 <= x <= 90 or 97 <= x <= 122:
+                encoded_email += '2' + keyStr[x-65]
+            else:
+                encoded_email += keyStr[x-65] + '~'
+
+        return encoded_email
+
+    def check_complete_api_response_and_try_again(self, url):
+        count = 0
+        while count < 5:
+            self.browser.open(url)
+            try:
+                self.loyalty_data = self.browser.response.json()
+
+            except:
+                if self.browser.response.status_code == 404:
+                    raise ValueError('Scheme ID not found')
+
+                else:
+                    raise LoginError(END_SITE_DOWN)
+
+            if all(key in self.loyalty_data.keys() for key in ['points', 'valid']):
+                return True
+
+            else:
+                self.browser.open(url)
+                count += 1
+        return False
+
     def login(self, credentials):
         if credentials.get('barcode'):
             user_identifier = credentials['barcode']
 
         elif credentials.get('email'):
-            user_identifier = credentials['email']
+            user_identifier = self.email_api_conversion(credentials['email'])
 
         else:
             raise ValueError('No valid user details found (Expected: Barcode or Email)')
 
         scheme_api_identifier = SCHEME_API_DICTIONARY[self.scheme_slug]
-
         url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
             scheme_api_identifier,
             user_identifier
         )
-        self.browser.open(url)
 
-        try:
-            loyalty_data = self.browser.response.json()
+        # Rarely the api fails and returns incomplete information so we try a few times
+        if self.check_complete_api_response_and_try_again(url):
+            self.points = self.get_points(self.loyalty_data)
 
-        except:
-            if self.browser.response.status_code == 404:
-                raise ValueError('Status code 404 does not equal 200: Please check user / scheme ID')
-
-            else:
-                raise LoginError(END_SITE_DOWN)
-
-        if all(key in ['points', 'valid', 'uid'] for key in loyalty_data.keys()):
-            if not loyalty_data['valid']:
-                raise LoginError(STATUS_LOGIN_FAILED)
-
-            elif loyalty_data['valid']:
-                self.points = loyalty_data['points']
-
-        elif 'error' in loyalty_data:
-            if self.browser.response.status_code == 401:
-                raise ValueError('Invalid scheme ID used')
-
-            elif loyalty_data['error'].startswith('500'):
-                raise LoginError(STATUS_LOGIN_FAILED)
-
-            else:
-                raise LoginError(UNKNOWN)
+        elif 'error' in self.loyalty_data:
+            if (self.browser.response.status_code == 401 or
+               self.loyalty_data['error'].startswith('500')):
+                # Different schemes use different error responses
+                # so can't make specific LoginErrors
+                raise ValueError('Invalid Scheme ID or User ID')
 
         else:
             raise LoginError(UNKNOWN)
