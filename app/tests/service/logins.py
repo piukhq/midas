@@ -411,64 +411,6 @@ CREDENTIALS = {
     "deep-blue-restaurants": {
         "email": "wpagriffiths@gmail.com",
     },
-    # Other my360 schemes with no test login
-    # "mad-hatters": {
-    #     "": "",
-    # },
-    # "peewees": {
-    #     "": "",
-    # },
-    # "the-vestry": {
-    #     "": "",
-    # },
-    # "laurence-menswear": {
-    #     "": "",
-    # },
-    # "celo-tan-and-lash": {
-    #     "": "",
-    # },
-    # "moffats": {
-    #     "": "",
-    # },
-    # "strawberry-vibes": {
-    #     "": "",
-    # },
-    # "magoos": {
-    #     "": "",
-    # },
-    # "ians-barbers": {
-    #     "": "",
-    # },
-    # "everybody-pilates": {
-    #     "": "",
-    # },
-    # "nevaeh-hair": {
-    #     "": "",
-    # },
-    # "the-marmion": {
-    #     "": "",
-    # },
-    # "funland": {
-    #     "": "",
-    # },
-    # "the-nags-head": {
-    #     "": "",
-    # },
-    # "beauty-clinic": {
-    #     "": "",
-    # },
-    # "grit-gym-mma-and-fitness": {
-    #     "": "",
-    # },
-    # "the-coffee-co":  {
-    #     "": "",
-    # },
-    # "thousand-hills": {
-    #     "": "",
-    # },
-    # "urban-food": {
-    #     "": "",
-    # },
 }
 
 
