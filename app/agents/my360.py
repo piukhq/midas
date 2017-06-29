@@ -79,6 +79,7 @@ class My360(Miner):
         # Rarely the api fails and returns incomplete information so we try a few times
         if self.check_complete_api_response_and_try_again(url):
             self.points = self.get_points(self.loyalty_data)
+            self.user_id = self.loyalty_data['uid']
 
         elif 'error' in self.loyalty_data:
             if (self.browser.response.status_code == 401 or
@@ -95,6 +96,7 @@ class My360(Miner):
             'points': Decimal(self.points),
             'value': Decimal('0'),
             'value_label': '',
+            'data': self.user_id
         }
 
     @staticmethod
