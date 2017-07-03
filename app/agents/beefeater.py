@@ -1,15 +1,18 @@
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
+from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
 class Beefeater(Miner):
-    point_conversion_rate = Decimal('0.002')
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
-        self.open_url('https://www.beefeatergrillrewardclub.co.uk/web/guest/home')
+        self.open_url("https://www.beefeatergrillrewardclub.co.uk/web/guest/home"
+                      "?p_p_id=58&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view"
+                      "&p_p_col_id=content-getting-started-right&p_p_col_count=1&"
+                      "saveLastPath=0&_58_struts_action=%2Flogin%2Flogin")
         form_action = self.browser.select('#_58_fm')[0]['action']
 
         data = {
@@ -18,8 +21,8 @@ class Beefeater(Miner):
             '_58_redirect': ''
         }
 
-        self.headers["origin"] = "https://www.beefeatergrillrewardclub.co.uk"
-        self.headers["referrer"] = "https://www.beefeatergrillrewardclub.co.uk/group/beefeater/member-user-private"
+        self.headers["Origin"] = "https://www.beefeatergrillrewardclub.co.uk"
+        self.headers["Referer"] = "https://www.beefeatergrillrewardclub.co.uk/group/beefeater/member-user-private"
 
         self.open_url(form_action, method='post', data=data)
 
@@ -27,7 +30,7 @@ class Beefeater(Miner):
         self.check_error(
             '/web/guest/home', (
                 (sel, STATUS_LOGIN_FAILED, 'Authentication failed. Please try again.'),
-                (sel, STATUS_ACCOUNT_LOCKED, 'Authentication failed. Please enable browser cookies and try again.')))
+                (sel, STATUS_LOGIN_FAILED, 'Authentication failed. Please enable browser cookies and try again.')))
 
     def balance(self):
         points = extract_decimal(self.browser.select('div.yellow h3 span')[0].text)

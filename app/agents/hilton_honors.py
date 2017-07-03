@@ -27,7 +27,6 @@ class Hilton(Miner):
 
             firefox_profile = webdriver.FirefoxProfile()
             firefox_profile.set_preference('permissions.default.image', 2)
-            firefox_profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
             self.browser = webdriver.Firefox(firefox_profile=firefox_profile)
 
             self.browser.implicitly_wait(self.MAX_WAITING_TIME_SELENIUM)

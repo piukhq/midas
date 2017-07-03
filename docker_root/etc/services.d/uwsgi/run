@@ -1,2 +1,3 @@
 #!/usr/bin/execlineb -P
-/usr/local/bin/uwsgi --emperor /etc/uwsgi/sites --gid apps --uid apps --logto /var/log/uwsgi.log
+
+/usr/bin/with-contenv /usr/local/bin/uwsgi --emperor /etc/uwsgi/sites --gid apps --uid apps --logto /var/log/uwsgi.log
