@@ -17,17 +17,17 @@ class PapaJohns(Miner):
 
         form = self.browser.get_form('aspnetForm')
 
-        if 'ctl00$_objHeader$txtEmail' not in form.fields:
+        if 'ctl00$_objHeader$txtEmail1' not in form.fields:
             raise LoginError(TRIPPED_CAPTCHA)
 
-        form['ctl00$_objHeader$txtEmail'].value = credentials['email']
+        form['ctl00$_objHeader$txtEmail1'].value = credentials['email']
         form['ctl00$_objHeader$txtPassword'].value = credentials['password']
         form['__EVENTTARGET'].value = 'ctl00$_objHeader$lbSignIn'
         form['__EVENTARGUMENT'].value = ''
         self.browser.submit_form(form)
 
-        self.open_url('http://www.papajohns.co.uk/my-papa-rewards.aspx')
-        if self.browser.url != 'http://www.papajohns.co.uk/my-papa-rewards.aspx':
+        self.open_url('https://www.papajohns.co.uk/my-papa-rewards.aspx')
+        if self.browser.url != 'https://www.papajohns.co.uk/my-papa-rewards.aspx':
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
