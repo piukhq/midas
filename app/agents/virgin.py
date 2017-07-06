@@ -36,22 +36,17 @@ class Virgin(Miner):
     @staticmethod
     def parse_transaction(row):
         items = row.find_all('td')
+        date_locator = items[0].contents[1]
+        description_locator = items[1].contents[1]
+        points_locator = items[2].contents[3]
         return {
-            'date': Virgin.clean_date(items[0].contents[0]),
-            'description': Virgin.clean_description(items[1].text),
-            'points': extract_decimal(items[2].contents[0].strip()),
+            'date': arrow.get(date_locator.strip(), 'DD MMMM YYYY'),
+            'description': description_locator.strip(),
+            'points': extract_decimal(points_locator.text),
         }
 
-    @staticmethod
-    def clean_date(date):
-        date = arrow.get(date.strip(), 'DD/MM/YY')
-        return date
-
-    @staticmethod
-    def clean_description(description):
-        description = description.replace('\xa0►\xa0', ' > ')
-        return description.strip()
-
     def scrape_transactions(self):
-        self.open_url('https://www.virginatlantic.com/myprofile/displayMySkyMiles.action')
-        return self.browser.select('.myAccountStatement')
+        self.open_url('https://www.virginatlantic.com/acctactvty/manageacctactvty.action')
+        table = self.browser.select('table.activityTable')[0]
+        rows = table.select('tr')[1:]
+        return rows
