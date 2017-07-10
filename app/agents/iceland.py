@@ -36,7 +36,7 @@ class Iceland(Miner):
         self.open_url('https://www.iceland.co.uk/bonus-card/my-bonus-card/')
 
         login_form = self.browser.get_forms()[2]
-        login_form['cardNumber'].value = credentials['card-number']
+        login_form['cardNumber'].value = credentials['card_number']
         self.browser.submit_form(login_form)
         self._check_error()
 
