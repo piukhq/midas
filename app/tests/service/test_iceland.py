@@ -28,7 +28,7 @@ class TestIcelandFail(unittest.TestCase):
     def test_login_bad_card_number(self):
         m = Iceland(1, 1)
         credentials = {
-            'card-number': '00000000000',
+            'card_number': '00000000000',
             'password': 't7Ixmj424Q'
         }
         with self.assertRaises(LoginError) as e:
@@ -38,7 +38,7 @@ class TestIcelandFail(unittest.TestCase):
     def test_login_bad_password(self):
         m = Iceland(1, 1)
         credentials = {
-            'card-number': '30403486285',
+            'card_number': '30403486285',
             'password': '0000'
         }
         with self.assertRaises(LoginError) as e:

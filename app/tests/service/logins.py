@@ -307,7 +307,7 @@ CREDENTIALS = {
         "password": "MGHansbrics6"
     },
     "bonus-card": {
-        "card-number": "30403486285",
+        "card_number": "30403486285",
         "password": "t7Ixmj424Q"
     }
 }
