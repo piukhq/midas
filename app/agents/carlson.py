@@ -2,7 +2,6 @@ from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
 class Carlson(Miner):
@@ -24,7 +23,8 @@ class Carlson(Miner):
                          (('div.globalerrors', STATUS_LOGIN_FAILED, 'Your email or password'), ))
 
     def balance(self):
-        points = extract_decimal(self.browser.select('span.goldpointsBalance')[0].text)
+        points_element = 'div.row.mainHeaderUserPoints > span'
+        points = extract_decimal(self.browser.select(points_element)[0].text)
 
         reward = self.calculate_tiered_reward(points, [
             (105000, 'Premium award night, category 7'),
@@ -55,9 +55,4 @@ class Carlson(Miner):
 
     def scrape_transactions(self):
         # self.open_url('https://www.clubcarlson.com/myaccount/secure/loyalty/transactionHistory.do')
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
