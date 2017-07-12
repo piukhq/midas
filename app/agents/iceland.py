@@ -1,5 +1,5 @@
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, WRONG_CREDENTIAL_TYPE
 from app.utils import extract_decimal
 
 
@@ -32,11 +32,28 @@ class Iceland(Miner):
         except:
             pass
 
+    def _get_card_number(self, credentials):
+        card_number = credentials['barcode'] or credentials['card_number']
+        bad_card_number_length = 24
+
+        if not card_number:
+            raise LoginError(WRONG_CREDENTIAL_TYPE)
+
+        if len(card_number) == bad_card_number_length:
+            card_number = card_number[:-5]
+
+        generic_card_prefix = "63320400"
+        if card_number.startswith(generic_card_prefix):
+            card_number = card_number[len(generic_card_prefix):]
+
+        return card_number
+
     def login(self, credentials):
         self.open_url('https://www.iceland.co.uk/bonus-card/my-bonus-card/')
 
+        card_number = self._get_card_number(credentials)
         login_form = self.browser.get_forms()[2]
-        login_form['cardNumber'].value = credentials['card_number']
+        login_form['cardNumber'].value = card_number
         self.browser.submit_form(login_form)
         self._check_error()
 
