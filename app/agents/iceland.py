@@ -33,14 +33,13 @@ class Iceland(Miner):
             pass
 
     def _get_card_number(self, credentials):
-        if 'barcode' in credentials:
-            card_number = credentials['barcode']
-        elif 'card_number' in credentials:
-            card_number = credentials['card_number']
-        else:
+        card_number = credentials['barcode'] or credentials['card_number']
+        bad_card_number_length = 24
+
+        if not card_number:
             raise LoginError(WRONG_CREDENTIAL_TYPE)
 
-        if len(card_number) == 24:
+        if len(card_number) == bad_card_number_length:
             card_number = card_number[:-5]
 
         generic_card_prefix = "63320400"
