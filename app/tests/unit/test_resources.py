@@ -165,7 +165,7 @@ class TestResources(TestCase):
     def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException):
-            agent_login(Avios, {}, 5, 'test_avios_slug')
+            agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.max_out_count.called)
 
     @mock.patch('app.resources.retry', autospec=True)
@@ -173,7 +173,7 @@ class TestResources(TestCase):
     def test_agent_login_inc(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException) as e:
-            agent_login(Avios, {}, 5, 'test_avios_slug')
+            agent_login(Avios, {}, 5)
         self.assertTrue(mock_retry.inc_count.called)
         self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
                                                       'of login tries please wait 15 minutes.')

@@ -235,7 +235,7 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials, scheme_account_id, scheme_slug):
+def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
     retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug)
