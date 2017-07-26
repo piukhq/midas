@@ -17,7 +17,6 @@ balance = Schema({
     Required('value'): Decimal,
     Optional('balance'): Decimal,
     Required('value_label'): str,
-    Optional('data'): str,
 })
 
 credentials = Schema({

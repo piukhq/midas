@@ -54,7 +54,6 @@ class My360(Miner):
             'points': Decimal(self.points),
             'value': Decimal('0'),
             'value_label': '',
-            'data': self.user_id
         }
 
     @staticmethod
