@@ -310,106 +310,106 @@ CREDENTIALS = {
         "barcode": "7JQv4LGHwz",
     },
     "stansted-farm": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "wpagriffiths@gmail.com",
     },
     "the-courtyard": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "19-fourteas-tea-rooms": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "bored-of-southsea": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
-    "game-over-café": {
-        "email": "wpagriffiths@gmail.com",
+    "game-over-cafe": {
+        "card_number": "TADLFvwk4s",
     },
     "watkins-and-faux": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "northney-farm-tea-room": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "shakeadelic": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "drift-bar": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "poppins-restaurant": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "polka-dot-piercing": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "nanoo-hair": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "comics-games-and-coffee": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "the-richmond": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "tennessee-chicken": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "cliff-roe-sports": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "michael-chell": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "hewetts": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "fit-stuff": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
-    "café-copia": {
-        "email": "wpagriffiths@gmail.com",
+    "cafe-copia": {
+        "card_number": "TADLFvwk4s",
     },
     "bear-garden": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "fresco-delikafessen": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "henley-sports": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
-    "the-chocolate-café": {
-        "email": "wpagriffiths@gmail.com",
+    "the-chocolate-cafe": {
+        "card_number": "TADLFvwk4s",
     },
     "ted-james-barbershop": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "bubble-city": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "turners-pies": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "gatsby-menswear": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "linda-h": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "tiffin-tea-rooms": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "hilites-hair-and-beauty": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "dhaba-lane": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "el-mexicana": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
     "deep-blue-restaurants": {
-        "email": "wpagriffiths@gmail.com",
+        "card_number": "TADLFvwk4s",
     },
 }
 

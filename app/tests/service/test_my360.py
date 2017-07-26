@@ -1,9 +1,11 @@
 import unittest
+
 from app.agents.my360 import My360
 from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS
 from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
+from decimal import Decimal
 
 
 class StandardLoginTestsMixin(object):
@@ -51,14 +53,14 @@ class StandardLoginFailTestsMixin(object):
 
     def test_login_long_barcode(self):
         self.credentials['barcode'] = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LoginError):
             self.m.attempt_login(self.credentials)
         self.assertEqual(self.m.browser.response.status_code, 500)
 
     def test_wrong_scheme(self):
         SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
         self.m.scheme_slug = 'test_wrong'
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LoginError):
             self.m.attempt_login(self.credentials)
 
     def test_missing_scheme(self):
@@ -81,13 +83,13 @@ class My360LoginFailUserIDFoodCellarTest(StandardLoginFailTestsMixin, unittest.T
 
 
 class My360LoginUserEmailCafeCopiaTest(StandardLoginTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'café-copia'
-    SAVED_CREDENTIALS = CREDENTIALS['café-copia']
+    SCHEME_NAME = 'cafe-copia'
+    SAVED_CREDENTIALS = CREDENTIALS['cafe-copia']
 
 
 class My360LoginFailUserEmailCafeCopiaTest(StandardLoginFailTestsMixin, unittest.TestCase):
-    SCHEME_NAME = 'café-copia'
-    SAVED_CREDENTIALS = CREDENTIALS['café-copia']
+    SCHEME_NAME = 'cafe-copia'
+    SAVED_CREDENTIALS = CREDENTIALS['cafe-copia']
 
 
 class My360LoginUserEmailFitStuffTest(StandardLoginTestsMixin, unittest.TestCase):

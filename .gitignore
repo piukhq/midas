@@ -6,3 +6,4 @@
 .env
 test_results.xml
 andrew
+.DS_Store
