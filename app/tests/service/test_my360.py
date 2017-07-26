@@ -5,7 +5,6 @@ from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS
 from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
-from decimal import Decimal
 
 
 class StandardLoginTestsMixin(object):
