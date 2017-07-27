@@ -1,24 +1,31 @@
 from app.agents.base import Miner
-from app.agents.exceptions import (STATUS_LOGIN_FAILED, INVALID_MFA_INFO, LoginError, STATUS_ACCOUNT_LOCKED,
-                                   END_SITE_DOWN)
+from app.agents.exceptions import (STATUS_LOGIN_FAILED, LoginError)
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
-import json
 import re
-
-# TODO: add STATUS_ACCOUNT_LOCKED
 
 
 class Tesco(Miner):
-    retry_limit = 3
+    is_login_successful = False
     point_conversion_rate = Decimal('0.01')
-    mfa_digit_regex = re.compile('(\d+).*? digit')
+    transaction_id_regex = re.compile('\d{3}$')
+
+    def _check_if_logged_in(self):
+        current_url = self.browser.url
+        correct_url = 'https://secure.tesco.com/clubcard' \
+                      '/myaccount/home/home'
+
+        if current_url == correct_url:
+            self.is_login_successful = True
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
 
         self.open_url('https://secure.tesco.com/account/en-GB/login'
-                      '?from=https://secure.tesco.com/Clubcard/MyAccount/Alpha443/Points/Home')
+                      '?from=https://secure.tesco.com/Clubcard/'
+                      'MyAccount/Alpha443/Points/Home')
 
         signup_form = self.browser.get_form(id='sign-in-form')
         signup_form['username'].value = credentials['email']
@@ -26,60 +33,13 @@ class Tesco(Miner):
 
         self.browser.submit_form(signup_form)
 
-        # check for 'problems with our system' message
-        problem_header = self.browser.select('.container > h2')
-        if problem_header and problem_header[0].get_text().strip().startswith('Sorry, we are currently experiencing'):
-            raise LoginError(END_SITE_DOWN)
-
-        result_json_element = self.browser.select('#initial-data')
-        if result_json_element:
-            result_json = json.loads(result_json_element[0].contents[0])
-            if 'accountLocked' in result_json and result_json['accountLocked']:
-                raise LoginError(STATUS_ACCOUNT_LOCKED)
-
-        selector = 'p.ui-component__notice__error-text'
-        url = '/account/en-GB/login'
-        self.check_error(url, ((selector, STATUS_LOGIN_FAILED, 'Unfortunately we do not recognise'),))
-
-        if 'card_number' not in credentials:
-            self.card_number = self.get_card_number(credentials['barcode'])
-        else:
-            self.card_number = credentials['card_number']
-        self.do_mfa_login()
-
-        self.open_url('https://secure.tesco.com/Clubcard/MyAccount/Home/Home')
-
-    def do_mfa_login(self):
-        digit_form = self.browser.get_form(id='account-verification')
-
-        fields = self.browser.select('div.form-row')
-        for field in fields:
-            label_text = field.select('label')[0].text.strip()
-            digit_index = int(self.mfa_digit_regex.match(label_text).group(1))
-
-            input_name = field.select('input')[1].attrs['name']
-            digit_form[input_name].value = self.card_number[digit_index - 1]
-
-        self.browser.submit_form(digit_form)
-
-        self.check_error('/Clubcard/MyAccount/Account/SecurityHome',
-                         (('#errMsgHead', INVALID_MFA_INFO, 'The details you have entered do not'), ))
-
-    @staticmethod
-    def get_card_number(barcode):
-        return '634004' + barcode[4:]
+        self.open_url('https://secure.tesco.com/clubcard/myaccount/home/home')
+        self._check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(
-            self.browser.select('span#pointsTotal')[0].contents[0].strip()
-            )
+        points = extract_decimal(self.browser.select('.ddl-no-wrap')[1].text)
         value = self.calculate_point_value(points)
-        balance_field = self.browser.select('td#vouchersTotal')
-
-        if len(balance_field) > 0:
-            balance = extract_decimal(balance_field[0].contents[0].strip())
-        else:
-            balance = Decimal('0')
+        balance = Decimal(self.get_vouchers_value())
 
         return {
             'points': points,
@@ -87,6 +47,18 @@ class Tesco(Miner):
             'value_label': '£{}'.format(value),
             'balance': balance
         }
+
+    def get_vouchers_value(self):
+        self.headers['Host'] = "secure.tesco.com"
+        self.headers['Referer'] = "https://secure.tesco.com/" \
+                                  "Clubcard/MyAccount/Home/Home"
+        self.headers['ADRUM'] = "isAjax:true"
+        self.headers['X-Requested-With'] = "XMLHttpRequest"
+
+        self.open_url('https://secure.tesco.com/Clubcard/'
+                      'MyAccount/Vouchers/AvailableVouchers?{}')
+
+        return self.browser.response.json()['count']
 
     @staticmethod
     def parse_transaction(row):
@@ -98,17 +70,44 @@ class Tesco(Miner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://secure.tesco.com/Clubcard/MyAccount/Points/Home')
+        all_transaction_rows = []
 
-        # check if there's a security layer
-        mfa_url = ('https://secure.tesco.com/Clubcard/MyAccount/Account/SecurityHome')
+        self.headers['Host'] = "secure.tesco.com"
+        self.headers['Referer'] = "https://secure.tesco.com/" \
+                                  "Clubcard/MyAccount/Points/Home"
 
-        if self.browser.url.startswith(mfa_url):
-            self.do_mfa_login()
+        transactions = self.get_transactions_url()
 
-        self.open_url('https://secure.tesco.com/Clubcard/MyAccount/Points/Home')
+        for transaction in transactions:
+            transaction_rows = self.get_transaction_rows(transaction)
 
-        current_transactions_link = self.browser.select('#tbl_collectionperioddtls > tbody > tr > td')[2].select('a')[0]
-        self.browser.follow_link(current_transactions_link)
+            for transaction_row in transaction_rows:
+                all_transaction_rows.append(transaction_row)
 
-        return self.browser.select('div.table-wrapper > form > table > tbody > tr')
+        return all_transaction_rows
+
+    def get_transactions_url(self):
+        all_transactions_urls = []
+        domain = 'https://secure.tesco.com'
+
+        self.open_url('https://secure.tesco.com/Clubcard/'
+                      'MyAccount/Points/Home')
+
+        current_transaction = self.browser.select('#tbl_collectionperioddtls'
+                                                  ' tr #lblPointdtlsview')[0]
+        all_transactions = self.browser.select('#tbl_collectionperioddtls'
+                                               ' tr #lblPointdtlsview')[1:]
+
+        all_transactions.append(current_transaction)
+
+        for transaction in all_transactions:
+            transaction_url = domain + transaction['href']
+            all_transactions_urls.append(transaction_url)
+
+        return all_transactions_urls
+
+    def get_transaction_rows(self, transaction_url):
+        self.open_url(transaction_url)
+
+        return self.browser.select('div.table-wrapper > form > table >'
+                                   ' tbody > tr')
