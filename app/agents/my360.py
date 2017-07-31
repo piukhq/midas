@@ -36,7 +36,7 @@ class My360(Miner):
     def login(self, credentials):
         user_identifier = credentials.get('barcode') or credentials.get('card_number')
         if not user_identifier:
-            raise ValueError('No valid user details found (Expected: Barcode or Email)')
+            raise ValueError('No valid user details found (Expected: Barcode or card number)')
 
         scheme_api_identifier = SCHEME_API_DICTIONARY[self.scheme_slug]
         url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
