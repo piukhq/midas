@@ -35,8 +35,9 @@ class Miner(object):
     connect_timeout = 1
     use_tls_v1 = False
 
-    def __init__(self, retry_count, scheme_id):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
         self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
 
         self.headers = {}
         self.proxy = False

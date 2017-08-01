@@ -4,58 +4,58 @@ import json
 
 CREDENTIALS = {
     "tesco-clubcard": {
-        'email': 'julie.gormley100@gmail.com',
-        'password': 'NSHansbrics5',
-        'card_number': '634004024051328070'
+        "email": "julie.gormley100@gmail.com",
+        "password": "NSHansbrics5",
+        "card_number": "634004024051328070"
     },
     "avios": {
-        'email': 'chris.smith4@gmx.co.uk',
-        'password': 'Loyalty1',
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "Loyalty1",
     },
     "avios_api": {
-        'card_number': '3081471022657083',
-        'last_name': 'GORMLEY',
+        "card_number": "3081471022657083",
+        "last_name": "GORMLEY",
         #  DoB not used for login or asked for in Hermes
-        # 'date_of_birth': '01/01/1974',
+        # "date_of_birth": "01/01/1974",
     },
     "british-airways": {
-        'username': "49932498",
-        'password': 'Loyalty1'
+        "username": "49932498",
+        "password": "Loyalty1"
     },
     "advantage-card": {
-        'email': 'loyaltycards01@gmail.com',
-        'password': 'ejUu3Z82in'
+        "email": "loyaltycards01@gmail.com",
+        "password": "ejUu3Z82in"
     },
     "superdrug": {
-        'email': 'julie.gormley100@gmail.com',
-        'password': 'FRHansbrics9'
+        "email": "julie.gormley100@gmail.com",
+        "password": "FRHansbrics9"
     },
     "costa": {
-        'email': 'chris.smith4@gmx.co.uk',
-        'password': 'ZBHansbrics5',
+        "email": "chris.smith4@gmx.co.uk",
+        "password": "ZBHansbrics5",
     },
     "shell": {
-        'username': 'chris.gormley2@me.com',
-        'password': 'KRHansbrics5',
+        "username": "chris.gormley2@me.com",
+        "password": "KRHansbrics5",
     },
     "nectar": {
-        'barcode': '29930842203013',
-        'card_number': '9826300030842203013',
-        'password': 'QMHansbrics6',
+        "barcode": "29930842203013",
+        "card_number": "9826300030842203013",
+        "password": "QMHansbrics6",
     },
     "bad": {
-        'email': '234234@bad.com',
-        'password': '234234',
+        "email": "234234@bad.com",
+        "password": "234234",
     },
     "cooperative": {
-            'email': 'chris.gormley2@me.com',
-            'password': 'OBHansbrics4',
+            "email": "chris.gormley2@me.com",
+            "password": "OBHansbrics4",
             # Card number for this account, not used in login
-            # 'barcode': '633174913210282267'
+            # "barcode": "633174913210282267"
     },
     "morrisons": {
         "email": "chris.gormley2@me.com",
-        'password': 'Loyalty1',
+        "password": "Loyalty1",
     },
     "kfc": {
         "email": "chris.gormley2@me.com",
@@ -304,7 +304,112 @@ CREDENTIALS = {
     },
     "hilton-honors": {
         "username": "591806745",
-        "password": "MGHansbrics6"
+        "password": "MGHansbrics6",
+    },
+    "the-food-cellar": {
+        "barcode": "7JQv4LGHwz",
+    },
+    "stansted-farm": {
+        "card_number": "wpagriffiths@gmail.com",
+    },
+    "the-courtyard": {
+        "card_number": "TADLFvwk4s",
+    },
+    "19-fourteas-tea-rooms": {
+        "card_number": "TADLFvwk4s",
+    },
+    "bored-of-southsea": {
+        "card_number": "TADLFvwk4s",
+    },
+    "game-over-cafe": {
+        "card_number": "TADLFvwk4s",
+    },
+    "watkins-and-faux": {
+        "card_number": "TADLFvwk4s",
+    },
+    "northney-farm-tea-room": {
+        "card_number": "TADLFvwk4s",
+    },
+    "shakeadelic": {
+        "card_number": "TADLFvwk4s",
+    },
+    "drift-bar": {
+        "card_number": "TADLFvwk4s",
+    },
+    "poppins-restaurant": {
+        "card_number": "TADLFvwk4s",
+    },
+    "polka-dot-piercing": {
+        "card_number": "TADLFvwk4s",
+    },
+    "nanoo-hair": {
+        "card_number": "TADLFvwk4s",
+    },
+    "comics-games-and-coffee": {
+        "card_number": "TADLFvwk4s",
+    },
+    "the-richmond": {
+        "card_number": "TADLFvwk4s",
+    },
+    "tennessee-chicken": {
+        "card_number": "TADLFvwk4s",
+    },
+    "cliff-roe-sports": {
+        "card_number": "TADLFvwk4s",
+    },
+    "michael-chell": {
+        "card_number": "TADLFvwk4s",
+    },
+    "hewetts": {
+        "card_number": "TADLFvwk4s",
+    },
+    "fit-stuff": {
+        "card_number": "TADLFvwk4s",
+    },
+    "cafe-copia": {
+        "card_number": "TADLFvwk4s",
+    },
+    "bear-garden": {
+        "card_number": "TADLFvwk4s",
+    },
+    "fresco-delikafessen": {
+        "card_number": "TADLFvwk4s",
+    },
+    "henley-sports": {
+        "card_number": "TADLFvwk4s",
+    },
+    "the-chocolate-cafe": {
+        "card_number": "TADLFvwk4s",
+    },
+    "ted-james-barbershop": {
+        "card_number": "TADLFvwk4s",
+    },
+    "bubble-city": {
+        "card_number": "TADLFvwk4s",
+    },
+    "turners-pies": {
+        "card_number": "TADLFvwk4s",
+    },
+    "gatsby-menswear": {
+        "card_number": "TADLFvwk4s",
+    },
+    "linda-h": {
+        "card_number": "TADLFvwk4s",
+    },
+    "tiffin-tea-rooms": {
+        "card_number": "TADLFvwk4s",
+    },
+    "hilites-hair-and-beauty": {
+        "card_number": "TADLFvwk4s",
+    },
+    "dhaba-lane": {
+        "card_number": "TADLFvwk4s",
+    },
+    "el-mexicana": {
+        "card_number": "TADLFvwk4s",
+    },
+    "deep-blue-restaurants": {
+        "card_number": "TADLFvwk4s",
     },
     "bonus-card": {
         "card_number": "30403486285",
