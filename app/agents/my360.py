@@ -39,11 +39,14 @@ class My360(Miner):
             raise ValueError('No valid user details found (Expected: Barcode or card number)')
 
         scheme_api_identifier = SCHEME_API_DICTIONARY[self.scheme_slug]
-        url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
-            scheme_api_identifier,
-            user_identifier
-        )
-        self.loyalty_data = self._get_balance(url)
+        if scheme_api_identifier:
+            url = 'https://rewards.api.mygravity.co/v2/reward_scheme/{0}/user/{1}/check_balance'.format(
+                scheme_api_identifier,
+                user_identifier
+            )
+            self.loyalty_data = self._get_balance(url)
+        else:
+            ValueError('Empty value for scheme_api_identifier for current scheme slug ({0})'.format(self.scheme_slug))
 
         if self.loyalty_data:
             self.points = self.get_points(self.loyalty_data)
