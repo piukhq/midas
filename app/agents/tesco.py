@@ -22,7 +22,6 @@ class Tesco(Miner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
-
         self.open_url('https://secure.tesco.com/account/en-GB/login'
                       '?from=https://secure.tesco.com/Clubcard/'
                       'MyAccount/Alpha443/Points/Home')
@@ -37,7 +36,7 @@ class Tesco(Miner):
         self._check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(self.browser.select('.ddl-no-wrap')[1].text)
+        points = extract_decimal(self.browser.select('td.ddl-no-wrap')[0].text)
         value = self.calculate_point_value(points)
         balance = Decimal(self.get_vouchers_value())
 
