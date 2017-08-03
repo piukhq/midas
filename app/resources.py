@@ -78,7 +78,7 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
         try:
             status = 1
@@ -120,7 +120,7 @@ class Transactions(Resource):
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
         try:
             status = 1
@@ -152,7 +152,7 @@ class AccountOverview(Resource):
         scheme_account_id = int(request.args['scheme_account_id'])
         user_id = int(request.args['user_id'])
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug)
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
         try:
             account_overview = agent_instance.account_overview()

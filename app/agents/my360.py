@@ -1,6 +1,6 @@
 from decimal import Decimal
 from app.agents.base import Miner
-from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN
+from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN, WRONG_CREDENTIAL_TYPE
 from app.my360endpoints import SCHEME_API_DICTIONARY
 
 
@@ -36,7 +36,9 @@ class My360(Miner):
     def login(self, credentials):
         user_identifier = credentials.get('barcode') or credentials.get('card_number')
         if not user_identifier:
-            raise ValueError('No valid user details found (Expected: Barcode or card number)')
+            raise LoginError(WRONG_CREDENTIAL_TYPE)
+        elif not 5 < len(user_identifier) < 11:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
         scheme_api_identifier = SCHEME_API_DICTIONARY[self.scheme_slug]
         if scheme_api_identifier:
@@ -46,7 +48,9 @@ class My360(Miner):
             )
             self.loyalty_data = self._get_balance(url)
         else:
-            ValueError('Empty value for scheme_api_identifier for current scheme slug ({0})'.format(self.scheme_slug))
+            raise ValueError(
+                'Empty value for scheme_api_identifier for current scheme slug ({0})'.format(self.scheme_slug)
+            )
 
         if self.loyalty_data:
             self.points = self.get_points(self.loyalty_data)
