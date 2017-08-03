@@ -414,6 +414,10 @@ CREDENTIALS = {
     "bonus-card": {
         "card_number": "30403486285",
         "password": "t7Ixmj424Q"
+    },
+    "handm-club": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01"
     }
 }
 
