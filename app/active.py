@@ -72,6 +72,7 @@ AGENTS = {
     'pure-hmv': 'hmv.HMV',
     'star-rewards': 'star_rewards.StarRewards',
     'iceland-bonus-card': 'iceland.Iceland',
+    'handm-club': 'handm.HAndM',
     # 'marriott-rewards-card': 'marriott.Marriott',     # Selenium agent disabled until the Docker-py work is complete
     # 'hilton-hhonors': 'hilton_honors.Hilton',         # Selenium agent disabled until the Docker-py work is complete
     'stansted-farm': 'my360.My360',
