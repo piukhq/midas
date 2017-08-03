@@ -50,11 +50,19 @@ class StandardLoginFailTestsMixin(object):
             self.m.attempt_login(self.credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+    def test_login_wrong_credential_type(self):
+        self.credentials = {
+            'email': 'zzzz@zzzzz.zzz'
+        }
+        with self.assertRaises(LoginError) as e:
+            self.m.attempt_login(self.credentials)
+        self.assertEqual(e.exception.name, 'Wrong credential type entered')
+
     def test_login_long_barcode(self):
         self.credentials['barcode'] = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
-        with self.assertRaises(LoginError):
+        with self.assertRaises(LoginError) as e:
             self.m.attempt_login(self.credentials)
-        self.assertEqual(self.m.browser.response.status_code, 500)
+        self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_wrong_scheme(self):
         SCHEME_API_DICTIONARY['test_wrong'] = 'zzzzzzz'
@@ -67,7 +75,6 @@ class StandardLoginFailTestsMixin(object):
         self.m.scheme_slug = 'test_none'
         with self.assertRaises(ValueError):
             self.m.attempt_login(self.credentials)
-        self.assertEqual(self.m.browser.response.status_code, 404)
 
 
 # Test three my360 agents
