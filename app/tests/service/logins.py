@@ -250,6 +250,11 @@ CREDENTIALS = {
         "username": "9118431866",
         "password": "9Pv8nsv8hv",
     },
+    "rspb": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "5dHm0xFKd0",
+        "card_number": "982600228838612633671"
+    },
     "klm-flying-blue": {
         "username": "1109882571",
         "pin": "1234",
