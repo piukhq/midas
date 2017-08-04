@@ -20,7 +20,7 @@ class Hilton(Miner):
     POINTS_PATH = '//div[@class="account_info_summary_sub"]/dl/dd[3]'
     TRANSACTION_TABLE_PATH = '//table[@class="hhonors_table accordion "]/tbody'
 
-    def __init__(self, retry_count, scheme_id):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
         try:
             self.display = Xvfb()
             self.display.start()
