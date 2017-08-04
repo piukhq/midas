@@ -7,8 +7,8 @@ from app import sentry
 
 class Avios(Miner):
 
-    def __init__(self, retry_count, scheme_id):
-        super().__init__(retry_count, scheme_id)
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        super().__init__(retry_count, scheme_id, scheme_slug=None),
         self.faking_login = False
         self.loyalty_data = {}
 
