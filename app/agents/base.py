@@ -35,7 +35,9 @@ class Miner(object):
     connect_timeout = 1
     use_tls_v1 = False
 
-    # When changing this, check other agents with their own __init__ method
+    ################################################################################
+    # ALERT: When changing this, check other agents with their own __init__ method
+    ################################################################################
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
