@@ -238,7 +238,7 @@ def get_agent_class(scheme_slug):
 def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
     retry_count = retry.get_count(key)
-    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug)
+    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:
