@@ -26,6 +26,7 @@ AGENTS = {
     'health-beautycard': 'superdrug.Superdrug',
     'tasty-rewards': 'tabletable.Tabletable',
     'tesco-clubcard': 'tesco.Tesco',
+    'tesco-clubcard1': 'tesco.Tesco',
     'toysrus': 'toysrus.Toysrus',
     'the-waterstones-card': 'waterstones.Waterstones',
     'nandos-card': 'nandos.Nandos',
