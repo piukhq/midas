@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv /bin/bash
+
+ENVFILE="/usr/local/src/midas/.env"
+
+touch $ENVFILE
+chown apps:apps $ENVFILE
+
+echo "MIDAS_DEBUG=$DEBUG" > $ENVFILE
+echo "MIDAS_REDIS_URI=redis://:$REDIS_PASS@$REDIS_HOST:$REDIS_PORT/0" >> $ENVFILE
+echo "HADES_URL=$HADES_URL" >> $ENVFILE
+echo "HERMES_URL=$HERMES_URL" >> $ENVFILE
+echo "MIDAS_SENTRY_DNS=$MIDAS_SENTRY_DSN" >> $ENVFILE

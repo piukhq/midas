@@ -17,17 +17,44 @@ flake8:
   tags:
     - docker
 
-deploy:
+deploy-dev:
   stage: deploy
   script:
-    - docker build -t registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID -t registry.gitlab.com/hellobink/olympus/midas/image:latest .
-    - docker login registry.gitlab.com -u binkautomation -p $REPO_PASS
-    - docker push registry.gitlab.com/hellobink/olympus/midas/image:latest
-    - docker push registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID
-    - docker rmi registry.gitlab.com/hellobink/olympus/midas/image:latest
-    - docker rmi registry.gitlab.com/hellobink/olympus/midas/image:build-$CI_PIPELINE_ID
+    - docker build -t olympus.azurecr.io/midas:latest .
+    - docker login olympus.azurecr.io -u $AZURE_LOGIN -p $AZURE_PASS
+    - docker push olympus.azurecr.io/midas:latest
+    - docker rmi olympus.azurecr.io/midas:latest
+    - docker logout olympus.azurecr.io
+  environment: dev
   only:
     - master
   tags:
     - shell
 
+deploy-staging:
+  stage: deploy
+  script:
+    - docker build -t olympus.azurecr.io/midas:staging .
+    - docker login olympus.azurecr.io -u $AZURE_LOGIN -p $AZURE_PASS
+    - docker push olympus.azurecr.io/midas:staging
+    - docker rmi olympus.azurecr.io/midas:staging
+    - docker logout olympus.azurecr.io
+  environment: staging
+  only:
+    - staging
+  tags:
+    - shell
+
+deploy-production:
+  stage: deploy
+  script:
+    - docker build -t olympus.azurecr.io/midas:production .
+    - docker login olympus.azurecr.io -u $AZURE_LOGIN -p $AZURE_PASS
+    - docker push olympus.azurecr.io/midas:production
+    - docker rmi olympus.azurecr.io/midas:production
+    - docker logout olympus.azurecr.io
+  environment: production
+  only:
+    - production
+  tags:
+    - shell
