@@ -223,8 +223,8 @@ CREDENTIALS = {
         "password": "KLHansbrics6",
     },
     "malaysia_airlines": {
-        "card_number": "315377635",
-        "password": "nA6AGt7G2Y",
+        "card_number": "321851725",
+        "password": "c0H1l8MFxV",
     },
     "royal-orchid-plus": {
         "username": "NZ57271",
