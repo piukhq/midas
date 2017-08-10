@@ -74,10 +74,8 @@ CREDENTIALS = {
         "password": "dZ13ep5z",
     },
     "debenhams": {
-        "email": "chris.gormley2@me.com",
-        "username": "gormleyj1",
-        "password": "RCHansbrics9",
-        "memorable_date": "28/08/2004",
+        "email": "loyaltycards01@gmail.com",
+        "password": "HqT3hA6Evz",
     },
     "maximiles": {
         "email": "chris.gormley2@me.com",

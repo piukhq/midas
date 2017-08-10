@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
+from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED, LoginError
 from app.utils import extract_decimal
 
 
@@ -28,9 +28,12 @@ class Debenhams(Miner):
         self.open_url(url, method='post', data=data)
 
         # can't use check_error because the url path is the same regardless of login failure or success.
-        error = self.browser.select('.title')
+        error = self.browser.select('.error')
         if error and error[0].get_text().strip().startswith("We can't find an account"):
             raise LoginError(STATUS_LOGIN_FAILED)
+
+        elif error and error[0].get_text().strip().startswith('Account locked'):
+            raise LoginError(STATUS_ACCOUNT_LOCKED)
 
         error = self.browser.select('.error-message')
         if error and error[0].get_text().strip().startswith('Password incorrect'):
