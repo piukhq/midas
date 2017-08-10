@@ -2,7 +2,6 @@ from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
 class Esprit(Miner):
@@ -14,10 +13,9 @@ class Esprit(Miner):
         login_form = self.browser.get_form('login_form')
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
-
         self.browser.submit_form(login_form)
 
-        selector = '#auth-error > div.layer_content > p'
+        selector = '#authentication-error > div.layer_content > p'
         self.check_error('/my-esprit/check',
                          ((selector, STATUS_LOGIN_FAILED, 'The combination of Esprit Friends number'),))
 
@@ -37,9 +35,4 @@ class Esprit(Miner):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
