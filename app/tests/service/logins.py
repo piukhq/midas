@@ -418,10 +418,14 @@ CREDENTIALS = {
         "card_number": "30403486285",
         "password": "t7Ixmj424Q"
     },
+    "the-garden-club": {
+        "email": 'loyaltycards01@gmail.com',
+        "password": 'Y7w2oCBW3o',
+    },
     "handm-club": {
         "email": "loyaltycards01@gmail.com",
         "password": "Loyalty01"
-    }
+    },
 }
 
 
