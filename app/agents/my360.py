@@ -34,7 +34,7 @@ class My360(Miner):
         return loyalty_data
 
     def login(self, credentials):
-        user_identifier = credentials.get('barcode') or credentials.get('card_number')
+        user_identifier = credentials.get('barcode')
         if not user_identifier:
             raise LoginError(WRONG_CREDENTIAL_TYPE)
         elif not 5 < len(user_identifier) < 11:
