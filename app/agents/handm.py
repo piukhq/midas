@@ -33,7 +33,6 @@ class HAndM(Miner):
 
         self._check_if_logged_in()
 
-    def balance(self, credentials):
         self.headers['Host'] = "www2.hm.com"
         self.headers['Origin'] = "http://www2.hm.com"
         self.headers['Referer'] = "http://www2.hm.com/en_gb/hmclub.fullmember.html"
@@ -48,6 +47,7 @@ class HAndM(Miner):
 
         self.open_url(balance_url)
 
+    def balance(self):
         points = self.browser.response.json()['pointsBalance']
         points = Decimal(points)
 
