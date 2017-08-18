@@ -20,7 +20,7 @@ class TestHAndM(unittest.TestCase):
         schemas.transactions(transactions)
 
     def test_balance(self):
-        balance = self.m.balance(CREDENTIALS['handm-club'])
+        balance = self.m.balance()
         schemas.balance(balance)
 
 
