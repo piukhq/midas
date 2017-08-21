@@ -313,106 +313,106 @@ CREDENTIALS = {
         "barcode": "7JQv4LGHwz",
     },
     "stansted-farm": {
-        "card_number": "wpagriffiths@gmail.com",
+        "barcode": "TADLFvwk4s",
     },
     "the-courtyard": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "19-fourteas-tea-rooms": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "bored-of-southsea": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "game-over-cafe": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "watkins-and-faux": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "northney-farm-tea-room": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "shakeadelic": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "drift-bar": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "poppins-restaurant": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "polka-dot-piercing": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "nanoo-hair": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "comics-games-and-coffee": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "the-richmond": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "tennessee-chicken": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "cliff-roe-sports": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "michael-chell": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "hewetts": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "fit-stuff": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "cafe-copia": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "bear-garden": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "fresco-delikafessen": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "henley-sports": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "the-chocolate-cafe": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "ted-james-barbershop": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "bubble-city": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "turners-pies": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "gatsby-menswear": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "linda-h": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "tiffin-tea-rooms": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "hilites-hair-and-beauty": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "dhaba-lane": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "el-mexicana": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "deep-blue-restaurants": {
-        "card_number": "TADLFvwk4s",
+        "barcode": "TADLFvwk4s",
     },
     "bonus-card": {
         "card_number": "30403486285",
