@@ -268,6 +268,10 @@ class SeleniumMiner(BaseMiner):
         self.browser = webdriver.Firefox(firefox_options=options)
         self.browser.implicitly_wait(5)
 
+    def attempt_login(self, credentials):
+        super().attempt_login(credentials)
+        self.browser.quit()
+
     def find_captcha(self):
         for captcha in self.known_captcha_signatures:
             if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
