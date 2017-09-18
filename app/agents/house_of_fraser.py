@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 import re
 
 
-class HouseOfFraser(Miner):
+class HouseOfFraser(RoboBrowserMiner):
     error_message_pattern = re.compile(r'showErrorMsg\("","(.*)"\)')
 
     def login(self, credentials):

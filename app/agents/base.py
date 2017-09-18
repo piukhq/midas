@@ -1,17 +1,21 @@
 import hashlib
+from decimal import Decimal
 from collections import defaultdict
-from requests import HTTPError
-from requests.exceptions import ReadTimeout
-from robobrowser import RoboBrowser
 from urllib.parse import urlsplit
+
+import _ssl
+import requests
+from requests import Session, HTTPError
+from requests.adapters import HTTPAdapter
+from requests.exceptions import ReadTimeout, Timeout
+from requests.packages.urllib3.poolmanager import PoolManager
+from robobrowser import RoboBrowser
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
-from requests import Session
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-from decimal import Decimal
-import _ssl
 
 
 class SSLAdapter(HTTPAdapter):
@@ -28,20 +32,99 @@ class SSLAdapter(HTTPAdapter):
                                        ssl_version=self.ssl_version)
 
 
-class Miner(object):
-
+class BaseMiner(object):
     retry_limit = 2
     point_conversion_rate = Decimal('0')
     connect_timeout = 1
+    known_captcha_signatures = [
+        'recaptcha',
+        'captcha',
+        'Incapsula',
+    ]
+
+    def login(self, credentials):
+        raise NotImplementedError()
+
+    def balance(self):
+        raise NotImplementedError()
+
+    def scrape_transactions(self):
+        raise NotImplementedError()
+
+    @staticmethod
+    def parse_transaction(row):
+        raise NotImplementedError()
+
+    def calculate_label(self, points):
+        raise NotImplementedError()
+
+    def transactions(self):
+        return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+
+    def hash_transactions(self, transactions):
+        count = defaultdict(int)
+
+        for transaction in transactions:
+            s = "{0}{1}{2}{3}{4}".format(transaction['date'], transaction['description'],
+                                         transaction['points'], self.scheme_id, transaction.get('location'))
+
+            # identical hashes get sequentially indexed to make them unique.
+            index = count[s]
+            count[s] += 1
+            s = "{0}{1}".format(s, index)
+            transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
+
+        return transactions
+
+    def calculate_point_value(self, points):
+        return (points * self.point_conversion_rate).quantize(TWO_PLACES)
+
+    def account_overview(self):
+        return {
+            'balance': self.balance(),
+            'transactions': self.transactions()
+        }
+
+    @staticmethod
+    def format_label(count, noun, plural_suffix='s', include_zero_items=False):
+        if count == 0 and not include_zero_items:
+            return ''
+        return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
+
+    # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
+    @staticmethod
+    def calculate_tiered_reward(points, reward_tiers):
+        for threshold, reward in reward_tiers:
+            if points >= threshold:
+                return reward
+        return ''
+
+    @staticmethod
+    def update_questions(questions):
+        return questions
+
+    def attempt_login(self, credentials):
+        if self.retry_count >= self.retry_limit:
+            raise RetryLimitError(RETRY_LIMIT_REACHED)
+
+        try:
+            self.login(credentials)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+
+# Based on RoboBrowser Library
+class RoboBrowserMiner(BaseMiner):
+
     use_tls_v1 = False
 
     ################################################################################
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
+
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
-
         self.headers = {}
         self.proxy = False
 
@@ -58,15 +141,6 @@ class Miner(object):
                                    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                               "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count
-
-    def attempt_login(self, credentials):
-        if self.retry_count >= self.retry_limit:
-            raise RetryLimitError(RETRY_LIMIT_REACHED)
-
-        try:
-            self.login(credentials)
-        except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
 
     def open_url(self, url, method='get', read_timeout=5, **kwargs):
         """
@@ -100,55 +174,14 @@ class Miner(object):
 
     def find_captcha(self):
         """Look for CAPTCHA on the page"""
-        known_captcha_signatures = [
-            'captcha',
-            'Incapsula',
-        ]
         frame_urls = (frame['src'] for frame in self.browser.select('iframe') if 'src' in frame)
         for url in frame_urls:
-            for sig in known_captcha_signatures:
+            for sig in self.known_captcha_signatures:
                 if sig in url:
                     raise AgentError(TRIPPED_CAPTCHA)
 
         if self.browser.select('#recaptcha_widget'):
             raise AgentError(TRIPPED_CAPTCHA)
-
-    def login(self, credentials):
-        raise NotImplementedError()
-
-    def balance(self):
-        raise NotImplementedError()
-
-    def scrape_transactions(self):
-        raise NotImplementedError()
-
-    @staticmethod
-    def parse_transaction(row):
-        raise NotImplementedError()
-
-    def transactions(self):
-        return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
-
-    def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }
-
-    def hash_transactions(self, transactions):
-        count = defaultdict(int)
-
-        for transaction in transactions:
-            s = "{0}{1}{2}{3}{4}".format(transaction['date'], transaction['description'],
-                                         transaction['points'], self.scheme_id, transaction.get('location'))
-
-            # identical hashes get sequentially indexed to make them unique.
-            index = count[s]
-            count[s] += 1
-            s = "{0}{1}".format(s, index)
-            transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
-
-        return transactions
 
     def check_error(self, incorrect, error_causes, url_part="path"):
         parts = urlsplit(self.browser.url)
@@ -162,30 +195,6 @@ class Miner(object):
                 raise LoginError(error_name)
         raise LoginError(UNKNOWN)
 
-    def calculate_point_value(self, points):
-        return (points * self.point_conversion_rate).quantize(TWO_PLACES)
-
-    def calculate_label(self, points):
-        raise NotImplementedError()
-
-    @staticmethod
-    def format_label(count, noun, plural_suffix='s', include_zero_items=False):
-        if count == 0 and not include_zero_items:
-            return ''
-        return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
-
-    # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
-    @staticmethod
-    def calculate_tiered_reward(points, reward_tiers):
-        for threshold, reward in reward_tiers:
-            if points >= threshold:
-                return reward
-        return ''
-
-    @staticmethod
-    def update_questions(questions):
-        return questions
-
     def view(self):
         """
         Open the RoboBrowser object in a browser in its current state
@@ -193,3 +202,81 @@ class Miner(object):
         parts = urlsplit(self.browser.url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
+
+
+# Based on requests library
+class ApiMiner(BaseMiner):
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
+        self.headers = {}
+        self.retry_count = retry_count
+
+    def make_request(self, url, method='get', timeout=5, **kwargs):
+        # Combine the passed kwargs with our headers and timeout values.
+        args = {
+            'headers': self.headers,
+            'timeout': timeout,
+        }
+        args.update(kwargs)
+
+        try:
+            response = self.request = requests.request(method, url=url, **args)
+        except Timeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+
+        try:
+            self.request.raise_for_status()
+        except HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+            raise AgentError(END_SITE_DOWN) from e
+
+        return response
+
+
+# Based on Selenium library and headless Firefox
+class SeleniumMiner(BaseMiner):
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
+        self.headers = {}
+        self.retry_count = retry_count
+        self.setup_browser()
+
+    def selenium_handler(selenium_function):
+        def handled(self, *args):
+            try:
+                selenium_function(self, *args)
+
+            except Exception as e:
+                self.browser.quit()
+                raise e
+
+        return handled
+
+    @selenium_handler
+    def setup_browser(self):
+        options = Options()
+        options.add_argument('--headless')
+        options.add_argument('--hide-scrollbars')
+        options.add_argument('--disable-gpu')
+        self.browser = webdriver.Firefox(firefox_options=options)
+        self.browser.implicitly_wait(5)
+
+    def find_captcha(self):
+        for captcha in self.known_captcha_signatures:
+            if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
+                raise AgentError(TRIPPED_CAPTCHA)
+
+    def view(self):
+        """
+        Open the current state of the headless browser in a non-headless browser
+        """
+        parts = urlsplit(self.browser.current_url)
+        base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
+        open_browser(self.browser.page_source.encode('utf-8'), base_href)

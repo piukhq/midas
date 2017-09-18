@@ -1,9 +1,9 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from decimal import Decimal
 
 
-class AirAsia(Miner):
+class AirAsia(RoboBrowserMiner):
     def login(self, credentials):
         self.connect_timeout = 3
         self.open_url('https://member.airasia.com/login.aspx?culture=en-GB&BIGredirect=AABIG')

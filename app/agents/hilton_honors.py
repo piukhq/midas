@@ -2,7 +2,7 @@ import arrow
 import random
 import time
 
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, AgentError, TRIPPED_CAPTCHA
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
@@ -13,7 +13,7 @@ from xvfbwrapper import Xvfb
 from selenium.webdriver.common.keys import Keys
 
 
-class Hilton(Miner):
+class Hilton(RoboBrowserMiner):
 
     MAX_WAITING_TIME_SELENIUM = 5
     LOGIN_URL = 'https://secure3.hilton.com/en/hh/customer/login/index.htm'

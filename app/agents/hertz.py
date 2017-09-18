@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from decimal import Decimal, ROUND_DOWN
 import arrow
 import json
 
 
-class Hertz(Miner):
+class Hertz(RoboBrowserMiner):
     point_conversion_rate = 1 / Decimal('900')
 
     def login(self, credentials):

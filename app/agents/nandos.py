@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, IP_BLOCKED, TRIPPED_CAPTCHA
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class Nandos(Miner):
+class Nandos(RoboBrowserMiner):
     def login(self, credentials):
         query = 'https://www.nandos.co.uk/card/log-in?nocache=9232253217205040'
         data = {

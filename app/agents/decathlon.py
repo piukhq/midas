@@ -1,4 +1,4 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
@@ -8,7 +8,7 @@ import json
 import os
 
 
-class Decathlon(Miner):
+class Decathlon(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.004')
 
     def login(self, credentials):
