@@ -1,5 +1,5 @@
 import re
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED  # , STATUS_ACCOUNT_LOCKED
 from decimal import Decimal
 from app.utils import extract_decimal
@@ -9,7 +9,7 @@ import arrow
 # TODO: add negative transaction handling
 
 
-class Cooperative(Miner):
+class Cooperative(RoboBrowserMiner):
     value_pattern = re.compile(r'<span class="wallet-x-value">([0-9.0-9]+)')
     points_pattern = re.compile(r'<span class="z-points-value">([0-9.0-9]+)')
     logged_in_pattern = re.compile(r'("invalid loginID or password")')

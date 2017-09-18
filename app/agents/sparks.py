@@ -1,9 +1,10 @@
-from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 
-class Sparks(Miner):
+
+class Sparks(RoboBrowserMiner):
     is_login_successful = False
     auth_token = ''
 

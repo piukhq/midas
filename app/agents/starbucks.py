@@ -1,4 +1,4 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
@@ -7,7 +7,7 @@ from xvfbwrapper import Xvfb
 from decimal import Decimal, ROUND_DOWN
 
 
-class Starbucks(Miner):
+class Starbucks(RoboBrowserMiner):
     web_driver = None
     card_balance = Decimal('0')
     points = Decimal('0')

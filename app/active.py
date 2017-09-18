@@ -76,7 +76,7 @@ AGENTS = {
     'iceland-bonus-card': 'iceland.Iceland',
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
-    # 'marriott-rewards-card': 'marriott.Marriott',     # Selenium agent disabled until the Docker-py work is complete
+    'marriott-rewards-card': 'marriott.Marriott',
     # 'hilton-hhonors': 'hilton_honors.Hilton',         # Selenium agent disabled until the Docker-py work is complete
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',

@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, TRIPPED_CAPTCHA, STATUS_LOGIN_FAILED
 from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
-class PapaJohns(Miner):
+class PapaJohns(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.04')
 
     def login(self, credentials):

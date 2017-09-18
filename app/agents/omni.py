@@ -1,12 +1,12 @@
 import arrow
 
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class Omni(Miner):
+class Omni(RoboBrowserMiner):
     def login(self, credentials):
         self.open_url('https://ssl.omnihotels.com/Omni?pagedst=SI')
 

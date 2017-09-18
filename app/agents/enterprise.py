@@ -1,12 +1,14 @@
-from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
-from decimal import Decimal
-import arrow
 import json
 import time
+from decimal import Decimal
+
+import arrow
+
+from app.agents.base import ApiMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 
 
-class Enterprise(Miner):
+class Enterprise(ApiMiner):
     connect_timeout = 10
 
     def login(self, credentials):
@@ -20,8 +22,8 @@ class Enterprise(Miner):
         self.headers["origin"] = "https://www.enterprise.co.uk"
         self.headers["referer"] = "https://www.enterprise.co.uk/en/home.html"
 
-        self.open_url(url, method='post', json=login_data)
-        self.account_data = json.loads(self.browser.response.text)
+        self.response = self.make_request(url, method='post', json=login_data)
+        self.account_data = json.loads(self.response.text)
 
         if self.account_data['messages'] and len(self.account_data['messages']):
             message = self.account_data['messages'][0]['message']

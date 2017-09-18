@@ -1,4 +1,4 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -7,7 +7,7 @@ import arrow
 # TODO: add transaction handling
 
 
-class Shell(Miner):
+class Shell(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.005')
 
     def login(self, credentials):

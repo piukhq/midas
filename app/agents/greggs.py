@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, PASSWORD_EXPIRED, UNKNOWN, STATUS_LOGIN_FAILED
 from decimal import Decimal
 import arrow
 
 
-class Greggs(Miner):
+class Greggs(RoboBrowserMiner):
     access_details = {}
 
     def login(self, credentials):

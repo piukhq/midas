@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class HAndM(Miner):
+class HAndM(RoboBrowserMiner):
     is_login_successful = False
 
     def _check_if_logged_in(self):

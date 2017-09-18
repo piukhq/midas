@@ -1,4 +1,4 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -6,7 +6,7 @@ import arrow
 import base64
 
 
-class ThaiAirways(Miner):
+class ThaiAirways(RoboBrowserMiner):
     token = None
     member_id = None
 

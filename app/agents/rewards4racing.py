@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 import arrow
 import re
 
 
-class Rewards4Racing(Miner):
+class Rewards4Racing(RoboBrowserMiner):
     point_balance_pattern = r'Totalpointspending\:(\d+)'
     point_value_pattern = r'\,worth(£\d+\.\d+)Missing'
 
