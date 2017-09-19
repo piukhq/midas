@@ -10,12 +10,10 @@ class Marriott(SeleniumMiner):
     is_login_successful = False
 
     def _check_if_logged_in(self):
-        self.browser.implicitly_wait(0)
         if self.browser.find_elements_by_class_name('t-error-msg'):
             raise LoginError(STATUS_LOGIN_FAILED)
 
         self.find_captcha()
-        self.browser.implicitly_wait(5)
         self.is_login_successful = True
 
     @SeleniumMiner.selenium_handler
