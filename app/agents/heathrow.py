@@ -13,7 +13,7 @@ class Heathrow(RoboBrowserMiner):
         self.open_url('https://rewards.heathrow.com')
 
         login_form = self.browser.get_form('loginForm')
-        login_form['login'].value = credentials['email']
+        login_form['login'].value = credentials['username']
         login_form['password'].value = credentials['password']
 
         self.browser.submit_form(login_form)
