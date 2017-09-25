@@ -164,13 +164,21 @@ class RoboBrowserMiner(BaseMiner):
         try:
             self.browser.response.raise_for_status()
         except HTTPError as e:
-            if e.response.status_code == 401:
-                raise LoginError(STATUS_LOGIN_FAILED)
-            elif e.response.status_code == 403:
-                raise AgentError(IP_BLOCKED) from e
-            raise AgentError(END_SITE_DOWN) from e
+            self._raise_agent_exception(e)
 
         self.find_captcha()
+
+    def _raise_agent_exception(self, exc):
+        """ Raises an agent exception depending on the exc code
+        if needed: overwrite it on the child agent class to personalise it
+        :param exc: exception (HTTPError)
+        """
+        if exc.response.status_code == 401:
+            raise LoginError(STATUS_LOGIN_FAILED)
+        elif exc.response.status_code == 403:
+            raise AgentError(IP_BLOCKED) from exc
+
+        raise AgentError(END_SITE_DOWN) from exc
 
     def find_captcha(self):
         """Look for CAPTCHA on the page"""
