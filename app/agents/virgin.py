@@ -1,12 +1,12 @@
 import re
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class Virgin(RoboBrowserMiner):
+class Virgin(Miner):
     point_value_pattern = re.compile(r'"smBalance":"(\d+)"')
     login_result_pattern = re.compile(r'"loggedIn":[a-z]+')
 

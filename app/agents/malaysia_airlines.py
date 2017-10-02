@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class MalaysiaAirlines(RoboBrowserMiner):
+class MalaysiaAirlines(Miner):
     def login(self, credentials):
         self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/index')
 

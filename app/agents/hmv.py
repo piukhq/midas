@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -7,7 +7,7 @@ from decimal import Decimal
 import arrow
 
 
-class HMV(RoboBrowserMiner):
+class HMV(Miner):
     retry_limit = 3
 
     def login(self, credentials):

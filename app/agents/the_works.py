@@ -1,10 +1,10 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 import arrow
 
 
-class TheWorks(RoboBrowserMiner):
+class TheWorks(Miner):
     csrf = ''
     barcode = ''
     point_conversion_rate = Decimal('0.01')

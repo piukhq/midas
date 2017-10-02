@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from decimal import Decimal
 import arrow
 import re
 
 
-class HollandAndBarrett(RoboBrowserMiner):
+class HollandAndBarrett(Miner):
     point_value_re = re.compile(
         "^You've collected (\d+) points so far this quarter(?:\.| which will be worth £(\d*\.\d\d))")
     balance_re = re.compile('^You also have   £(\d*\.\d\d) worth of vouchers waiting to be spent')

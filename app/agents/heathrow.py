@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
-class Heathrow(RoboBrowserMiner):
+class Heathrow(Miner):
     use_tls_v1 = True
     point_conversion_rate = Decimal('0.002')
 
@@ -13,7 +13,7 @@ class Heathrow(RoboBrowserMiner):
         self.open_url('https://rewards.heathrow.com')
 
         login_form = self.browser.get_form('loginForm')
-        login_form['login'].value = credentials['username']
+        login_form['login'].value = credentials['email']
         login_form['password'].value = credentials['password']
 
         self.browser.submit_form(login_form)

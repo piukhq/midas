@@ -1,21 +1,12 @@
-from decimal import Decimal
+import arrow
 
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
+from decimal import Decimal
 
 
-class Omni(RoboBrowserMiner):
-    is_login_successful = False
-
-    def check_if_logged_in(self):
-        try:
-            logged_in_sign = self.browser.select('h3 a')[0].text
-            if logged_in_sign == "Sign Out":
-                self.is_login_successful = True
-        except:
-            raise LoginError(STATUS_LOGIN_FAILED)
-
+class Omni(Miner):
     def login(self, credentials):
         self.open_url('https://ssl.omnihotels.com/Omni?pagedst=SI')
 
@@ -24,7 +15,12 @@ class Omni(RoboBrowserMiner):
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
-        self.check_if_logged_in()
+        self.open_url('https://ssl.omnihotels.com/Omni?pagedst=SG6&splash=0&remember=on&ref_pagedst=&pagesrc=SI'
+                      '&ref_pagesrc=')
+
+        error_box = self.browser.select('p.has-error')
+        if error_box and error_box[0].text.strip().startswith('Please check to make sure'):
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
         points = extract_decimal(self.browser.select('div.accountSummary > div > div > div > span')[7].text)
@@ -47,4 +43,9 @@ class Omni(RoboBrowserMiner):
         return row
 
     def scrape_transactions(self):
-        return []
+        t = {
+            'date': arrow.get(0),
+            'description': 'placeholder',
+            'points': Decimal(0),
+        }
+        return [t]
