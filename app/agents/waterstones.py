@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -6,7 +6,7 @@ import arrow
 import re
 
 
-class Waterstones(RoboBrowserMiner):
+class Waterstones(Miner):
     order_id_re = re.compile(r"Order #(.*) \(Placed ")
 
     def login(self, credentials):

@@ -1,12 +1,12 @@
 from decimal import Decimal
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN, TRIPPED_CAPTCHA
 
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 
 
-class Kfc(RoboBrowserMiner):
+class Kfc(Miner):
     def login(self, credentials):
         data = {"password": credentials["password"],
                 "username": credentials["email"],

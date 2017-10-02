@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import (STATUS_LOGIN_FAILED, LoginError)
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -6,7 +6,7 @@ import arrow
 import re
 
 
-class Tesco(RoboBrowserMiner):
+class Tesco(Miner):
     is_login_successful = False
     point_conversion_rate = Decimal('0.01')
     transaction_id_regex = re.compile('\d{3}$')

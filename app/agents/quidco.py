@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 import arrow
 from decimal import Decimal
 
 
-class Quidco(RoboBrowserMiner):
+class Quidco(Miner):
     transaction_rows = []
 
     def login(self, credentials):

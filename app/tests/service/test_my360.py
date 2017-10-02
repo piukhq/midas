@@ -18,7 +18,7 @@ class StandardLoginTestsMixin(object):
         self.m.attempt_login(self.SAVED_CREDENTIALS)
 
     def test_login(self):
-        self.assertEqual(self.m.response.status_code, 200)
+        self.assertEqual(self.m.browser.response.status_code, 200)
         self.assertTrue(self.m.is_login_successful())
         self.assertIsNotNone(self.m.scheme_slug)
 

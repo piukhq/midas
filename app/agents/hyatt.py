@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, AgentModifiedError
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -7,7 +7,7 @@ import time
 import re
 
 
-class Hyatt(RoboBrowserMiner):
+class Hyatt(Miner):
 
     def get_csrf(self):
         import re

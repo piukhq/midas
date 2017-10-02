@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 import arrow
 
 
-class BrewersFayre(RoboBrowserMiner):
+class BrewersFayre(Miner):
     point_conversion_rate = Decimal('0.002')
 
     def login(self, credentials):

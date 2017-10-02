@@ -13,7 +13,7 @@ class TestEnterprise(unittest.TestCase):
         cls.e.attempt_login(CREDENTIALS['enterprise'])
 
     def test_login(self):
-        self.assertEqual(self.e.response.status_code, 200)
+        self.assertEqual(self.e.browser.response.status_code, 200)
 
     def test_transactions(self):
         transactions = self.e.transactions()

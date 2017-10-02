@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 import arrow
@@ -7,7 +7,7 @@ import arrow
 # TODO: add negative transaction handling
 
 
-class Costa(RoboBrowserMiner):
+class Costa(Miner):
     def login(self, credentials):
         self.open_url("https://www.costa.co.uk/coffee-club/login/")
         signup_form = self.browser.get_form(id='menuSearchForm')

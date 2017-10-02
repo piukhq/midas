@@ -1,11 +1,11 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, CONFIRMATION_REQUIRED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class JetBlue(RoboBrowserMiner):
+class JetBlue(Miner):
     def login(self, credentials):
         self.open_url('https://book.jetblue.com/B6.auth/login?service=https%3A%2F%2Ftrueblue.jetblue.com%2Fc%2Fportal%2'
                       'Flogin%3Fredirect%3D%252Fgroup%252Ftrueblue%252Factivity-history%26p_l_id%3D10514')

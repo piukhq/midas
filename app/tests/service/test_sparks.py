@@ -13,7 +13,7 @@ class TestSparks(unittest.TestCase):
         cls.m.attempt_login(CREDENTIALS['sparks'])
 
     def test_login(self):
-        self.assertTrue(self.m.is_login_successful)
+        self.assertEqual(self.m.browser.response.status_code, 200)
 
     def test_transactions(self):
         transactions = self.m.transactions()

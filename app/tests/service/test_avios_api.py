@@ -15,7 +15,7 @@ class TestAviosAPI(unittest.TestCase):
         cls.b.attempt_login(CREDENTIALS['avios_api'])
 
     def test_login(self):
-        self.assertEqual(self.b.response.status_code, 200)
+        self.assertEqual(self.b.browser.response.status_code, 200)
 
     def test_balance(self):
         balance = self.b.balance()

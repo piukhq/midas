@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -6,7 +6,7 @@ import re
 import arrow
 
 
-class RSPB(RoboBrowserMiner):
+class RSPB(Miner):
     is_login_successful = False
 
     def _check_if_logged_in(self):

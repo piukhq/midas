@@ -1,10 +1,10 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class Avis(RoboBrowserMiner):
+class Avis(Miner):
     def login_failed(self, credentials):
         query = "https://secure.avis.co.uk/JsonProviderServlet/" \
                 "?requestType=updateTncStatus"

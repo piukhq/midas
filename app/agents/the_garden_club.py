@@ -1,10 +1,10 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from decimal import Decimal
 import arrow
 
 
-class TheGardenClub(RoboBrowserMiner):
+class TheGardenClub(Miner):
     is_login_successful = False
 
     def _check_if_logged_in(self):

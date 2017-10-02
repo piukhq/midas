@@ -1,9 +1,9 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, WRONG_CREDENTIAL_TYPE
 from app.utils import extract_decimal
 
 
-class Iceland(RoboBrowserMiner):
+class Iceland(Miner):
     is_login_successful = False
 
     def _check_if_logged_in(self):

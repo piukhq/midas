@@ -1,10 +1,10 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class Toysrus(RoboBrowserMiner):
+class Toysrus(Miner):
     def login(self, credentials):
         url = 'https://club.toysrus.co.uk'
         self.open_url(url)

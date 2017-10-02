@@ -1,11 +1,11 @@
 import arrow
 
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
-class Boots(RoboBrowserMiner):
+class Boots(Miner):
     def login(self, credentials):
         self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352',
                       read_timeout=15)

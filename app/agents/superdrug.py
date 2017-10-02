@@ -1,4 +1,4 @@
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
@@ -7,7 +7,7 @@ import arrow
 # TODO: add STATUS_ACCOUNT_LOCKED
 
 
-class Superdrug(RoboBrowserMiner):
+class Superdrug(Miner):
     def login(self, credentials):
         self.open_url("https://www.superdrug.com/login")
         signup_form = self.browser.get_form(id='loginForm')

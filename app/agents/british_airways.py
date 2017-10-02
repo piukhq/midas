@@ -1,12 +1,12 @@
 import arrow
 import re
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class BritishAirways(RoboBrowserMiner):
+class BritishAirways(Miner):
     # TODO: REPLACE WITH REAL LIMIT
     retry_limit = 3
 

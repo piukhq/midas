@@ -1,10 +1,10 @@
 import arrow
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
-class Nectar(RoboBrowserMiner):
+class Nectar(Miner):
     # TODO: REPLACE WITH REAL LIMIT
     retry_limit = 3
 

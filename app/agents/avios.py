@@ -1,11 +1,11 @@
 import arrow
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class Avios(RoboBrowserMiner):
+class Avios(Miner):
     def login(self, credentials):
         self.open_url("https://www.avios.com/gb/en_gb/")
         login_form = self.browser.get_form(action='https://www.avios.com/my-account/login-process')

@@ -1,12 +1,12 @@
 import time
 
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import Miner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 import arrow
 
 
-class MyMail(RoboBrowserMiner):
+class MyMail(Miner):
     def login(self, credentials):
         # AngularJS sets this header as cross-site request forgery protection. Without it, we can't log in.
         # The cookie is obtained by visiting the login page.

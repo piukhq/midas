@@ -12,9 +12,6 @@ class TestMarriott(unittest.TestCase):
         cls.b = Marriott(1, 1)
         cls.b.attempt_login(CREDENTIALS["marriott"])
 
-    def test_login(self):
-        self.assertTrue(self.b.is_login_successful)
-
     def test_transactions(self):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
