@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED, IP_BLOCKED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
 
 
-class Eurostar(Miner):
+class Eurostar(RoboBrowserMiner):
     point_conversion_rate = 1 / Decimal('300')
 
     def determine_login_failure(self, credentials):

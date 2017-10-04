@@ -1,10 +1,10 @@
 from decimal import Decimal
-from app.agents.base import Miner
+from app.agents.base import ApiMiner
 from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN, WRONG_CREDENTIAL_TYPE
 from app.my360endpoints import SCHEME_API_DICTIONARY
 
 
-class My360(Miner):
+class My360(ApiMiner):
     points = None
 
     def is_login_successful(self):
@@ -16,14 +16,14 @@ class My360(Miner):
 
         return loyalty_data['points']
 
-    def _get_balance(self, url):
+    def _get_balance_data(self, url):
         loyalty_data = None
 
-        self.browser.open(url)
+        self.response = self.make_request(url)
         try:
-            loyalty_data = self.browser.response.json()
+            loyalty_data = self.response.json()
         except:
-            if self.browser.response.status_code == 404:
+            if self.response.status_code == 404:
                 raise ValueError('Scheme ID not found')
 
             raise LoginError(END_SITE_DOWN)
@@ -46,7 +46,7 @@ class My360(Miner):
                 scheme_api_identifier,
                 user_identifier
             )
-            self.loyalty_data = self._get_balance(url)
+            self.loyalty_data = self._get_balance_data(url)
         else:
             raise ValueError(
                 'Empty value for scheme_api_identifier for current scheme slug ({0})'.format(self.scheme_slug)

@@ -13,11 +13,11 @@ class TestOmni(unittest.TestCase):
         cls.m.attempt_login(CREDENTIALS['omni'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
 
     def test_transactions(self):
         transactions = self.m.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):

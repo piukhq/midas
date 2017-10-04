@@ -1,9 +1,9 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
 
 
-class GourmetBurgerKitchen(Miner):
+class GourmetBurgerKitchen(RoboBrowserMiner):
     is_login_successful = False
 
     def login(self, credentials):

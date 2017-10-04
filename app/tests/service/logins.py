@@ -102,7 +102,7 @@ CREDENTIALS = {
         "password": "DDHansbrics10",
     },
     "heathrow": {
-        "email": "chris.gormley2@me.com",
+        "username": "chris.gormley2@me.com",
         "password": "RGHansbr15",
     },
     "hertz": {

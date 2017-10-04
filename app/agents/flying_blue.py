@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class FlyingBlue(Miner):
+class FlyingBlue(RoboBrowserMiner):
     def login(self, credentials):
         url = 'https://www.flyingblue.com/account/login/process.html'
         data = {
