@@ -1,26 +1,39 @@
-from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
 from decimal import Decimal
+
 import arrow
 
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
 
-class PriorityGuestRewards(Miner):
+
+class PriorityGuestRewards(RoboBrowserMiner):
+    is_login_successful = False
+
+    def check_if_logged_in(self):
+        account_url = "https://www.priorityguestrewards.com/account/profile.php"
+
+        try:
+            self.open_url(account_url)
+            account_info = self.browser.select('.info-row b')[0].text
+            if account_info:
+                self.is_login_successful = True
+        except:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
     def login(self, credentials):
-        url = 'https://www.priorityguestrewards.com.au/account/acc/loginTrans.php'
+        url = 'https://bookings.priorityguestrewards.com/plugin/loginTrans'
         data = {
-            'accountType': 'PA',
             'userID': credentials['username'],
             'loginpass': credentials['password'],
         }
 
         self.open_url(url, method='post', data=data)
-
-        self.check_error('/login/',
-                         (('div.alert.alert-danger', STATUS_LOGIN_FAILED, '×\r\n        We are having trouble'), ))
+        self.check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(self.browser.select('#member-account-status-box > div > div > span.bold')[2].text)
+        points = self.browser.select('.info-row b')[0].text
+        points = extract_decimal(points)
 
         reward = self.calculate_tiered_reward(points, [
             (150, 'Free room'),
@@ -48,4 +61,4 @@ class PriorityGuestRewards(Miner):
         }
 
     def scrape_transactions(self):
-        return self.browser.select('#dashboard-activities-box > div > div > table > tbody > tr')
+        return self.browser.select('table tbody tr')

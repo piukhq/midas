@@ -1,9 +1,9 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 
 
-class Monsoon(Miner):
+class Monsoon(RoboBrowserMiner):
     domain = 'https://uk.monsoon.co.uk'
 
     login_path = '/view/secured/content/login'

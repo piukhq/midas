@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED, CONFIRMATION_REQUIRED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class Lufthansa(Miner):
+class Lufthansa(RoboBrowserMiner):
     @staticmethod
     def scan_and_fill_field(form, fragment, value):
         for name, field in form.fields.items():

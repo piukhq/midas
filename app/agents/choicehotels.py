@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, TRIPPED_CAPTCHA, UNKNOWN, IP_BLOCKED
 from decimal import Decimal
 import arrow
 
 
-class ChoiceHotels(Miner):
+class ChoiceHotels(RoboBrowserMiner):
     def login(self, credentials):
         url = 'https://www.choicehotels.com/webapi/user-account/login'
         data = {

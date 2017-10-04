@@ -1,47 +1,69 @@
-from app.agents.base import Miner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
 from decimal import Decimal
+import json
+
 import arrow
 
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, AgentError, IP_BLOCKED, END_SITE_DOWN
 
-class Qantas(Miner):
+
+class Qantas(RoboBrowserMiner):
     def login(self, credentials):
-        self.open_url('https://www.qantas.com.au/fflyer/do/dyns/auth/youractivity/yourActivity')
+        self.card_number = credentials['card_number']
+        data = {
+            'memberId': self.card_number,
+            'pin': credentials['pin'],
+            'lastName': credentials['last_name'],
+            'rememberMyDetails': False,
+            'deviceFP': '3782cf03b50b41997dbe2ea466ac0b94'
+        }
 
-        login_form = self.browser.get_form('FFLoginForm')
-        login_form['login_ffNumber'].value = credentials['card_number']
-        login_form['login_surname'].value = credentials['last_name']
-        login_form['login_pin'].value = credentials['pin']
+        url = 'https://api.services.qantasloyalty.com/auth/member/login'
 
-        self.browser.submit_form(login_form)
+        self.headers['content-type'] = 'application/json'
+        self.headers['Accept'] = 'application/json'
 
-        selector = '#errormsgs ul li'
-        self.check_error('/fflyer/do/dyns/dologin',
-                         ((selector, STATUS_LOGIN_FAILED, 'The details do not match our records'),))
+        self.open_url(url, method="post", data=json.dumps(data))
+        self.browser.response.raise_for_status()
+        self.login_response_json = self.browser.response.json()
+
+    # Override base class method
+    def _raise_agent_exception(self, exc):
+        member_info = json.loads(self.browser.response.content)
+        if exc.response.status_code == 400 and member_info['auth']['status'] == 'INVALID_CREDENTIALS':
+            raise LoginError(STATUS_LOGIN_FAILED)
+
+        if exc.response.status_code == 403:
+            raise AgentError(IP_BLOCKED) from exc
+
+        raise AgentError(END_SITE_DOWN) from exc
 
     def balance(self):
+        balance_response = self.browser.response.json()
+        points = Decimal(balance_response['member']['points'])
         return {
-            'points': extract_decimal(self.browser.select('div.guts div.clearit strong')[2].text),
+            'points': points,
             'value': Decimal('0'),
             'value_label': '',
         }
 
     @staticmethod
     def parse_transaction(row):
-        data = row.select('td')
-
-        point_text = data[2].text.strip()
-        if point_text == '-':
-            point_text = '0'
-
-        description_parts = data[1].text.strip().split('\n')
-
         return {
-            'date': arrow.get(data[0].text.strip(), 'DD MMM YY'),
-            'description': description_parts[0].strip(),
-            'points': extract_decimal(point_text),
+            'date': arrow.get(row['date'], 'YYYY-MM-DD'),
+            'description': row['description'],
+            'points': Decimal(row['qantasPoints']),
         }
 
     def scrape_transactions(self):
-        return self.browser.select('#ffactivity tbody tr')
+        transaction_url = 'https://api.services.qantasloyalty.com/api/member/{}/activity'.format(self.card_number)
+        auth_token = self.login_response_json['auth']['token']['id']
+        self.headers['Authorization'] = 'Bearer {}'.format(auth_token)
+        params = {
+            'start': '0',
+            'size': '20',
+        }
+        self.open_url(transaction_url, params=params)
+
+        transaction_response = self.browser.response.json()
+        return transaction_response['transactions']

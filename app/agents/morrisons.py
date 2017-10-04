@@ -1,14 +1,14 @@
 import re
 from decimal import Decimal
 from urllib.parse import parse_qs, urlsplit
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 import arrow
 
 # TODO: add STATUS_ACCOUNT_LOCKED
 
 
-class Morrisons(Miner):
+class Morrisons(RoboBrowserMiner):
     card_number = None
     api_key_pattern = re.compile(r'apikey:"([A-z0-9]+)"')
     card_number_pattern = re.compile(r'"cardNumber":"([0-9]+)"')

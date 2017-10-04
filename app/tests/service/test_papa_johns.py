@@ -13,7 +13,7 @@ class TestPapaJohns(unittest.TestCase):
         cls.b.attempt_login(CREDENTIALS['papa_johns'])
 
     def test_login(self):
-        self.assertEqual(self.b.browser.response.status_code, 200)
+        self.assertTrue(self.b.is_login_successful)
 
     def test_transactions(self):
         transactions = self.b.transactions()

@@ -1,35 +1,89 @@
-from app.agents.base import Miner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
-import arrow
+
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 
 
-class Sparks(Miner):
-    def login(self, credentials):
-        self.open_url('https://www.marksandspencer.com/MSLogon')
+class Sparks(RoboBrowserMiner):
+    is_login_successful = False
+    auth_token = ''
 
-        login_form = self.browser.get_form('Logon')
-        login_form['logonId'] = credentials['email']
-        login_form['logonPassword'] = credentials['password']
-        self.browser.submit_form(login_form)
+    def _check_if_logged_in(self):
+        cookies = [item[0] for item in
+                   self.browser.session.cookies.items()]
 
-        self.open_url('https://www.marksandspencer.com/webapp/wcs/stores/servlet/MSAuthToken')
+        if 'MS_USER_COOKIE' in cookies:
+            self.is_login_successful = True
 
-        self.check_error('/webapp/wcs/stores/servlet/LogonErrorView',
-                         (('.messaging > ul > li'), STATUS_LOGIN_FAILED, "We're sorry but we don't recognise"))
-
-        # The above isn't always enough to check for an error, sometimes we're just given an empty json response.
-        if self.browser.response.text == '{}':
+        else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
-        cookies = self.browser.session.cookies._cookies['www.marksandspencer.com']['/']
-        auth_cookie = next(v for k, v in cookies.items() if k.startswith('MS_AUTH_TOKEN_'))
+    def get_auth_token(self):
+        self.headers['Host'] = "www.marksandspencer.com"
+        self.headers['Referer'] = "https://www.marksandspencer.com/" \
+                                  "MSNorth?langId=-24&storeId=10151"
+        self.browser.open("https://www.marksandspencer.com/"
+                          "webapp/wcs/stores/servlet/MSAuthToken")
 
-        self.headers['Authorization'] = 'MNSAuthToken {}'.format(auth_cookie.value)
+        self.auth_token = self.browser.response.json()['token']
+
+    def balance_preparation(self):
+        self.get_auth_token()
+
+        self.headers['Host'] = "api.loyalty.marksandspencer.services"
+        self.headers['Referer'] = "https://api.loyalty.marksandspencer.serv" \
+                                  "ices/loyalty-service/static/proxy-cors.html"
+        self.headers['Authorization'] = 'MNSAuthToken ' + self.auth_token
+
+    def login(self, credentials):
+        url = 'https://www.marksandspencer.com/MSLogon'
+        data = {
+            'storeId': '10151',
+            'langId': '-24',
+            'catalogId': '10051',
+            'fromOrderId': '*',
+            'toOrderId': '.',
+            'deleteIfEmpty': '*',
+            'createIfEmpty': '1',
+            'calculationUsageId': '-1',
+            'updatePrices': 0,
+            'previousPage': 'logon',
+            'forgotPasswordURL': 'MSResForgotPassword',
+            'rememberMe': 'true',
+            'resJSON': 'true',
+            'reLogonURL': 'MSResLogin',
+            'resetConfirmationViewName': 'MSPwdEmailConfirmModalView',
+            'errorViewName': 'MSResLogin',
+            'continueSignIn': '1',
+            'migrateUserErrorMsg': 'MS_MIGRAT_HEADERERR_MSG',
+            'returnPage': 'MSUserLoyaltyOptInView',
+            'URL': 'webapp/wcs/stores/servlet/MSSecureOrdercalculate'
+                   '?catalogId=10051&langId=-24&mergeStatus=&storeId='
+                   '10151&URL=https://www.marksandspencer.com/webapp/'
+                   'wcs/stores/servlet/TopCategoriesDisplayView?'
+                   'storeId=10151&langId=-24&catalogId=10051&ddkey'
+                   '=https%3ALogoff&page=ACCOUNT_LOGIN',
+            'orderMove': "/webapp/wcs/stores/servlet/OrderItemMove?"
+                         "calculationUsageIdentifier=MSLoginModalDisplay"
+                         "_orderMove&catalogId=10051&langId=-24&mergeStatus"
+                         "=&storeId=10151&toOrderId=.**.&URL=OrderCalculate?U"
+                         "RL=https://www.marksandspencer.com/webapp/wcs/stores"
+                         "/servlet/TopCategoriesDisplayView?storeId=10151&"
+                         "langId=-24&catalogId=10051&ddkey=https%3ALogoff",
+            'logonId': credentials['email'],
+            'logonPassword': credentials['password']
+        }
+
+        self.browser.open(url, data=data, method='post')
+        self._check_if_logged_in()
 
     def balance(self):
-        self.open_url('https://api.loyalty.marksandspencer.services/loyalty-service/api/users/status')
+        self.balance_preparation()
+        self.open_url('https://api.loyalty.marksandspencer.services'
+                      '/loyalty-service/api/users/status')
+
         data = self.browser.response.json()
+
         return {
             'points': Decimal(data['balance']),
             'value': Decimal('0'),
@@ -44,9 +98,4 @@ class Sparks(Miner):
     def scrape_transactions(self):
         # self.open_url('https://portal.prepaytec.com/chopinweb/scareMyStatement.do')
         # transaction_table = self.browser.select('table.txnHistory')
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []

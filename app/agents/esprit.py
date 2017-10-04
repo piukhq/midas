@@ -1,10 +1,10 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
 
-class Esprit(Miner):
+class Esprit(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):

@@ -1,11 +1,11 @@
-from app.agents.base import Miner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, AgentError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
 
 
-class Ihg(Miner):
+class Ihg(RoboBrowserMiner):
     def login(self, credentials):
 
         def error_message_check(message):
