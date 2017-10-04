@@ -354,9 +354,6 @@ CREDENTIALS = {
     "the-richmond": {
         "barcode": "TADLFvwk4s",
     },
-    "tennessee-chicken": {
-        "barcode": "TADLFvwk4s",
-    },
     "cliff-roe-sports": {
         "barcode": "TADLFvwk4s",
     },
@@ -397,7 +394,7 @@ CREDENTIALS = {
         "barcode": "TADLFvwk4s",
     },
     "linda-h": {
-        "barcode": "TADLFvwk4s",
+        # No test credentials
     },
     "tiffin-tea-rooms": {
         "barcode": "TADLFvwk4s",
@@ -406,7 +403,7 @@ CREDENTIALS = {
         "barcode": "TADLFvwk4s",
     },
     "dhaba-lane": {
-        "barcode": "TADLFvwk4s",
+        # No test credentials
     },
     "el-mexicana": {
         "barcode": "TADLFvwk4s",

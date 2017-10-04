@@ -16,7 +16,6 @@ SCHEME_API_DICTIONARY = {
     'nanoo-hair': 'YSNMxs',
     'comics-games-and-coffee': 'GK4Tvh',
     'the-richmond': 'cM_Nh7',
-    'tennessee-chicken': '',
     'cliff-roe-sports': 'K7yej1',
     'michael-chell': 'mchell',
     'the-food-cellar': '-fdK4i',
@@ -38,6 +37,7 @@ SCHEME_API_DICTIONARY = {
     'el-mexicana': 'KP6_Ox',
     'deep-blue-restaurants': '6qF7x1',
     # List of schemes to be added but no API code yet
+    # 'tennessee-chicken': '',
     # 'mad-hatters': '',
     # 'peewees': '',
     # 'the-vestry': '',
