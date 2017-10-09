@@ -34,5 +34,6 @@ class TestEurostarFail(unittest.TestCase):
             eu.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+
 if __name__ == '__main__':
     unittest.main()
