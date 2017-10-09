@@ -13,12 +13,17 @@ class TestEurostar(unittest.TestCase):
         cls.e.attempt_login(CREDENTIALS['eurostar'])
 
     def test_login(self):
-        self.assertEqual(self.e.browser.response.status_code, 200)
+        self.assertTrue(self.e.is_login_successful)
 
     def test_balance(self):
         balance = self.e.balance()
         schemas.balance(balance)
         self.assertRegex(balance['value_label'], '^\d+ £20 e-voucher[s]?$|^$')
+
+    def test_transactions(self):
+        transactions = self.e.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
 
 
 class TestEurostarFail(unittest.TestCase):
@@ -28,17 +33,6 @@ class TestEurostarFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             eu.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
-
-    def test_login_bad_password(self):
-        eu = Eurostar(1, 1)
-        credentials = {
-            'email': 'chris.gormley2@me.com',
-            'password': 'QDHansbrics81',
-        }
-        with self.assertRaises(LoginError) as e:
-            eu.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
-
 
 if __name__ == '__main__':
     unittest.main()
