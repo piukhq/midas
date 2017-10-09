@@ -273,7 +273,7 @@ class SeleniumMiner(BaseMiner):
         options.add_argument('--headless')
         options.add_argument('--hide-scrollbars')
         options.add_argument('--disable-gpu')
-        self.browser = webdriver.Firefox(firefox_options=options)
+        self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
         self.browser.implicitly_wait(5)
 
     def attempt_login(self, credentials):
