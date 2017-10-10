@@ -9,7 +9,7 @@ RUN addgroup --gid 1550 apps && \
  echo "deb-src http://ppa.launchpad.net/nginx/stable/ubuntu xenial main" >> /etc/apt/sources.list && \
  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C300EE8C && \
  apt-get update && \
- apt-get -y install rsync git git-core python3 python3-pip libpq-dev libxml2-dev libxslt1-dev python3-dev nodejs nginx curl xvfb wget && \
+ apt-get -y install rsync git git-core python3 python3-pip libpq-dev libxml2-dev libxslt1-dev libgtk-3-dev libdbus-glib-1-dev python3-dev nodejs nginx curl xvfb wget && \
  curl -L 'https://github.com/just-containers/s6-overlay/releases/download/v1.18.1.5/s6-overlay-amd64.tar.gz' -o /tmp/s6-overlay-amd64.tar.gz && \
  tar xzf /tmp/s6-overlay-amd64.tar.gz -C / && \
  sed -i -e 's/user www-data;/user apps;/g' /etc/nginx/nginx.conf && \
