@@ -26,7 +26,7 @@ RUN addgroup --gid 1550 apps && \
  mv geckodriver /usr/local/bin/  && \
  wget https://ftp.mozilla.org/pub/firefox/releases/55.0/linux-x86_64/en-US/firefox-55.0.tar.bz2 && \
  tar -xjf firefox-55.0.tar.bz2 && \
- mv firefox /usr/local/firefox
+ mv firefox /usr/local/firefox && \
  ln -s /usr/local/firefox/firefox /usr/bin/firefox && \
  rm firefox-55.0.tar.bz2 && \
  mkdir /home/apps && \
