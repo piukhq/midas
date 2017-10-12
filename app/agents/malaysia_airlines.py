@@ -1,40 +1,65 @@
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.base import SeleniumMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
+from time import sleep
 
+class MalaysiaAirlines(SeleniumMiner):
+    is_login_successful = False
 
-class MalaysiaAirlines(RoboBrowserMiner):
+    def _check_if_logged_in(self):
+        try:
+            username = self.browser.find_element_by_class_name('username')
+            if username.is_displayed():
+                self.is_login_successful = True
+            else:
+                raise LoginError(STATUS_LOGIN_FAILED)
+        except LoginError as exception:
+            raise exception
+
+    def _login(self, credentials):
+        self.browser.get('https://www.malaysiaairlines.com/'
+                            'enrich-portal/login.html')
+        sleep(5)
+        self.browser.find_element_by_name('mhNumber').\
+            send_keys(credentials['card_number'])
+        sleep(5)
+        self.browser.find_elements_by_name('Password')[3].\
+            send_keys(credentials['password'])
+        sleep(5)
+        self.browser.find_element_by_class_name('login-form').click()
+        sleep(60)
+
     def login(self, credentials):
-        self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/index')
-
-        login_form = self.browser.get_form('loginForm')
-        login_form['username'].value = credentials['card_number']
-        login_form['password'].value = credentials['password']
-        self.browser.submit_form(login_form)
-
-        if self.browser.url.startswith('https://www.enrich.malaysiaairlines.com/EnrichWebsite/index?badcredential='):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        self.browser.implicitly_wait(60)
+        try:
+            self._login(credentials)
+        except:
+            raise LoginError(UNKNOWN)
+        self._check_if_logged_in()
 
     def balance(self):
+        points = self.browser.find_element_by_class_name('miles-value').text
+
         return {
-            'points': extract_decimal(self.browser.select('div.sidebar-content.spacing-top-50 > p')[0].text),
+            'points': extract_decimal(points),
             'value': Decimal('0'),
             'value_label': '',
         }
 
     @staticmethod
     def parse_transaction(row):
-        data = row.select('td')
+        date = row.find_element_by_class_name('date').text
+        description = row.find_element_by_class_name('activity').text
+        points = row.find_element_by_class_name('earn').text
 
         return {
-            'date': arrow.get(data[0].text, 'DD.MM.YYYY'),
-            'description': data[1].text,
-            'points': Decimal(data[2].text),
+            'date': arrow.get(date, 'DD MMM YYYY'),
+            'description': description,
+            'points': Decimal(points)
         }
 
     def scrape_transactions(self):
-        # This request is incredibly slow to return, we need to wait ~40 seconds to actually get a response back.
-        self.open_url('https://www.enrich.malaysiaairlines.com/EnrichWebsite/mymiles-myactivity', read_timeout=40)
-        return self.browser.select('table.table.table-miles.spacing-top-10 > tbody > tr')[1:]
+        return self.browser.find_elements_by_class_name('miles-table'
+                                                           ' tbody tr')
