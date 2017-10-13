@@ -19,8 +19,7 @@ class MalaysiaAirlines(SeleniumMiner):
             raise exception
 
     def _login(self, credentials):
-        self.browser.get('https://www.malaysiaairlines.com/'
-                            'enrich-portal/login.html')
+        self.browser.get('https://www.malaysiaairlines.com/enrich-portal/login.html')
         sleep(5)
         self.browser.find_element_by_name('mhNumber').\
             send_keys(credentials['card_number'])
@@ -39,11 +38,12 @@ class MalaysiaAirlines(SeleniumMiner):
             raise LoginError(UNKNOWN)
         self._check_if_logged_in()
 
+        self.points = self.browser.find_element_by_class_name('miles-value').text
+
     def balance(self):
-        points = self.browser.find_element_by_class_name('miles-value').text
 
         return {
-            'points': extract_decimal(points),
+            'points': extract_decimal(self.points),
             'value': Decimal('0'),
             'value_label': '',
         }
