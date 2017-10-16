@@ -31,5 +31,6 @@ class TestClubIndividualFail(unittest.TestCase):
             eu.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
+
 if __name__ == '__main__':
     unittest.main()
