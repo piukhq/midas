@@ -78,6 +78,7 @@ AGENTS = {
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
     'marriott-rewards-card': 'marriott.Marriott',
+    'club-individual': 'club-individual.ClubIndividual',
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',
     '19-fourteas-tea-rooms': 'my360.My360',
