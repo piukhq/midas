@@ -16,13 +16,11 @@ class TestAerClub(unittest.TestCase):
 
     def test_balance(self):
         balance = self.m.balance()
-        self.fail(balance)
         schemas.balance(balance)
 
     def test_transactions(self):
         transactions = self.m.transactions()
         self.assertIsNotNone(transactions)
-        self.fail(transactions)
         schemas.transactions(transactions)
 
 
@@ -36,6 +34,7 @@ class TestAerClubFail(unittest.TestCase):
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
+
 
 if __name__ == '__main__':
     unittest.main()

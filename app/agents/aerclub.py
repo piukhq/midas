@@ -24,7 +24,7 @@ class AerClub(RoboBrowserMiner):
             'userName': credentials['email'],
             'password': credentials['password']
         }
-        import pdb; pdb.set_trace()
+
         self.browser.open(url, method='POST', json=data)
 
     def login(self, credentials):

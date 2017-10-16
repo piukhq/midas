@@ -65,6 +65,7 @@ AGENTS = {
     'delta-skymiles': 'delta.Delta',
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
+    'aerclub': 'aerclub.AerClub',
     'clubcarlson': 'carlson.Carlson',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
