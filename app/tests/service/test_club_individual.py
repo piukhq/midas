@@ -19,6 +19,11 @@ class TestClubIndividual(unittest.TestCase):
         balance = self.e.balance()
         schemas.balance(balance)
 
+    def test_transactions(self):
+        transactions = self.e.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
+
 
 class TestClubIndividualFail(unittest.TestCase):
 
