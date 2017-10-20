@@ -262,6 +262,11 @@ CREDENTIALS = {
         "username": "ssc@bink.com",
         "password": "Loyalty1",
     },
+    "club_individual": {
+        "card_number": "3662622",
+        "email": "ryanedwards3@mac.com",
+        "password": "Bink182",
+    },
     "choicehotels": {
         "username": "LoyaltyAngels",
         "password": "ji7qM3i2jd",
