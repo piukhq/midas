@@ -194,6 +194,7 @@ CREDENTIALS = {
     "ihg": {
         "username": "la@loyaltyangels.com",
         "pin": "1290",
+        "last_name": "angels",
     },
     "hyatt": {
         "username": "528180109F",
