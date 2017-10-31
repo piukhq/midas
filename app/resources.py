@@ -13,7 +13,7 @@ from app.encoding import JsonEncoder
 from app import publish
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
-from cron_test_results import resolve_issue
+from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests
 from flask import make_response, request
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
@@ -215,6 +215,16 @@ class AgentQuestions(Resource):
 
 
 api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questions')
+
+
+class AgentsErrorResults(Resource):
+
+    def get(self):
+        run_agent_tests()
+        return get_formatted_message()
+
+
+api.add_resource(AgentsErrorResults, '/agents_error_results', endpoint='api.agents_error_results')
 
 
 def decrypt_credentials(credentials):
