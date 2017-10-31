@@ -9,10 +9,11 @@ from os.path import join
 import requests
 import subprocess
 import xmltodict
-from settings import SLACK_API_KEY, APOLLO_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
+from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
     INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, INFLUX_DATABASE
 from slacker import Slacker
 from influxdb import InfluxDBClient
+from app.active import AGENTS
 import re
 
 test_path = 'app/tests/service/'
@@ -40,19 +41,19 @@ def post_formatted_slack_message(message, channel='#errors-agents'):
             {
                 "color": "#F90400",
                 "title": "Errors",
-                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "title_link": "{0}/#/exceptions/".format(HELIOS_URL),
                 "fields": [{"value": i} for i in message['failures']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "Login Failures",
-                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "title_link": "{0}/#/exceptions/".format(HELIOS_URL),
                 "fields": [{"value": i} for i in message['credentials']]
             },
             {
                 "color": "#ADE0FF",
                 "title": "The Unscrapables",
-                "title_link": "{0}/#/exceptions/".format(APOLLO_URL),
+                "title_link": "{0}/#/exceptions/".format(HELIOS_URL),
                 "fields": [{"value": i} for i in message['captcha']]
             },
             {
@@ -214,16 +215,42 @@ def resolve_issue(classname):
                                              '_The issue with {} has been marked as resolved._'.format(key))
 
 
-if __name__ == '__main__':
-    py_test = join(os.path.dirname(sys.executable), 'py.test')
+def run_agent_tests():
+    py_test = join(os.path.dirname(sys.executable), 'pytest')
     subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
-    # Alert our heart beat service that we are in fact running
-    requests.get(HEARTBEAT_URL)
 
+def get_formatted_message():
     with open(JUNIT_XML_FILENAME) as f:
         test_results = xmltodict.parse(f.read())
 
     bad_agents = get_problematic_agents(test_results)
     message = generate_message(test_results, bad_agents)
-    post_formatted_slack_message(message)
+    return message
+
+
+def send_to_helios(data):
+    response = None
+    try:
+        response = requests.post(HELIOS_URL + '/data_point/', data=data)
+    except requests.exceptions.RequestException as e:
+        print(e)
+    return response
+
+
+def get_agent_list():
+    return [key.replace('-', ' ') for key, value in AGENTS.items()]
+
+
+if __name__ == '__main__':
+
+    run_agent_tests()
+    # Alert our heart beat service that we are in fact running
+    requests.get(HEARTBEAT_URL)
+
+    msg = get_formatted_message()
+    post_formatted_slack_message(msg)
+    agents = get_agent_list()
+    helios = dict(agents=agents, errors=msg)
+    print(helios)
+    send_to_helios(helios)
