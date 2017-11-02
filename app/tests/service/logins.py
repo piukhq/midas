@@ -176,7 +176,7 @@ CREDENTIALS = {
     },
     "space_nk": {
         "barcode": "63385283721106029252",
-        "email": "ssc@bink.com",
+        "email": "loyaltycards01@gmail.com",
         "password": "Loyalty1",
     },
     "lufthansa": {

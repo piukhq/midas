@@ -33,7 +33,7 @@ class Delta(RoboBrowserMiner):
         self.open_url('https://www.delta.com/custlogin/getDashBrdData.action', method='post')
         self.dashboard_data = self.browser.response.json()
 
-        if not self.dashboard_data['authenticated']:
+        if self.dashboard_data is None or not self.dashboard_data['authenticated']:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
