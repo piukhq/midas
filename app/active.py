@@ -67,6 +67,7 @@ AGENTS = {
     'discovery': 'gha.Gha',
     'aerclub': 'aerclub.AerClub',
     'clubcarlson': 'carlson.Carlson',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
     'bonus-club': 'brewersfayre.BrewersFayre',
