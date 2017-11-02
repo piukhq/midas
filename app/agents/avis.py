@@ -2,6 +2,7 @@ from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
+from json.decoder import JSONDecodeError
 
 
 class Avis(RoboBrowserMiner):
@@ -10,7 +11,15 @@ class Avis(RoboBrowserMiner):
                 "?requestType=updateTncStatus"
         data = {"id": credentials["email"], "password": credentials["password"]}
         self.open_url(query, method="POST", data=data)
-        response = self.browser.response.json()
+
+        try:
+            response = self.browser.response.json()
+        except JSONDecodeError:
+            error_response = self.browser.response.text
+            if not error_response.find("error-500"):
+                raise LoginError
+            return True
+
         key = "errorMessage"
         if key not in response.keys():
             raise ValueError(
