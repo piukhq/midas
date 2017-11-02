@@ -1,5 +1,4 @@
 import unittest
-from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
