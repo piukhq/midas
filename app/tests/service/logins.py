@@ -121,6 +121,10 @@ CREDENTIALS = {
         "email": "chris.smith4@gmx.co.uk",
         "password": "Loyalty1",
     },
+    "harvey_nichols": {
+        "email": "loyaltycards02@gmail.com",
+        "password": "EGY7zP9NC",
+    },
     "odeon": {
         "email": "chris.gormley2@me.com",
         "password": "MNHansbrics5",
