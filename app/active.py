@@ -66,7 +66,7 @@ AGENTS = {
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
-    'harvey_nichols': 'harvey_nichols.HarveyNichols',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
     'bonus-club': 'brewersfayre.BrewersFayre',
