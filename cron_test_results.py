@@ -215,13 +215,21 @@ def resolve_issue(classname):
                                              '_The issue with {} has been marked as resolved._'.format(key))
 
 
+def test_single_agent(a):
+    a = a.replace(" ", "_")
+    py_test = join(os.path.dirname(sys.executable), 'pytest')
+    junit_single_agent_xml = 'tests_results/test_' + a + '.xml'
+    subprocess.call([py_test, '--junitxml', junit_single_agent_xml, test_path + "test_" + a + ".py"])
+    return junit_single_agent_xml
+
+
 def run_agent_tests():
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
 
-def get_formatted_message():
-    with open(JUNIT_XML_FILENAME) as f:
+def get_formatted_message(xml_file_path):
+    with open(xml_file_path) as f:
         test_results = xmltodict.parse(f.read())
 
     bad_agents = get_problematic_agents(test_results)
@@ -243,14 +251,12 @@ def get_agent_list():
 
 
 if __name__ == '__main__':
-
     run_agent_tests()
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
 
-    msg = get_formatted_message()
+    msg = get_formatted_message(JUNIT_XML_FILENAME)
     post_formatted_slack_message(msg)
     agents = get_agent_list()
     helios = dict(agents=agents, errors=msg)
-    print(helios)
     send_to_helios(helios)
