@@ -13,7 +13,7 @@ from app.encoding import JsonEncoder
 from app import publish
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
-from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests
+from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests, test_single_agent
 from flask import make_response, request
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
@@ -221,10 +221,20 @@ class AgentsErrorResults(Resource):
 
     def get(self):
         run_agent_tests()
-        return get_formatted_message()
+        return get_formatted_message(settings.JUNIT_XML_FILENAME)
 
 
 api.add_resource(AgentsErrorResults, '/agents_error_results', endpoint='api.agents_error_results')
+
+
+class SingleAgentErrorResult(Resource):
+    @staticmethod
+    def get(agent):
+        path = test_single_agent(agent)
+        return get_formatted_message(path)
+
+
+api.add_resource(SingleAgentErrorResult, '/agents_error_results/<agent>', endpoint='api.single_agent_error_result')
 
 
 def decrypt_credentials(credentials):
