@@ -109,6 +109,10 @@ CREDENTIALS = {
         "username": "chris.gormley2@me.com",
         "password": "AGHansbrics5",
     },
+    "aerclub": {
+        'email': 'la@loyaltyangels.com',
+        'password': '2sQPV4NHWi'
+    },
     "eurostar": {
         "email": "chris.gormley2@me.com",
         "password": "QDHansbrics8",
