@@ -18,6 +18,7 @@ AGENTS = {
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
     # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
+    # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -65,7 +66,6 @@ AGENTS = {
     'delta-skymiles': 'delta.Delta',
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
-    'aerclub': 'aerclub.AerClub',
     'clubcarlson': 'carlson.Carlson',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
