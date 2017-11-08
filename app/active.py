@@ -81,6 +81,7 @@ AGENTS = {
     'handm-club': 'handm.HAndM',
     'marriott-rewards-card': 'marriott.Marriott',
     'club-individual': 'club_individual.ClubIndividual',
+    'krisflyer': 'krisflyer.Krisflyer',
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',
     '19-fourteas-tea-rooms': 'my360.My360',
