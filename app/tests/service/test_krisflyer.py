@@ -29,7 +29,7 @@ class TestKrisflyerFail(unittest.TestCase):
 
     def test_bad_login(self):
         h = Krisflyer(1, 1)
-        credentials={
+        credentials = {
             'card-number': '1111111111',
             'pin': '000000',
         }
