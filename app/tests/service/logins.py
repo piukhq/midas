@@ -162,6 +162,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "OSHansbrics14",
     },
+    "krisflyer": {
+        "card-number": "8826217657",
+        "pin": "123456"
+    },
     "rewards4fishing": {
         "email": "la@loyaltyangels.com",
         "password": "LAngels2015!",
@@ -170,6 +174,7 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "gyYfRh26D2",
     },
+
     "rewards4racing": {
         "email": "la@loyaltyangels.com",
         "password": "YRKnQuP822",
