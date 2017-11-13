@@ -240,14 +240,14 @@ def get_formatted_message(xml_file_path):
 def send_to_helios(data):
     response = None
     try:
-        response = requests.post(HELIOS_URL + '/data_point/', data=data)
+        response = requests.post(HELIOS_URL + '/data_point', json=data)
     except requests.exceptions.RequestException as e:
         print(e)
     return response
 
 
 def get_agent_list():
-    return [key.replace('-', ' ') for key, value in AGENTS.items()]
+    return list(set([item.split('.')[0].replace('_', ' ') for item in AGENTS.values()]))
 
 
 if __name__ == '__main__':
