@@ -14,7 +14,7 @@ class Avis(RoboBrowserMiner):
 
         try:
             response = self.browser.response.json()
-        except JSONDecodeError:
+        except:
             error_response = self.browser.response.text
             if not error_response.find("error-500"):
                 raise LoginError
