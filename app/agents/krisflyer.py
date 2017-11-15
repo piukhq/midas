@@ -18,7 +18,7 @@ class Krisflyer(RoboBrowserMiner):
     def _login(self, credentials):
         self.open_url('https://www.singaporeair.com/kfLogin.form?filterFlowExecutionURL=kfDashBoardPPS.form')
         login_form = self.browser.get_form('kfLoginForm')
-        login_form['kfNumber'].value = credentials['card-number']
+        login_form['kfNumber'].value = credentials['card_number']
         login_form['pin'].value = credentials['pin']
         self.browser.submit_form(login_form)
 
