@@ -1,8 +1,7 @@
 from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
-from json.decoder import JSONDecodeError
 
 
 class Avis(RoboBrowserMiner):
@@ -14,11 +13,11 @@ class Avis(RoboBrowserMiner):
 
         try:
             response = self.browser.response.json()
-        except JSONDecodeError:
+        except:
             error_response = self.browser.response.text
-            if not error_response.find("error-500"):
-                raise LoginError
-            return True
+            if error_response.find("error-500"):
+                return True
+            raise LoginError(UNKNOWN)
 
         key = "errorMessage"
         if key not in response.keys():
