@@ -163,7 +163,7 @@ CREDENTIALS = {
         "password": "OSHansbrics14",
     },
     "krisflyer": {
-        "card-number": "8826217657",
+        "card_number": "8826217657",
         "pin": "123456"
     },
     "rewards4fishing": {

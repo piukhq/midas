@@ -30,7 +30,7 @@ class TestKrisflyerFail(unittest.TestCase):
     def test_bad_login(self):
         h = Krisflyer(1, 1)
         credentials = {
-            'card-number': '1111111111',
+            'card_number': '1111111111',
             'pin': '000000',
         }
         with self.assertRaises(LoginError) as e:
