@@ -65,6 +65,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RFHansbrics6",
     },
+    "play-points": {
+        "username": "LoyaltyAngel",
+        "password": "fpNL8l7Mmk",
+    },
     "starbucks": {
         "username": "chris.gormley2@me.com",
         "password": "RRHansbrics9",
