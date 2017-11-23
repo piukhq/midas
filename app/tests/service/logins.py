@@ -149,6 +149,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
     },
+    "tkmaxx": {
+        "email": "james.crook.uk@gmail.com",
+        "password": "H8M7CROFztr7",
+    },
     "monsoon": {
         "email": "chris.gormley2@me.com",
         "password": "MLHansbrics7",
