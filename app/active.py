@@ -17,8 +17,10 @@ AGENTS = {
     # 'hilton-hhonors': 'hilton_honors.Hilton',              # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
     # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
-    # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
     # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
+    # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
+    # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
+    # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -44,8 +46,6 @@ AGENTS = {
     'trueblue': 'jetblue.JetBlue',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
-    'rewards4golf': 'rewards4golf.Rewards4Golf',
-    'rewards4racing': 'rewards4racing.Rewards4Racing',
     'space-nk': 'space_nk.SpaceNK',
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
