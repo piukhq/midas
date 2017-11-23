@@ -31,7 +31,7 @@ RUN addgroup --gid 1550 apps && \
  rm firefox-55.0.tar.bz2 && \
  mkdir /home/apps && \
  chown -R apps:apps /home/apps && \
- ln -s /usr/local/bin/py.test /usr/bin/py.test && \
+ ln -s /usr/local/bin/pytest /usr/bin/pytest && \
  apt-get -y remove rsync git git-core curl && \
  apt-get -y autoremove && \
  apt-get clean && \
