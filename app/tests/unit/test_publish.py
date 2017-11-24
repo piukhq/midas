@@ -26,7 +26,8 @@ class TestRetry(unittest.TestCase):
             'scheme_account_id': 5,
             'points': Decimal('51251285'),
             'value_label': '£9.44',
-            'points_label': '51M'
+            'points_label': '51M',
+            'reward_tier': 0
         })
         self.assertTrue(mock_post.called)
 

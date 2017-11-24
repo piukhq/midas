@@ -41,6 +41,9 @@ def balance(balance_item, scheme_account_id, user_id, tid):
     balance_item['user_id'] = user_id
     balance_item['points_label'] = minify_number(balance_item['points'])
 
+    if 'reward_tier' not in balance_item:
+        balance_item['reward_tier'] = 0
+
     if len(balance_item['value_label']) > MAX_VALUE_LABEL_LENGTH:
         balance_item['value_label'] = 'Reward'
 
