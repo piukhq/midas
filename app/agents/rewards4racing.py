@@ -89,7 +89,7 @@ class Rewards4Racing(RoboBrowserMiner):
         try:
             description = get_pending_description(row)
 
-        except:
+        except Exception:
             description = data[1].text
 
         t = {

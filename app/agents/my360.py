@@ -22,7 +22,7 @@ class My360(ApiMiner):
         self.response = self.make_request(url)
         try:
             loyalty_data = self.response.json()
-        except:
+        except Exception:
             if self.response.status_code == 404:
                 raise ValueError('Scheme ID not found')
 
