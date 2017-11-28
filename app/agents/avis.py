@@ -13,7 +13,7 @@ class Avis(RoboBrowserMiner):
 
         try:
             response = self.browser.response.json()
-        except:
+        except Exception:
             error_response = self.browser.response.text
             if error_response.find("error-500"):
                 return True

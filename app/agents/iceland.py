@@ -29,7 +29,7 @@ class Iceland(RoboBrowserMiner):
                 raise LoginError(STATUS_LOGIN_FAILED)
         except LoginError as exception:
             raise exception
-        except:
+        except Exception:
             pass
 
     def _get_card_number(self, credentials):

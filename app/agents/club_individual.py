@@ -20,7 +20,7 @@ class ClubIndividual(RoboBrowserMiner):
         try:
             self.browser.open('http://statement.club'
                               '-individual.co.uk/points.aspx?id=' + credentials['card_number'])
-        except:
+        except Exception:
             LoginError(UNKNOWN)
 
         self._check_if_logged_in()
