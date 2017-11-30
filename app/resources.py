@@ -1,5 +1,6 @@
 import json
 import functools
+
 from flask.ext.restful.utils.cors import crossdomain
 from influxdb.exceptions import InfluxDBClientError
 
@@ -7,7 +8,7 @@ import settings
 
 from app.exceptions import AgentException, UnknownException
 from app import retry
-from app.agents.exceptions import LoginError, AgentError, errors, RetryLimitError
+from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -80,6 +81,13 @@ class Balance(Resource):
         credentials = decrypt_credentials(request.args['credentials'])
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
+        # Send identifier (e.g membership id) to hermes if it's not already stored.
+        if agent_instance.identifier:
+            agent_instance.update_scheme_account(scheme_account_id,
+                                                 "success",
+                                                 tid,
+                                                 identifier=agent_instance.identifier)
+
         try:
             status = 1
             balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
@@ -104,6 +112,22 @@ api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_
 def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
     transactions = agent_instance.transactions()
     publish.transactions(transactions, scheme_account_id, user_id, tid)
+
+
+class Register(Resource):
+
+    def post(self, scheme_slug):
+        scheme_account_id = int(request.get_json()['scheme_account_id'])
+        tid = request.headers.get('transaction')
+        user_id = int(request.get_json()['user_id'])
+        credentials = decrypt_credentials(request.get_json()['credentials'])
+
+        thread_pool_executor.submit(registration, scheme_slug, scheme_account_id, credentials, user_id, tid)
+
+        return create_response({"message": "success"})
+
+
+api.add_resource(Register, '/<string:scheme_slug>/register', endpoint="api.register")
 
 
 class Transactions(Resource):
@@ -255,7 +279,7 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None):
+def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, from_register=False):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
     retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug=scheme_slug)
@@ -265,9 +289,51 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None):
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
     except (LoginError, AgentError) as e:
+        if e.args[0] in SYSTEM_ACTION_REQUIRED and from_register:
+            raise e
         retry.inc_count(key)
         raise AgentException(e)
     except Exception as e:
         raise UnknownException(e)
 
     return agent_instance
+
+
+def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=None):
+    agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
+    try:
+        agent_instance.attempt_register(credentials)
+    except Exception as e:
+        agent_instance.update_scheme_account(scheme_account_id, e.args[0], tid)
+
+    return agent_instance
+
+
+def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
+    try:
+        agent_class = get_agent_class(scheme_slug)
+    except NotFound as e:
+        # Update the scheme status on hermes to JOIN(900)
+        publish.status(scheme_account_id, 900, tid)
+        abort(e.code, message=e.data['message'])
+
+    agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
+
+    try:
+        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
+                                     from_register=True)
+        agent_instance.update_scheme_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+    except (LoginError, AgentError):
+        publish.zero_balance(scheme_account_id, user_id, tid)
+        return True
+
+    try:
+        status = 1
+        publish.balance(agent_instance.balance(), scheme_account_id, user_id, tid)
+        publish_transactions(agent_instance, scheme_account_id, user_id, tid)
+    except Exception as e:
+        status = 520
+        raise UnknownException(e)
+    finally:
+        publish.status(scheme_account_id, status, tid)
+        return True

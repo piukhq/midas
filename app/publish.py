@@ -1,6 +1,6 @@
 from app.encoding import JsonEncoder
 import json
-
+from decimal import Decimal
 from app.utils import minify_number
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger, MAX_VALUE_LABEL_LENGTH
 from concurrent.futures import ThreadPoolExecutor
@@ -13,7 +13,7 @@ thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
 def log_errors(session, resp):
     if not resp.ok:
-        logger.error("Could not post to the url: {0}".format(resp.url))
+        logger.error("Could not request to the url: {0}".format(resp.url))
 
 
 def post(url, data, tid):
@@ -24,6 +24,16 @@ def post(url, data, tid):
     session = FuturesSession(executor=thread_pool_executor)
     session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
                  background_callback=log_errors)
+
+
+def put(url, data, tid):
+    headers = {'Content-type': 'application/json',
+               'transaction': tid,
+               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
+               'Authorization': 'Token ' + SERVICE_API_KEY}
+    session = FuturesSession(executor=thread_pool_executor)
+    session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
+                background_callback=log_errors)
 
 
 def transactions(transactions_items, scheme_account_id, user_id, tid):
@@ -55,3 +65,12 @@ def status(scheme_account_id, status, tid):
     data = {"status": status}
     post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
     return status
+
+
+def zero_balance(scheme_account_id, user_id, tid):
+    data = {
+        'points': Decimal(0),
+        'value': Decimal(0),
+        'value_label': '',
+    }
+    return balance(data, scheme_account_id, user_id, tid)

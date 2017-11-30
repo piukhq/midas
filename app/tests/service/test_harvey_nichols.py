@@ -9,10 +9,7 @@ class TestHarveyNichols(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.h = HarveyNichols(1, 1)
-        cls.h.attempt_login(CREDENTIALS['harvey_nichols'])
-
-    def test_login(self):
-        pass
+        cls.h.attempt_login(CREDENTIALS['harvey-nichols'])
 
     def test_transactions(self):
         transactions = self.h.transactions()
@@ -23,11 +20,9 @@ class TestHarveyNichols(unittest.TestCase):
         balance = self.h.balance()
         schemas.balance(balance)
 
-
-class TestHarveyNicholsFail(unittest.TestCase):
-
-    def test_login_fail(self):
-        pass
+    def test_register(self):
+        result = self.h.register(CREDENTIALS['harvey-nichols'])
+        self.assertEqual(result, {'message': 'success'})
 
 
 if __name__ == '__main__':

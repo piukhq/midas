@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 from unittest.mock import patch
-from app.publish import transactions, balance
+from app.publish import transactions, balance, zero_balance
 
 
 class TestRetry(unittest.TestCase):
@@ -44,3 +44,17 @@ class TestRetry(unittest.TestCase):
         item = balance(b, 5, 8, '123-12')
 
         self.assertEqual(item['value_label'], 'Reward')
+
+    @patch('app.publish.post', autospec=True)
+    def test_zero_balance(self, mock_post):
+        item = zero_balance(5, 8, '123-12')
+        self.assertEqual(item, {
+            'user_id': 8,
+            'value': Decimal('0'),
+            'scheme_account_id': 5,
+            'points': Decimal('0'),
+            'value_label': '',
+            'points_label': '0',
+            'reward_tier': 0
+        })
+        self.assertTrue(mock_post.called)
