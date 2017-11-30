@@ -450,6 +450,10 @@ CREDENTIALS = {
         "email": "loyaltycards01@gmail.com",
         "password": "Loyalty01"
     },
+    "harvey-nichols": {
+        "email": "la@loyaltyangels.com",
+        "password": "YSHansbrics6"
+    },
 }
 
 

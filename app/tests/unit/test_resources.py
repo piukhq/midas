@@ -2,14 +2,19 @@ import builtins
 from unittest.mock import mock_open
 from flask.ext.testing import TestCase
 from app.agents.avios import Avios
+from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED,\
-    errors
-from app.resources import agent_login
+    errors, RegistrationError, NO_SUCH_RECORD
+from app.resources import agent_login, registration, agent_register
 from app.tests.service import logins
+from app.encryption import AESCipher
 from app import create_app, AgentException
+from settings import AES_KEY
 from unittest import mock
 from decimal import Decimal
 from app import publish
+
+import json
 
 
 class TestResources(TestCase):
@@ -170,7 +175,9 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(Avios, 'attempt_login')
-    def test_agent_login_inc(self, mock_attempt_login, mock_retry):
+    @mock.patch.object(Avios, 'identifier')
+    def test_agent_login_inc(self, mock_identifier, mock_attempt_login, mock_retry):
+        mock_identifier.value = None
         mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException) as e:
             agent_login(Avios, {}, 5)
@@ -200,3 +207,131 @@ class TestResources(TestCase):
         self.assertIn('password', resp.json)
         self.assertEqual(resp.json['username'], 'test-username')
         self.assertEqual(resp.json['password'], 'test-password')
+
+    @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
+    def test_register_view(self, mock_pool):
+        credentials = logins.encrypt("harvey-nichols")
+        url = "/harvey-nichols/register"
+        data = {
+            "scheme_account_id": 2,
+            "user_id": 4,
+            "credentials": credentials
+        }
+        response = self.client.post(url, data=json.dumps(data), content_type="application/json")
+
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.json, {'message': 'success'})
+
+    @mock.patch.object(HarveyNichols, 'register')
+    @mock.patch('app.agents.base.put', autospec=True)
+    def test_agent_register_success(self, mock_put, mock_register):
+        mock_register.return_value = {'message': 'success'}
+        scheme_slug = "harvey-nichols"
+        scheme_account_id = 2
+
+        agent_register(HarveyNichols, {}, scheme_account_id, scheme_slug, 1)
+
+        self.assertTrue(mock_register.called)
+        self.assertFalse(mock_put.called)
+
+    @mock.patch.object(HarveyNichols, 'register')
+    @mock.patch('app.agents.base.put', autospec=False)
+    def test_agent_register_fail(self, mock_put, mock_register):
+        mock_register.side_effect = RegistrationError(STATUS_LOGIN_FAILED)
+        scheme_slug = "harvey-nichols"
+        scheme_account_id = 2
+
+        agent_register(HarveyNichols, {}, scheme_account_id, scheme_slug, 1)
+
+        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_put.called)
+
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.publish.status', auto_spec=True)
+    @mock.patch('app.resources.publish_transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_register', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_registration(self, mock_publish_balance, mock_publish_status, mock_publish_transaction,
+                          mock_agent_register, mock_agent_login):
+        scheme_slug = "harvey-nichols"
+        credentials = logins.encrypt(scheme_slug)
+        scheme_account_id = 2
+        user_id = 4
+
+        result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
+
+        self.assertTrue(mock_publish_balance.called)
+        self.assertTrue(mock_publish_transaction.called)
+        self.assertTrue(mock_publish_status.called)
+        self.assertTrue(mock_agent_register.called)
+        self.assertTrue(mock_agent_login.called)
+        self.assertEqual(result, True)
+
+    @mock.patch('app.resources.retry', autospec=True)
+    @mock.patch.object(HarveyNichols, 'attempt_login')
+    def test_agent_login_success(self, mock_login, mock_retry):
+        mock_login.return_value = {'message': 'success'}
+
+        agent_login(HarveyNichols, {}, 2, "harvey-nichols")
+        self.assertTrue(mock_login.called)
+
+    @mock.patch('app.resources.retry', autospec=True)
+    @mock.patch.object(HarveyNichols, 'attempt_login')
+    def test_agent_login_system_fail_(self, mock_login, mock_retry):
+        mock_login.side_effect = AgentError(NO_SUCH_RECORD)
+
+        with self.assertRaises(AgentError):
+            agent_login(HarveyNichols, {}, 2, "harvey-nichols", from_register=True)
+        self.assertTrue(mock_login.called)
+
+    @mock.patch('app.resources.retry', autospec=True)
+    @mock.patch.object(HarveyNichols, 'attempt_login')
+    def test_agent_login_user_fail_(self, mock_login, mock_retry):
+        mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
+
+        with self.assertRaises(AgentException):
+            agent_login(HarveyNichols, {}, 2, "harvey-nichols")
+        self.assertTrue(mock_login.called)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=False)
+    def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_login, mock_publish_balance, mock_pool):
+        mock_login.return_value = mock.MagicMock()
+        mock_login().identifier = True
+        credentials = {
+            "username": "la@loyaltyangels.com",
+            "password": "YSHansbrics6",
+        }
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+
+        url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        self.client.get(url)
+
+        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_login().update_scheme_account.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertTrue(mock_pool.called)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=False)
+    def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(self, mock_login, mock_publish_balance,
+                                                                             mock_pool):
+        mock_login.return_value = mock.MagicMock()
+        mock_login().identifier = None
+        credentials = {
+            "username": "la@loyaltyangels.com",
+            "password": "YSHansbrics6",
+        }
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+
+        url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        self.client.get(url)
+
+        self.assertTrue(mock_login.called)
+        self.assertFalse(mock_login().update_scheme_account.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertTrue(mock_pool.called)

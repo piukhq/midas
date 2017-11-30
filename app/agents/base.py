@@ -16,6 +16,8 @@ from selenium.webdriver.firefox.options import Options
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
+from app.publish import put
+from settings import HERMES_URL
 
 
 class SSLAdapter(HTTPAdapter):
@@ -41,6 +43,11 @@ class BaseMiner(object):
         'captcha',
         'Incapsula',
     ]
+    identifier_type = None
+    identifier = None
+
+    def register(self, credentials):
+        raise NotImplementedError()
 
     def login(self, credentials):
         raise NotImplementedError()
@@ -111,6 +118,30 @@ class BaseMiner(object):
             self.login(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    def attempt_register(self, credentials):
+        try:
+            self.register(credentials)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    @staticmethod
+    def update_scheme_account(scheme_account_id, message, tid, identifier=None):
+        """
+        Send an identifier to hermes and a message of success or an error message if there was a problem
+        retrieving the identifier.
+
+        :param scheme_account_id: id of scheme account to update
+        :param message: details such as error message or "success"
+        :param tid: transaction id
+        :param identifier: identifier credential e.g membership id, barcode.
+        """
+        data = {
+            'message': message,
+            'identifier': identifier,
+        }
+        put('{}/schemes/{}/join'.format(HERMES_URL, scheme_account_id), data, tid)
+        return data
 
 
 # Based on RoboBrowser Library

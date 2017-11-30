@@ -19,7 +19,9 @@ TRIPPED_CAPTCHA = "TRIPPED_CAPTCHA"
 PASSWORD_EXPIRED = "PASSWORD_EXPIRED"
 WRONG_CREDENTIAL_TYPE = "WRONG_CREDENTIAL_TYPE"
 CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
-
+STATUS_REGISTRATION_FAILED = "STATUS_REGISTRATION_FAILED"
+NO_SUCH_RECORD = "NO_SUCH_RECORD"
+ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS"
 
 errors = {
     STATUS_LOGIN_FAILED: {"code": 403,
@@ -45,6 +47,17 @@ errors = {
                                        " you may have entered your card number instead of your barcode. Please correct "
                                        "this information and try again.",
                             "name": "Wrong credential type entered"},
+    STATUS_REGISTRATION_FAILED: {"code": 440,
+                                 "message": "The username and/or password you have entered were reported to be invalid."
+                                            "This may for reasons such as the password being too short, or it requiring"
+                                            "capital letters and numbers etc.",
+                                 "name": 'Invalid credentials entered i.e password too short'},
+    NO_SUCH_RECORD: {"code": 444,
+                     "message": "There is currently no account with the credentials you have provided.",
+                     "name": "Account does not exist"},
+    ACCOUNT_ALREADY_EXISTS: {"code": 445,
+                             "message": "An account with this username/email already exists",
+                             "name": "Account already exists"},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down.",
                     "name": "End site down"},
@@ -67,6 +80,8 @@ errors = {
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"}
 }
+
+SYSTEM_ACTION_REQUIRED = [END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD]
 
 
 class AgentError(Exception):
@@ -91,4 +106,8 @@ class RetryLimitError(AgentError):
 
 
 class AgentModifiedError(Exception):
+    pass
+
+
+class RegistrationError(AgentError):
     pass

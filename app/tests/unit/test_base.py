@@ -1,5 +1,5 @@
 from app.agents.avios import Avios
-from app.agents.base import RoboBrowserMiner
+from app.agents.base import RoboBrowserMiner, ApiMiner
 from app.agents.exceptions import AgentError, LoginError, RetryLimitError
 from decimal import Decimal
 import arrow
@@ -105,6 +105,13 @@ class TestBase(TestCase):
         with self.assertRaises(Exception) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.args[0], "missing the credential 'email'")
+
+    @mock.patch.object(ApiMiner, 'register')
+    def test_attempt_register(self, mocked_register):
+        m = ApiMiner(0, 194)
+
+        m.attempt_register(credentials={})
+        self.assertTrue(mocked_register.called)
 
 
 class TestOpenURL(TestCase):
