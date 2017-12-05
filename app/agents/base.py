@@ -140,7 +140,7 @@ class BaseMiner(object):
             'message': message,
             'identifier': identifier,
         }
-        put('{}/schemes/{}/join'.format(HERMES_URL, scheme_account_id), data, tid)
+        put('{}/schemes/accounts/{}/join'.format(HERMES_URL, scheme_account_id), data, tid)
         return data
 
 
@@ -251,6 +251,7 @@ class ApiMiner(BaseMiner):
         self.scheme_slug = scheme_slug
         self.headers = {}
         self.retry_count = retry_count
+        self.errors = {}
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
@@ -275,6 +276,12 @@ class ApiMiner(BaseMiner):
             raise AgentError(END_SITE_DOWN) from e
 
         return response
+
+    def handle_errors(self, response, exception_type=LoginError):
+        for key, values in self.errors.items():
+            if response in values:
+                raise exception_type(key)
+        raise AgentError(UNKNOWN)
 
 
 # Based on Selenium library and headless Firefox
