@@ -17,7 +17,7 @@ balance = Schema({
     Required('value'): Decimal,
     Optional('balance'): Decimal,
     Required('value_label'): str,
-    Optional('reward_tier'): int,
+    Optional('rewards_tier'): int,
 })
 
 credentials = Schema({
