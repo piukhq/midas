@@ -15,7 +15,8 @@ RUN addgroup --gid 1550 apps && \
  sed -i -e 's/user www-data;/user apps;/g' /etc/nginx/nginx.conf && \
  rm -rf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default && \
  rsync -a --remove-source-files /usr/local/src/midas/docker_root/ / && \
- chmod 600 /root/.ssh/id_rsa && \
+ echo "Host gitlab.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config && \
+ chmod -R 600 /root/.ssh && \
  pip3 install --upgrade pip && \
  pip3 install uwsgi && \
  pip3 install -r /usr/local/src/midas/requirements.txt && \
