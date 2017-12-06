@@ -3,8 +3,8 @@ from unittest.mock import mock_open
 from flask.ext.testing import TestCase
 from app.agents.avios import Avios
 from app.agents.harvey_nichols import HarveyNichols
-from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED,\
-    errors, RegistrationError, NO_SUCH_RECORD
+from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
+    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
 from app.resources import agent_login, registration, agent_register
 from app.tests.service import logins
 from app.encryption import AESCipher
@@ -237,7 +237,7 @@ class TestResources(TestCase):
     @mock.patch.object(HarveyNichols, 'register')
     @mock.patch('app.agents.base.put', autospec=False)
     def test_agent_register_fail(self, mock_put, mock_register):
-        mock_register.side_effect = RegistrationError(STATUS_LOGIN_FAILED)
+        mock_register.side_effect = RegistrationError(STATUS_REGISTRATION_FAILED)
         scheme_slug = "harvey-nichols"
         scheme_account_id = 2
 
@@ -245,6 +245,18 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_register.called)
         self.assertTrue(mock_put.called)
+
+    @mock.patch.object(HarveyNichols, 'register')
+    @mock.patch('app.agents.base.put', autospec=False)
+    def test_agent_register_fail_account_exists(self, mock_put, mock_register):
+        mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
+        scheme_slug = "harvey-nichols"
+        scheme_account_id = 2
+
+        agent_register(HarveyNichols, {}, scheme_account_id, scheme_slug, 1)
+
+        self.assertTrue(mock_register.called)
+        self.assertFalse(mock_put.called)
 
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)

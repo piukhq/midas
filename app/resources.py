@@ -8,7 +8,8 @@ import settings
 
 from app.exceptions import AgentException, UnknownException
 from app import retry
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED)
+from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
+                                   ACCOUNT_ALREADY_EXISTS)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -304,7 +305,8 @@ def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug
     try:
         agent_instance.attempt_register(credentials)
     except Exception as e:
-        agent_instance.update_scheme_account(scheme_account_id, e.args[0], tid)
+        if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
+            agent_instance.update_scheme_account(scheme_account_id, e.args[0], tid)
 
     return agent_instance
 
