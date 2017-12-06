@@ -44,14 +44,14 @@ class HarveyNichols(ApiMiner):
                 'customerNumber': self.customer_number,
             }
         }
-        self.balance_response = self.make_request(url, method='post', json=data)
+        self.balance_response = self.make_request(url, method='post', timeout=10, json=data)
         return self.balance_response.json()['CustomerLoyaltyProfileResult']
 
     def balance(self):
         tiers_list = {
-            'BRONZE': 0,
-            'SILVER': 1,
-            'GOLD': 2,
+            'SILVER': 0,
+            'GOLD': 1,
+            'PLATINUM': 2,
             'BLACK': 3
         }
         tier = tiers_list[self.result['loyaltyTierId']]
@@ -60,7 +60,7 @@ class HarveyNichols(ApiMiner):
             'points': Decimal(self.result['pointsBalance']),
             'value': Decimal('0'),
             'value_label': '',
-            'rewards_tier': tier
+            'reward_tier': tier
         }
 
     @staticmethod
@@ -90,7 +90,7 @@ class HarveyNichols(ApiMiner):
             }
         }
 
-        self.register_response = self.make_request(url, method='post', json=data)
+        self.register_response = self.make_request(url, method='post', timeout=10, json=data)
         message = self.register_response.json()['CustomerSignUpResult']['outcome']
 
         if message == 'Success':
@@ -111,7 +111,7 @@ class HarveyNichols(ApiMiner):
             }
         }
 
-        self.login_response = self.make_request(url, method='post', json=data)
+        self.login_response = self.make_request(url, method='post', timeout=10, json=data)
         json_result = self.login_response.json()['CustomerSignOnResult']
 
         if json_result['outcome'] == 'Success':
