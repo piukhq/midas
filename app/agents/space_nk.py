@@ -1,47 +1,46 @@
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.base import SeleniumMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
-class SpaceNK(RoboBrowserMiner):
-    point_conversion_rate = Decimal('0.01')
+class SpaceNK(SeleniumMiner):
+    point_conversion_rate = Decimal('0.05')
+    is_login_successful = False
 
-    def login(self, credentials):
-        query = 'https://cws.givex.com/cws/spacenk_uk/consumer/clp/balance_check.py'
-        data = {
-            '_FUNCTION_': 'balance',
-            'history_type': 'loyalty',
-            'cardnum': credentials['barcode'],
-            'balance_check': 'Check+Balance',
-            'form_submit': 't',
-        }
-
-        self.open_url(query, method='post', data=data)
-
-        error = self.browser.select('span.errorText')
-        if len(error) > 0 and 'Invalid N.dulge Card number.' in error[0].text:
+    def check_if_logged_in_and_get_balance(self):
+        current_url = self.browser.current_url
+        success_login_url = "https://www.spacenk.com/uk/en_GB/account?login=true"
+        if current_url == success_login_url:
+            self.is_login_successful = True
+        else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
+        points_url = "https://www.spacenk.com/uk/en_GB/ndulgeaccount"
+        self.browser.get(points_url)
+        self.points = extract_decimal(self.browser.find_element_by_id("pointsbalance").text)
+        self.balance_value = extract_decimal(self.browser.find_element_by_id("certbalance").text)
+
+    def login(self, credentials):
+        self.browser.get('https://www.spacenk.com/uk/en_GB/account')
+        self.browser.find_element_by_css_selector("form input[type='email']").send_keys(credentials['email'])
+        self.browser.find_element_by_css_selector("form input[type='password']").send_keys(credentials['password'])
+        self.browser.find_element_by_name('dwfrm_login_login').click()
+
+        self.check_if_logged_in_and_get_balance()
+
     def balance(self):
-        elements = self.browser.select('#main table tr td.structured-list-value')
-        value = extract_decimal(elements[1].text)
+        value = self.calculate_point_value(self.points)
         return {
-            'points': extract_decimal(elements[2].text),
+            'points': self.points,
             'value': value,
             'value_label': '£{}'.format(value),
+            'balance': self.balance_value
         }
 
-    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
