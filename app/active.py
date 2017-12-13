@@ -76,6 +76,7 @@ AGENTS = {
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
     'pure-hmv': 'hmv.HMV',
+    'victoria': 'victoria.Victoria',
     'star-rewards': 'star_rewards.StarRewards',
     'iceland-bonus-card': 'iceland.Iceland',
     'the-garden-club': 'the_garden_club.TheGardenClub',
