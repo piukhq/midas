@@ -17,7 +17,7 @@ class AddisonLee(RoboBrowserMiner):
         self.browser.open('https://beta.addisonlee.com/al/api/config')
 
         xsrf_token = self.browser.response.cookies['XSRF-TOKEN']
-        self.headers['Accept'] = "application/json, text/plain, */*"
+        self.headers['Accept'] = 'application/json, text/plain, */*'
         self.headers['Host'] = 'beta.addisonlee.com'
         self.headers['Origin'] = 'https://beta.addisonlee.com'
         self.headers['Referer'] = 'https://beta.addisonlee.com/al/sign-in'
