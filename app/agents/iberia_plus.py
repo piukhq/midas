@@ -2,7 +2,6 @@ from app.agents.base import SeleniumMiner
 from app.agents.exceptions import LoginError, AgentError, STATUS_LOGIN_FAILED, UNKNOWN, END_SITE_DOWN
 from app.utils import extract_decimal
 from decimal import Decimal
-from time import sleep
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 
@@ -15,9 +14,9 @@ class IberiaPlus(SeleniumMiner):
                 self.points = self.browser.find_element_by_css_selector('#member-log li:nth-child(2)').text
             self.is_login_successful = True
 
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             raise LoginError(STATUS_LOGIN_FAILED)
-        except TimeoutException as e:
+        except TimeoutException:
             raise AgentError(END_SITE_DOWN)
 
     def _login(self, credentials):

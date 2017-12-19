@@ -315,7 +315,7 @@ class SeleniumMiner(BaseMiner):
         options.add_argument('--hide-scrollbars')
         options.add_argument('--disable-gpu')
         self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
-        self.browser.implicitly_wait(5)
+        self.browser.implicitly_wait(10)
 
     def attempt_login(self, credentials):
         super().attempt_login(credentials)
@@ -335,7 +335,7 @@ class SeleniumMiner(BaseMiner):
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
 
     @contextmanager
-    def wait_for_page_load(self, timeout=10):
+    def wait_for_page_load(self, timeout=15):
         old_page = self.browser.find_element_by_tag_name('html')
         yield
         WebDriverWait(self.browser, timeout).until(
