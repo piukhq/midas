@@ -151,7 +151,7 @@ CREDENTIALS = {
     },
     "addison-lee": {
         "email": "loyaltycards01@gmail.com",
-        "password": "Loyalty01"
+        "password": "Loyalty01",
     },
     "monsoon": {
         "email": "chris.gormley2@me.com",
