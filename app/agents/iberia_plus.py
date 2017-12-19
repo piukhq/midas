@@ -30,7 +30,7 @@ class IberiaPlus(SeleniumMiner):
     def login(self, credentials):
         try:
             self._login(credentials)
-        except:
+        except Exception:
             raise LoginError(UNKNOWN)
 
         self.check_if_logged_in()
