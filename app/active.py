@@ -44,6 +44,7 @@ AGENTS = {
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
     'harrods-rewards': 'harrods.Harrods',
     'trueblue': 'jetblue.JetBlue',
+    'addison-lee': 'addison_lee.AddisonLee',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
     'space-nk': 'space_nk.SpaceNK',
