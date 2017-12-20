@@ -4,6 +4,7 @@ from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 from app.agents.exceptions import LoginError
 from gaia.user_token import UserTokenStore
+from settings import USER_TOKEN_REDIS_URL
 
 
 class TestHarveyNichols(unittest.TestCase):
@@ -28,7 +29,7 @@ class TestHarveyNichols(unittest.TestCase):
         schemas.balance(balance)
 
     def tearDown(self):
-        store = UserTokenStore('redis://localhost:6379/4')
+        store = UserTokenStore(USER_TOKEN_REDIS_URL)
         store.delete(1)
 
 
@@ -60,7 +61,7 @@ class TestToken(unittest.TestCase):
     def test_invalid_token(self):
         self.h = HarveyNichols(1, 1)
 
-        store = UserTokenStore('redis://localhost:6379/4')
+        store = UserTokenStore(USER_TOKEN_REDIS_URL)
         store.set(1, '1')
 
         credentials = CREDENTIALS['harvey-nichols']
