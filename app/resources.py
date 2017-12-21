@@ -4,7 +4,6 @@ import functools
 from flask.ext.restful.utils.cors import crossdomain
 from influxdb.exceptions import InfluxDBClientError
 import requests
-import arrow
 
 import settings
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
@@ -125,9 +124,8 @@ class Balance(Resource):
     def async_get_balance_and_publish(self, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
         try:
             self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
-        except Exception:
-            pass
-            # update scheme account in hermes to wallet only and send intercom message ONLY if initial request came from wallet only card
+        except Exception as e:
+            update_scheme_account(scheme_account_id, e, tid, 'link')
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
