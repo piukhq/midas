@@ -127,6 +127,7 @@ class Balance(Resource):
         except Exception as e:
             update_scheme_account(scheme_account_id, e, tid, 'link')
 
+
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 
@@ -370,9 +371,8 @@ def get_hades_balance(scheme_account_id):
 
 
 def get_hermes_status_name(scheme_account_id):
-    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query',
-                        querystring={'id': scheme_account_id},
-                        headers={'Authorization': 'Token ' + SERVICE_API_KEY}).json()
+    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query', querystring={'id': scheme_account_id},
+                             headers={'Authorization': 'Token ' + SERVICE_API_KEY}).json()
 
     return resp_json['status_name']
 
