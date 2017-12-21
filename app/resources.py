@@ -99,7 +99,6 @@ class Balance(Resource):
 
     @staticmethod
     def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
-        import pdb; pdb.set_trace()
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
         # Send identifier (e.g membership id) to hermes if it's not already stored.

@@ -26,13 +26,15 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    def test_user_balances(self, mock_pool, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_user_balances(self, mock_update_scheme_account, mock_pool, mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_update_scheme_account.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'user_id': 2, 'scheme_account_id': 4})
@@ -40,12 +42,15 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    def test_balance_none_exception(self, mock_pool, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_balance_none_exception(self, mock_update_scheme_account, mock_pool,
+                                    mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
+        self.assertTrue(mock_update_scheme_account)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
@@ -54,12 +59,14 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    def test_balance_unknown_error(self, mock_pool, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_balance_unknown_error(self, mock_update_scheme_account, mock_pool, mock_agent_login, mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
+        self.assertTrue(mock_update_scheme_account)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 520)
@@ -223,7 +230,7 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {'message': 'success'})
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.agents.base.put', autospec=True)
+    @mock.patch('app.resources.put', autospec=True)
     def test_agent_register_success(self, mock_put, mock_register):
         mock_register.return_value = {'message': 'success'}
         scheme_slug = "harvey-nichols"
@@ -235,7 +242,7 @@ class TestResources(TestCase):
         self.assertFalse(mock_put.called)
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.agents.base.put', autospec=False)
+    @mock.patch('app.resources.put', autospec=False)
     def test_agent_register_fail(self, mock_put, mock_register):
         mock_register.side_effect = RegistrationError(STATUS_REGISTRATION_FAILED)
         scheme_slug = "harvey-nichols"
@@ -247,7 +254,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_put.called)
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.agents.base.put', autospec=False)
+    @mock.patch('app.resources.put', autospec=False)
     def test_agent_register_fail_account_exists(self, mock_put, mock_register):
         mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
         scheme_slug = "harvey-nichols"
@@ -263,8 +270,9 @@ class TestResources(TestCase):
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     @mock.patch('app.resources.agent_register', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_registration(self, mock_publish_balance, mock_publish_status, mock_publish_transaction,
-                          mock_agent_register, mock_agent_login):
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_registration(self, mock_update_scheme_account, mock_publish_balance, mock_publish_status,
+                          mock_publish_transaction, mock_agent_register, mock_agent_login):
         scheme_slug = "harvey-nichols"
         credentials = logins.encrypt(scheme_slug)
         scheme_account_id = 2
@@ -272,6 +280,7 @@ class TestResources(TestCase):
 
         result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
 
+        self.assertTrue(mock_update_scheme_account)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
         self.assertTrue(mock_publish_status.called)
@@ -308,7 +317,9 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
-    def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_login, mock_publish_balance, mock_pool):
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_update_scheme_account, mock_login,
+                                                             mock_publish_balance, mock_pool):
         mock_login.return_value = mock.MagicMock()
         mock_login().identifier = True
         credentials = {
@@ -321,15 +332,18 @@ class TestResources(TestCase):
         url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
+        self.assertTrue(mock_update_scheme_account)
         self.assertTrue(mock_login.called)
-        self.assertTrue(mock_login().update_scheme_account.called)
+        self.assertTrue(mock_update_scheme_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
-    def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(self, mock_login, mock_publish_balance,
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(self, mock_update_scheme_account,
+                                                                             mock_login, mock_publish_balance,
                                                                              mock_pool):
         mock_login.return_value = mock.MagicMock()
         mock_login().identifier = None
@@ -344,6 +358,6 @@ class TestResources(TestCase):
         self.client.get(url)
 
         self.assertTrue(mock_login.called)
-        self.assertFalse(mock_login().update_scheme_account.called)
+        self.assertFalse(mock_update_scheme_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
