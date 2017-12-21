@@ -3,8 +3,11 @@ import functools
 
 from flask.ext.restful.utils.cors import crossdomain
 from influxdb.exceptions import InfluxDBClientError
+import requests
+import arrow
 
 import settings
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 
 from app.exceptions import AgentException, UnknownException
 from app import retry
@@ -13,6 +16,7 @@ from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitErr
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
+from app.publish import put
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests, test_single_agent
@@ -80,14 +84,27 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
+
+        if agent_class.async:
+            status = get_hermes_status_name(scheme_account_id)
+            if status == "Wallet only card":
+                publish.zero_balance(scheme_account_id, user_id, tid)
+                publish.status(scheme_account_id, 0, tid)
+
+            balance = get_hades_balance()
+            thread_pool_executor.submit(self.async_get_balance_and_publish())
+            return create_response(balance)
+
+        return self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+
+    @staticmethod
+    def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+        import pdb; pdb.set_trace()
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
         # Send identifier (e.g membership id) to hermes if it's not already stored.
         if agent_instance.identifier:
-            agent_instance.update_scheme_account(scheme_account_id,
-                                                 "success",
-                                                 tid,
-                                                 identifier=agent_instance.identifier)
+            update_scheme_account(scheme_account_id, "success", tid, 'join', identifier=agent_instance.identifier)
 
         try:
             status = 1
@@ -106,6 +123,12 @@ class Balance(Resource):
         finally:
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
 
+    def async_get_balance_and_publish(self, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+        try:
+            self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        except Exception:
+            pass
+            # update scheme account in hermes to wallet only and send intercom message ONLY if initial request came from wallet only card
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
@@ -300,18 +323,19 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, f
     return agent_instance
 
 
-def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=None):
+def agent_register(agent_class, credentials, scheme_account_id, tid, request_type, scheme_slug=None):
     agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_register(credentials)
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
-            agent_instance.update_scheme_account(scheme_account_id, e.args[0], tid)
+            update_scheme_account(scheme_account_id, e.args[0], tid, request_type)
 
     return agent_instance
 
 
 def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
+    request_type = 'join'
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
@@ -319,12 +343,12 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
         publish.status(scheme_account_id, 900, tid)
         abort(e.code, message=e.data['message'])
 
-    agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
+    agent_register(agent_class, credentials, scheme_account_id, tid, request_type, scheme_slug=scheme_slug)
 
     try:
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
                                      from_register=True)
-        agent_instance.update_scheme_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+        update_scheme_account(scheme_account_id, "success", tid, request_type, identifier=agent_instance.identifier)
     except (LoginError, AgentError):
         publish.zero_balance(scheme_account_id, user_id, tid)
         return True
@@ -339,3 +363,38 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
     finally:
         publish.status(scheme_account_id, status, tid)
         return True
+
+
+def get_hades_balance(scheme_account_id):
+    resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
+                        headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+
+    return resp.json()
+
+
+def get_hermes_status_name(scheme_account_id):
+    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query',
+                        querystring={'id': scheme_account_id},
+                        headers={'Authorization': 'Token ' + SERVICE_API_KEY}).json()
+
+    return resp_json['status_name']
+
+
+def update_scheme_account(scheme_account_id, message, tid, request_type, identifier=None):
+    """
+    Send an identifier to hermes and a message of success or an error message if there was a problem
+    retrieving the identifier.
+
+    :param scheme_account_id: id of scheme account to update
+    :param message: details such as error message or "success"
+    :param tid: transaction id
+    :param request_type: lets hermes know if this has come from a join or link request
+    :param identifier: identifier credential e.g membership id, barcode.
+    """
+    data = {
+        'message': message,
+        'identifier': identifier,
+        'request_type': request_type,
+    }
+    put('{}/schemes/accounts/{}/async'.format(HERMES_URL, scheme_account_id), data, tid)
+    return data
