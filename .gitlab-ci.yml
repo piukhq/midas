@@ -1,4 +1,9 @@
+stages:
+  - tests
+  - build
+
 tests:
+  stage: tests
   script:
     - pip3 install -r requirements.txt
     - py.test app/tests/unit --cov=app
@@ -6,12 +11,14 @@ tests:
     - docker
 
 complexity:
+  stage: tests
   script:
     - xenon --max-average A --max-modules B --max-absolute B .
   tags:
     - docker
 
 flake8:
+  stage: tests
   script:
     - flake8 *
   tags:
