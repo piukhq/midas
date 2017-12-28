@@ -420,7 +420,7 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_hermes_status.called)
         self.assertFalse(mock_publish_zero_balance.called)
-        self.assertTrue(0 not in mock_publish_status.call_args[0])
+        self.assertFalse(mock_publish_status.called)
         self.assertTrue(mock_get_hades_balance.called)
         self.assertTrue(mock_async_balance_and_publish.called)
         self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 7)
