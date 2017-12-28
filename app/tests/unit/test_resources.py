@@ -5,7 +5,7 @@ from app.agents.avios import Avios
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
-from app.resources import agent_login, registration, agent_register
+from app.resources import agent_login, registration, agent_register, Balance, get_hermes_status_name, get_hades_balance
 from app.tests.service import logins
 from app.encryption import AESCipher
 from app import create_app, AgentException
@@ -13,6 +13,7 @@ from settings import AES_KEY
 from unittest import mock
 from decimal import Decimal
 from app import publish
+from werkzeug.exceptions import InternalServerError
 
 import json
 
@@ -27,7 +28,9 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_user_balances(self, mock_update_scheme_account, mock_pool, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.Balance.async_get_balance_and_publish', autospec=True)
+    def test_user_balances(self, mock_update_scheme_account, mock_pool, mock_agent_login, mock_publish_balance,
+                           mock_async_balance_and_publish):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -38,6 +41,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'user_id': 2, 'scheme_account_id': 4})
+        self.assertFalse(mock_async_balance_and_publish.called)
 
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
@@ -361,3 +365,96 @@ class TestResources(TestCase):
         self.assertFalse(mock_update_scheme_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
+
+    @mock.patch('app.resources.get_hades_balance', auto_spec=False)
+    @mock.patch('app.resources.Balance.async_get_balance_and_publish', autospec=True)
+    @mock.patch('app.publish.zero_balance', autospec=True)
+    @mock.patch('app.publish.status', auto_spec=True)
+    @mock.patch('app.resources.get_hermes_status_name', auto_spec=False)
+    def test_wallet_only_accounts_get_set_to_pending_when_async(self, mock_hermes_status, mock_publish_status,
+                                                                mock_publish_zero_balance,
+                                                                mock_async_balance_and_publish, mock_get_hades_balance):
+
+        mock_hermes_status.return_value = 'Wallet only card'
+        mock_get_hades_balance.return_value = {'points': 0}
+        credentials = {
+            "username": "la@loyaltyangels.com",
+            "password": "YSHansbrics6",
+        }
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+
+        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        resp = self.client.get(url)
+
+        self.assertTrue(mock_hermes_status.called)
+        self.assertTrue(mock_publish_zero_balance.called)
+        self.assertTrue(mock_publish_status.called)
+        self.assertTrue(0 in mock_publish_status.call_args[0])
+        self.assertTrue(mock_get_hades_balance.called)
+        self.assertTrue(mock_async_balance_and_publish.called)
+        self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 7)
+        self.assertEqual(resp.json, mock_get_hades_balance.return_value)
+
+    @mock.patch('app.resources.get_hades_balance', auto_spec=False)
+    @mock.patch('app.resources.Balance.async_get_balance_and_publish', autospec=True)
+    @mock.patch('app.publish.zero_balance', autospec=True)
+    @mock.patch('app.publish.status', auto_spec=True)
+    @mock.patch('app.resources.get_hermes_status_name', auto_spec=False)
+    def test_non_wallet_only_cards_dont_get_set_to_pending_when_async(self, mock_hermes_status, mock_publish_status,
+                                                                      mock_publish_zero_balance,
+                                                                      mock_async_balance_and_publish,
+                                                                      mock_get_hades_balance):
+
+        mock_hermes_status.return_value = 'Active'
+        mock_get_hades_balance.return_value = {'points': 0}
+        credentials = {
+            "username": "la@loyaltyangels.com",
+            "password": "YSHansbrics6",
+        }
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+
+        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        resp = self.client.get(url)
+
+        self.assertTrue(mock_hermes_status.called)
+        self.assertFalse(mock_publish_zero_balance.called)
+        self.assertTrue(0 not in mock_publish_status.call_args[0])
+        self.assertTrue(mock_get_hades_balance.called)
+        self.assertTrue(mock_async_balance_and_publish.called)
+        self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 7)
+        self.assertEqual(resp.json, mock_get_hades_balance.return_value)
+
+    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.Balance.get_balance_and_publish', autospec=False)
+    def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_scheme_account):
+        mock_balance_and_publish.side_effect = ValueError('Linking error')
+        balance_class = Balance()
+        balance_class.async_get_balance_and_publish('agent_class', 'user_id', 'credentials',
+                                                    'scheme_account_id', 'scheme_slug', 'tid')
+
+        self.assertTrue(mock_balance_and_publish.called)
+        self.assertTrue(mock_update_scheme_account.called)
+        self.assertEqual(mock_balance_and_publish.side_effect, mock_update_scheme_account.call_args[0][1])
+
+    @mock.patch('requests.get', auto_spec=True)
+    def test_get_hermes_status(self, mock_requests):
+        get_hermes_status_name(1)
+
+        self.assertTrue(mock_requests.called)
+
+    @mock.patch('requests.get', auto_spec=True)
+    def test_get_hades_balance(self, mock_requests):
+        get_hades_balance(1)
+
+        self.assertTrue(mock_requests.called)
+
+    @mock.patch('requests.get', auto_spec=False)
+    def test_get_hades_balance_error(self, mock_requests):
+        mock_requests.return_value = None
+
+        with self.assertRaises(InternalServerError):
+            get_hades_balance(1)
+
+        self.assertTrue(mock_requests.called)

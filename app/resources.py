@@ -83,15 +83,16 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
-
         if agent_class.async:
             status = get_hermes_status_name(scheme_account_id)
             if status == "Wallet only card":
                 publish.zero_balance(scheme_account_id, user_id, tid)
                 publish.status(scheme_account_id, 0, tid)
 
-            balance = get_hades_balance()
-            thread_pool_executor.submit(self.async_get_balance_and_publish())
+            balance = get_hades_balance(scheme_account_id)
+            thread_pool_executor.submit(self.async_get_balance_and_publish(agent_class, user_id, credentials,
+                                                                           scheme_account_id, scheme_slug, tid))
+
             return create_response(balance)
 
         return self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
@@ -367,11 +368,14 @@ def get_hades_balance(scheme_account_id):
     resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
                         headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
+    if not resp:
+        abort(500, message='Error getting balance from Hades')
+
     return resp.json()
 
 
 def get_hermes_status_name(scheme_account_id):
-    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query', querystring={'id': scheme_account_id},
+    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query', params={'id': scheme_account_id},
                              headers={'Authorization': 'Token ' + SERVICE_API_KEY}).json()
 
     return resp_json['status_name']
