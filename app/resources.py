@@ -368,9 +368,6 @@ def get_hades_balance(scheme_account_id):
     resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
                         headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    if not resp:
-        abort(500, message='Error getting balance from Hades')
-
     return resp.json()
 
 
