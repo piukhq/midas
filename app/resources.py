@@ -117,7 +117,6 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         raise AgentException(e)
     except Exception as e:
         status = 520
-
         raise UnknownException(e)
     finally:
         thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
