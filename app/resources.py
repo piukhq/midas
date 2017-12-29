@@ -83,50 +83,51 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
+
         if agent_class.async:
-            status = get_hermes_status_name(scheme_account_id)
-            if status == "Wallet only card":
+            prev_balance = get_hades_balance(scheme_account_id)
+            if not prev_balance:
                 publish.zero_balance(scheme_account_id, user_id, tid)
                 publish.status(scheme_account_id, 0, tid)
+                prev_balance = get_hades_balance(scheme_account_id)
 
-            balance = get_hades_balance(scheme_account_id)
-            thread_pool_executor.submit(self.async_get_balance_and_publish(agent_class, user_id, credentials,
-                                                                           scheme_account_id, scheme_slug, tid))
+            thread_pool_executor.submit(async_get_balance_and_publish, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
 
-            return create_response(balance)
+            return create_response(prev_balance)
 
-        return self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        return get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
 
-    @staticmethod
-    def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
-        # Send identifier (e.g membership id) to hermes if it's not already stored.
-        if agent_instance.identifier:
-            update_scheme_account(scheme_account_id, "success", tid, 'join', identifier=agent_instance.identifier)
+def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+    agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
 
-        try:
-            status = 1
-            balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
-            # Asynchronously get the transactions for the a user
-            thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
+    # Send identifier (e.g membership id) to hermes if it's not already stored.
+    if agent_instance.identifier:
+        update_scheme_account(scheme_account_id, "success", tid, 'join', identifier=agent_instance.identifier)
 
-            return create_response(balance)
-        except (LoginError, AgentError) as e:
-            status = e.code
-            raise AgentException(e)
-        except Exception as e:
-            status = 520
+    try:
+        status = 1
+        balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
+        # Asynchronously get the transactions for the a user
+        thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
 
-            raise UnknownException(e)
-        finally:
-            thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
+        return create_response(balance)
+    except (LoginError, AgentError) as e:
+        status = e.code
+        raise AgentException(e)
+    except Exception as e:
+        status = 520
 
-    def async_get_balance_and_publish(self, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
-        try:
-            self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
-        except Exception as e:
-            update_scheme_account(scheme_account_id, e, tid, 'link')
+        raise UnknownException(e)
+    finally:
+        thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
+
+
+def async_get_balance_and_publish(self, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+    try:
+        self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+    except Exception as e:
+        update_scheme_account(scheme_account_id, e, tid, 'link')
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
@@ -372,13 +373,6 @@ def get_hades_balance(scheme_account_id):
         abort(500, message='Error getting balance from Hades')
 
     return resp.json()
-
-
-def get_hermes_status_name(scheme_account_id):
-    resp_json = requests.get(HERMES_URL + '/schemes/accounts/query', params={'id': scheme_account_id},
-                             headers={'Authorization': 'Token ' + SERVICE_API_KEY}).json()
-
-    return resp_json['status_name']
 
 
 def update_scheme_account(scheme_account_id, message, tid, request_type, identifier=None):
