@@ -123,9 +123,9 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
 
 
-def async_get_balance_and_publish(self, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
     try:
-        self.get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
     except Exception as e:
         update_scheme_account(scheme_account_id, e, tid, 'link')
 
