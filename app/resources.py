@@ -100,6 +100,7 @@ class Balance(Resource):
 
 def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
     agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
+    error = None
 
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
@@ -114,20 +115,24 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         return create_response(balance)
     except (LoginError, AgentError) as e:
         status = e.code
+        error = e
         raise AgentException(e)
     except Exception as e:
         status = 520
+        error = e
         raise UnknownException(e)
     finally:
         thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
+        if error:
+            return error
+
+        return 'success'
 
 
 def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
-    try:
-        get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
-    except Exception as e:
-        update_scheme_account(scheme_account_id, e, tid, 'link')
-
+    response = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+    if not response == 'success':
+        update_scheme_account(scheme_account_id, str(response), tid, 'link')
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
