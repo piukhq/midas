@@ -10,7 +10,7 @@ import arrow
 
 
 class Cooperative(RoboBrowserMiner):
-    value_pattern = re.compile(r'<span class="wallet-x-value">([0-9.0-9]+)')
+    value_pattern = re.compile(r'<h2 class="mega"><span class="block">You have </span>£([0-9.0-9]+) to spend</h2>')
     points_pattern = re.compile(r'<span class="z-points-value">([0-9.0-9]+)')
     logged_in_pattern = re.compile(r'("invalid loginID or password")')
 
@@ -54,20 +54,20 @@ class Cooperative(RoboBrowserMiner):
                           '06672', method='get', headers=headers)
 
         pretty_html = self.browser.parsed.prettify()
-        try:
-            login_fail = self.logged_in_pattern.findall(pretty_html)[0]
-            if login_fail:
-                raise LoginError(STATUS_LOGIN_FAILED)
-        except IndexError:
-            timestamp = re.compile(r'"signatureTimestamp":\s"(\d+)"').findall(pretty_html)[0]
-            uid = re.compile(r'"UID":\s"(.+)"').findall(pretty_html)[0]
-            uid_signature = re.compile(r'"UIDSignature":\s"(.+)"').findall(pretty_html)[0]
-            self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=' +
-                          uid + '&UIDSignature=' + uid_signature + '&signatureTimestamp=' + timestamp)
+
+        login_fail = self.logged_in_pattern.findall(pretty_html)
+        if login_fail:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
+        timestamp = re.compile(r'"signatureTimestamp":\s"(\d+)"').findall(pretty_html)[0]
+        uid = re.compile(r'"UID":\s"(.+)"').findall(pretty_html)[0]
+        uid_signature = re.compile(r'"UIDSignature":\s"(.+)"').findall(pretty_html)[0]
+        self.open_url('https://membership.coop.co.uk/ajax-calls/validate-signature?UID=' +
+                      uid + '&UIDSignature=' + uid_signature + '&signatureTimestamp=' + timestamp)
 
     def balance(self):
         self.open_url('https://membership.coop.co.uk/dashboard')
-        value_html = self.browser.select('span.wallet-x-value')
+        value_html = self.browser.select('h2.mega')
 
         value_string = self.value_pattern.findall(str(value_html))[0]
 
