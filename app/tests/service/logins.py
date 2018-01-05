@@ -162,9 +162,9 @@ CREDENTIALS = {
         "password": "2xMA8hazn7",
     },
     "qantas": {
-        "card_number": "1933441600",
-        "last_name": "walsh",
-        "pin": "2124",
+        "card_number": "1936600012",
+        "last_name": "angels",
+        "pin": "1223",
     },
     "the_perfume_shop": {
         "email": "chris.gormley2@me.com",
