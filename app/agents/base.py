@@ -301,6 +301,7 @@ class SeleniumMiner(BaseMiner):
         self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
         self.browser.implicitly_wait(15)
 
+    @selenium_handler
     def attempt_login(self, credentials):
         super().attempt_login(credentials)
         self.browser.quit()
