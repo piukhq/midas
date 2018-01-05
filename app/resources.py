@@ -11,7 +11,7 @@ from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
+                                   ACCOUNT_ALREADY_EXISTS, RETRY_LIMIT_REACHED)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -73,6 +73,7 @@ class Balance(Resource):
     def get(self, scheme_slug):
         scheme_account_id = int(request.args['scheme_account_id'])
         tid = request.headers.get('transaction')
+        pending = False
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -83,56 +84,62 @@ class Balance(Resource):
 
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
-
         if agent_class.async:
+            return self.handle_async_balance(scheme_account_id, user_id, tid, pending, agent_class, credentials,
+                                             scheme_slug)
+
+        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        return create_response(balance)
+
+    @staticmethod
+    def handle_async_balance(scheme_account_id, user_id, tid, pending, agent_class, credentials, scheme_slug):
+        prev_balance = get_hades_balance(scheme_account_id)
+        if not prev_balance:
+            publish.zero_balance(scheme_account_id, user_id, tid)
+            publish.status(scheme_account_id, 0, tid)
             prev_balance = get_hades_balance(scheme_account_id)
-            if not prev_balance:
-                publish.zero_balance(scheme_account_id, user_id, tid)
-                publish.status(scheme_account_id, 0, tid)
-                prev_balance = get_hades_balance(scheme_account_id)
 
-            thread_pool_executor.submit(async_get_balance_and_publish, agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        if prev_balance['value_label'] == 'Pending':
+            pending = True
+            prev_balance['pending'] = True
 
-            return create_response(prev_balance)
+        thread_pool_executor.submit(async_get_balance_and_publish, agent_class, user_id, credentials, scheme_account_id,
+                                    scheme_slug, tid, pending)
 
-        return get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        return create_response(prev_balance)
 
 
 def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+    threads = []
     agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
-    error = None
-
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
         update_scheme_account(scheme_account_id, "success", tid, 'join', identifier=agent_instance.identifier)
-
     try:
         status = 1
         balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
         # Asynchronously get the transactions for the a user
-        thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id, tid)
-
-        return create_response(balance)
+        threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id,
+                                                   tid))
+        return balance
     except (LoginError, AgentError) as e:
         status = e.code
-        error = e
         raise AgentException(e)
     except Exception as e:
         status = 520
-        error = e
         raise UnknownException(e)
     finally:
-        thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
-        if error:
-            return error
-
-        return 'success'
+        threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
+        [thread.result() for thread in threads]
 
 
-def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
-    response = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
-    if not response == 'success':
-        update_scheme_account(scheme_account_id, str(response), tid, 'link')
+def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid, pending=False):
+    try:
+        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        return balance
+    except (AgentException, UnknownException) as e:
+        if pending:
+            update_scheme_account(scheme_account_id, e, tid, 'link')
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
@@ -373,7 +380,10 @@ def get_hades_balance(scheme_account_id):
     resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
                         headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    return resp.json()
+    if resp:
+        return resp.json()
+
+    return resp
 
 
 def update_scheme_account(scheme_account_id, message, tid, request_type, identifier=None):

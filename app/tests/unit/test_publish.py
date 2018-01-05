@@ -53,7 +53,7 @@ class TestRetry(unittest.TestCase):
             'value': Decimal('0'),
             'scheme_account_id': 5,
             'points': Decimal('0'),
-            'value_label': '',
+            'value_label': 'Pending',
             'points_label': '0',
             'reward_tier': 0
         })

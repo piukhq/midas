@@ -71,6 +71,6 @@ def zero_balance(scheme_account_id, user_id, tid):
     data = {
         'points': Decimal(0),
         'value': Decimal(0),
-        'value_label': '',
+        'value_label': 'Pending',
     }
     return balance(data, scheme_account_id, user_id, tid)
