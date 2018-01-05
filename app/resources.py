@@ -11,7 +11,7 @@ from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS, RETRY_LIMIT_REACHED)
+                                   ACCOUNT_ALREADY_EXISTS)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -109,7 +109,7 @@ class Balance(Resource):
         return create_response(prev_balance)
 
 
-def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid):
+def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid, pending=False):
     threads = []
     agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
     # Send identifier (e.g membership id) to hermes if it's not already stored.
@@ -129,17 +129,24 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         status = 520
         raise UnknownException(e)
     finally:
-        threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
+        if pending and not status == 1:
+            pass
+        else:
+            threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
+
         [thread.result() for thread in threads]
 
 
-def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid, pending=False):
+def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid,
+                                  pending=False):
     try:
-        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid,
+                                          pending=True)
         return balance
     except (AgentException, UnknownException) as e:
         if pending:
-            update_scheme_account(scheme_account_id, e, tid, 'link')
+            message = 'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
+            update_scheme_account(scheme_account_id, message, tid, 'link')
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
