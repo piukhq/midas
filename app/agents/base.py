@@ -275,6 +275,7 @@ class SeleniumMiner(BaseMiner):
 
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
         self.async = True
+        self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
         self.headers = {}
@@ -299,7 +300,7 @@ class SeleniumMiner(BaseMiner):
         options.add_argument('--hide-scrollbars')
         options.add_argument('--disable-gpu')
         self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
-        self.browser.implicitly_wait(15)
+        self.browser.implicitly_wait(self.delay)
 
     @selenium_handler
     def attempt_login(self, credentials):
@@ -307,9 +308,11 @@ class SeleniumMiner(BaseMiner):
         self.browser.quit()
 
     def find_captcha(self):
+        self.browser.implicitly_wait(1)
         for captcha in self.known_captcha_signatures:
             if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
                 raise AgentError(TRIPPED_CAPTCHA)
+        self.browser.implicitly_wait(self.delay)
 
     def view(self):
         """
