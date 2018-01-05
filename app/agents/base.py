@@ -274,7 +274,6 @@ class ApiMiner(BaseMiner):
 class SeleniumMiner(BaseMiner):
 
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
-        self.async = True
         self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug

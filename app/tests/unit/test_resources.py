@@ -445,13 +445,17 @@ class TestResources(TestCase):
     @mock.patch('app.resources.update_scheme_account', auto_spec=True)
     @mock.patch('app.resources.get_balance_and_publish', autospec=False)
     def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_scheme_account):
+        scheme_slug = 'tesco'
         mock_balance_and_publish.side_effect = AgentException('Linking error')
-        async_get_balance_and_publish('agent_class', 'user_id', 'credentials', 'scheme_account_id', 'scheme_slug',
+        async_get_balance_and_publish('agent_class', 'user_id', 'credentials', 'scheme_account_id', scheme_slug,
                                       'tid', pending=True)
 
         self.assertTrue(mock_balance_and_publish.called)
         self.assertTrue(mock_update_scheme_account.called)
-        self.assertEqual(mock_balance_and_publish.side_effect, mock_update_scheme_account.call_args[0][1])
+        self.assertEqual(
+            'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(mock_balance_and_publish.side_effect)),
+            mock_update_scheme_account.call_args[0][1]
+        )
 
     @mock.patch('requests.get', auto_spec=True)
     def test_get_hades_balance(self, mock_requests):
@@ -557,5 +561,4 @@ class TestResources(TestCase):
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertFalse(mock_transactions.called)
-        self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_account.called)

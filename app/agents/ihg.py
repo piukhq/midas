@@ -91,7 +91,7 @@ class Ihg(SeleniumMiner):
         try:
             self._login(credentials=credentials)
 
-        except Exception:
+        except:
             self.is_login_successful = False
 
         self.check_if_logged_in()
