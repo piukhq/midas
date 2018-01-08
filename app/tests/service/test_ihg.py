@@ -36,10 +36,10 @@ class TestIHGFail(unittest.TestCase):
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    def test_login_bad_pin(self):
+    def test_login_bad_username(self):
         m = Ihg(1, 1)
         credentials = {
-            'username': 'la@loyaltyangels.com',
+            'username': 'bad',
             'pin': '0000',
             'last_name': 'bad'
         }
