@@ -26,6 +26,7 @@ class TestResources(TestCase):
     class Agent:
         def __init__(self, identifier):
             self.identifier = identifier
+
         @staticmethod
         def balance():
             return {'points': 1}
@@ -474,19 +475,23 @@ class TestResources(TestCase):
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.publish.transactions', auto_spec=True)
-    def test_get_balance_and_publish(self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_account):
+    def test_get_balance_and_publish(self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login,
+                                     mock_update_account):
         mock_publish_balance.return_value = {'points': 1}
 
         get_balance_and_publish('agent_class', 'user_id', 'credentials', 'scheme_account_id', 'scheme_slug', 'tid')
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
+        self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
+        self.assertTrue(mock_update_account.called)
 
     @mock.patch('app.resources.update_scheme_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
-    def test_get_balance_and_publish_balance_error(self, mock_publish_balance, mock_publish_status, mock_login, mock_update_account):
+    def test_get_balance_and_publish_balance_error(self, mock_publish_balance, mock_publish_status, mock_login,
+                                                   mock_update_account):
         mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):
@@ -494,6 +499,7 @@ class TestResources(TestCase):
             self.assertTrue(mock_login.called)
             self.assertTrue(mock_publish_balance.called)
             self.assertTrue(mock_publish_status.called)
+            self.assertTrue(mock_update_account.called)
 
     @mock.patch('app.resources.update_scheme_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)

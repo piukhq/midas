@@ -148,6 +148,7 @@ def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_acco
             message = 'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
             update_scheme_account(scheme_account_id, message, tid, 'link')
 
+
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 
 

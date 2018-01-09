@@ -48,7 +48,8 @@ class Ihg(SeleniumMiner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def _login(self, credentials):
-        sign_in_url = "https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=https://www.ihg.com/rewardsclub/content/gb/en/home&displayCaptcha=true"
+        sign_in_url = ("https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest="
+                       "https://www.ihg.com/rewardsclub/content/gb/en/home&displayCaptcha=true")
 
         self.browser.get("https://www.ihg.com/rewardsclub/content/gb/en/home")
         self.check_for_popup_window()
