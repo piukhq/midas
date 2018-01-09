@@ -19,7 +19,7 @@ class Hyatt(RoboBrowserMiner):
 
     def is_login_failed(self):
         parts = urlsplit(self.browser.url)
-        expected_url = "/home"
+        expected_url = '/home'
         return expected_url != parts.path
 
     def login(self, credentials):
@@ -28,16 +28,16 @@ class Hyatt(RoboBrowserMiner):
             temporary_url='https://world.hyatt.com/content/gp/en/signin-temp.html',
             return_url='https://www.hyatt.com/home',
             csrf=self.get_csrf(),
-            username=credentials["username"],
-            last_name=credentials["last_name"],
-            password=credentials["password"],
+            username=credentials['username'],
+            last_name=credentials['last_name'],
+            password=credentials['password'],
             remember='false',
             language='en-US'
         )
 
-        self.browser.open('https://www.hyatt.com/auth/web/login', method="POST", data=data,
+        self.browser.open('https://www.hyatt.com/auth/web/login', method='POST', data=data,
                           headers={
-                              'Referer": "https://www.hyatt.com/',
+                              'Referer': 'https://www.hyatt.com/',
                           })
 
         if self.is_login_failed():
@@ -50,14 +50,14 @@ class Hyatt(RoboBrowserMiner):
         points_table = self.browser.select(selector)
 
         if len(points_table) != 2:
-            raise AgentModifiedError("End-site has been modified")
+            raise AgentModifiedError('End-site has been modified')
 
-        data_table = str(points_table[1]).replace("\n", "")
+        data_table = str(points_table[1]).replace('\n', '')
         expr = '<dt>Current\sPoints:</dt><dd>(\d+)</dd>'
         searched = re.search(expr, data_table, re.IGNORECASE)
 
         if len(searched.groups()) != 1:
-            raise AgentModifiedError("End-site has been modified")
+            raise AgentModifiedError('End-site has been modified')
 
         points = searched.group(1)  # matched points data
 
