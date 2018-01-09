@@ -35,9 +35,9 @@ class Hyatt(RoboBrowserMiner):
             language='en-US'
         )
 
-        self.browser.open("https://www.hyatt.com/auth/web/login", method="POST", data=data,
+        self.browser.open('https://www.hyatt.com/auth/web/login', method="POST", data=data,
                           headers={
-                              "Referer": "https://www.hyatt.com/",
+                              'Referer": "https://www.hyatt.com/',
                           })
 
         if self.is_login_failed():
