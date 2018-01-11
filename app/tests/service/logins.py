@@ -221,6 +221,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "SGHansbr17",
     },
+    "esquires-coffee": {
+        "email": "la@loyaltyangels.com",
+        "password": "Loyalty01",
+    },
     "starwood-preferred-guest": {
         "username": "LAngelBink",
         "password": "8n4Q9cjuPU",
