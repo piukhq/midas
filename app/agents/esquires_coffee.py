@@ -24,7 +24,7 @@ class EsquiresCoffee(ApiMiner):
             self.headers['Referer'] = 'https://www.loylap.com/customer_portal/'
             self.headers['Source'] = 'web'
             self.make_request('https://www.loylap.com/api/v1/user', headers=self.headers)
-        except:
+        except Exception:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def _login(self, credentials):
