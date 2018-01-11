@@ -36,10 +36,9 @@ class IberiaPlus(SeleniumMiner):
         self.check_if_logged_in()
 
     def balance(self):
-        self.points = extract_decimal(self.points)
 
         return {
-            'points': self.points,
+            'points': extract_decimal(self.points),
             'value': Decimal(0),
             'value_label': ''
         }
