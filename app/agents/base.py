@@ -14,8 +14,11 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.expected_conditions import staleness_of
+<<<<<<< HEAD
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
+=======
+>>>>>>> feature/iberia-plus-agent
 from contextlib import contextmanager
 
 from app.utils import open_browser, TWO_PLACES, pluralise
