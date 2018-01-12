@@ -1,49 +1,54 @@
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, CONFIRMATION_REQUIRED
+from app.agents.base import SeleniumMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
-class JetBlue(RoboBrowserMiner):
+class JetBlue(SeleniumMiner):
+    is_successful_login = False
+
+    def _login(self, credentials):
+        self.browser.get('https://book.jetblue.com/B6.auth/login?intcmp=hd_signin'
+                         '&service=https://www.jetblue.com/default.aspx')
+        self.browser.find_element_by_name('username').send_keys(credentials['email'])
+        self.browser.find_element_by_name('password').send_keys(credentials['password'])
+        self.browser.find_element_by_css_selector('#casLoginForm button').click()
+
+    def check_login(self):
+        account_url = 'https://trueblue.jetblue.com/group/trueblue/my-trueblue-home'
+
+        self.browser.get(account_url)
+        self.wait_for_page_load(timeout=15)
+        # repeat above call to account_url to get past one time redirect
+        self.browser.get(account_url)
+        current_url = self.browser.current_url
+        if current_url == account_url:
+            self.is_successful_login = True
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
     def login(self, credentials):
-        self.open_url('https://book.jetblue.com/B6.auth/login?service=https%3A%2F%2Ftrueblue.jetblue.com%2Fc%2Fportal%2'
-                      'Flogin%3Fredirect%3D%252Fgroup%252Ftrueblue%252Factivity-history%26p_l_id%3D10514')
+        try:
+            self._login(credentials)
+        except Exception:
+            raise LoginError(UNKNOWN)
 
-        login_form = self.browser.get_form('casLoginForm')
-        login_form['username'] = credentials['email']
-        login_form['password'] = credentials['password']
-        self.browser.submit_form(login_form)
-
-        self.browser.open('https://trueblue.jetblue.com/group/trueblue/my-trueblue-home')
-
-        self.check_error('book.jetblue.com', (('#errorMessage', STATUS_LOGIN_FAILED, ''),), url_part='netloc')
-
-        mtce_message = self.browser.select('#mailing-address > p > legend')
-        if mtce_message and mtce_message[0].text == 'PLEASE CONFIRM OR UPDATE YOUR MAILING ADDRESS BELOW':
-            raise LoginError(CONFIRMATION_REQUIRED)
-
-        mtce_message = self.browser.select('#optional-fields > p > legend')
-        if mtce_message and mtce_message[0].text == ('PLEASE COMPLETE ANY BLANK PROFILE FIELDS '
-                                                     'BELOW OR POSTPONE UNTIL LATER'):
-            raise LoginError(CONFIRMATION_REQUIRED)
+        self.check_login()
+        self.points = self.browser.find_element_by_class_name('points-info').text
 
     def balance(self):
+
         return {
-            'points': extract_decimal(self.browser.select('.points-info p')[0].contents[0]),
+            'points': extract_decimal(self.points),
             'value': Decimal('0'),
             'value_label': '',
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+
     @staticmethod
     def parse_transaction(row):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal('0'),
-        }
-        return [t]
+        return []
