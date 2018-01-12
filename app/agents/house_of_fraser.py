@@ -33,7 +33,7 @@ class HouseOfFraser(SeleniumMiner):
     def login(self, credentials):
         try:
             self._login(credentials=credentials)
-        except:
+        except Exception:
             self.is_successful_login = False
             raise LoginError(UNKNOWN)
 
