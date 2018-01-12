@@ -1,4 +1,5 @@
 import hashlib
+from time import sleep
 from decimal import Decimal
 from collections import defaultdict
 from urllib.parse import urlsplit
@@ -15,6 +16,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.expected_conditions import staleness_of
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
@@ -333,3 +335,15 @@ class SeleniumMiner(BaseMiner):
         WebDriverWait(self.browser, timeout).until(
             ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), text)
         )
+
+    def wait_for_element_to_be_visible(self, element, timeout=15, wait_if_error=5):
+        try:
+            WebDriverWait(self.browser, timeout).until(
+                ec.visibility_of(element)
+            )
+        except StaleElementReferenceException:
+            sleep(wait_if_error)
+            if ec.visibility_of(element):
+                return True
+
+
