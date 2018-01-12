@@ -13,11 +13,16 @@ class TestHouseOfFraser(unittest.TestCase):
         cls.m.attempt_login(CREDENTIALS['recognition-reward-card'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_successful_login)
 
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
+
+    def test_transactions(self):
+        transactions = self.m.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
 
 
 class TestHouseOfFraserFail(unittest.TestCase):
