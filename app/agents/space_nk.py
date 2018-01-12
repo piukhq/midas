@@ -1,5 +1,5 @@
 from app.agents.base import SeleniumMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 
