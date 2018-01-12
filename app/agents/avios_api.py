@@ -40,7 +40,7 @@ class Avios(ApiMiner):
             sentry.captureException(e)
             raise LoginError(END_SITE_DOWN)
 
-        except:
+        except Exception:
             error_code = self.response_json['error']['code']
             sentry.captureMessage('Avios API login failed! Status code: {} :: Error code: {}'.format(
                 self.response.status_code,

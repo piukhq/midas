@@ -17,7 +17,10 @@ AGENTS = {
     # 'hilton-hhonors': 'hilton_honors.Hilton',              # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
     # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
+    # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
+    # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
+    # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -43,8 +46,6 @@ AGENTS = {
     'trueblue': 'jetblue.JetBlue',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
-    'rewards4golf': 'rewards4golf.Rewards4Golf',
-    'rewards4racing': 'rewards4racing.Rewards4Racing',
     'space-nk': 'space_nk.SpaceNK',
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
@@ -58,7 +59,9 @@ AGENTS = {
     'together-rewards-card': 'the_works.TheWorks',
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
     'royal-orchid-plus': 'thai_airways.ThaiAirways',
+    'iberia-plus': 'iberia_plus.IberiaPlus',
     'big-rewards': 'air_asia.AirAsia',
+    'play-points': 'play_points.PlayPoints',
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',
     'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
@@ -66,6 +69,7 @@ AGENTS = {
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
     'papa-johns': 'papa_johns.PapaJohns',
     'bonus-club': 'brewersfayre.BrewersFayre',
@@ -77,7 +81,11 @@ AGENTS = {
     'iceland-bonus-card': 'iceland.Iceland',
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
+    'tkmaxx': 'tk_maxx.TKMaxx',
     'marriott-rewards-card': 'marriott.Marriott',
+    'club-individual': 'club_individual.ClubIndividual',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
+    'krisflyer': 'krisflyer.Krisflyer',
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',
     '19-fourteas-tea-rooms': 'my360.My360',

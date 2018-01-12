@@ -12,7 +12,7 @@ class TestIhg(unittest.TestCase):
         cls.m.attempt_login(CREDENTIALS['ihg'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
 
     def test_transactions(self):
         transactions = self.m.transactions()
@@ -29,27 +29,19 @@ class TestIHGFail(unittest.TestCase):
         m = Ihg(1, 1)
         credentials = {
             'username': 'bad@bad.com',
-            'pin': '0000'
+            'pin': '0000',
+            'last_name': 'bad'
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    def test_login_bad_pin(self):
+    def test_login_bad_username(self):
         m = Ihg(1, 1)
         credentials = {
-            'username': 'la@loyaltyangels.com',
-            'pin': '0000'
-        }
-        with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
-
-    def test_login_long_pin(self):
-        m = Ihg(1, 1)
-        credentials = {
-            'username': 'la@loyaltyangels.com',
-            'pin': '12900'
+            'username': 'bad',
+            'pin': '0000',
+            'last_name': 'bad'
         }
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)

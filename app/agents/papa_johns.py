@@ -45,7 +45,7 @@ class PapaJohns(RoboBrowserMiner):
         try:
             self.get_sign_in_form()
             self._login(credentials=credentials)
-        except:
+        except Exception:
             raise LoginError(UNKNOWN)
 
         self._check_if_logged_in()

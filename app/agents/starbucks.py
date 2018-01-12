@@ -40,7 +40,7 @@ class Starbucks(RoboBrowserMiner):
             # Get points details.
             self.points = extract_decimal(web_driver.find_element_by_xpath(
                 '//*[@id="stars_and_rewards_section"]/div[3]/figure/figcaption/span[1]').text)
-        except:
+        except Exception:
             # If getting the account status failed, then it likely means we failed to log in.
             raise LoginError(STATUS_LOGIN_FAILED)
         finally:

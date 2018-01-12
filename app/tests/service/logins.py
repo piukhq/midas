@@ -65,6 +65,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RFHansbrics6",
     },
+    "play-points": {
+        "username": "LoyaltyAngel",
+        "password": "fpNL8l7Mmk",
+    },
     "starbucks": {
         "username": "chris.gormley2@me.com",
         "password": "RRHansbrics9",
@@ -109,6 +113,10 @@ CREDENTIALS = {
         "username": "chris.gormley2@me.com",
         "password": "AGHansbrics5",
     },
+    "aerclub": {
+        'email': 'la@loyaltyangels.com',
+        'password': '2sQPV4NHWi'
+    },
     "eurostar": {
         "email": "chris.gormley2@me.com",
         "password": "QDHansbrics8",
@@ -120,6 +128,10 @@ CREDENTIALS = {
     "decathlon": {
         "email": "chris.smith4@gmx.co.uk",
         "password": "Loyalty1",
+    },
+    "harvey_nichols": {
+        "email": "loyaltycards02@gmail.com",
+        "password": "EGY7zP9NC",
     },
     "odeon": {
         "email": "chris.gormley2@me.com",
@@ -137,6 +149,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "RGHansbrics7",
     },
+    "tkmaxx": {
+        "email": "james.crook.uk@gmail.com",
+        "password": "H8M7CROFztr7",
+    },
     "monsoon": {
         "email": "chris.gormley2@me.com",
         "password": "MLHansbrics7",
@@ -146,13 +162,17 @@ CREDENTIALS = {
         "password": "2xMA8hazn7",
     },
     "qantas": {
-        "card_number": "1933441600",
-        "last_name": "walsh",
-        "pin": "2124",
+        "card_number": "1936600012",
+        "last_name": "angels",
+        "pin": "1223",
     },
     "the_perfume_shop": {
         "email": "chris.gormley2@me.com",
         "password": "OSHansbrics14",
+    },
+    "krisflyer": {
+        "card_number": "8826217657",
+        "pin": "123456"
     },
     "rewards4fishing": {
         "email": "la@loyaltyangels.com",
@@ -162,6 +182,7 @@ CREDENTIALS = {
         "email": "la@loyaltyangels.com",
         "password": "gyYfRh26D2",
     },
+
     "rewards4racing": {
         "email": "la@loyaltyangels.com",
         "password": "YRKnQuP822",
@@ -194,6 +215,7 @@ CREDENTIALS = {
     "ihg": {
         "username": "la@loyaltyangels.com",
         "pin": "1290",
+        "last_name": "angels",
     },
     "hyatt": {
         "username": "528180109F",
@@ -248,6 +270,10 @@ CREDENTIALS = {
         "username": "9118431866",
         "password": "9Pv8nsv8hv",
     },
+    "iberia-plus": {
+        "card-number": "80608367",
+        "password": "abcxyz",
+    },
     "rspb": {
         "email": "loyaltycards01@gmail.com",
         "password": "5dHm0xFKd0",
@@ -260,6 +286,11 @@ CREDENTIALS = {
     "le-club": {
         "username": "ssc@bink.com",
         "password": "Loyalty1",
+    },
+    "club_individual": {
+        "card_number": "3662622",
+        "email": "ryanedwards3@mac.com",
+        "password": "Bink182",
     },
     "choicehotels": {
         "username": "LoyaltyAngels",
@@ -422,6 +453,10 @@ CREDENTIALS = {
     "handm-club": {
         "email": "loyaltycards01@gmail.com",
         "password": "Loyalty01"
+    },
+    "harvey-nichols": {
+        "email": "test@bink.com",
+        "password": "1qaz1qaZ"
     },
 }
 

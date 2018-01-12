@@ -1,79 +1,108 @@
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import LoginError, AgentError, STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+import json
+from time import sleep
 from decimal import Decimal
+
 import arrow
+from selenium.common.exceptions import NoSuchElementException
+
+from app.agents.base import SeleniumMiner
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
 
 
-class Ihg(RoboBrowserMiner):
-    def login(self, credentials):
+class Ihg(SeleniumMiner):
+    is_login_successful = None
+    async = True
 
-        def error_message_check(message):
-            known_error_messages = [
-                'We cannot find the email address',
-                'The IHG Rewards Club member number, email address or pin provided',
-                'The page you are trying to view'
-            ]
+    def check_for_popup_window(self):
+        self.browser.implicitly_wait(2)
+        try:
+            popup = self.browser.find_element_by_name("IPEMap")
+            if popup.is_displayed():
+                raise Exception("There is a popup window that is blocking us.")
 
-            if any(message.startswith(error) for error in known_error_messages):
-                raise LoginError(STATUS_LOGIN_FAILED)
+        except NoSuchElementException:
+            self.browser.implicitly_wait(20)
 
-        self.open_url('https://www.ihg.com/rewardsclub/gb/en/account/home')
+        except Exception as e:
+            raise e
 
-        login_url = 'https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest=' \
-                    'https://www.ihg.com/rewardsclub/gb/en/account/home'
+    def check_for_error_msg(self):
+        try:
+            error_messages = self.browser.find_elements_by_class_name("errorTopMsgText")
+            for error_msg in error_messages:
+                if error_msg.is_displayed():
+                    raise LoginError(STATUS_LOGIN_FAILED)
 
-        form_fields_html = self.browser.select('div.stand-out > div.form-element')
-        for field in form_fields_html:
-            field_text = field.select('label.field-label')[0].text
-            if field_text.startswith('Email or Member #'):
-                user_field = field['class'][2]
+        except LoginError as exception:
+            raise exception
 
-            elif field_text.startswith('PIN #'):
-                password_field = field['class'][2]
+    def check_if_logged_in(self):
+        account_url = "https://www.ihg.com/rewardsclub/gb/en/account-mgmt/home"
+        self.browser.get(account_url)
 
-            else:
-                empty_form_field = field['class'][2]
+        if self.browser.current_url == account_url:
+            self.is_login_successful = True
+        else:
+            self.is_login_successful = False
+            raise LoginError(STATUS_LOGIN_FAILED)
 
-        for field_class in user_field, password_field, empty_form_field:
-            check = 'pPRfurr'
+    def _login(self, credentials):
+        sign_in_url = ("https://www.ihg.com/rewardsclub/gb/en/sign-in/?fwdest="
+                       "https://www.ihg.com/rewardsclub/content/gb/en/home&displayCaptcha=true")
 
-            if not field_class.startswith(check):
-                raise AgentError('Login form classes should start with: "' + check + '". Not found on page')
+        self.browser.get("https://www.ihg.com/rewardsclub/content/gb/en/home")
+        self.check_for_popup_window()
+        try:
+            self.browser.find_element_by_class_name('logIn-link').click()
+            self.browser.find_element_by_id('UHF_username').send_keys(credentials['username'])
+            self.browser.find_element_by_id('UHF_password').send_keys(credentials['pin'])
+            self.browser.find_element_by_class_name('signIn').click()
+            sleep(1)
+            self.check_for_error_msg()
 
-        headers = {
-            'Referer': login_url,
-            'Origin': 'https://www.ihg.com'
-        }
-
-        data = {
-            'formSubmit': 'true',
-            'currentUrl': login_url,
-            'cookieFlag': 'true',
-            user_field: credentials['username'],
-            password_field: credentials['pin'],
-            empty_form_field: ''
-        }
-
-        self.browser.open(login_url, method='post', headers=headers, data=data)
-
-        error_box = self.browser.select('p.error-server')
-        long_pin_error_box = self.browser.select('div#tpiSignHeaderCont > p')
-        if error_box:
-            message = error_box[0].text.strip()
-            error_message_check(message)
-
-        elif long_pin_error_box:
-            message = long_pin_error_box[0].text.strip()
-            error_message_check(message)
+        except LoginError as exception:
+            raise exception
 
         else:
-            self.browser.submit_form(self.browser.get_form(action='https://www.ihg.com/rewardsclub/gb/en/account/home'))
+            if self.browser.current_url == sign_in_url:
+                self._login_with_last_name(credentials=credentials)
+
+    def _login_with_last_name(self, credentials):
+        self.browser.find_element_by_css_selector(
+            "form[name='tpiSignIn'] input[maxlength='75']").send_keys(credentials['username'])
+        self.browser.find_element_by_css_selector(
+            "[name='tpiSignIn'] input[type='password'][autocomplete='off']").send_keys(credentials['pin'])
+        self.browser.find_element_by_css_selector(
+            "input[name='lastName']").send_keys(credentials['last_name'])
+        self.browser.find_element_by_class_name("cta-1").click()
+        sleep(1)
+
+        self.check_for_error_msg()
+
+    def login(self, credentials):
+        self.browser.implicitly_wait(20)
+        try:
+            self._login(credentials=credentials)
+
+        except Exception:
+            self.is_login_successful = False
+
+        self.check_if_logged_in()
+        point_text = self.browser.find_element_by_class_name('user-points').text
+        self.points = extract_decimal(point_text)
+
+        self.browser.get('https://www.ihg.com/rewardsclub/gb/en/ws/accountActivity/get?activityType=ALL&'
+                         'duration=365&rows=10&page=1')
+
+        self.browser.find_element_by_css_selector(".rawdata").click()
+        pre = self.browser.find_element_by_tag_name("pre").text
+        data = json.loads(pre)
+        self.transaction_data = data['accountActivityList']
 
     def balance(self):
-        point_text = self.browser.select('#reflectionBg > div > div.value.large.withCommas')[0].text.strip()
         return {
-            'points': extract_decimal(point_text),
+            'points': self.points,
             'value': Decimal('0'),
             'value_label': '',
         }
@@ -87,7 +116,4 @@ class Ihg(RoboBrowserMiner):
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.ihg.com/rewardsclub/gb/en/ws/accountActivity/get'
-                      '?activityType=ALL&duration=365&rows=10&page=1')
-        data = self.browser.response.json()
-        return data['accountActivityList']
+        return self.transaction_data

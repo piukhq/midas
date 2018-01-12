@@ -4,6 +4,6 @@
 .coverage
 *pyw
 .env
-test_results.xml
+test_*.xml
 andrew
 .DS_Store

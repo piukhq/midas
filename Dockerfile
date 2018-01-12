@@ -15,11 +15,13 @@ RUN addgroup --gid 1550 apps && \
  sed -i -e 's/user www-data;/user apps;/g' /etc/nginx/nginx.conf && \
  rm -rf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default && \
  rsync -a --remove-source-files /usr/local/src/midas/docker_root/ / && \
+ echo "Host git.bink.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config && \
+ chmod -R 600 /root/.ssh && \
  pip3 install --upgrade pip && \
  pip3 install uwsgi && \
+ pip3 install -r /usr/local/src/midas/requirements.txt && \
  pip3 install pytest && \
  pip3 install pytest-xdist && \
- pip3 install -r /usr/local/src/midas/requirements.txt && \
  chown apps:apps /usr/local/src -R && \
  curl -L 'https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz' -o /tmp/geckodriver.tar.gz && \
  tar xzf /tmp/geckodriver.tar.gz && \
@@ -31,10 +33,10 @@ RUN addgroup --gid 1550 apps && \
  rm firefox-55.0.tar.bz2 && \
  mkdir /home/apps && \
  chown -R apps:apps /home/apps && \
- ln -s /usr/local/bin/py.test /usr/bin/py.test && \
+ ln -s /usr/local/bin/pytest /usr/bin/pytest && \
  apt-get -y remove rsync git git-core curl && \
  apt-get -y autoremove && \
  apt-get clean && \
- rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.ssh /usr/local/src/midas/docker_root
 
 ENTRYPOINT ["/init"]

@@ -11,7 +11,12 @@ from requests.exceptions import ReadTimeout, Timeout
 from requests.packages.urllib3.poolmanager import PoolManager
 from robobrowser import RoboBrowser
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support.expected_conditions import staleness_of
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
+from contextlib import contextmanager
 
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
@@ -41,6 +46,12 @@ class BaseMiner(object):
         'captcha',
         'Incapsula',
     ]
+    identifier_type = None
+    identifier = None
+    async = False
+
+    def register(self, credentials):
+        raise NotImplementedError()
 
     def login(self, credentials):
         raise NotImplementedError()
@@ -109,6 +120,12 @@ class BaseMiner(object):
 
         try:
             self.login(credentials)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    def attempt_register(self, credentials):
+        try:
+            self.register(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
@@ -220,6 +237,7 @@ class ApiMiner(BaseMiner):
         self.scheme_slug = scheme_slug
         self.headers = {}
         self.retry_count = retry_count
+        self.errors = {}
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
@@ -245,11 +263,18 @@ class ApiMiner(BaseMiner):
 
         return response
 
+    def handle_errors(self, response, exception_type=LoginError):
+        for key, values in self.errors.items():
+            if response in values:
+                raise exception_type(key)
+        raise AgentError(UNKNOWN)
+
 
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
         self.headers = {}
@@ -274,16 +299,19 @@ class SeleniumMiner(BaseMiner):
         options.add_argument('--hide-scrollbars')
         options.add_argument('--disable-gpu')
         self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
-        self.browser.implicitly_wait(5)
+        self.browser.implicitly_wait(self.delay)
 
+    @selenium_handler
     def attempt_login(self, credentials):
         super().attempt_login(credentials)
         self.browser.quit()
 
     def find_captcha(self):
+        self.browser.implicitly_wait(1)
         for captcha in self.known_captcha_signatures:
             if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
                 raise AgentError(TRIPPED_CAPTCHA)
+        self.browser.implicitly_wait(self.delay)
 
     def view(self):
         """
@@ -292,3 +320,16 @@ class SeleniumMiner(BaseMiner):
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
+
+    @contextmanager
+    def wait_for_page_load(self, timeout=15):
+        old_page = self.browser.find_element_by_tag_name('html')
+        yield
+        WebDriverWait(self.browser, timeout).until(
+            staleness_of(old_page)
+        )
+
+    def wait_for_value(self, css_selector, text, timeout=15):
+        WebDriverWait(self.browser, timeout).until(
+            ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), text)
+        )

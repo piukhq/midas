@@ -13,7 +13,7 @@ class Omni(RoboBrowserMiner):
             logged_in_sign = self.browser.select('h3 a')[0].text
             if logged_in_sign == "Sign Out":
                 self.is_login_successful = True
-        except:
+        except Exception:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):

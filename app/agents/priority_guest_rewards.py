@@ -18,7 +18,7 @@ class PriorityGuestRewards(RoboBrowserMiner):
             account_info = self.browser.select('.info-row b')[0].text
             if account_info:
                 self.is_login_successful = True
-        except:
+        except Exception:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
