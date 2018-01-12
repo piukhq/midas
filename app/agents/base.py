@@ -345,5 +345,3 @@ class SeleniumMiner(BaseMiner):
             sleep(wait_if_error)
             if ec.visibility_of(element):
                 return True
-
-

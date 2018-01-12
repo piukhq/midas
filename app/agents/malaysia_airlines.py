@@ -30,7 +30,7 @@ class MalaysiaAirlines(SeleniumMiner):
         self.browser.implicitly_wait(60)
         try:
             self._login(credentials)
-        except:
+        except Exception:
             raise LoginError(UNKNOWN)
 
         self._check_if_logged_in()
