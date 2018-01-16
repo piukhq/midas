@@ -83,7 +83,6 @@ AGENTS = {
     'tkmaxx': 'tk_maxx.TKMaxx',
     'marriott-rewards-card': 'marriott.Marriott',
     'club-individual': 'club_individual.ClubIndividual',
-    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'krisflyer': 'krisflyer.Krisflyer',
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',
