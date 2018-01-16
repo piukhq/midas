@@ -61,7 +61,7 @@ class RSPB(RoboBrowserMiner):
         data = {
             'history_type': 'loyalty',
             'date': year,
-            'form_submit': 't'
+            'form_submit': 't',
         }
         self.open_url(url, method='post', data=data)
 
@@ -93,11 +93,9 @@ class RSPB(RoboBrowserMiner):
             self.open_url(transactions_url)
 
             for year in years:
-                transaction_detail_rows.extend(
-                    self.get_transactions_by_year(year))
+                transaction_detail_rows.extend(self.get_transactions_by_year(year))
 
         transaction_detail_rows = [transaction for transaction in transaction_detail_rows if not None]
-
         transaction_detail_rows.sort(key=lambda date: date[1], reverse=True)
 
         return transaction_detail_rows
