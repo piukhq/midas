@@ -16,6 +16,7 @@ AGENTS = {
     # 'starwood-preferred-guest': 'starwood.Starwood',       # Captcha.
     # 'hilton-hhonors': 'hilton_honors.Hilton',              # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
+    # 'papa-johns': 'papa_johns.PapaJohns',                  # Papa johns have IP blocked us on production
     # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
     # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
@@ -70,7 +71,6 @@ AGENTS = {
     'clubcarlson': 'carlson.Carlson',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
-    'papa-johns': 'papa_johns.PapaJohns',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
