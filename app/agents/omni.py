@@ -4,7 +4,6 @@ from decimal import Decimal
 
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
-from app.utils import extract_decimal
 
 
 class Omni(RoboBrowserMiner):
