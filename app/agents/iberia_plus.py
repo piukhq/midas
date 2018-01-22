@@ -20,10 +20,11 @@ class IberiaPlus(SeleniumMiner):
             raise AgentError(END_SITE_DOWN)
 
     def _login(self, credentials):
+        card_number = credentials.get('card_number') or credentials.get('barcode')
         self.browser.get('https://www.iberia.com/web/obsmenu.do?menuId=IBMIBP')
         form = self.browser.find_element_by_name('loginFormTop')
         self.browser.find_element_by_class_name('login').click()
-        self.browser.find_element_by_name('username').send_keys(credentials['card-number'])
+        self.browser.find_element_by_name('username').send_keys(card_number)
         self.browser.find_element_by_name('password').send_keys(credentials['password'])
         form.find_element_by_css_selector('input[type="submit"]').click()
 

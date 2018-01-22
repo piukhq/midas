@@ -271,7 +271,7 @@ CREDENTIALS = {
         "password": "9Pv8nsv8hv",
     },
     "iberia-plus": {
-        "card-number": "80608367",
+        "card_number": "80608367",
         "password": "abcxyz",
     },
     "rspb": {

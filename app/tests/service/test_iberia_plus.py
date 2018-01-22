@@ -30,7 +30,7 @@ class TestIberiaPlusFail(unittest.TestCase):
     def test_bad_login(self):
         h = IberiaPlus(1, 1)
         credentials = {
-            'card-number': '00000000',
+            'card_number': '00000000',
             'password': '0000'
         }
         with self.assertRaises(LoginError) as e:
