@@ -9,7 +9,7 @@ import settings
 from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
+                                   ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
@@ -302,13 +302,19 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, f
 
 def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=None):
     agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
+    error = None
     try:
         agent_instance.attempt_register(credentials)
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
             agent_instance.update_scheme_account(scheme_account_id, e.args[0], tid)
+        else:
+            error = ACCOUNT_ALREADY_EXISTS
 
-    return agent_instance
+    return {
+        'instance': agent_instance,
+        'error': error,
+    }
 
 
 def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
@@ -319,14 +325,18 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
         publish.status(scheme_account_id, 900, tid)
         abort(e.code, message=e.data['message'])
 
-    agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
+    register_result = agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
 
     try:
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
                                      from_register=True)
         agent_instance.update_scheme_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
-    except (LoginError, AgentError):
-        publish.zero_balance(scheme_account_id, user_id, tid)
+    except (LoginError, AgentError) as e:
+        if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
+            register_result['instance'].update_scheme_account(scheme_account_id, e.args[0], tid)
+        else:
+            publish.zero_balance(scheme_account_id, user_id, tid)
+
         return True
 
     try:

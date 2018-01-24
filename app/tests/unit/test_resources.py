@@ -258,13 +258,14 @@ class TestResources(TestCase):
         self.assertTrue(mock_register.called)
         self.assertFalse(mock_put.called)
 
+    @mock.patch('app.agents.base.put', autospec=True)
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     @mock.patch('app.resources.agent_register', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_registration(self, mock_publish_balance, mock_publish_status, mock_publish_transaction,
-                          mock_agent_register, mock_agent_login):
+    def test_registration(self, mock_agent_login, mock_agent_register, mock_publish_transaction, mock_publish_status,
+                          mock_publish_balance, mock_put):
         scheme_slug = "harvey-nichols"
         credentials = logins.encrypt(scheme_slug)
         scheme_account_id = 2
@@ -277,7 +278,29 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_agent_register.called)
         self.assertTrue(mock_agent_login.called)
+        self.assertFalse(mock_put.called)
         self.assertEqual(result, True)
+
+    @mock.patch('app.agents.base.put', autospec=True)
+    @mock.patch('app.resources.agent_register', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_registration_already_exists_fail(self, mock_agent_login, mock_agent_register, mock_put):
+
+        mock_agent_register.return_value = {'instance': HarveyNichols, 'error': ACCOUNT_ALREADY_EXISTS}
+        mock_agent_login.side_effect = LoginError(STATUS_LOGIN_FAILED)
+
+        scheme_slug = "harvey-nichols"
+        credentials = logins.encrypt(scheme_slug)
+        scheme_account_id = 2
+        user_id = 4
+
+        result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
+
+        self.assertTrue(mock_agent_register.called)
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_put.called)
+        self.assertEqual(result, True)
+
 
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(HarveyNichols, 'attempt_login')
