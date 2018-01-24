@@ -301,7 +301,6 @@ class TestResources(TestCase):
         self.assertTrue(mock_put.called)
         self.assertEqual(result, True)
 
-
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(HarveyNichols, 'attempt_login')
     def test_agent_login_success(self, mock_login, mock_retry):

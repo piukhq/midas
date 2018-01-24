@@ -9,7 +9,7 @@ import settings
 from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED)
+                                   ACCOUNT_ALREADY_EXISTS)
 from app.utils import resolve_agent
 from app.encoding import JsonEncoder
 from app import publish
