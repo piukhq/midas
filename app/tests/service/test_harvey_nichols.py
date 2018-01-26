@@ -68,10 +68,11 @@ class TestToken(unittest.TestCase):
         credentials['card_number'] = "1000000613736"
 
         self.h.attempt_login(CREDENTIALS['harvey-nichols'])
-
-        json_result = self.h.login_response.json()['CustomerSignOnResult']
+        self.h.balance()
+        login_json = self.h.login_response.json()['CustomerSignOnResult']
         self.assertEqual(self.h.login_response.status_code, 200)
-        self.assertEqual(json_result['outcome'], 'Success')
+        self.assertEqual(login_json['outcome'], 'Success')
+        self.assertEqual(login_json['errorDetails'], None)
 
 
 if __name__ == '__main__':
