@@ -11,7 +11,7 @@ class HarveyNichols(ApiMiner):
 
     token_store = UserTokenStore(USER_TOKEN_REDIS_URL)
 
-    BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
+    BASE_URL = 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty'
 
     def login(self, credentials):
         self.credentials = credentials

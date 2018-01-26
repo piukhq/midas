@@ -447,8 +447,8 @@ CREDENTIALS = {
         "password": "Loyalty01"
     },
     "harvey-nichols": {
-        "email": "joesilver@bink.com",
-        "password": "1234567"
+        "email": "loyaltycards02@gmail.com",
+        "password": "EGY7zP9NC"
     },
 }
 
