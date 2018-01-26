@@ -253,6 +253,17 @@ class ApiMiner(BaseMiner):
         self.retry_count = retry_count
         self.errors = {}
 
+    def transactions(self):
+        try:
+            agent_transactions = self.request_transactions()
+        except NotImplementedError:
+            agent_transactions = self.scrape_transactions()
+
+        return self.hash_transactions([self.parse_transaction(t) for t in agent_transactions])
+
+    def request_transactions(self):
+        raise NotImplementedError()
+
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         args = {
