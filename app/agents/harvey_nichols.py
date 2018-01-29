@@ -97,7 +97,7 @@ class HarveyNichols(ApiMiner):
             "points": Decimal(row['pointsValue']),
         }
 
-    def request_transactions(self):
+    def scrape_transactions(self):
         result = self.call_transaction_url()
 
         if result['outcome'] == 'InvalidToken':
