@@ -62,14 +62,9 @@ class ThaiAirways(RoboBrowserMiner):
             "member_id": self.member_id,
             "token": self.token
         }
-        self.headers["Content-Type"] = "application/x-www-form-urlencoded; charset= UTF-8"
-        self.headers["Host"] = "www.thaiairways.com"
-        self.headers["Origin"] = "https://www.thaiairways.com"
-        self.headers["Referer"] = "https://www.thaiairways.com/app/rop/"
-        self.headers["X-Requested-With"] = "XMLHttpRequest"
         self.open_url(url, method="post", data=data)
-        points = extract_decimal(self.browser.response.json()["data"]["CurrentMileageRS"]["CurrentMileage"])
 
+        points = extract_decimal(self.browser.response.json()["data"]["CurrentMileageRS"]["CurrentMileage"])
         return {
             'points': points,
             'value': Decimal('0'),
@@ -91,9 +86,4 @@ class ThaiAirways(RoboBrowserMiner):
             "stmLanguagePref": "en",
         }
         '''
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
