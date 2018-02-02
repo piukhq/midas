@@ -49,9 +49,9 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.async_get_balance_and_publish', autospec=True)
-    def test_user_balances(self, mock_async_balance_and_publish, mock_update_scheme_account, mock_pool,
+    def test_user_balances(self, mock_async_balance_and_publish, mock_update_pending_join_account, mock_pool,
                            mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
         credentials = logins.encrypt("tesco-clubcard")
@@ -59,7 +59,7 @@ class TestResources(TestCase):
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
-        self.assertTrue(mock_update_scheme_account.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'user_id': 2, 'scheme_account_id': 4})
@@ -68,15 +68,15 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_balance_none_exception(self, mock_update_scheme_account, mock_pool,
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_none_exception(self, mock_update_pending_join_account, mock_pool,
                                     mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
-        self.assertTrue(mock_update_scheme_account)
+        self.assertTrue(mock_update_pending_join_account)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
@@ -85,14 +85,14 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_balance_unknown_error(self, mock_update_scheme_account, mock_pool, mock_agent_login, mock_publish_balance):
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
-        self.assertTrue(mock_update_scheme_account)
+        self.assertTrue(mock_update_pending_join_account)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 520)
@@ -296,8 +296,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     @mock.patch('app.resources.agent_register', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_registration(self, mock_update_scheme_account, mock_publish_balance, mock_publish_status,
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_registration(self, mock_update_pending_join_account, mock_publish_balance, mock_publish_status,
                           mock_publish_transaction, mock_agent_register, mock_agent_login):
         scheme_slug = "harvey-nichols"
         credentials = logins.encrypt(scheme_slug)
@@ -306,7 +306,7 @@ class TestResources(TestCase):
 
         result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
 
-        self.assertTrue(mock_update_scheme_account)
+        self.assertTrue(mock_update_pending_join_account)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
         self.assertTrue(mock_publish_status.called)
@@ -343,8 +343,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_update_scheme_account, mock_login,
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_update_pending_join_account, mock_login,
                                                              mock_publish_balance, mock_pool):
         mock_publish_balance.return_value = {'points': 1}
         mock_login.return_value = mock.MagicMock()
@@ -359,17 +359,17 @@ class TestResources(TestCase):
         url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
-        self.assertTrue(mock_update_scheme_account)
+        self.assertTrue(mock_update_pending_join_account)
         self.assertTrue(mock_login.called)
-        self.assertTrue(mock_update_scheme_account.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
-    def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(self, mock_update_scheme_account,
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(self, mock_update_pending_join_account,
                                                                              mock_login, mock_publish_balance,
                                                                              mock_pool):
         mock_publish_balance.return_value = {'points': 1}
@@ -386,7 +386,7 @@ class TestResources(TestCase):
         self.client.get(url)
 
         self.assertTrue(mock_login.called)
-        self.assertFalse(mock_update_scheme_account.called)
+        self.assertFalse(mock_update_pending_join_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
@@ -443,19 +443,19 @@ class TestResources(TestCase):
         self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 7)
         self.assertEqual(resp.json, mock_get_hades_balance.return_value)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_link_account', auto_spec=True)
     @mock.patch('app.resources.get_balance_and_publish', autospec=False)
-    def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_scheme_account):
+    def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_pending_link_account):
         scheme_slug = 'tesco'
         mock_balance_and_publish.side_effect = AgentException('Linking error')
         async_get_balance_and_publish('agent_class', 'user_id', 'credentials', 'scheme_account_id', scheme_slug,
                                       'tid', pending=True)
 
         self.assertTrue(mock_balance_and_publish.called)
-        self.assertTrue(mock_update_scheme_account.called)
+        self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
             'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(mock_balance_and_publish.side_effect)),
-            mock_update_scheme_account.call_args[0][1]
+            mock_update_pending_link_account.call_args[0][1]
         )
 
     @mock.patch('requests.get', auto_spec=True)
@@ -470,13 +470,13 @@ class TestResources(TestCase):
         self.assertEqual(get_hades_balance(1), None)
         self.assertTrue(mock_requests.called)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.publish.transactions', auto_spec=True)
     def test_get_balance_and_publish(self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login,
-                                     mock_update_account):
+                                     mock_update_pending_join_account):
         mock_publish_balance.return_value = {'points': 1}
 
         get_balance_and_publish('agent_class', 'user_id', 'credentials', 'scheme_account_id', 'scheme_slug', 'tid')
@@ -484,14 +484,14 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
-        self.assertTrue(mock_update_account.called)
+        self.assertTrue(mock_update_pending_join_account.called)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     def test_get_balance_and_publish_balance_error(self, mock_publish_balance, mock_publish_status, mock_login,
-                                                   mock_update_account):
+                                                   mock_update_pending_join_account):
         mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):
@@ -499,66 +499,66 @@ class TestResources(TestCase):
             self.assertTrue(mock_login.called)
             self.assertTrue(mock_publish_balance.called)
             self.assertTrue(mock_publish_status.called)
-            self.assertTrue(mock_update_account.called)
+            self.assertTrue(mock_update_pending_join_account.called)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=False)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=False)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async(self, mock_transactions, mock_publish_balance, mock_publish_status,
-                                                 mock_login, mock_update_account):
+                                                 mock_login, mock_update_pending_join_account):
 
         mock_publish_balance.return_value = {'points': 1}
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = 'test'
-        mock_update_account.return_value = 'test2'
+        mock_update_pending_join_account.return_value = 'test2'
 
         async_balance = thread_pool_executor.submit(async_get_balance_and_publish, 'agent_class', '1', 'credentials',
                                                     'scheme_account_id', 'scheme_slug', 'tid', pending=True)
 
         self.assertEqual(async_balance.result(), mock_publish_balance.return_value)
-        self.assertFalse(mock_update_account.called)
+        self.assertFalse(mock_update_pending_join_account.called)
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_with_identifier(self, mock_transactions, mock_publish_balance,
-                                                                 mock_publish_status, mock_login, mock_update_account):
+                                                                 mock_publish_status, mock_login, mock_update_pending_join_account):
 
         mock_publish_balance.return_value = {'points': 1}
         mock_login.return_value = self.Agent('test card number')
         mock_publish_status.return_value = 'test'
-        mock_update_account.return_value = 'test2'
+        mock_update_pending_join_account.return_value = 'test2'
 
         async_balance = thread_pool_executor.submit(async_get_balance_and_publish, 'agent_class', '1', 'credentials',
                                                     'scheme_account_id', 'scheme_slug', 'tid', pending=False)
 
         self.assertEqual(async_balance.result(), mock_publish_balance.return_value)
-        self.assertTrue(mock_update_account.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
 
-    @mock.patch('app.resources.update_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.update_pending_link_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_errors(self, mock_transactions, mock_publish_balance,
-                                                        mock_publish_status, mock_login, mock_update_account):
+                                                        mock_publish_status, mock_login, mock_update_pending_link_account):
 
         mock_publish_balance.side_effect = AgentException('test error')
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = 'test'
-        mock_update_account.return_value = 'test2'
+        mock_update_pending_link_account.return_value = 'test2'
 
         async_balance = thread_pool_executor.submit(async_get_balance_and_publish, 'agent_class', '1', 'credentials',
                                                     'scheme_account_id', 'scheme_slug', 'tid', pending=True)
@@ -567,4 +567,4 @@ class TestResources(TestCase):
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertFalse(mock_transactions.called)
-        self.assertTrue(mock_update_account.called)
+        self.assertTrue(mock_update_pending_link_account.called)

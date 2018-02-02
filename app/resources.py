@@ -114,7 +114,7 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
     agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
-        update_scheme_account(scheme_account_id, "success", tid, 'join', identifier=agent_instance.identifier)
+        update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
     try:
         status = 1
         balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
@@ -146,7 +146,7 @@ def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_acco
     except (AgentException, UnknownException) as e:
         if pending:
             message = 'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
-            update_scheme_account(scheme_account_id, message, tid, 'link')
+            update_pending_link_account(scheme_account_id, message, tid)
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
@@ -342,19 +342,18 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, f
     return agent_instance
 
 
-def agent_register(agent_class, credentials, scheme_account_id, tid, request_type, scheme_slug=None):
+def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=None):
     agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_register(credentials)
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
-            update_scheme_account(scheme_account_id, e.args[0], tid, request_type)
+            update_pending_join_account(scheme_account_id, e.args[0], tid)
 
     return agent_instance
 
 
 def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
-    request_type = 'join'
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
@@ -362,12 +361,12 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
         publish.status(scheme_account_id, 900, tid)
         abort(e.code, message=e.data['message'])
 
-    agent_register(agent_class, credentials, scheme_account_id, tid, request_type, scheme_slug=scheme_slug)
+    agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
 
     try:
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
                                      from_register=True)
-        update_scheme_account(scheme_account_id, "success", tid, request_type, identifier=agent_instance.identifier)
+        update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
     except (LoginError, AgentError):
         publish.zero_balance(scheme_account_id, user_id, tid)
         return True
@@ -394,7 +393,7 @@ def get_hades_balance(scheme_account_id):
     return resp
 
 
-def update_scheme_account(scheme_account_id, message, tid, request_type, identifier=None):
+def update_pending_join_account(scheme_account_id, message, tid, identifier=None):
     """
     Send an identifier to hermes and a message of success or an error message if there was a problem
     retrieving the identifier.
@@ -402,13 +401,26 @@ def update_scheme_account(scheme_account_id, message, tid, request_type, identif
     :param scheme_account_id: id of scheme account to update
     :param message: details such as error message or "success"
     :param tid: transaction id
-    :param request_type: lets hermes know if this has come from a join or link request
     :param identifier: identifier credential e.g membership id, barcode.
     """
     data = {
         'message': message,
         'identifier': identifier,
-        'request_type': request_type,
     }
-    put('{}/schemes/accounts/{}/async'.format(HERMES_URL, scheme_account_id), data, tid)
+    put('{}/schemes/accounts/{}/async_join'.format(HERMES_URL, scheme_account_id), data, tid)
+    return data
+
+
+def update_pending_link_account(scheme_account_id, message, tid):
+    """
+    Sends an error message to hermes when an async link request errors.
+
+    :param scheme_account_id: id of scheme account to update
+    :param message: details of the error message
+    :param tid: transaction id
+    """
+    data = {
+        'message': message,
+    }
+    put('{}/schemes/accounts/{}/async_link'.format(HERMES_URL, scheme_account_id), data, tid)
     return data
