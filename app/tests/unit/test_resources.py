@@ -86,7 +86,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
-    def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance):
+    def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login,
+                                   mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
         credentials = logins.encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -530,7 +531,8 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_with_identifier(self, mock_transactions, mock_publish_balance,
-                                                                 mock_publish_status, mock_login, mock_update_pending_join_account):
+                                                                 mock_publish_status, mock_login,
+                                                                 mock_update_pending_join_account):
 
         mock_publish_balance.return_value = {'points': 1}
         mock_login.return_value = self.Agent('test card number')
@@ -553,7 +555,8 @@ class TestResources(TestCase):
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_errors(self, mock_transactions, mock_publish_balance,
-                                                        mock_publish_status, mock_login, mock_update_pending_link_account):
+                                                        mock_publish_status, mock_login,
+                                                        mock_update_pending_link_account):
 
         mock_publish_balance.side_effect = AgentException('test error')
         mock_login.return_value = self.Agent(None)
