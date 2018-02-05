@@ -1,6 +1,7 @@
+import json
+
 from app.encryption import AESCipher
 from settings import AES_KEY
-import json
 
 CREDENTIALS = {
     "tesco-clubcard": {

@@ -1,8 +1,9 @@
 import unittest
-from app.agents.vibe_club import VibeClub
-from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+
 from app.agents import schemas
+from app.agents.exceptions import LoginError
+from app.agents.vibe_club import VibeClub
+from app.tests.service.logins import CREDENTIALS
 
 
 class TestVibeClub(unittest.TestCase):
