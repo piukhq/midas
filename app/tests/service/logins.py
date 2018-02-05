@@ -450,6 +450,10 @@ CREDENTIALS = {
         "email": "joesilver@bink.com",
         "password": "1234567"
     },
+    "vibe-club": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01"
+    },
 }
 
 
