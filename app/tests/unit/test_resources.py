@@ -298,8 +298,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_register', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
-    def test_registration(self, mock_update_pending_join_account, mock_publish_balance, mock_publish_status,
-                          mock_publish_transaction, mock_agent_register, mock_agent_login):
+    def test_registration(self, mock_update_pending_join_account, mock_agent_login, mock_agent_register,
+                          mock_publish_transaction, mock_publish_status, mock_publish_balance):
         scheme_slug = "harvey-nichols"
         credentials = logins.encrypt(scheme_slug)
         scheme_account_id = 2
@@ -307,12 +307,34 @@ class TestResources(TestCase):
 
         result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
 
-        self.assertTrue(mock_update_pending_join_account)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_agent_register.called)
         self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_update_pending_join_account.called)
+        self.assertTrue('success' in mock_update_pending_join_account.call_args[0])
+        self.assertEqual(result, True)
+
+    @mock.patch('app.resources.update_pending_join_account', autospec=True)
+    @mock.patch('app.resources.agent_register', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_registration_already_exists_fail(self, mock_agent_login, mock_agent_register,
+                                              mock_update_pending_join_account):
+
+        mock_agent_register.return_value = {'instance': HarveyNichols, 'error': ACCOUNT_ALREADY_EXISTS}
+        mock_agent_login.side_effect = LoginError(STATUS_LOGIN_FAILED)
+
+        scheme_slug = "harvey-nichols"
+        credentials = logins.encrypt(scheme_slug)
+        scheme_account_id = 2
+        user_id = 4
+
+        result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
+
+        self.assertTrue(mock_agent_register.called)
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertEqual(result, True)
 
     @mock.patch('app.resources.retry', autospec=True)

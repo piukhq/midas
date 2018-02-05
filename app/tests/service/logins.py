@@ -129,10 +129,6 @@ CREDENTIALS = {
         "email": "chris.smith4@gmx.co.uk",
         "password": "Loyalty1",
     },
-    "harvey_nichols": {
-        "email": "loyaltycards02@gmail.com",
-        "password": "EGY7zP9NC",
-    },
     "odeon": {
         "email": "chris.gormley2@me.com",
         "password": "MNHansbrics5",
@@ -455,8 +451,8 @@ CREDENTIALS = {
         "password": "Loyalty01"
     },
     "harvey-nichols": {
-        "email": "test@bink.com",
-        "password": "1qaz1qaZ"
+        "email": "joesilver@bink.com",
+        "password": "1234567"
     },
 }
 
