@@ -1,8 +1,8 @@
 import arrow
+from decimal import Decimal
 
 from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
-from decimal import Decimal
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 
 
 class TKMaxx(RoboBrowserMiner):

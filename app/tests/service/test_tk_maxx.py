@@ -1,8 +1,9 @@
 import unittest
-from app.agents.tk_maxx import TKMaxx
-from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+
 from app.agents import schemas
+from app.agents.exceptions import LoginError
+from app.agents.tk_maxx import TKMaxx
+from app.tests.service.logins import CREDENTIALS
 
 
 class TestTKMaxx(unittest.TestCase):
