@@ -1,3 +1,5 @@
+import arrow
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from decimal import Decimal
@@ -46,10 +48,20 @@ class TKMaxx(RoboBrowserMiner):
             'value_label': '',
         }
 
-    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
-        return row
+        row = row.split('\n')
+        return {
+            'date': arrow.get(row[0], 'DD MMM YYYY'),
+            'description': row[1],
+            'points': Decimal(row[2]).quantize(Decimal(10) ** -2)
+        }
 
     def scrape_transactions(self):
-        return []
+        self.open_url('https://www.bigbrandtreasure.com/en/transactions')
+        transactions = self.browser.select('.transactions > .mobileswrap > ul')
+        return [
+            row.text.strip()
+            for row in transactions
+            if row.text != '\nDate\nStore\nItems\n'
+        ]
