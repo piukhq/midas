@@ -331,12 +331,11 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
                                      from_register=True)
         agent_instance.update_scheme_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
-    except (LoginError, AgentError) as e:
+    except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
-            register_result['instance'].update_scheme_account(scheme_account_id, e.args[0], tid)
+            register_result['instance'].update_scheme_account(scheme_account_id, str(e.args[0]), tid)
         else:
             publish.zero_balance(scheme_account_id, user_id, tid)
-
         return True
 
     try:
@@ -349,3 +348,4 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
     finally:
         publish.status(scheme_account_id, status, tid)
         return True
+
