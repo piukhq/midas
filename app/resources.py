@@ -348,4 +348,3 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
     finally:
         publish.status(scheme_account_id, status, tid)
         return True
-
