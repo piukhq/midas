@@ -208,6 +208,10 @@ CREDENTIALS = {
         "username": "1069267746",
         "password": "Loyalty1",
     },
+    "jal-mileage-bank": {
+        "card_number": "406919541",
+        "pin": "235689"
+    },
     "ihg": {
         "username": "la@loyaltyangels.com",
         "pin": "1290",

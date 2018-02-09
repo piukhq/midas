@@ -47,6 +47,7 @@ AGENTS = {
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
     'space-nk': 'space_nk.SpaceNK',
+    'jal-mileage-bank': 'jal_mileage_bank.JalMileageBank',
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
     'm-co-loyalty-card': 'mandco.MandCo',
