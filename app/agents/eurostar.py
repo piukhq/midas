@@ -74,7 +74,7 @@ class Eurostar(RoboBrowserMiner):
         self._check_if_logged_in()
 
     def balance(self):
-        points = Decimal(self.browser.response.json()['membership']['activePoint'])
+        points = Decimal(self.browser.response.json()['membership']['points']['redeemablePoints'])
         value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
 
         return {
