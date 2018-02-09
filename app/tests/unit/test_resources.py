@@ -287,7 +287,7 @@ class TestResources(TestCase):
     def test_registration_already_exists_fail(self, mock_agent_login, mock_agent_register, mock_put):
 
         mock_agent_register.return_value = {'instance': HarveyNichols, 'error': ACCOUNT_ALREADY_EXISTS}
-        mock_agent_login.side_effect = LoginError(STATUS_LOGIN_FAILED)
+        mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
 
         scheme_slug = "harvey-nichols"
         credentials = logins.encrypt(scheme_slug)
