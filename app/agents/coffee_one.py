@@ -10,14 +10,11 @@ class CoffeeOne(RoboBrowserMiner):
 
     def check_if_logged_in(self):
         json_response = self.browser.response.json()
-
-        for result in json_response:
-            if result != 'ErrorMessage':
-                self.is_login_successful = True
-            else:
-                self.is_login_successful = False
-        if not self.is_login_successful:
+        if 'ErrorMessage' in json_response:
+            self.is_login_successful = False
             raise LoginError(STATUS_LOGIN_FAILED)
+
+        self.is_login_successful = True
 
     def get_token(self):
         html_scripts = str(self.browser.select('script'))
