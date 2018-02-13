@@ -1,17 +1,16 @@
 import unittest
-
-from app.agents import schemas
+from app.agents.jal_mileage_bank import JalMileageBank
 from app.agents.exceptions import LoginError
-from app.agents.tk_maxx import TKMaxx
 from app.tests.service.logins import CREDENTIALS
+from app.agents import schemas
 
 
-class TestTKMaxx(unittest.TestCase):
+class TestJalMileageBank(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = TKMaxx(1, 1)
-        cls.h.attempt_login(CREDENTIALS['tkmaxx'])
+        cls.h = JalMileageBank(1, 1)
+        cls.h.attempt_login(CREDENTIALS['jal-mileage-bank'])
 
     def test_login(self):
         self.assertTrue(self.h.is_login_successful)
@@ -26,12 +25,16 @@ class TestTKMaxx(unittest.TestCase):
         schemas.transactions(t)
 
 
-class TestTKMaxxFail(unittest.TestCase):
+class TestJalMileageBankFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = TKMaxx(1, 1)
+        h = JalMileageBank(1, 1)
+        credentials = {
+            'card_number': '000000000',
+            'pin': '000000'
+        }
         with self.assertRaises(LoginError) as e:
-            h.attempt_login(CREDENTIALS['bad'])
+            h.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 

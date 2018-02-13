@@ -1,17 +1,16 @@
 import unittest
-
-from app.agents import schemas
+from app.agents.addison_lee import AddisonLee
 from app.agents.exceptions import LoginError
-from app.agents.tk_maxx import TKMaxx
 from app.tests.service.logins import CREDENTIALS
+from app.agents import schemas
 
 
-class TestTKMaxx(unittest.TestCase):
+class TestAddisonLee(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = TKMaxx(1, 1)
-        cls.h.attempt_login(CREDENTIALS['tkmaxx'])
+        cls.h = AddisonLee(1, 1)
+        cls.h.attempt_login(CREDENTIALS['addison-lee'])
 
     def test_login(self):
         self.assertTrue(self.h.is_login_successful)
@@ -26,10 +25,10 @@ class TestTKMaxx(unittest.TestCase):
         schemas.transactions(t)
 
 
-class TestTKMaxxFail(unittest.TestCase):
+class TestAddisonLeeFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = TKMaxx(1, 1)
+        h = AddisonLee(1, 1)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

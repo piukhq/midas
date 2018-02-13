@@ -17,7 +17,7 @@ class TestThaiAirways(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.m.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
