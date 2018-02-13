@@ -12,12 +12,12 @@ class Accor(RoboBrowserMiner):
 
     def login(self, credentials):
         self.open_url('https://secure.accorhotels.com/authentication/login.jsp?appContext=&lang=gb&forceLogin=true'
-                      '&gotoUrl=%2Fuser%2Fdashboard.action', verify=False)
+                      '&gotoUrl=%2Fuser%2Fdashboard.action')
 
         login_form = self.browser.get_form('login-form')
         login_form['username'].value = credentials['username']
         login_form['password'].value = credentials['password']
-        self.browser.submit_form(login_form, verify=False)
+        self.browser.submit_form(login_form)
 
         self.sid = self.browser.session.cookies._cookies['.accorhotels.com']['/']['JSESSIONID'].value
 
@@ -26,7 +26,7 @@ class Accor(RoboBrowserMiner):
             'beans': 'LoyaltyAccountViewBean',
             'httpSessionId': self.sid,
         }
-        self.open_url(url, params=params, verify=False)
+        self.open_url(url, params=params)
 
         response_text = self.browser.response.text[5:]
         self.account_data = json.loads(response_text)
@@ -59,7 +59,7 @@ class Accor(RoboBrowserMiner):
     def scrape_transactions(self):
         transaction_url = 'https://secure.accorhotels.com/ajax/loyalty/transactions.action'
         parameters = {'httpSessionId': self.sid}
-        self.open_url(transaction_url, params=parameters, verify=False)
+        self.open_url(transaction_url, params=parameters)
         transaction_response = self.browser.response.text[5:]
         transactions_data = json.loads(transaction_response)
         transactions = transactions_data['viewBeans']['LoyaltyTransactionsViewBean']['loyaltyWrapper']['historyLines']

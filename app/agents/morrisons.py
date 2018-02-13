@@ -23,7 +23,7 @@ class Morrisons(RoboBrowserMiner):
         signup_form = self.browser.get_form(id='login')
         signup_form['username'].value = credentials['email']
         signup_form['password'].value = credentials['password']
-        self.browser.submit_form(signup_form, verify=False, allow_redirects=False)
+        self.browser.submit_form(signup_form, allow_redirects=False)
         if self.browser.response.status_code == 401:
             raise LoginError(STATUS_LOGIN_FAILED)
 
