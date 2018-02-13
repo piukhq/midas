@@ -63,6 +63,10 @@ CREDENTIALS = {
         "email": "chris.gormley2@me.com",
         "password": "BJHansbrics3",
     },
+    "coffee-one": {
+        "card-number": "2201710508",
+        "pin": "610469",
+    },
     "greggs": {
         "email": "chris.gormley2@me.com",
         "password": "RFHansbrics6",

@@ -37,6 +37,7 @@ AGENTS = {
     'match-more': 'morrisons.Morrisons',
     'nectar': 'nectar.Nectar',
     'quidco': 'quidco.Quidco',
+    'coffee-one': 'coffee_one.CoffeeOne',
     'health-beautycard': 'superdrug.Superdrug',
     'tasty-rewards': 'tabletable.Tabletable',
     'esquires-coffee': 'esquires_coffee.EsquiresCoffee',
