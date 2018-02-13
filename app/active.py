@@ -31,6 +31,7 @@ AGENTS = {
     'my-esprit': 'esprit.Esprit',
     'eurostar-plus-points': 'eurostar.Eurostar',
     'heathrow-rewards': 'heathrow.Heathrow',
+    'vibe-club': 'vibe_club.VibeClub',
     'hertz': 'hertz.Hertz',
     'maximiles': 'maximiles.Maximiles',
     'match-more': 'morrisons.Morrisons',
