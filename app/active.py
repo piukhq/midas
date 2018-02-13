@@ -15,8 +15,9 @@ AGENTS = {
     # 'mymail': 'mymail.MyMail',                             # Captcha.
     # 'starwood-preferred-guest': 'starwood.Starwood',       # Captcha.
     # 'hilton-hhonors': 'hilton_honors.Hilton',              # Captcha.
+    # 'play-points': 'play_points.PlayPoints',               # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
-    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
+    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several measures to stop scraping.
     # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
     # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
@@ -61,7 +62,6 @@ AGENTS = {
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
     'royal-orchid-plus': 'thai_airways.ThaiAirways',
     'big-rewards': 'air_asia.AirAsia',
-    'play-points': 'play_points.PlayPoints',
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',
     'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
