@@ -86,6 +86,10 @@ CREDENTIALS = {
         "email": "loyaltycards01@gmail.com",
         "password": "HqT3hA6Evz",
     },
+    "victoria": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty1",
+    },
     "maximiles": {
         "email": "chris.gormley2@me.com",
         "password": "RLHansbrics9",
