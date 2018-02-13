@@ -12,15 +12,12 @@ class JalMileageBank(RoboBrowserMiner):
     balance_reg_ex = re.compile(r"mileBalance(.*?,)")
 
     def check_if_logged_in(self):
-        try:
-            login_cookie = self.browser.session.cookies['LOGIN']
+        login_cookie = self.browser.session.cookies['LOGIN']
 
-            if login_cookie == "YES":
-                self.is_login_successful = True
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
-        except LoginError as exception:
-            raise exception
+        if login_cookie == "YES":
+            self.is_login_successful = True
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def _login(self, credentials):
         url = "https://www121.jal.co.jp/JmbWeb/ER/JMBmemberTop_en.do"
