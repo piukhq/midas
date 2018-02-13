@@ -77,6 +77,10 @@ CREDENTIALS = {
         "card_number": "7076550200868547905",
         "password": "dZ13ep5z",
     },
+    "the-club": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty1",
+    },
     "debenhams": {
         "email": "loyaltycards01@gmail.com",
         "password": "HqT3hA6Evz",

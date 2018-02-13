@@ -81,6 +81,7 @@ AGENTS = {
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
     'tkmaxx': 'tk_maxx.TKMaxx',
+    'macdonald-hotels': 'the_club.TheClub',
     'marriott-rewards-card': 'marriott.Marriott',
     'club-individual': 'club_individual.ClubIndividual',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
