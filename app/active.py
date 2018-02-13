@@ -38,6 +38,7 @@ AGENTS = {
     'quidco': 'quidco.Quidco',
     'health-beautycard': 'superdrug.Superdrug',
     'tasty-rewards': 'tabletable.Tabletable',
+    'esquires-coffee': 'esquires_coffee.EsquiresCoffee',
     'tesco-clubcard': 'tesco.Tesco',
     'tesco-clubcard1': 'tesco.Tesco',
     'toysrus': 'toysrus.Toysrus',
