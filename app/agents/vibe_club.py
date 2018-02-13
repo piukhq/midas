@@ -11,18 +11,15 @@ class VibeClub(RoboBrowserMiner):
     balance_re = re.compile(r'cash balance is [^=.]*')
 
     def check_if_logged_in(self):
-        try:
-            success_url = "https://boostvibe.boostjuicebars.co.uk/main.py"
-            current_url = self.browser.url
-            if current_url.startswith(success_url):
-                self.is_login_successful = True
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
-        except LoginError as exception:
-            raise exception
+        success_url = "https://boostvibe.boostjuicebars.co.uk/main.py"
+        current_url = self.browser.url
+        if current_url.startswith(success_url):
+            self.is_login_successful = True
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def _login(self, credentials):
-        self.open_url('https://boostvibe.boostjuicebars.co.uk/login.py')
+        self.browser.open('https://boostvibe.boostjuicebars.co.uk/login.py')
 
         login_form = self.browser.get_form('login')
         login_form['formPosted'].value = '1'
