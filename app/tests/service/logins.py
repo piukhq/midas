@@ -45,6 +45,7 @@ CREDENTIALS = {
     },
     "bad": {
         "email": "234234@bad.com",
+        "username": "234234@bad.com",
         "password": "234234",
     },
     "cooperative": {
