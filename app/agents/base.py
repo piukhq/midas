@@ -248,12 +248,12 @@ class ApiMiner(BaseMiner):
         args.update(kwargs)
 
         try:
-            response = self.request = requests.request(method, url=url, **args)
+            resp = requests.request(method, url=url, **args)
         except Timeout as exception:
             raise AgentError(END_SITE_DOWN) from exception
 
         try:
-            self.request.raise_for_status()
+            resp.raise_for_status()
         except HTTPError as e:
             if e.response.status_code == 401:
                 raise LoginError(STATUS_LOGIN_FAILED)
@@ -261,7 +261,7 @@ class ApiMiner(BaseMiner):
                 raise AgentError(IP_BLOCKED) from e
             raise AgentError(END_SITE_DOWN) from e
 
-        return response
+        return resp
 
     def handle_errors(self, response, exception_type=LoginError):
         for key, values in self.errors.items():

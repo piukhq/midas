@@ -1,6 +1,7 @@
+import json
+
 from app.encryption import AESCipher
 from settings import AES_KEY
-import json
 
 CREDENTIALS = {
     "tesco-clubcard": {
@@ -45,6 +46,7 @@ CREDENTIALS = {
     },
     "bad": {
         "email": "234234@bad.com",
+        "username": "234234@bad.com",
         "password": "234234",
     },
     "cooperative": {
@@ -60,6 +62,10 @@ CREDENTIALS = {
     "kfc": {
         "email": "chris.gormley2@me.com",
         "password": "BJHansbrics3",
+    },
+    "coffee-one": {
+        "card-number": "2201710508",
+        "pin": "610469",
     },
     "greggs": {
         "email": "chris.gormley2@me.com",
@@ -77,9 +83,17 @@ CREDENTIALS = {
         "card_number": "7076550200868547905",
         "password": "dZ13ep5z",
     },
+    "the-club": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty1",
+    },
     "debenhams": {
         "email": "loyaltycards01@gmail.com",
         "password": "HqT3hA6Evz",
+    },
+    "victoria": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty1",
     },
     "maximiles": {
         "email": "chris.gormley2@me.com",
@@ -146,8 +160,12 @@ CREDENTIALS = {
         "password": "RGHansbrics7",
     },
     "tkmaxx": {
-        "email": "james.crook.uk@gmail.com",
-        "password": "H8M7CROFztr7",
+        "email": "chris.gormley2@me.com",
+        "password": "DAHansbrics16",
+    },
+    "addison-lee": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01",
     },
     "monsoon": {
         "email": "chris.gormley2@me.com",
@@ -208,6 +226,10 @@ CREDENTIALS = {
         "username": "1069267746",
         "password": "Loyalty1",
     },
+    "jal-mileage-bank": {
+        "card_number": "406919541",
+        "pin": "235689"
+    },
     "ihg": {
         "username": "la@loyaltyangels.com",
         "pin": "1290",
@@ -220,6 +242,10 @@ CREDENTIALS = {
     "holland_and_barrett": {
         "email": "chris.gormley2@me.com",
         "password": "SGHansbr17",
+    },
+    "esquires-coffee": {
+        "email": "la@loyaltyangels.com",
+        "password": "Loyalty01",
     },
     "starwood-preferred-guest": {
         "username": "LAngelBink",
@@ -453,6 +479,10 @@ CREDENTIALS = {
     "harvey-nichols": {
         "email": "joesilver@bink.com",
         "password": "1234567"
+    },
+    "vibe-club": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01"
     },
 }
 

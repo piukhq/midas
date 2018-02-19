@@ -2,16 +2,16 @@ import unittest
 
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.agents.tk_maxx import TKMaxx
+from app.agents.vibe_club import VibeClub
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestTKMaxx(unittest.TestCase):
+class TestVibeClub(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = TKMaxx(1, 1)
-        cls.h.attempt_login(CREDENTIALS['tkmaxx'])
+        cls.h = VibeClub(1, 1)
+        cls.h.attempt_login(CREDENTIALS['vibe-club'])
 
     def test_login(self):
         self.assertTrue(self.h.is_login_successful)
@@ -26,10 +26,10 @@ class TestTKMaxx(unittest.TestCase):
         schemas.transactions(t)
 
 
-class TestTKMaxxFail(unittest.TestCase):
+class TestVibeClubFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = TKMaxx(1, 1)
+        h = VibeClub(1, 1)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
