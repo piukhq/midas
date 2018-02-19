@@ -1,9 +1,10 @@
 import re
+import arrow
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
 class Virgin(RoboBrowserMiner):
@@ -11,15 +12,17 @@ class Virgin(RoboBrowserMiner):
     login_result_pattern = re.compile(r'"loggedIn":[a-z]+')
 
     def login(self, credentials):
-        data = {
-            'username': credentials['username'],
-            'password': credentials['password'],
-        }
-        self.browser.open('https://www.virginatlantic.com/custlogin/login.action', method='post', data=data)
-        self.open_url('https://www.virginatlantic.com')
+        self.open_url('https://www.virginatlantic.com/custlogin/loginPage.action')
+        form = self.browser.get_form('loginForm_LoginPage')
 
+        form['username'].value = credentials['username']
+        form['password'].value = credentials['password']
+        self.browser.submit_form(form)
+
+        self.open_url('https://www.virginatlantic.com')
         pretty_html = self.browser.parsed.prettify()
         result = self.login_result_pattern.findall(pretty_html)[0]
+
         if result[-5:] == 'false':
             raise LoginError(STATUS_LOGIN_FAILED)
 
