@@ -65,7 +65,6 @@ AGENTS = {
     'together-rewards-card': 'the_works.TheWorks',
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
     'royal-orchid-plus': 'thai_airways.ThaiAirways',
-    'iberia-plus': 'iberia_plus.IberiaPlus',
     'big-rewards': 'air_asia.AirAsia',
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',

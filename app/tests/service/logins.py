@@ -292,10 +292,6 @@ CREDENTIALS = {
         "username": "9118431866",
         "password": "9Pv8nsv8hv",
     },
-    "iberia-plus": {
-        "card_number": "80608367",
-        "password": "abcxyz",
-    },
     "rspb": {
         "email": "loyaltycards01@gmail.com",
         "password": "5dHm0xFKd0",

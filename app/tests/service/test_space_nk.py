@@ -13,11 +13,11 @@ class TestSpaceNK(unittest.TestCase):
         cls.m.attempt_login(CREDENTIALS['space_nk'])
 
     def test_login(self):
-        self.assertTrue(self.m.is_login_successful)
+        self.assertEqual(self.m.browser.response.status_code, 200)
 
     def test_transactions(self):
         transactions = self.m.transactions()
-        self.assertIsNotNone(transactions)
+        self.assertTrue(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
@@ -29,9 +29,8 @@ class TestSpaceNKFail(unittest.TestCase):
 
     def test_login_fail(self):
         m = SpaceNK(1, 1)
-        credentials = CREDENTIALS['bad']
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
+            m.attempt_login({'barcode': '99999999999999999999'})
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
