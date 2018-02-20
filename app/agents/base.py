@@ -1,6 +1,7 @@
 import hashlib
 from decimal import Decimal
 from collections import defaultdict
+import os
 from urllib.parse import urlsplit
 
 import _ssl
@@ -241,6 +242,15 @@ class RoboBrowserMiner(BaseMiner):
         parts = urlsplit(self.browser.url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
+
+    @staticmethod
+    def get_requests_cacert():
+        cacert_file = os.path.dirname(requests.__file__) + '/cacert.pem'
+        if os.path.isfile(cacert_file):
+            return cacert_file
+
+        # verify = True will mean requests uses certifi's cacert.pem for verifying ssl connections
+        return True
 
 
 # Based on requests library

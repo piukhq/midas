@@ -1,8 +1,9 @@
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
-from decimal import Decimal
-from app.utils import extract_decimal
 import re
+from decimal import Decimal
+
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
+from app.utils import extract_decimal
 
 
 class HollandAndBarrett(RoboBrowserMiner):
@@ -11,7 +12,8 @@ class HollandAndBarrett(RoboBrowserMiner):
     balance_re = re.compile('<[^>]+>')
 
     def login(self, credentials):
-        self.open_url('https://www.hollandandbarrett.com/my-account/login.jsp?myaccount=true')
+        self.browser.open('https://www.hollandandbarrett.com/my-account/login.jsp?myaccount=true',
+                          verify=self.get_requests_cacert())
 
         login_form = self.browser.get_form(action='/my-account/login.jsp?_DARGS=/my-account/login.jsp')
         login_form['email'].value = credentials['email']
