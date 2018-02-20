@@ -15,8 +15,8 @@ class Esprit(RoboBrowserMiner):
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
-        selector = '#authentication-error > div.layer_content > p'
-        self.check_error('/my-esprit/check',
+        selector = 'p.loginErrors__error'
+        self.check_error('/myaccount/check',
                          ((selector, STATUS_LOGIN_FAILED, 'The combination of Esprit Friends number'),))
 
     def balance(self):
