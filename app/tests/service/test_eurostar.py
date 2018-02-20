@@ -10,7 +10,7 @@ class TestEurostar(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.e = Eurostar(1, 1)
-        cls.e.attempt_login(CREDENTIALS['eurostar'])
+        cls.e.attempt_login(CREDENTIALS['eurostar-plus-points'])
 
     def test_login(self):
         self.assertEqual(self.e.browser.response.status_code, 200)

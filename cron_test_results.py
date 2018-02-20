@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-'''
+"""
 This script is to run as a cron to provide the junit xml for the apollo service to view
-'''
+"""
 
-import sys
 import os
-from os.path import join
-import requests
-import subprocess
-import xmltodict
-from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
-    INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, INFLUX_DATABASE
-from slacker import Slacker
-from influxdb import InfluxDBClient
-from app.active import AGENTS
 import re
+import subprocess
+import sys
+from os.path import join
+
+import requests
+import xmltodict
+from influxdb import InfluxDBClient
+from slacker import Slacker
+
+from app.active import AGENTS
+from app.tests.service.logins import update_credentials
+from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, INFLUX_HOST, INFLUX_PORT, INFLUX_USER, \
+    INFLUX_PASSWORD, INFLUX_DATABASE, HEARTBEAT_URL
 
 test_path = 'app/tests/service/'
 parallel_processes = 4
@@ -28,7 +31,7 @@ PROBLEMATICAL_THRESHOLD = 6
 # these are ordered from most to least helpful. if the most helpful one fails, the next is tried, and so on.
 error_cause_regexes = [
     re.compile(r'^E.*?app\.agents\.exceptions\.(.*?)$', re.MULTILINE),
-    re.compile(r'^E\s*\-\s*(.*)$', re.MULTILINE),
+    re.compile(r'^E\s*-\s*(.*)$', re.MULTILINE),
     re.compile(r'^E\s*(.*)$', re.MULTILINE),
 ]
 
@@ -216,6 +219,7 @@ def resolve_issue(classname):
 
 
 def test_single_agent(a):
+    update_credentials()
     a = a.replace(" ", "_")
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     junit_single_agent_xml = 'tests_results/test_' + a + '.xml'
@@ -224,6 +228,7 @@ def test_single_agent(a):
 
 
 def run_agent_tests():
+    update_credentials()
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
@@ -246,7 +251,11 @@ def send_to_helios(data, running_tests=False):
 
 
 def get_agent_list():
-    return list(set([item.split('.')[0].replace('_', ' ') for item in AGENTS.values()]))
+    return {
+        agent.split('.')[0]: agent.split('.')[0].replace('_', ' ')
+        for agent in AGENTS.values()
+        if agent != 'my360.My360'
+    }
 
 
 if __name__ == '__main__':

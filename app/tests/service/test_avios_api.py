@@ -12,7 +12,7 @@ class TestAviosAPI(unittest.TestCase):
     @mock.patch('app.agents.avios_api.sentry')
     def setUpClass(cls, mock_sentry):
         cls.b = Avios(1, 1)
-        cls.b.attempt_login(CREDENTIALS['avios_api'])
+        cls.b.attempt_login(CREDENTIALS['avios-api'])
 
     def test_login(self):
         self.assertEqual(self.b.response.status_code, 200)
