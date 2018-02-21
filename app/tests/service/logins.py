@@ -62,5 +62,22 @@ def update_credentials():
     CREDENTIALS = get_credentials()
 
 
+def fill_credentials():
+    engine = create_engine('postgresql+psycopg2://test:test@localhost:5432/helios')
+    with open('/Users/fmilani/PycharmProjects/midas/credentials.json', 'r') as f:
+        all_credentials = json.loads(f.read())
+
+    for slug, credentials in all_credentials.items():
+        slug = slug.replace('_', '-')
+        query = text("SELECT * FROM app_agent WHERE slug = '{}';".format(slug))
+        agent = engine.execute(query).first()
+
+        if agent:
+            for key, value in credentials.items():
+                query = text("INSERT INTO app_credential (agent_id, field, value) "
+                             "VALUES ('{}','{}','{}');".format(dict(agent)['id'], key, value))
+                engine.execute(query)
+
+
 if __name__ == '__main__':
-    get_credentials()
+    fill_credentials()

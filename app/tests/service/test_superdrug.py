@@ -10,7 +10,7 @@ class TestSuperDrug(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Superdrug(1, 1)
-        cls.b.attempt_login(CREDENTIALS["superdrug"])
+        cls.b.attempt_login(CREDENTIALS["health-beautycard"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
