@@ -73,10 +73,15 @@ def fill_credentials():
         agent = engine.execute(query).first()
 
         if agent:
-            for key, value in credentials.items():
-                query = text("INSERT INTO app_credential (agent_id, field, value) "
-                             "VALUES ('{}','{}','{}');".format(dict(agent)['id'], key, value))
-                engine.execute(query)
+            agent_id = dict(agent)['id']
+            query = text("SELECT * FROM app_credential WHERE agent_id = '{}';".format(agent_id))
+
+            if not engine.execute(query).first():
+
+                for key, value in credentials.items():
+                    query = text("INSERT INTO app_credential (agent_id, field, value) "
+                                 "VALUES ('{}','{}','{}');".format(agent_id, key, value))
+                    engine.execute(query)
 
 
 if __name__ == '__main__':
