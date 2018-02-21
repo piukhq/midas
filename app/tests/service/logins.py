@@ -55,7 +55,7 @@ def encrypt(scheme_slug):
 
 def update_credentials():
     """
-    Retrieve midas' agents test credentials from the database
+    Update the CREDENTIALS dictionary with the latest values.
     :return: None
     """
     global CREDENTIALS
