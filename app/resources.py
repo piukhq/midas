@@ -244,7 +244,7 @@ api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questio
 class AgentsErrorResults(Resource):
 
     def get(self):
-        run_agent_tests()
+        # run_agent_tests()
         error_msg = get_formatted_message(settings.JUNIT_XML_FILENAME)
         agent_list = get_agent_list()
         return dict(agents=agent_list, errors=error_msg)
