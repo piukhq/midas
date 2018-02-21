@@ -1,9 +1,10 @@
+import os
 import json
 
 from sqlalchemy import create_engine, text
 
 from app.encryption import AESCipher
-from settings import AES_KEY
+from settings import AES_KEY, APP_DIR, HELIOS_DB_URI
 
 # ------------------------------------------------------- #
 # - When running test locally from console please add --- #
@@ -25,7 +26,7 @@ def get_credentials(agent=None):
     :type agent: str
     :return: dictionary of credentials
     """
-    engine = create_engine('postgresql+psycopg2://test:test@localhost:5432/helios')
+    engine = create_engine(HELIOS_DB_URI)
     where = "WHERE app_agent.loyalty_scheme = '{}';".format(agent) if agent else ";"
     query = text(
         "SELECT app_agent.slug, app_credential.field, app_credential.value "
@@ -63,8 +64,8 @@ def update_credentials():
 
 
 def fill_credentials():
-    engine = create_engine('postgresql+psycopg2://test:test@localhost:5432/helios')
-    with open('/Users/fmilani/PycharmProjects/midas/credentials.json', 'r') as f:
+    engine = create_engine(HELIOS_DB_URI)
+    with open(os.path.join(APP_DIR, 'credentials.json'), 'r') as f:
         all_credentials = json.loads(f.read())
 
     for slug, credentials in all_credentials.items():
