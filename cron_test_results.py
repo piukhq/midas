@@ -251,11 +251,13 @@ def send_to_helios(data, running_tests=False):
 
 
 def get_agent_list():
-    return {
-        agent.split('.')[0]: agent.split('.')[0].replace('_', ' ')
-        for agent in AGENTS.values()
-        if agent != 'my360.My360'
-    }
+    agents_for_helios = dict()
+    for slug, raw_name in AGENTS.items():
+        name = raw_name.split('.')[0].replace('_', ' ')
+        if not agents_for_helios.get(name) and name != 'my360':
+            agents_for_helios[name] = slug
+
+    return agents_for_helios
 
 
 if __name__ == '__main__':
