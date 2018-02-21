@@ -28,7 +28,7 @@ def get_credentials(agent=None):
     engine = create_engine('postgresql+psycopg2://test:test@localhost:5432/helios')
     where = "WHERE app_agent.loyalty_scheme = '{}';".format(agent) if agent else ";"
     query = text(
-        "SELECT app_agent.loyalty_scheme, app_credential.field, app_credential.value "
+        "SELECT app_agent.slug, app_credential.field, app_credential.value "
         "FROM app_agent JOIN app_credential "
         "ON app_agent.id = app_credential.agent_id %s" % where
     )
@@ -37,11 +37,11 @@ def get_credentials(agent=None):
     credentials = dict()
 
     for row in result:
-        if credentials.get(row.loyalty_scheme):
-            credentials[row.loyalty_scheme].update({row.field: row.value})
+        if credentials.get(row.slug):
+            credentials[row.slug].update({row.field: row.value})
 
         else:
-            credentials[row.loyalty_scheme] = {row.field: row.value}
+            credentials[row.slug] = {row.field: row.value}
 
     return credentials
 
