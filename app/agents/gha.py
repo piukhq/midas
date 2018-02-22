@@ -1,5 +1,3 @@
-import arrow
-
 from decimal import Decimal
 
 from app.agents.base import RoboBrowserMiner
