@@ -1,37 +1,35 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.air_asia import AirAsia
+from app.agents.the_club import TheClub
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestAirAsia(unittest.TestCase):
-
+class TestMacdonaldHotels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = AirAsia(1, 1)
-        cls.m.attempt_login(CREDENTIALS['big-rewards'])
+        cls.b = TheClub(1, 1)
+        cls.b.attempt_login(CREDENTIALS["the-club"])
 
     def test_login(self):
-        self.assertTrue(self.m.is_login_successful)
+        self.assertTrue(self.b.is_login_successful)
 
     def test_transactions(self):
-        transactions = self.m.transactions()
+        transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
-        balance = self.m.balance()
+        balance = self.b.balance()
         schemas.balance(balance)
 
 
-class TestAirAsiaFail(unittest.TestCase):
-
+class TestMacdonaldHotelsFail(unittest.TestCase):
     def test_login_fail(self):
-        m = AirAsia(1, 1)
+        b = TheClub(1, 1)
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(CREDENTIALS['bad'])
-        self.assertEqual(e.exception.name, 'Invalid credentials')
+            b.attempt_login(CREDENTIALS["bad"])
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':
