@@ -9,7 +9,7 @@ from app.agents import schemas
 class TestAviosAPI(unittest.TestCase):
 
     @classmethod
-    @mock.patch('app.agents.avios-api.sentry')
+    @mock.patch('app.agents.avios_api.sentry')
     def setUpClass(cls, mock_sentry):
         cls.b = Avios(1, 1)
         cls.b.attempt_login(CREDENTIALS['avios-api'])
@@ -29,7 +29,7 @@ class TestAviosFakeLogin(unittest.TestCase):
     def setUpClass(cls):
         cls.a = Avios(1, 1)
 
-    @mock.patch('app.agents.avios-api.sentry')
+    @mock.patch('app.agents.avios_api.sentry')
     def test_missing_card_number(self, mock_sentry):
         credentials = {
             'last_name': CREDENTIALS['avios-api']['last_name'],
@@ -51,7 +51,7 @@ class TestAviosFail(unittest.TestCase):
     def setUpClass(cls):
         cls.a = Avios(1, 1)
 
-    @mock.patch('app.agents.avios-api.sentry')
+    @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_card_number(self, mock_sentry):
         credentials = CREDENTIALS['avios-api']
         credentials['card_number'] = '0000000000000000'
@@ -62,7 +62,7 @@ class TestAviosFail(unittest.TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    @mock.patch('app.agents.avios-api.sentry')
+    @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_last_name(self, mock_sentry):
         credentials = CREDENTIALS['avios-api']
         credentials['last_name'] = 'badbadbad'

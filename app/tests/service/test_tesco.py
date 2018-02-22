@@ -10,7 +10,8 @@ class TestTesco(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Tesco(1, 1)
-        cls.b.attempt_login(CREDENTIALS["tesco-clubcard"])
+        credentials = CREDENTIALS.get("tesco-clubcard") or CREDENTIALS.get("tesco-clubcard1")
+        cls.b.attempt_login(credentials)
 
     def test_login(self):
         self.assertTrue(self.b.is_login_successful)

@@ -254,8 +254,8 @@ def get_agent_list():
     agents_for_helios = dict()
     for slug, raw_name in AGENTS.items():
         name = raw_name.split('.')[0].replace('_', ' ')
-        if not agents_for_helios.get(name) and name != 'my360':
-            agents_for_helios[name] = slug
+        if not agents_for_helios.get(name):
+            agents_for_helios[name] = slug if name != 'my360' else name
 
     return agents_for_helios
 

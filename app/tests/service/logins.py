@@ -37,6 +37,7 @@ def get_credentials(agent=None):
     result = engine.execute(query)
     credentials = {
         'bad': {
+            'username': "234234@bad.com",
             'email': "234234@bad.com",
             'password': "234234"
         }
@@ -91,4 +92,4 @@ def fill_credentials():
 
 
 if __name__ == '__main__':
-    get_credentials()
+    fill_credentials()
