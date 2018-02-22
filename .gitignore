@@ -7,3 +7,5 @@
 test_*.xml
 andrew
 .DS_Store
+.vscode
+.cache
