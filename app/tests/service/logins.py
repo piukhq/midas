@@ -35,7 +35,12 @@ def get_credentials(agent=None):
     )
 
     result = engine.execute(query)
-    credentials = dict()
+    credentials = {
+        'bad': {
+            'email': "234234@bad.com",
+            'password': "234234"
+        }
+    }
 
     for row in result:
         if credentials.get(row.slug):
@@ -86,4 +91,4 @@ def fill_credentials():
 
 
 if __name__ == '__main__':
-    fill_credentials()
+    get_credentials()

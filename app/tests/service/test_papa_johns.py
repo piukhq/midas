@@ -10,7 +10,7 @@ class TestPapaJohns(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = PapaJohns(1, 1)
-        cls.b.attempt_login(CREDENTIALS['papa_johns'])
+        cls.b.attempt_login(CREDENTIALS['papa-johns'])
 
     def test_login(self):
         self.assertTrue(self.b.is_login_successful)
