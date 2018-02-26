@@ -18,7 +18,9 @@ class HollandAndBarrett(RoboBrowserMiner):
         login_form = self.browser.get_form(action='/my-account/login.jsp?_DARGS=/my-account/login.jsp')
         login_form['email'].value = credentials['email']
         login_form['password'].value = credentials['password']
-        self.browser.submit_form(login_form)
+        submit_field = login_form.submit_fields['/atg/userprofiling/ProfileFormHandler.login']
+
+        self.browser.submit_form(login_form, submit=submit_field)
 
         self.check_error('/my-account/login.jsp', (('.form-errors > ul', STATUS_LOGIN_FAILED,
                                                     'Please enter valid email address'),))
