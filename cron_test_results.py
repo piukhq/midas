@@ -237,13 +237,12 @@ def get_formatted_message(xml_file_path):
     return message
 
 
-def send_to_helios(data):
-    response = None
+def send_to_helios(data, running_tests=False):
+    data['running_tests'] = running_tests
     try:
-        response = requests.post(HELIOS_URL + '/data_point', json=data)
-    except requests.exceptions.RequestException as e:
-        print(e)
-    return response
+        requests.post(HELIOS_URL + '/data_point/', json=data)
+    except requests.exceptions.RequestException:
+        pass
 
 
 def get_agent_list():
@@ -251,6 +250,7 @@ def get_agent_list():
 
 
 if __name__ == '__main__':
+    send_to_helios({}, running_tests=True)
     run_agent_tests()
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
