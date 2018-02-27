@@ -46,11 +46,9 @@ class Victoria(RoboBrowserMiner):
     def balance(self):
         self.browser.open('https://www.flytap.com/en-us/client-area/balance-and-transactions')
         points = self.browser.select('div.miles-balance-content > div.number')
-        # for x in points:
-        #     if x.select('sup')[0].text == 'Miles':
-        #         points = extract_decimal(x.text)
-
-        points = [extract_decimal(x.text) for x in points if x.select('sup')[0].text == 'Miles'][0]
+        for x in points:
+            if x.select('sup')[0].text == 'Miles':
+                points = extract_decimal(x.text)
 
         return {
             'points': points,
