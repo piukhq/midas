@@ -333,13 +333,13 @@ class SeleniumMiner(BaseMiner):
 
 
 class MerchantApi(BaseMiner):
-    def __init__(self):
-        pass
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.retry_count = retry_count
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
 
     def validate(self):
-        raise NotImplementedError()
-
-    def _login(self):
         raise NotImplementedError()
 
     def login(self, credentials):
@@ -368,7 +368,7 @@ class MerchantApi(BaseMiner):
         """
         raise NotImplementedError()
 
-    # This service may possibly be the async callback view as it should return a http response
+    # This service may possibly be the async callback view as the service should return a http response
     # Or this method should be called asynchronously and not return anything, where the view will return the http
     # response instead.
     def async_inbound(self, json, merchant_id):
