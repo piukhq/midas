@@ -330,3 +330,53 @@ class SeleniumMiner(BaseMiner):
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
+
+
+class MerchantApi(BaseMiner):
+    def __init__(self):
+        pass
+
+    def validate(self):
+        raise NotImplementedError()
+
+    def _login(self):
+        raise NotImplementedError()
+
+    def login(self, credentials):
+        pass
+
+    def register(self, credentials):
+        raise NotImplementedError()
+
+    def handler(self, data, merchant_id):
+        """
+        Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
+        response. Configuration service is called to retrieve merchant config.
+        :param data: python object data to be built into the JSON object.
+        :param merchant_id:
+        :return:
+        """
+        raise NotImplementedError()
+
+    def sync_outbound(self, json, merchant_config):
+        """
+        Synchronous outbound service to build a request and make call to merchant endpoint.
+        Calls are made to security and back off services pre-request.
+        :param json: json string of payload to send to merchant
+        :param merchant_config: dict of merchant configuration settings
+        :return: Response payload
+        """
+        raise NotImplementedError()
+
+    # This service may possibly be the async callback view as it should return a http response
+    # Or this method should be called asynchronously and not return anything, where the view will return the http
+    # response instead.
+    def async_inbound(self, json, merchant_id):
+        """
+        Asynchronous inbound service that will decode json based on configuration per merchant and return a success
+        response asynchronously before calling the handler service.
+        :param json: Request JSON from merchant
+        :param merchant_id: Bink's unique identifier for a merchant
+        :return: 200 Response
+        """
+        raise NotImplementedError()
