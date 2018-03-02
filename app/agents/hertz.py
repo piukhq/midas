@@ -1,8 +1,8 @@
+import json
+from decimal import ROUND_DOWN, Decimal
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
-from decimal import Decimal, ROUND_DOWN
-import arrow
-import json
 
 
 class Hertz(RoboBrowserMiner):
@@ -14,6 +14,7 @@ class Hertz(RoboBrowserMiner):
             "loginId": credentials['username'],
             "password": credentials['password'],
             "cookieMemberOnLogin": False,
+            'enteredcaptcha': 'null',
             "loginForgotPassword": ""
         }
 
@@ -41,9 +42,4 @@ class Hertz(RoboBrowserMiner):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
