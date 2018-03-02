@@ -12,9 +12,6 @@ from requests.packages.urllib3.poolmanager import PoolManager
 from robobrowser import RoboBrowser
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.support.expected_conditions import staleness_of
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
@@ -294,7 +291,7 @@ class SeleniumMiner(BaseMiner):
 
     @selenium_handler
     def setup_browser(self):
-        options = Options()
+        options = webdriver.firefox.options.Options()
         options.add_argument('--headless')
         options.add_argument('--hide-scrollbars')
         options.add_argument('--disable-gpu')
@@ -326,10 +323,10 @@ class SeleniumMiner(BaseMiner):
         old_page = self.browser.find_element_by_tag_name('html')
         yield
         WebDriverWait(self.browser, timeout).until(
-            staleness_of(old_page)
+            ec.staleness_of(old_page)
         )
 
     def wait_for_value(self, css_selector, text, timeout=15):
         WebDriverWait(self.browser, timeout).until(
-            ec.text_to_be_present_in_element((By.CSS_SELECTOR, css_selector), text)
+            ec.text_to_be_present_in_element((webdriver.common.by.By.CSS_SELECTOR, css_selector), text)
         )

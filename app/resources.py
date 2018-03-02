@@ -12,7 +12,7 @@ from app.exceptions import AgentException, UnknownException
 from app import retry
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
-from app.utils import resolve_agent
+from app.utils import resolve_agent, raise_intercom_event
 from app.encoding import JsonEncoder
 from app import publish
 from app.publish import put
@@ -73,7 +73,6 @@ class Balance(Resource):
     def get(self, scheme_slug):
         scheme_account_id = int(request.args['scheme_account_id'])
         tid = request.headers.get('transaction')
-        pending = False
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -85,7 +84,7 @@ class Balance(Resource):
         user_id = int(request.args['user_id'])
         credentials = decrypt_credentials(request.args['credentials'])
         if agent_class.async:
-            return self.handle_async_balance(scheme_account_id, user_id, tid, pending, agent_class, credentials,
+            return self.handle_async_balance(scheme_account_id, user_id, tid, False, agent_class, credentials,
                                              scheme_slug)
 
         balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
@@ -114,6 +113,7 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
     agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
+        # call update credentials 1111
         update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
     try:
         status = 1
@@ -146,6 +146,8 @@ def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_acco
     except (AgentException, UnknownException) as e:
         if pending:
             message = 'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
+            # call delete link credentials 1111
+            # call intercom method and raise sentry error 1111
             update_pending_link_account(scheme_account_id, message, tid)
 
 
@@ -349,6 +351,7 @@ def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug
         agent_instance.attempt_register(credentials)
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
+
             update_pending_join_account(scheme_account_id, e.args[0], tid)
         else:
             error = ACCOUNT_ALREADY_EXISTS
@@ -401,7 +404,7 @@ def get_hades_balance(scheme_account_id):
     return resp
 
 
-def update_pending_join_account(scheme_account_id, message, tid, identifier=None):
+def update_pending_join_account(scheme_account_id, message, tid, user_id, slug, identifier=None):
     """
     Send an identifier to hermes and a message of success or an error message if there was a problem
     retrieving the identifier.
@@ -411,15 +414,26 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
     :param tid: transaction id
     :param identifier: identifier credential e.g membership id, barcode.
     """
-    data = {
-        'message': message,
-        'identifier': identifier,
-    }
-    put('{}/schemes/accounts/{}/async_join'.format(HERMES_URL, scheme_account_id), data, tid)
-    return data
+    # for updating user ID credential you get for registering (e.g. getting issues a card number)
+    if identifier:
+        requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=identifier,
+                     headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+        return
+
+    # error handling for join journey failures
+    data = {'status': 'JOIN'}
+    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+
+    data = {'all': True}
+    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
+                    headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+
+    metadata = {'scheme': slug}
+    raise_intercom_event('join-failed-event', user_id, metadata)
+    return
 
 
-def update_pending_link_account(scheme_account_id, message, tid):
+def update_pending_link_account(scheme_account_id, message, tid, user_id, slug):
     """
     Sends an error message to hermes when an async link request errors.
 
@@ -427,8 +441,15 @@ def update_pending_link_account(scheme_account_id, message, tid):
     :param message: details of the error message
     :param tid: transaction id
     """
-    data = {
-        'message': message,
-    }
-    put('{}/schemes/accounts/{}/async_link'.format(HERMES_URL, scheme_account_id), data, tid)
+    # error handling for join journey failures
+    data = {'status': 'WALLET_ONLY'}
+    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+
+    data = {'property_list': ['link_questions']}
+    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
+                 headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+
+    metadata = {'scheme': slug}
+    raise_intercom_event('async-link-failed-event', user_id, metadata)
+
     return data

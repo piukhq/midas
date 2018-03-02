@@ -58,7 +58,7 @@ class Ihg(SeleniumMiner):
             self.browser.find_element_by_id('UHF_username').send_keys(credentials['username'])
             self.browser.find_element_by_id('UHF_password').send_keys(credentials['pin'])
             self.browser.find_element_by_class_name('signIn').click()
-            sleep(1)
+            sleep(2)
             self.check_for_error_msg()
 
         except LoginError as exception:
@@ -76,7 +76,7 @@ class Ihg(SeleniumMiner):
         self.browser.find_element_by_css_selector(
             "input[name='lastName']").send_keys(credentials['last_name'])
         self.browser.find_element_by_class_name("cta-1").click()
-        sleep(1)
+        sleep(2)
 
         self.check_for_error_msg()
 
@@ -89,6 +89,7 @@ class Ihg(SeleniumMiner):
             self.is_login_successful = False
 
         self.check_if_logged_in()
+        sleep(2)
         point_text = self.browser.find_element_by_class_name('user-points').text
         self.points = extract_decimal(point_text)
 
