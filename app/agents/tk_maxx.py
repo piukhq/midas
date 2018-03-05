@@ -53,8 +53,8 @@ class TKMaxx(RoboBrowserMiner):
         row = row.split('\n')
         return {
             'date': arrow.get(row[0], 'DD MMM YYYY'),
-            'description': row[1],
-            'points': Decimal(row[2]).quantize(Decimal(10) ** -2)
+            'description': "%s, Items: %s" % (row[1], row[2]),
+            'points': Decimal(1)
         }
 
     def scrape_transactions(self):
