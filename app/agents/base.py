@@ -353,7 +353,7 @@ class MerchantApi(BaseMiner):
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
         response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
-        :param merchant_id:
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return:
         """
         raise NotImplementedError()
@@ -376,7 +376,7 @@ class MerchantApi(BaseMiner):
         Asynchronous inbound service that will decode json based on configuration per merchant and return a success
         response asynchronously before calling the handler service.
         :param json: Request JSON from merchant
-        :param merchant_id: Bink's unique identifier for a merchant
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: 200 Response
         """
         raise NotImplementedError()
