@@ -71,56 +71,59 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
-        scheme_account_id = int(request.args['scheme_account_id'])
+        user_info = {
+            'user_id': int(request.args['user_id']),
+            'credentials': decrypt_credentials(request.args['credentials']),
+            'status': None if not request.args['status'] else request.args['status'],
+            'scheme_account_id': int(request.args['scheme_account_id']),
+        }
         tid = request.headers.get('transaction')
 
         try:
             agent_class = get_agent_class(scheme_slug)
         except NotFound as e:
             # Update the scheme status on hermes to WALLET_ONLY (10)
-            thread_pool_executor.submit(publish.status, scheme_account_id, 10, tid)
+            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], 10, tid)
             abort(e.code, message=e.data['message'])
 
-        user_id = int(request.args['user_id'])
-        credentials = decrypt_credentials(request.args['credentials'])
         if agent_class.async:
-            return self.handle_async_balance(scheme_account_id, user_id, tid, False, agent_class, credentials,
-                                             scheme_slug)
+            return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
 
-        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid)
+        balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
         return create_response(balance)
 
     @staticmethod
-    def handle_async_balance(scheme_account_id, user_id, tid, pending, agent_class, credentials, scheme_slug):
-        prev_balance = get_hades_balance(scheme_account_id)
-        if not prev_balance:
-            publish.zero_balance(scheme_account_id, user_id, tid)
+    def handle_async_balance(agent_class, scheme_slug, user_info, tid):
+        scheme_account_id = user_info['scheme_account_id']
+        if user_info['status'] == 'WALLET_ONLY':
+            scheme_account_id = scheme_account_id
+            prev_balance = publish.zero_balance(scheme_account_id, user_info['user_id'], tid)
             publish.status(scheme_account_id, 0, tid)
+        else:
             prev_balance = get_hades_balance(scheme_account_id)
 
-        if prev_balance['value_label'] == 'Pending':
-            pending = True
-            prev_balance['pending'] = True
+        user_info['pending'] = False
+        if user_info['status'] in ['PENDING', 'WALLET_ONLY']:
+            user_info['pending'] = True
 
-        thread_pool_executor.submit(async_get_balance_and_publish, agent_class, user_id, credentials, scheme_account_id,
-                                    scheme_slug, tid, pending)
+        thread_pool_executor.submit(async_get_balance_and_publish, agent_class, scheme_slug, user_info, tid)
+        # return previous balance from hades so front end has something to display
+        return prev_balance
 
-        return create_response(prev_balance)
 
-
-def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid, pending=False):
+def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
+    scheme_account_id = user_info['scheme_account_id']
     threads = []
-    agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
+    agent_instance = agent_login(agent_class, user_info['credentials'], scheme_account_id, scheme_slug=scheme_slug)
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
-        # call update credentials 1111
         update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
     try:
         status = 1
-        balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_id, tid)
+        balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
         # Asynchronously get the transactions for the a user
-        threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id, user_id,
-                                                   tid))
+        threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
+                                                   user_info['user_id'], tid))
         return balance
     except (LoginError, AgentError) as e:
         status = e.code
@@ -129,7 +132,7 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         status = 520
         raise UnknownException(e)
     finally:
-        if pending and not status == 1:
+        if user_info.get('pending') and not status == 1:
             pass
         else:
             threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
@@ -137,18 +140,17 @@ def get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id
         [thread.result() for thread in threads]
 
 
-def async_get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid,
-                                  pending=False):
+def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
+    scheme_account_id = user_info['scheme_account_id']
     try:
-        balance = get_balance_and_publish(agent_class, user_id, credentials, scheme_account_id, scheme_slug, tid,
-                                          pending=True)
+        balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
         return balance
     except (AgentException, UnknownException) as e:
-        if pending:
-            message = 'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
-            # call delete link credentials 1111
-            # call intercom method and raise sentry error 1111
+        if user_info.get('pending'):
+            message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
             update_pending_link_account(scheme_account_id, message, tid)
+
+        raise e
 
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
@@ -405,22 +407,13 @@ def get_hades_balance(scheme_account_id):
 
 
 def update_pending_join_account(scheme_account_id, message, tid, user_id, slug, identifier=None):
-    """
-    Send an identifier to hermes and a message of success or an error message if there was a problem
-    retrieving the identifier.
-
-    :param scheme_account_id: id of scheme account to update
-    :param message: details such as error message or "success"
-    :param tid: transaction id
-    :param identifier: identifier credential e.g membership id, barcode.
-    """
-    # for updating user ID credential you get for registering (e.g. getting issues a card number)
+    # for updating user ID credential you get for registering (e.g. getting issued a card number)
     if identifier:
         requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=identifier,
                      headers={'Authorization': 'Token ' + SERVICE_API_KEY})
         return
 
-    # error handling for join journey failures
+    # error handling for pending scheme accounts waiting for join journey to complete
     data = {'status': 'JOIN'}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
 
@@ -430,18 +423,12 @@ def update_pending_join_account(scheme_account_id, message, tid, user_id, slug, 
 
     metadata = {'scheme': slug}
     raise_intercom_event('join-failed-event', user_id, metadata)
-    return
+
+    raise AgentException(message)
 
 
 def update_pending_link_account(scheme_account_id, message, tid, user_id, slug):
-    """
-    Sends an error message to hermes when an async link request errors.
-
-    :param scheme_account_id: id of scheme account to update
-    :param message: details of the error message
-    :param tid: transaction id
-    """
-    # error handling for join journey failures
+    # error handling for pending scheme accounts waiting for async link to complete
     data = {'status': 'WALLET_ONLY'}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
 
@@ -452,4 +439,4 @@ def update_pending_link_account(scheme_account_id, message, tid, user_id, slug):
     metadata = {'scheme': slug}
     raise_intercom_event('async-link-failed-event', user_id, metadata)
 
-    return data
+    raise AgentException(message)

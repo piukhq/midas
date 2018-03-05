@@ -413,14 +413,13 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
-    @mock.patch('app.resources.get_hades_balance', auto_spec=False)
-    @mock.patch('app.resources.async_get_balance_and_publish', autospec=True)
+    @mock.patch('app.resources.async_get_balance_and_publish')
     @mock.patch('app.publish.zero_balance', autospec=True)
     @mock.patch('app.publish.status', auto_spec=True)
     def test_wallet_only_accounts_get_set_to_pending_when_async(self, mock_publish_status, mock_publish_zero_balance,
-                                                                mock_async_balance_and_publish, mock_get_hades_balance):
+                                                                mock_async_balance_and_publish):
 
-        mock_get_hades_balance.return_value = {'value_label': 'Pending'}
+        mock_publish_zero_balance.return_value = {'balance': '0'}
         credentials = {
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
@@ -428,10 +427,12 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}&status={3}".format(
+            credentials, 1, 2, 'WALLET_ONLY'
+        )
         resp = self.client.get(url)
 
-        self.assertTrue(mock_get_hades_balance.called)
+        self.assertTrue(mock_publish_zero_balance.called)
         self.assert_mock_called_with_delay(2, mock_async_balance_and_publish)
         self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 7)
         self.assertEqual(resp.json, mock_get_hades_balance.return_value)
