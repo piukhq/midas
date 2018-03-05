@@ -339,24 +339,41 @@ class MerchantApi(BaseMiner):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
 
-    def validate(self):
-        raise NotImplementedError()
-
     def login(self, credentials):
-        pass
+        """
+        Calls handler, passing in handler_type as either 'validate' or 'update' depending on if a link request was
+        made or not. A link boolean should be in the credentials to check if request was a link.
+        :param credentials: user account credentials for merchant scheme
+        :return: None
+        """
 
     def register(self, credentials):
-        raise NotImplementedError()
+        """
+        Calls handler, passing in 'join' as the handler_type.
+        :param credentials: user account credentials to register for merchant scheme
+        :return: None
+        """
 
-    def handler(self, data, merchant_id):
+    def handler(self, data, merchant_id, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
         response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
         :param merchant_id: Bink's unique identifier for a merchant (slug)
-        :return:
+        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :return: dict of response data
         """
-        raise NotImplementedError()
+        return {}
+
+    def inbound_handler(self, data, merchant_id):
+        """
+        Handler service for inbound response i.e. response from async join. The response is processed based on
+        merchant config, logged, and converted to a python object.
+        :param data: JSON payload
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: dict of response data
+        """
+        return {}
 
     def sync_outbound(self, json, merchant_config):
         """
@@ -366,7 +383,7 @@ class MerchantApi(BaseMiner):
         :param merchant_config: dict of merchant configuration settings
         :return: Response payload
         """
-        raise NotImplementedError()
+        return {}
 
     # This service may possibly be the async callback view as the service should return a http response
     # Or this method should be called asynchronously and not return anything, where the view will return the http
@@ -377,6 +394,5 @@ class MerchantApi(BaseMiner):
         response asynchronously before calling the handler service.
         :param json: Request JSON from merchant
         :param merchant_id: Bink's unique identifier for a merchant (slug)
-        :return: 200 Response
+        :return: None
         """
-        raise NotImplementedError()
