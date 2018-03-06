@@ -27,10 +27,6 @@ class Quidco(RoboBrowserMiner):
         if interstitial:
             self.browser.follow_link(interstitial[0])
 
-        # Every second row is a hidden element we can't parse, so skip it.
-        self.open_url("https://www.quidco.com/activity/")
-        self.transaction_rows = self.browser.select('.activity-row')[1:]
-
     def balance(self):
         self.open_url('https://www.quidco.com/ajax/main_nav/get_cashback_summary')
         points = Decimal(self.browser.response.json()['total_cashback_earned'])
@@ -55,4 +51,6 @@ class Quidco(RoboBrowserMiner):
         }
 
     def scrape_transactions(self):
-        return self.transaction_rows
+        self.open_url("https://www.quidco.com/activity/")
+        self.transaction_rows = self.browser.select('.activity-row')
+        return self.transaction_rows[1:] if self.transaction_rows else list()
