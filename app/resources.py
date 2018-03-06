@@ -74,7 +74,7 @@ class Balance(Resource):
         user_info = {
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
-            'status': None if not request.args['status'] else request.args['status'],
+            'status': request.args.get('status'),
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -118,6 +118,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
         update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+
     try:
         status = 1
         balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
@@ -147,8 +148,12 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         return balance
     except (AgentException, UnknownException) as e:
         if user_info.get('pending'):
+            intercom_data = {
+                'user_id': user_info['user_id'],
+                'metadata': {'scheme': scheme_slug},
+            }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
-            update_pending_link_account(scheme_account_id, message, tid)
+            update_pending_link_account(scheme_account_id, message, tid, intercom_data=intercom_data)
 
         raise e
 
@@ -346,15 +351,14 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, f
     return agent_instance
 
 
-def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=None):
+def agent_register(agent_class, credentials, scheme_account_id, intercom_data, tid, scheme_slug=None):
     agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
     error = None
     try:
         agent_instance.attempt_register(credentials)
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
-
-            update_pending_join_account(scheme_account_id, e.args[0], tid)
+            update_pending_join_account(scheme_account_id, e.args[0], tid, intercom_data=intercom_data)
         else:
             error = ACCOUNT_ALREADY_EXISTS
 
@@ -364,6 +368,10 @@ def agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug
 
 
 def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
+    intercom_data = {
+        'user_id': user_id,
+        'metadata': {'scheme': scheme_slug},
+    }
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
@@ -371,15 +379,16 @@ def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
         publish.status(scheme_account_id, 900, tid)
         abort(e.code, message=e.data['message'])
 
-    register_result = agent_register(agent_class, credentials, scheme_account_id, tid, scheme_slug=scheme_slug)
+    register_result = agent_register(agent_class, credentials, scheme_account_id, intercom_data, tid,
+                                     scheme_slug=scheme_slug)
     try:
         agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
                                      from_register=True)
-
-        update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+        if agent_instance.identifier:
+            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(scheme_account_id, str(e.args[0]), tid)
+            update_pending_join_account(scheme_account_id, str(e.args[0]), tid, intercom_data=intercom_data)
         else:
             publish.zero_balance(scheme_account_id, user_id, tid)
         return True
@@ -406,7 +415,7 @@ def get_hades_balance(scheme_account_id):
     return resp
 
 
-def update_pending_join_account(scheme_account_id, message, tid, user_id, slug, identifier=None):
+def update_pending_join_account(scheme_account_id, message, tid, identifier=None, intercom_data=None):
     # for updating user ID credential you get for registering (e.g. getting issued a card number)
     if identifier:
         requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=identifier,
@@ -421,22 +430,22 @@ def update_pending_join_account(scheme_account_id, message, tid, user_id, slug, 
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
                     headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    metadata = {'scheme': slug}
-    raise_intercom_event('join-failed-event', user_id, metadata)
+    metadata = intercom_data['metadata']
+    raise_intercom_event('join-failed-event', intercom_data['user_id'], metadata)
 
     raise AgentException(message)
 
 
-def update_pending_link_account(scheme_account_id, message, tid, user_id, slug):
+def update_pending_link_account(scheme_account_id, message, tid, intercom_data=None):
     # error handling for pending scheme accounts waiting for async link to complete
     data = {'status': 'WALLET_ONLY'}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
 
     data = {'property_list': ['link_questions']}
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
-                 headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+                    headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    metadata = {'scheme': slug}
-    raise_intercom_event('async-link-failed-event', user_id, metadata)
+    metadata = intercom_data['metadata']
+    raise_intercom_event('async-link-failed-event', intercom_data['user_id'], metadata)
 
     raise AgentException(message)
