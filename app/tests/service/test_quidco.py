@@ -1,7 +1,8 @@
 import unittest
+
+from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.quidco import Quidco
-from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
