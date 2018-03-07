@@ -6,7 +6,7 @@ from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
 from app.resources import agent_login, registration, agent_register, get_hades_balance, async_get_balance_and_publish, \
-    get_balance_and_publish
+    get_balance_and_publish, update_pending_link_account, update_pending_join_account
 from app.tests.service import logins
 from app.encryption import AESCipher
 from app import create_app, AgentException, UnknownException
@@ -27,6 +27,7 @@ class TestResources(TestCase):
         'credentials': {'credentials': 'test'},
         'status': 'WALLET_ONLY',
         'scheme_account_id': 123,
+        'pending': True
     }
 
     class Agent:
@@ -194,7 +195,8 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_bad_agent_updates_status(self, mock_submit):
-        url = '/bad-agent-key/balance?credentials=234&scheme_account_id=1&user_id=1'
+        credentials = logins.encrypt('avios')
+        url = '/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_id=1'.format(credentials)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
         mock_submit.assert_called_with(publish.status, 1, 10, None)
@@ -488,13 +490,14 @@ class TestResources(TestCase):
         mock_balance_and_publish.side_effect = AgentException('Linking error')
 
         with self.assertRaises(AgentException):
-            async_get_balance_and_publish('agent_class', 'scheme_slug', self.user_info, 'tid')
-            self.assertTrue(mock_balance_and_publish.called)
-            self.assertTrue(mock_update_pending_link_account.called)
-            self.assertEqual(
-                'Error with linking. Scheme: {}, Error: {}'.format(scheme_slug, str(mock_balance_and_publish.side_effect)),
-                mock_update_pending_link_account.call_args[0][1]
-            )
+            async_get_balance_and_publish('agent_class', scheme_slug, self.user_info, 'tid')
+
+        self.assertTrue(mock_balance_and_publish.called)
+        self.assertTrue(mock_update_pending_link_account.called)
+        self.assertEqual(
+            'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(mock_balance_and_publish.side_effect)),
+            mock_update_pending_link_account.call_args[0][1]
+        )
 
     @mock.patch('requests.get', auto_spec=True)
     def test_get_hades_balance(self, mock_requests):
@@ -534,10 +537,11 @@ class TestResources(TestCase):
 
         with self.assertRaises(AgentException):
             get_balance_and_publish('agent_class', 'scheme_slug', self.user_info, 'tid')
-            self.assertTrue(mock_login.called)
-            self.assertTrue(mock_publish_balance.called)
-            self.assertTrue(mock_publish_status.called)
-            self.assertTrue(mock_update_pending_join_account.called)
+
+        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertFalse(mock_publish_status.called)
+        self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
@@ -586,50 +590,87 @@ class TestResources(TestCase):
         self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
 
-    @mock.patch('app.resources.update_pending_link_account', auto_spec=True)
+    @mock.patch('app.resources.requests.delete', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_raises_errors(self, mock_transactions, mock_publish_balance,
-                                                               mock_publish_status, mock_login,
-                                                               mock_update_pending_link_account):
+                                                               mock_publish_status, mock_login, mock_requests_delete):
 
         mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = 'test'
-        mock_update_pending_link_account.return_value = 'test2'
 
         async_balance = thread_pool_executor.submit(async_get_balance_and_publish, 'agent_class', 'scheme_slug',
                                                     self.user_info, 'tid')
 
         with self.assertRaises(AgentException):
-            self.assertEqual(async_balance.result(), None)
-            self.assertTrue(mock_login.called)
-            self.assertTrue(mock_publish_balance.called)
-            self.assertFalse(mock_transactions.called)
-            self.assertTrue(mock_update_pending_link_account.called)
+            async_balance.result(timeout=15)
 
+        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertFalse(mock_transactions.called)
+        self.assertTrue(mock_requests_delete.called)
 
-    @mock.patch('app.resources.update_pending_link_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.resources.publish_transactions', auto_spec=True)
     def test_balance_runs_everything_while_async_raises_unexpected_error(self, mock_transactions, mock_publish_balance,
-                                                                         mock_publish_status, mock_login,
-                                                                         mock_update_pending_link_account):
+                                                                         mock_publish_status, mock_login):
         mock_publish_balance.side_effect = KeyError('test not handled agent error')
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = 'test'
-        mock_update_pending_link_account.return_value = 'test2'
 
         async_balance = thread_pool_executor.submit(async_get_balance_and_publish, 'agent_class', 'scheme_slug',
                                                     self.user_info, 'tid')
 
-        with self.assertRaises(UnknownException):
-            self.assertEqual(async_balance.result(), None)
-            self.assertTrue(mock_login.called)
-            self.assertTrue(mock_publish_balance.called)
-            self.assertFalse(mock_transactions.called)
-            self.assertTrue(mock_update_pending_link_account.called)
+        with self.assertRaises(AgentException):
+            async_balance.result(timeout=15)
+
+        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertFalse(mock_transactions.called)
+
+    @mock.patch('app.resources.requests.post')
+    @mock.patch('app.resources.requests.delete')
+    @mock.patch('app.resources.raise_intercom_event')
+    def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete, mock_requests_post):
+        intercom_data = {'user_id': 'userid12345', 'metadata': {'scheme': 'scheme_slug'}}
+        with self.assertRaises(AgentException):
+            update_pending_link_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
+
+        self.assertTrue(mock_intercom_call.called)
+        self.assertTrue(mock_requests_delete.called)
+        self.assertTrue(mock_requests_post.called)
+
+    @mock.patch('app.resources.raise_intercom_event')
+    @mock.patch('app.resources.requests.post')
+    @mock.patch('app.resources.requests.put')
+    @mock.patch('app.resources.requests.delete')
+    def test_update_pending_join_account(self, mock_requests_delete, mock_requests_put, mock_requests_post,
+                                         mock_intercom_call):
+
+        update_pending_join_account('123', 'success', 'tid123', identifier='12345')
+        self.assertTrue(mock_requests_put.called)
+        self.assertFalse(mock_requests_delete.called)
+        self.assertFalse(mock_requests_post.called)
+        self.assertFalse(mock_intercom_call.called)
+
+    @mock.patch('app.resources.raise_intercom_event')
+    @mock.patch('app.resources.requests.post')
+    @mock.patch('app.resources.requests.put')
+    @mock.patch('app.resources.requests.delete')
+    def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post,
+                                               mock_intercom_call):
+
+        intercom_data = {'user_id': 'userid12345', 'metadata': {'scheme': 'scheme_slug'}}
+        with self.assertRaises(AgentException):
+            update_pending_join_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
+
+        self.assertFalse(mock_requests_put.called)
+        self.assertTrue(mock_requests_delete.called)
+        self.assertTrue(mock_requests_post.called)
+        self.assertTrue(mock_intercom_call.called)
+
