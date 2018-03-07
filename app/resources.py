@@ -145,6 +145,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     try:
         balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
         return balance
+
     except (AgentException, UnknownException) as e:
         if user_info.get('pending'):
             intercom_data = {
