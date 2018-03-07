@@ -9,7 +9,7 @@ from app.resources import agent_login, registration, agent_register, get_hades_b
     get_balance_and_publish, update_pending_link_account, update_pending_join_account
 from app.tests.service import logins
 from app.encryption import AESCipher
-from app import create_app, AgentException, UnknownException
+from app import create_app, AgentException
 from settings import AES_KEY
 from unittest import mock
 from decimal import Decimal
@@ -495,7 +495,9 @@ class TestResources(TestCase):
         self.assertTrue(mock_balance_and_publish.called)
         self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
-            'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(mock_balance_and_publish.side_effect)),
+            'Error with async linking. Scheme: {}, Error: {}'.format(
+                scheme_slug, str(mock_balance_and_publish.side_effect)
+            ),
             mock_update_pending_link_account.call_args[0][1]
         )
 
@@ -673,4 +675,3 @@ class TestResources(TestCase):
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
         self.assertTrue(mock_intercom_call.called)
-
