@@ -12,11 +12,18 @@ class Carlson(RoboBrowserMiner):
             'accountEmail': '',
             'linkToken': '',
             'successURL': 'https://www.clubcarlson.com/myaccount/secure/?login=true',
+            'mor': '',
             'rightSide': '',
             'userId': credentials['username'],
             'password': credentials['password'],
-            'rememberMe': 'true',
+            'email': '',
         }
+        self.headers = {
+            "Host": "www.radissonrewards.com",
+            "Origin": "https://www.radissonrewards.com",
+            "Referer": "https://www.radissonrewards.com/secure/login.do"
+        }
+
         self.open_url(url, method='post', data=data)
 
         self.check_error('/secure/login.do',
