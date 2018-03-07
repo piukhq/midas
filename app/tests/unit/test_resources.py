@@ -265,8 +265,8 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {'message': 'success'})
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.resources.put', autospec=True)
-    def test_agent_register_success(self, mock_put, mock_register):
+    @mock.patch('app.resources.update_pending_join_account', autospec=True)
+    def test_agent_register_success(self, mock_update_pending_join_account, mock_register):
         mock_register.return_value = {'message': 'success'}
         user_info = {
             'metadata': {},
@@ -278,12 +278,13 @@ class TestResources(TestCase):
         agent_register(HarveyNichols, {}, scheme_account_id, user_info, 1)
 
         self.assertTrue(mock_register.called)
-        self.assertFalse(mock_put.called)
+        self.assertFalse(mock_update_pending_join_account.called)
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.resources.put', autospec=False)
-    def test_agent_register_fail(self, mock_put, mock_register):
+    @mock.patch('app.resources.update_pending_join_account', autospec=False)
+    def test_agent_register_fail(self, mock_update_pending_join_account, mock_register):
         mock_register.side_effect = RegistrationError(STATUS_REGISTRATION_FAILED)
+        mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
         scheme_account_id = 2
         user_info = {
             'metadata': {},
@@ -294,11 +295,11 @@ class TestResources(TestCase):
         with self.assertRaises(AgentException):
             agent_register(HarveyNichols, {}, scheme_account_id, user_info, 1)
             self.assertTrue(mock_register.called)
-            self.assertTrue(mock_put.called)
+            self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch.object(HarveyNichols, 'register')
-    @mock.patch('app.resources.put', autospec=False)
-    def test_agent_register_fail_account_exists(self, mock_put, mock_register):
+    @mock.patch('app.resources.update_pending_join_account', autospec=False)
+    def test_agent_register_fail_account_exists(self, mock_update_pending_join_account, mock_register):
         mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
         scheme_slug = "harvey-nichols"
         scheme_account_id = 2
@@ -306,7 +307,7 @@ class TestResources(TestCase):
         agent_register(HarveyNichols, {}, scheme_account_id, scheme_slug, 1)
 
         self.assertTrue(mock_register.called)
-        self.assertFalse(mock_put.called)
+        self.assertFalse(mock_update_pending_join_account.called)
 
     @mock.patch('app.publish.balance', auto_spec=True)
     @mock.patch('app.publish.status', auto_spec=True)
