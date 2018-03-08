@@ -354,7 +354,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
 
-    def outbound_handler(self, data, merchant_id, handler_type):
+    def _outbound_handler(self, data, merchant_id, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
         response. Configuration service is called to retrieve merchant config.
@@ -365,7 +365,7 @@ class MerchantApi(BaseMiner):
         """
         return {}
 
-    def inbound_handler(self, data, merchant_id):
+    def _inbound_handler(self, data, merchant_id):
         """
         Handler service for inbound response i.e. response from async join. The response is processed based on
         merchant config, logged, and converted to a python object.
@@ -375,7 +375,7 @@ class MerchantApi(BaseMiner):
         """
         return {}
 
-    def sync_outbound(self, json, merchant_config):
+    def _sync_outbound(self, json, merchant_config):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
         Calls are made to security and back off services pre-request.
@@ -388,7 +388,7 @@ class MerchantApi(BaseMiner):
     # This service may possibly be the async callback view as the service should return a http response
     # Or this method should be called asynchronously and not return anything, where the view will return the http
     # response instead.
-    def async_inbound(self, json, merchant_id):
+    def _async_inbound(self, json, merchant_id):
         """
         Asynchronous inbound service that will decode json based on configuration per merchant and return a success
         response asynchronously before calling the handler service.
