@@ -354,7 +354,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
 
-    def handler(self, data, merchant_id, handler_type):
+    def outbound_handler(self, data, merchant_id, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
         response. Configuration service is called to retrieve merchant config.
@@ -379,7 +379,7 @@ class MerchantApi(BaseMiner):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
         Calls are made to security and back off services pre-request.
-        :param json: json string of payload to send to merchant
+        :param json: JSON string of payload to send to merchant
         :param merchant_config: dict of merchant configuration settings
         :return: Response payload
         """
