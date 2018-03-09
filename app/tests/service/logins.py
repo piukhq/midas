@@ -1,10 +1,9 @@
-import os
 import json
 
 from sqlalchemy import create_engine, text
 
 from app.encryption import AESCipher
-from settings import AES_KEY, APP_DIR, HELIOS_DB_URI
+from settings import AES_KEY, HELIOS_DB_URI
 
 # ------------------------------------------------------- #
 # - When running test locally from console please add --- #
@@ -35,6 +34,8 @@ def get_credentials(agent=None):
     )
 
     result = engine.execute(query)
+
+    # we have to add these test credentials here for the test_login_fail case in each agent's test.
     credentials = {
         'bad': {
             'username': "234234@bad.com",
@@ -67,29 +68,3 @@ def update_credentials():
     """
     global CREDENTIALS
     CREDENTIALS = get_credentials()
-
-
-def fill_credentials():
-    engine = create_engine(HELIOS_DB_URI)
-    with open(os.path.join(APP_DIR, 'credentials.json'), 'r') as f:
-        all_credentials = json.loads(f.read())
-
-    for slug, credentials in all_credentials.items():
-        slug = slug.replace('_', '-')
-        query = text("SELECT * FROM app_agent WHERE slug = '{}';".format(slug))
-        agent = engine.execute(query).first()
-
-        if agent:
-            agent_id = dict(agent)['id']
-            query = text("SELECT * FROM app_credential WHERE agent_id = '{}';".format(agent_id))
-
-            if not engine.execute(query).first():
-
-                for key, value in credentials.items():
-                    query = text("INSERT INTO app_credential (agent_id, field, value) "
-                                 "VALUES ('{}','{}','{}');".format(agent_id, key, value))
-                    engine.execute(query)
-
-
-if __name__ == '__main__':
-    fill_credentials()
