@@ -53,4 +53,4 @@ INFLUX_DATABASE = env_var('INFLUX_DATABASE', 'test_results')
 
 MAX_VALUE_LABEL_LENGTH = 11
 
-HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://test:test@localhost:5432/helios')
+HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
