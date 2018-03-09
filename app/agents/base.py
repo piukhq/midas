@@ -1,9 +1,12 @@
 import hashlib
+import json
 from decimal import Decimal
 from collections import defaultdict
 from urllib.parse import urlsplit
 
 import _ssl
+from uuid import uuid4
+
 import requests
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
@@ -363,23 +366,49 @@ class MerchantApi(BaseMiner):
         :param handler_type: type of handler to retrieve correct config e.g update, validate, join
         :return: dict of response data
         """
-        return {}
+        message_uid = str(uuid4())
 
-    def _inbound_handler(self, data, merchant_id):
+        # config = get_config(merchant_id, handler_type)
+        config = {'log_level': 'debug'}
+        if not config:
+            raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+
+        data['message_uid'] = message_uid
+        data['callback_url'] = config.get('callback_url')
+
+        payload = json.dumps(data)
+        # log payload
+
+        response = self._sync_outbound(payload, config)
+        json_data = response.data
+
+        if json_data and config['log_level']:
+            # check if response is error and set logging fields
+            # log json_data
+            pass
+
+        return json.loads(json_data)
+
+    def _inbound_handler(self, json_data, merchant_id):
         """
         Handler service for inbound response i.e. response from async join. The response is processed based on
         merchant config, logged, and converted to a python object.
-        :param data: JSON payload
+        :param json_data: JSON payload
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: dict of response data
         """
+
+        # log data
+
+        data = json.loads(json_data)
+
         return {}
 
-    def _sync_outbound(self, json, merchant_config):
+    def _sync_outbound(self, data, merchant_config):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
         Calls are made to security and back off services pre-request.
-        :param json: JSON string of payload to send to merchant
+        :param data: JSON string of payload to send to merchant
         :param merchant_config: dict of merchant configuration settings
         :return: Response payload
         """
@@ -388,11 +417,11 @@ class MerchantApi(BaseMiner):
     # This service may possibly be the async callback view as the service should return a http response
     # Or this method should be called asynchronously and not return anything, where the view will return the http
     # response instead.
-    def _async_inbound(self, json, merchant_id):
+    def _async_inbound(self, data, merchant_id):
         """
         Asynchronous inbound service that will decode json based on configuration per merchant and return a success
         response asynchronously before calling the handler service.
-        :param json: Request JSON from merchant
+        :param data: Request JSON from merchant
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: None
         """
