@@ -13,7 +13,8 @@ class TestMerchantApi(TestCase):
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler(self, mock_sync_outbound):
         m = MerchantApi(1, 1)
-        mock_sync_outbound.return_value = flask.Response(json.dumps({"stuff": 'more stuff'}))
+        mock_sync_outbound.return_value = flask.Response(json.dumps({"stuff": 'more stuff'}),
+                                                         content_type="application/json")
 
         resp = m._outbound_handler({}, 1, 'update')
 
