@@ -37,7 +37,7 @@ class SSLAdapter(HTTPAdapter):
 class BaseMiner(object):
     retry_limit = 2
     point_conversion_rate = Decimal('0')
-    connect_timeout = 1
+    connect_timeout = 3
     known_captcha_signatures = [
         'recaptcha',
         'captcha',

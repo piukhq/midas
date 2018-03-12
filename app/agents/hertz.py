@@ -1,5 +1,6 @@
-import json
 from decimal import ROUND_DOWN, Decimal
+
+import arrow
 
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
@@ -7,6 +8,7 @@ from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 
 class Hertz(RoboBrowserMiner):
     point_conversion_rate = 1 / Decimal('900')
+    account_data = None
 
     def login(self, credentials):
         data = {
@@ -23,11 +25,11 @@ class Hertz(RoboBrowserMiner):
         if self.browser.response.status_code != 200:
             raise LoginError(STATUS_LOGIN_FAILED)
 
-    def balance(self):
-        self.open_url('https://www.hertz.co.uk/rentacar/member/account/navigation?_=1445528212900')
+        self.browser.open('https://www.hertz.co.uk/rentacar/rest/member/rewards/statement')
+        self.account_data = self.browser.response.json()
 
-        response_data = json.loads(self.browser.response.text)
-        points = Decimal(response_data['data']['rewardsPoints'])
+    def balance(self):
+        points = Decimal(self.account_data['data']['totalPoints'])
         reward_qty = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
 
         return {
@@ -36,10 +38,13 @@ class Hertz(RoboBrowserMiner):
             'value_label': self.format_label(reward_qty, 'reward rental day'),
         }
 
-    # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
     @staticmethod
     def parse_transaction(row):
-        return row
+        return {
+            'date': arrow.get(row['date'], 'DD MMM YYYY'),
+            'description': '{} - {}'.format(row['desc'], row['type']),
+            'points': Decimal(row['points']),
+        }
 
     def scrape_transactions(self):
-        return []
+        return self.account_data['data']['transactions']
