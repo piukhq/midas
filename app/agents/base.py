@@ -391,7 +391,6 @@ class MerchantApi(BaseMiner):
         message_uid = str(uuid4())
 
         config = utils.get_config(merchant_id, handler_type)
-
         if not config:
             raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
 
@@ -410,6 +409,8 @@ class MerchantApi(BaseMiner):
         if json_data and config['log_level']:
             # check if response is error and set logging fields
             # log json_data
+            # TODO: logging setup for _outbound_handler
+            logger.info("TODO: logging setup for _outbound_handler")
             pass
 
         return json.loads(json_data)
