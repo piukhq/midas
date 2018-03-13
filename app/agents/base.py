@@ -21,7 +21,7 @@ from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
-from app.publish import put, thread_pool_executor
+from app.publish import put
 from settings import HERMES_URL
 
 
