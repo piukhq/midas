@@ -16,6 +16,7 @@ from robobrowser import RoboBrowser
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+from app import utils
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
@@ -365,6 +366,19 @@ class MerchantApi(BaseMiner):
         else:
             self._outbound_handler(data, self.scheme_slug, 'join')
 
+    # This method should be overridden in the agent if there is agent specific processing required for their response.
+    def process_join_response(self, response):
+        """
+        Processes a merchant's response to a join request.
+        :param response: JSON data of a merchant's response
+        :return: None
+        """
+        # check for error response
+
+        # link account (get balance and transactions)
+
+        raise NotImplementedError()
+
     def _outbound_handler(self, data, merchant_id, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
@@ -376,8 +390,8 @@ class MerchantApi(BaseMiner):
         """
         message_uid = str(uuid4())
 
-        # config = get_config(merchant_id, handler_type)
-        config = {'log_level': 'debug'}
+        config = utils.get_config(merchant_id, handler_type)
+
         if not config:
             raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
 
@@ -385,9 +399,10 @@ class MerchantApi(BaseMiner):
         data['callback_url'] = config.get('callback_url')
 
         payload = json.dumps(data)
+
         # log payload
         # TODO: logging setup for _outbound_handler
-        logger.error("TODO: logging setup for _outbound_handler")
+        logger.info("TODO: logging setup for _outbound_handler")
 
         response = self._sync_outbound(payload, config)
         json_data = response.data
@@ -399,25 +414,20 @@ class MerchantApi(BaseMiner):
 
         return json.loads(json_data)
 
-    # This method should be overridden in the agent if there is agent specific processing required for their response.
-    def inbound_handler(self, json_data, merchant_id):
+    def _inbound_handler(self, json_data, merchant_id):
         """
-        Handler service for inbound response i.e. response from async join. The response is processed based on
-        merchant config, logged, and converted to a python object.
+        Handler service for inbound response i.e. response from async join. The response json is logged, converted to a
+        python object and passed to the relevant method for processing.
         :param json_data: JSON payload
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: dict of response data
         """
 
-        # log data
+        # log json_data
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _inbound_handler")
 
-        data = json.loads(json_data)
-
-        # check for error response
-
-        # link account (get balance and transactions)
-
-        return data
+        return self.process_join_response(json.loads(json_data))
 
     def _sync_outbound(self, data, merchant_config):
         """
