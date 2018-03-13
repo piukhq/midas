@@ -423,10 +423,9 @@ class MerchantApi(BaseMiner):
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: dict of response data
         """
-
         # log json_data
         # TODO: logging setup for _outbound_handler
-        logger.info("TODO: logging setup for _inbound_handler")
+        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
 
         return self.process_join_response(json.loads(json_data))
 
@@ -438,7 +437,7 @@ class MerchantApi(BaseMiner):
         :param merchant_config: dict of merchant configuration settings
         :return: Response payload
         """
-        return {}
+        raise NotImplementedError()
 
     def _async_inbound(self, data, merchant_id, handler_type):
         """
@@ -454,5 +453,3 @@ class MerchantApi(BaseMiner):
 
         # asynchronously call handler
         # thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug, handler_type)
-
-        # return None
