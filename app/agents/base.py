@@ -1,9 +1,12 @@
 import hashlib
+import json
 from decimal import Decimal
 from collections import defaultdict
 from urllib.parse import urlsplit
 
 import _ssl
+from uuid import uuid4
+
 import requests
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
@@ -13,6 +16,8 @@ from robobrowser import RoboBrowser
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+from app import utils
+from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
@@ -330,3 +335,121 @@ class SeleniumMiner(BaseMiner):
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
+
+
+class MerchantApi(BaseMiner):
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.retry_count = retry_count
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
+
+    def login(self, credentials):
+        """
+        Calls handler, passing in handler_type as either 'validate' or 'update' depending on if a link request was
+        made or not. A link boolean should be in the credentials to check if request was a link.
+        :param credentials: user account credentials for merchant scheme
+        :return: None
+        """
+
+    def register(self, data, inbound=False):
+        """
+        Calls handler, passing in 'join' as the handler_type.
+        :param data: user account credentials to register for merchant scheme or merchant response for outbound
+                     or inbound processes respectively.
+        :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
+        :return: None
+        """
+        # TODO: error handling?
+        if inbound:
+            self._async_inbound(data, self.scheme_slug, 'join')
+        else:
+            self._outbound_handler(data, self.scheme_slug, 'join')
+
+    # This method should be overridden in the agent if there is agent specific processing required for their response.
+    def process_join_response(self, response):
+        """
+        Processes a merchant's response to a join request.
+        :param response: JSON data of a merchant's response
+        :return: None
+        """
+        # check for error response
+
+        # link account (get balance and transactions)
+
+        raise NotImplementedError()
+
+    def _outbound_handler(self, data, merchant_id, handler_type):
+        """
+        Handler service to apply merchant configuration and build JSON, for request to the merchant, and handles
+        response. Configuration service is called to retrieve merchant config.
+        :param data: python object data to be built into the JSON object.
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :return: dict of response data
+        """
+        message_uid = str(uuid4())
+
+        config = utils.get_config(merchant_id, handler_type)
+        if not config:
+            raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+
+        data['message_uid'] = message_uid
+        data['callback_url'] = config.get('callback_url')
+
+        payload = json.dumps(data)
+
+        # log payload
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _outbound_handler")
+
+        response = self._sync_outbound(payload, config)
+        json_data = response.data
+
+        if json_data and config['log_level']:
+            # check if response is error and set logging fields
+            # log json_data
+            # TODO: logging setup for _outbound_handler
+            logger.info("TODO: logging setup for _outbound_handler")
+            pass
+
+        return json.loads(json_data)
+
+    def _inbound_handler(self, json_data, merchant_id):
+        """
+        Handler service for inbound response i.e. response from async join. The response json is logged, converted to a
+        python object and passed to the relevant method for processing.
+        :param json_data: JSON payload
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: dict of response data
+        """
+        # log json_data
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
+
+        return self.process_join_response(json.loads(json_data))
+
+    def _sync_outbound(self, data, merchant_config):
+        """
+        Synchronous outbound service to build a request and make call to merchant endpoint.
+        Calls are made to security and back off services pre-request.
+        :param data: JSON string of payload to send to merchant
+        :param merchant_config: dict of merchant configuration settings
+        :return: Response payload
+        """
+        raise NotImplementedError()
+
+    def _async_inbound(self, data, merchant_id, handler_type):
+        """
+        Asynchronous inbound service that will decode json based on configuration per merchant and return a success
+        response asynchronously before calling the inbound handler service.
+        :param data: Request JSON from merchant
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: None
+        """
+        # get merchant config
+
+        # decode payload using security service
+
+        # asynchronously call handler
+        # thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug, handler_type)
