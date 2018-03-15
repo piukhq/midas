@@ -22,6 +22,8 @@ CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 STATUS_REGISTRATION_FAILED = "STATUS_REGISTRATION_FAILED"
 NO_SUCH_RECORD = "NO_SUCH_RECORD"
 ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS"
+NOT_SENT = "NOT_SENT"
+GENERAL_ERROR = "GENERAL_ERROR"
 
 errors = {
     STATUS_LOGIN_FAILED: {"code": 403,
@@ -58,6 +60,9 @@ errors = {
     ACCOUNT_ALREADY_EXISTS: {"code": 445,
                              "message": "An account with this username/email already exists",
                              "name": "Account already exists"},
+    NOT_SENT: {"code": 509,
+               "message": "message was not sent",
+               "name": "message was not sent"},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down.",
                     "name": "End site down"},
@@ -78,7 +83,10 @@ errors = {
                             "name": "Confirmation required"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
-              "name": "An unknown error has occurred"}
+              "name": "An unknown error has occurred"},
+    GENERAL_ERROR: {"code": 521,
+                    "message": "An unknown error has occurred",
+                    "name": "An unknown error has occurred"},
 }
 
 SYSTEM_ACTION_REQUIRED = [END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD]
