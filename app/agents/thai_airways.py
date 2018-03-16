@@ -48,7 +48,7 @@ class ThaiAirways(RoboBrowserMiner):
         self.headers["Referer"] = "https://www.thaiairways.com/en_TH/rop/index.page"
         self.headers["X-Requested-With"] = "XMLHttpRequest"
 
-        self.open_url(url, method='post', data=data, read_timeout=10)
+        self.browser.open(url, method='post', data=data)
 
         if "token" in self.browser.response.json().keys():
             self.token = self.browser.response.json()['token']
@@ -61,7 +61,7 @@ class ThaiAirways(RoboBrowserMiner):
             "member_id": self.member_id,
             "token": self.token
         }
-        self.open_url(url, method="post", data=data)
+        self.browser.open(url, method="post", data=data)
 
         points = extract_decimal(self.browser.response.json()["data"]["CurrentMileageRS"]["CurrentMileage"])
         return {

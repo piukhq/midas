@@ -1,41 +1,36 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.hertz import Hertz
+from app.agents.showcase import Showcase
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestHertz(unittest.TestCase):
+class TestShowcase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = Hertz(1, 1)
-        cls.h.attempt_login(CREDENTIALS['hertz'])
+        cls.m = Showcase(1, 1)
+        cls.m.attempt_login(CREDENTIALS['showcase'])
 
     def test_login(self):
-        self.assertEqual(self.h.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
 
     def test_transactions(self):
-        transactions = self.h.transactions()
+        transactions = self.m.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
-        balance = self.h.balance()
+        balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ reward rental day[s]?$|^$')
 
 
-class TestHertzFail(unittest.TestCase):
+class TestShowcaseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        h = Hertz(1, 1)
-        credentials = {
-            'username': '321321321',
-            'password': '321321321',
-        }
+        m = Showcase(1, 1)
         with self.assertRaises(LoginError) as e:
-            h.attempt_login(credentials)
+            m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
