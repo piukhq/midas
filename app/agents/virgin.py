@@ -40,8 +40,8 @@ class Virgin(RoboBrowserMiner):
     def parse_transaction(row):
         items = row.find_all('td')
         date_locator = items[0].contents[1]
-        description_locator = items[1].contents[1]
-        points_locator = items[2].contents[3]
+        description_locator = items[2].contents[1]
+        points_locator = items[3].contents[3]
         return {
             'date': arrow.get(date_locator.strip(), 'DD MMMM YYYY'),
             'description': description_locator.strip(),

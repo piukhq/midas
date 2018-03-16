@@ -63,3 +63,16 @@ def minify_number(n):
             break
 
     return '{0}{1}'.format(total, units[count - 1])
+
+
+def get_config(merchant_id, handler_type):
+    """
+    TODO: get config from helios database
+    :param merchant_id:
+    :param handler_type:
+    :return:
+    """
+    config = {'log_level': 'DEBUG'}
+    if not config:
+        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+    return config
