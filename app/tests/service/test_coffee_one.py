@@ -30,7 +30,7 @@ class TestCoffeeOneFail(unittest.TestCase):
     def test_bad_login(self):
         h = CoffeeOne(1, 1)
         credentials = {
-            "card-number": '0000000000',
+            "card_number": '0000000000',
             "pin": "000000"
         }
         with self.assertRaises(LoginError) as e:
