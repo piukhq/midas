@@ -22,7 +22,8 @@ from app.security import get_security_agent
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
+    ACCOUNT_ALREADY_EXISTS
 from app.publish import put, thread_pool_executor
 from settings import HERMES_URL
 
@@ -355,6 +356,14 @@ class MerchantApi(BaseMiner):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
 
+        # { error we raise: error we receive in merchant payload}
+        self.errors = {
+            NO_SUCH_RECORD: 'NO_SUCH_RECORD',
+            STATUS_LOGIN_FAILED: ['MALFORMED'],
+            ACCOUNT_ALREADY_EXISTS: 'ALREADY_PROCESSED',
+            UNKNOWN: 'MALFORMED'
+        }
+
     def login(self, credentials):
         """
         Calls handler, passing in handler_type as either 'validate' or 'update' depending on if a link
@@ -364,9 +373,7 @@ class MerchantApi(BaseMiner):
         """
         handler_type = 'validate' if credentials['link'] else 'update'
 
-        self.response_data = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
-
-
+        self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
     def register(self, data, inbound=False):
         """
@@ -509,6 +516,11 @@ class MerchantApi(BaseMiner):
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
 
+    def handle_errors(self, response, exception_type=LoginError):
+        for key, values in self.errors.items():
+            if response in values:
+                raise exception_type(key)
+        raise AgentError(UNKNOWN)
 
 class BackOffService:
     # TODO: Remove when implementing the back off service
