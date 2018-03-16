@@ -10,7 +10,6 @@ from app.utils import extract_decimal
 
 
 class Hyatt(RoboBrowserMiner):
-    time_token = str(float(time.time())).replace('.', '')[:-3]
 
     def get_csrf(self):
         self.open_url('https://www.hyatt.com/home')
