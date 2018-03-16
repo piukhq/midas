@@ -72,4 +72,7 @@ def get_config(merchant_id, handler_type):
     :param handler_type:
     :return:
     """
-    return {'log_level': 'DEBUG'}
+    config = {'log_level': 'DEBUG'}
+    if not config:
+        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+    return config
