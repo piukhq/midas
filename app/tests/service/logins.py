@@ -237,6 +237,7 @@ CREDENTIALS = {
     },
     "hyatt": {
         "username": "528180109F",
+        "last_name": "angels",
         "password": "Y2bRrPJ39V",
     },
     "holland_and_barrett": {
