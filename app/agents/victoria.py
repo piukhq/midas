@@ -49,6 +49,7 @@ class Victoria(RoboBrowserMiner):
         for x in points:
             if x.select('sup')[0].text == 'Miles':
                 points = extract_decimal(x.text)
+                break
 
         return {
             'points': points,
