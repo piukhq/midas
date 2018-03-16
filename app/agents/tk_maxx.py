@@ -53,7 +53,7 @@ class TKMaxx(RoboBrowserMiner):
         row = row.split('\n')
         return {
             'date': arrow.get(row[0], 'DD MMM YYYY'),
-            'description': "%s, Items: %s" % (row[1], row[2]),
+            'description': "{}, Items: {}".format(row[1], row[2]),
             'points': Decimal(1)
         }
 
