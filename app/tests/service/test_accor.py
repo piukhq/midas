@@ -2,11 +2,7 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.accor import Accor
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS, update_credentials
-
-if not CREDENTIALS:
-    update_credentials()
-    from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS
 
 
 class TestAccor(unittest.TestCase):
