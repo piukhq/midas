@@ -95,7 +95,6 @@ class Balance(Resource):
     def handle_async_balance(agent_class, scheme_slug, user_info, tid):
         scheme_account_id = user_info['scheme_account_id']
         if user_info['status'] == 'WALLET_ONLY':
-            scheme_account_id = scheme_account_id
             prev_balance = publish.zero_balance(scheme_account_id, user_info['user_id'], tid)
             publish.status(scheme_account_id, 0, tid)
         else:
