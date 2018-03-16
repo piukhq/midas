@@ -1,8 +1,9 @@
+import re
+import json
 from decimal import Decimal
 
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
-from app.utils import extract_decimal
 
 
 class Omni(RoboBrowserMiner):
@@ -10,7 +11,7 @@ class Omni(RoboBrowserMiner):
 
     def check_if_logged_in(self):
         try:
-            logged_in_sign = self.browser.select('h3 a')[0].text
+            logged_in_sign = self.browser.select('div.header-btns > a')[0].text
             if logged_in_sign == "Sign Out":
                 self.is_login_successful = True
         except Exception:
@@ -27,7 +28,13 @@ class Omni(RoboBrowserMiner):
         self.check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(self.browser.select('div.accountSummary > div > div > div > span')[7].text)
+        re_id = re.compile('\s*data: ?{ ?.?NameID.?: ?.?([0-9]+).? ?},')
+        target = self.browser.select('div.col-xs-12 > script')[0].text
+        user_id = re_id.findall(target)[0]
+
+        self.browser.open('https://ssl.omnihotels.com/WebServices/sg_info?NameID={}'.format(user_id))
+        result = json.loads(self.browser.response.text)
+        points = Decimal(result['result']['tier_nights'])
 
         reward = self.calculate_tiered_reward(points, [
             (30, 'Black membership'),
