@@ -21,7 +21,7 @@ from app.security import get_security_agent
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, GENERAL_ERROR
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors
 from app.publish import put
 from settings import HERMES_URL
 
@@ -461,7 +461,7 @@ class MerchantApi(BaseMiner):
                 elif status in [503, 504, 408]:
                     response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
                 else:
-                    response_json = json.dumps({'status_code': errors[GENERAL_ERROR]['code'],
+                    response_json = json.dumps({'status_code': errors[UNKNOWN]['code'],
                                                 'description': 'An Unknown error has occurred with status code {}'
                                                .format(status)})
 

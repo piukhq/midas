@@ -5,7 +5,7 @@ import requests
 from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
-from app.agents.exceptions import NOT_SENT, errors, GENERAL_ERROR
+from app.agents.exceptions import NOT_SENT, errors, UNKNOWN
 
 
 class TestMerchantApi(TestCase):
@@ -85,7 +85,7 @@ class TestMerchantApi(TestCase):
 
         resp = self.m._sync_outbound(self.data, self.config)
 
-        self.assertEqual(json.dumps({'status_code': errors[GENERAL_ERROR]['code'],
+        self.assertEqual(json.dumps({'status_code': errors[UNKNOWN]['code'],
                                      'description': 'An Unknown error has occurred with status code {}'
                                     .format(response.status_code)}), resp)
         self.assertTrue(mock_backoff.activate_cooldown.called)
