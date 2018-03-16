@@ -43,6 +43,10 @@ class RSPB(RoboBrowserMiner):
         visit_date = row[1]
         action = row[3].text
         amount_spent = row[4].text
+        if amount_spent == '£0.00':
+            amount_spent = ''
+        else:
+            amount_spent = ': {}'.format(amount_spent)
         total_points = row[6].text
 
         date = visit_date
@@ -50,7 +54,7 @@ class RSPB(RoboBrowserMiner):
 
         return {
             'date': date,
-            'description': action + ' - ' + amount_spent,
+            'description': action + amount_spent,
             'points': Decimal(total_points),
         }
 

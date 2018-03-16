@@ -102,3 +102,16 @@ def raise_intercom_event(event_name, user_id, metadata):
 
 class IntercomException(Exception):
     pass
+
+
+def get_config(merchant_id, handler_type):
+    """
+    TODO: get config from helios database
+    :param merchant_id:
+    :param handler_type:
+    :return:
+    """
+    config = {'log_level': 'DEBUG'}
+    if not config:
+        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+    return config

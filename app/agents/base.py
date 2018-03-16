@@ -1,9 +1,13 @@
 import hashlib
+import json
 from decimal import Decimal
 from collections import defaultdict
+import os
 from urllib.parse import urlsplit
 
 import _ssl
+from uuid import uuid4
+
 import requests
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
@@ -15,9 +19,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
+from app import utils
+from app.security import get_security_agent
+from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors
+from app.publish import thread_pool_executor
 
 
 class SSLAdapter(HTTPAdapter):
@@ -37,7 +45,7 @@ class SSLAdapter(HTTPAdapter):
 class BaseMiner(object):
     retry_limit = 2
     point_conversion_rate = Decimal('0')
-    connect_timeout = 1
+    connect_timeout = 3
     known_captcha_signatures = [
         'recaptcha',
         'captcha',
@@ -225,6 +233,15 @@ class RoboBrowserMiner(BaseMiner):
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
 
+    @staticmethod
+    def get_requests_cacert():
+        cacert_file = os.path.dirname(requests.__file__) + '/cacert.pem'
+        if os.path.isfile(cacert_file):
+            return cacert_file
+
+        # verify = True will mean requests uses certifi's cacert.pem for verifying ssl connections
+        return True
+
 
 # Based on requests library
 class ApiMiner(BaseMiner):
@@ -330,3 +347,162 @@ class SeleniumMiner(BaseMiner):
         WebDriverWait(self.browser, timeout).until(
             ec.text_to_be_present_in_element((webdriver.common.by.By.CSS_SELECTOR, css_selector), text)
         )
+
+
+class MerchantApi(BaseMiner):
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        self.retry_count = retry_count
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
+
+    def login(self, credentials):
+        """
+        Calls handler, passing in handler_type as either 'validate' or 'update' depending on if a link
+        request was made or not. A link boolean should be in the credentials to check if request was a link.
+        :param credentials: user account credentials for merchant scheme
+        :return: None
+        """
+
+    def register(self, data, inbound=False):
+        """
+        Calls handler, passing in 'join' as the handler_type.
+        :param data: user account credentials to register for merchant scheme or merchant response for outbound
+                     or inbound processes respectively.
+        :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
+        :return: None
+        """
+        # TODO: error handling?
+        if inbound:
+            self._async_inbound(data, self.scheme_slug, handler_type='join')
+        else:
+            self._outbound_handler(data, self.scheme_slug, handler_type='join')
+
+    # Should be overridden in the agent if there is agent specific processing required for their response.
+    def process_join_response(self, response):
+        """
+        Processes a merchant's response to a join request.
+        :param response: JSON data of a merchant's response
+        :return: None
+        """
+        # check for error response
+
+        # link account (get balance and transactions)
+
+        raise NotImplementedError()
+
+    def _outbound_handler(self, data, merchant_id, handler_type):
+        """
+        Handler service to apply merchant configuration and build JSON, for request to the merchant, and
+        handles response. Configuration service is called to retrieve merchant config.
+        :param data: python object data to be built into the JSON object.
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :return: dict of response data
+        """
+        message_uid = str(uuid4())
+
+        config = utils.get_config(merchant_id, handler_type)
+
+        data['message_uid'] = message_uid
+        data['callback_url'] = config.get('callback_url')
+
+        payload = json.dumps(data)
+
+        # log payload
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _outbound_handler")
+
+        json_data = self._sync_outbound(payload, config)
+
+        if json_data and config['log_level']:
+            # check if response is error and set logging fields
+            # log json_data
+            # TODO: logging setup for _outbound_handler
+            logger.info("TODO: logging setup for _outbound_handler")
+            pass
+
+        return json.loads(json_data)
+
+    def _inbound_handler(self, json_data, merchant_id):
+        """
+        Handler service for inbound response i.e. response from async join. The response json is logged,
+        converted to a python object and passed to the relevant method for processing.
+        :param json_data: JSON payload
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: dict of response data
+        """
+        # log json_data
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
+
+        return self.process_join_response(json.loads(json_data))
+
+    def _sync_outbound(self, data, config):
+        """
+        Synchronous outbound service to build a request and make call to merchant endpoint.
+        Calls are made to security and back off services pre-request.
+        :param data: JSON string of payload to send to merchant
+        :param config: dict of merchant configuration settings
+        :return: Response payload
+        """
+
+        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        request = security_agent.encode(data)
+
+        for retry_count in range(1 + config['retry_limit']):
+            if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
+                # TODO: check merchant response format
+                response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                break
+            else:
+                response = requests.post(config['merchant_url'], **request)
+                status = response.status_code
+
+                if status == 200:
+                    response_json = response.json()
+                    # Check if request was redirected
+                    # TODO: logging for redirects
+                    if response.history:
+                        logger.warning("TODO: logging setup for redirect in _sync_outbound")
+                    break
+
+                elif status in [503, 504, 408]:
+                    response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                else:
+                    response_json = json.dumps({'status_code': errors[UNKNOWN]['code'],
+                                                'description': 'An Unknown error has occurred with status code {}'
+                                               .format(status)})
+
+                if retry_count == config['retry_limit']:
+                    BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
+
+        return response_json
+
+    def _async_inbound(self, data, merchant_id, handler_type):
+        """
+        Asynchronous inbound service that will decode json based on configuration per merchant and return
+        a success response asynchronously before calling the inbound handler service.
+        :param data: Request JSON from merchant
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: None
+        """
+        config = utils.get_config(merchant_id, handler_type)
+
+        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        decoded_data = security_agent.decode(data)
+
+        # asynchronously call handler
+        thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
+
+
+class BackOffService:
+    # TODO: Remove when implementing the back off service
+    @classmethod
+    def is_on_cooldown(cls, merchant_id, handler_type):
+        print('cooldown checked for {}/{}'.format(merchant_id, handler_type))
+        return False
+
+    @classmethod
+    def activate_cooldown(cls, merchant_id, handler_type, time):
+        print('activated cooldown for {}/{} of {} seconds'.format(merchant_id, handler_type, time))

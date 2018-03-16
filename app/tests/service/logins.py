@@ -64,7 +64,7 @@ CREDENTIALS = {
         "password": "BJHansbrics3",
     },
     "coffee-one": {
-        "card-number": "2201710508",
+        "card_number": "2201710508",
         "pin": "610469",
     },
     "greggs": {
@@ -89,7 +89,7 @@ CREDENTIALS = {
     },
     "debenhams": {
         "email": "loyaltycards01@gmail.com",
-        "password": "HqT3hA6Evz",
+        "password": "Loyalty01",
     },
     "victoria": {
         "email": "loyaltycards01@gmail.com",
@@ -237,6 +237,7 @@ CREDENTIALS = {
     },
     "hyatt": {
         "username": "528180109F",
+        "last_name": "angels",
         "password": "Y2bRrPJ39V",
     },
     "holland_and_barrett": {
@@ -378,6 +379,10 @@ CREDENTIALS = {
     },
     "watkins-and-faux": {
         "barcode": "TADLFvwk4s",
+    },
+    "showcase": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01"
     },
     "northney-farm-tea-room": {
         "barcode": "TADLFvwk4s",

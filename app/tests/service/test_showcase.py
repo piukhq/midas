@@ -1,36 +1,36 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.hyatt import Hyatt
+from app.agents.showcase import Showcase
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestHyatt(unittest.TestCase):
+class TestShowcase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Hyatt(1, 1)
-        cls.m.attempt_login(CREDENTIALS['hyatt'])
+        cls.m = Showcase(1, 1)
+        cls.m.attempt_login(CREDENTIALS['showcase'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
+
+    def test_transactions(self):
+        transactions = self.m.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
 
 
-class TestHyattFail(unittest.TestCase):
+class TestShowcaseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Hyatt(1, 1)
-        credentials = {
-            'username': '000000000F',
-            'last_name': 'wrong',
-            'password': '321321321',
-        }
+        m = Showcase(1, 1)
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
+            m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
