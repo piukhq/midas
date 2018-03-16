@@ -1,5 +1,4 @@
 import re
-import time
 
 from decimal import Decimal
 from urllib.parse import urlsplit
