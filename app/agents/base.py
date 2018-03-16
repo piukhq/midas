@@ -23,7 +23,7 @@ from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors
-from app.publish import put
+from app.publish import put, thread_pool_executor
 from settings import HERMES_URL
 
 
@@ -373,9 +373,9 @@ class MerchantApi(BaseMiner):
         """
         # TODO: error handling?
         if inbound:
-            self._async_inbound(data, self.scheme_slug, 'join')
+            self._async_inbound(data, self.scheme_slug, handler_type='join')
         else:
-            self._outbound_handler(data, self.scheme_slug, 'join')
+            self._outbound_handler(data, self.scheme_slug, handler_type='join')
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self, response):
@@ -402,8 +402,6 @@ class MerchantApi(BaseMiner):
         message_uid = str(uuid4())
 
         config = utils.get_config(merchant_id, handler_type)
-        if not config:
-            raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
 
         data['message_uid'] = message_uid
         data['callback_url'] = config.get('callback_url')
@@ -488,12 +486,13 @@ class MerchantApi(BaseMiner):
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: None
         """
-        # get merchant config
+        config = utils.get_config(merchant_id, handler_type)
 
-        # decode payload using security service
+        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        decoded_data = security_agent.decode(data)
 
         # asynchronously call handler
-        # thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug, handler_type)
+        thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
 
 
 class BackOffService:
