@@ -362,6 +362,11 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
+        handler_type = 'validate' if credentials['link'] else 'update'
+
+        self.response_data = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+
+
 
     def register(self, data, inbound=False):
         """
@@ -451,8 +456,11 @@ class MerchantApi(BaseMiner):
 
         for retry_count in range(1 + config['retry_limit']):
             if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
-                # TODO: check merchant response format
-                response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                response_json = json.dumps(
+                    {'error_codes': [
+                        {'code': errors[NOT_SENT]['code'], 'description': errors[NOT_SENT]['name']}
+                    ]}
+                )
                 break
             else:
                 response = requests.post(config['merchant_url'], **request)
@@ -467,11 +475,18 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                    response_json = json.dumps(
+                        {'error_codes': [
+                            {'code': errors[NOT_SENT]['code'], 'description': errors[NOT_SENT]['name']}
+                        ]}
+                    )
                 else:
-                    response_json = json.dumps({'status_code': errors[UNKNOWN]['code'],
-                                                'description': 'An Unknown error has occurred with status code {}'
-                                               .format(status)})
+                    response_json = json.dumps(
+                        {'error_codes': [
+                            {'code': errors[UNKNOWN]['code'],
+                             'description': errors[UNKNOWN]['name'] + 'with status code {}'.format(status)}
+                        ]}
+                    )
 
                 if retry_count == config['retry_limit']:
                     BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
