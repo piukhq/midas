@@ -379,6 +379,10 @@ CREDENTIALS = {
     "watkins-and-faux": {
         "barcode": "TADLFvwk4s",
     },
+    "showcase": {
+        "email": "loyaltycards01@gmail.com",
+        "password": "Loyalty01"
+    },
     "northney-farm-tea-room": {
         "barcode": "TADLFvwk4s",
     },
