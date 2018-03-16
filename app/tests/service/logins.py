@@ -89,7 +89,7 @@ CREDENTIALS = {
     },
     "debenhams": {
         "email": "loyaltycards01@gmail.com",
-        "password": "HqT3hA6Evz",
+        "password": "Loyalty01",
     },
     "victoria": {
         "email": "loyaltycards01@gmail.com",
