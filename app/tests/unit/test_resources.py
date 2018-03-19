@@ -17,7 +17,6 @@ from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, async_get_balance_and_publish, \
     get_balance_and_publish, update_pending_link_account, update_pending_join_account
-from app.tests.service import logins
 from settings import AES_KEY
 
 CREDENTIALS = {
