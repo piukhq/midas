@@ -9,7 +9,7 @@ class TestIhg(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Ihg(1, 1)
-        cls.m.attempt_login(CREDENTIALS['ihg'])
+        cls.m.attempt_login(CREDENTIALS['rewards-club'])
 
     def test_login(self):
         self.assertTrue(self.m.is_login_successful)

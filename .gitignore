@@ -7,3 +7,6 @@
 test_*.xml
 andrew
 .DS_Store
+.vscode
+.cache
+.pytest_cache

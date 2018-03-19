@@ -10,7 +10,7 @@ class TestTheWorks(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = TheWorks(1, 1)
-        cls.m.attempt_login(CREDENTIALS['the_works'])
+        cls.m.attempt_login(CREDENTIALS['together-rewards-card'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

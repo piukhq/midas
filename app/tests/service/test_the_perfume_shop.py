@@ -10,7 +10,7 @@ class TestThePerfumeShop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = ThePerfumeShop(1, 1)
-        cls.m.attempt_login(CREDENTIALS['the_perfume_shop'])
+        cls.m.attempt_login(CREDENTIALS['the-perfume-shop'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

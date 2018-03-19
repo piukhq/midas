@@ -10,7 +10,7 @@ class TestMorrisons(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Morrisons(1, 1)
-        cls.b.attempt_login(CREDENTIALS["morrisons"])
+        cls.b.attempt_login(CREDENTIALS["match-more"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

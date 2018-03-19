@@ -9,7 +9,7 @@ class TestMandCo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = MandCo(1, 1)
-        cls.m.attempt_login(CREDENTIALS["mandco"])
+        cls.m.attempt_login(CREDENTIALS["m-co-loyalty-card"])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

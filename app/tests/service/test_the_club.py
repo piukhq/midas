@@ -9,7 +9,7 @@ class TestMacdonaldHotels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = TheClub(1, 1)
-        cls.b.attempt_login(CREDENTIALS["the-club"])
+        cls.b.attempt_login(CREDENTIALS["macdonald-hotels"])
 
     def test_login(self):
         self.assertTrue(self.b.is_login_successful)

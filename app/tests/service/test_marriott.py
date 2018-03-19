@@ -10,7 +10,7 @@ class TestMarriott(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Marriott(1, 1)
-        cls.b.attempt_login(CREDENTIALS["marriott"])
+        cls.b.attempt_login(CREDENTIALS["marriott-rewards-card"])
 
     def test_login(self):
         self.assertTrue(self.b.is_login_successful)
