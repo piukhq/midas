@@ -164,7 +164,7 @@ class HarveyNichols(ApiMiner):
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
-                self.identifier = json_result['customerNumber']
+                self.identifier = {self.identifier_type: json_result['customerNumber']}
 
         else:
             self.handle_errors(json_result['outcome'])
