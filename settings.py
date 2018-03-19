@@ -58,3 +58,8 @@ MAX_VALUE_LABEL_LENGTH = 11
 INTERCOM_TOKEN = env_var('INTERCOM_TOKEN', 'dG9rOmE4MGYzNDRjX2U5YzhfNGQ1N184MTA0X2E4YTgwNDQ2ZGY1YzoxOjA=')
 INTERCOM_HOST = 'https://api.intercom.io'
 INTERCOM_EVENTS_PATH = 'events'
+
+HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
+
+CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', True)
+LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')

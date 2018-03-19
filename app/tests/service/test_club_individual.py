@@ -10,7 +10,7 @@ class TestClubIndividual(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.e = ClubIndividual(1, 1)
-        cls.e.attempt_login(CREDENTIALS['club_individual'])
+        cls.e.attempt_login(CREDENTIALS['club-individual'])
 
     def test_login(self):
         self.assertTrue(self.e.is_login_successful)

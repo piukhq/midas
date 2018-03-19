@@ -10,7 +10,7 @@ class TestSpaceNK(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = SpaceNK(1, 1)
-        cls.m.attempt_login(CREDENTIALS['space_nk'])
+        cls.m.attempt_login(CREDENTIALS['space-nk'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

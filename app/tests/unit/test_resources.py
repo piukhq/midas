@@ -1,23 +1,36 @@
 import builtins
+import json
+import time
+from decimal import Decimal
+from unittest import mock
 from unittest.mock import mock_open
+
 from flask.ext.testing import TestCase
+
+from app import create_app, AgentException
+from app import publish
 from app.agents.avios import Avios
-from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
+from app.agents.harvey_nichols import HarveyNichols
+from app.encryption import AESCipher
+from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, async_get_balance_and_publish, \
     get_balance_and_publish, update_pending_link_account, update_pending_join_account
 from app.tests.service import logins
-from app.encryption import AESCipher
-from app import create_app, AgentException
 from settings import AES_KEY
-from unittest import mock
-from decimal import Decimal
-from app import publish
-from app.publish import thread_pool_executor
 
-import json
-import time
+CREDENTIALS = {
+    "tesco-clubcard": {},
+    "health-beautycard": {},
+    "advantage-card": {},
+    "harvey-nichols": {}
+}
+
+
+def encrypt(scheme_slug):
+    aes = AESCipher(AES_KEY.encode())
+    return aes.encrypt(json.dumps(CREDENTIALS[scheme_slug])).decode()
 
 
 class TestResources(TestCase):
@@ -61,7 +74,7 @@ class TestResources(TestCase):
     def test_user_balances(self, mock_async_balance_and_publish, mock_update_pending_join_account, mock_pool,
                            mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
-        credentials = logins.encrypt("tesco-clubcard")
+        credentials = encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -79,7 +92,7 @@ class TestResources(TestCase):
     def test_balance_none_exception(self, mock_update_pending_join_account, mock_pool,
                                     mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
-        credentials = logins.encrypt("tesco-clubcard")
+        credentials = encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -96,7 +109,7 @@ class TestResources(TestCase):
     def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login,
                                    mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
-        credentials = logins.encrypt("tesco-clubcard")
+        credentials = encrypt("tesco-clubcard")
         url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -113,7 +126,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
-        credentials = logins.encrypt("superdrug")
+        credentials = encrypt("health-beautycard")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -128,7 +141,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
-        credentials = logins.encrypt("superdrug")
+        credentials = encrypt("health-beautycard")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -143,7 +156,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = Exception('test error')
-        credentials = logins.encrypt("superdrug")
+        credentials = encrypt("health-beautycard")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -160,7 +173,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
-        credentials = logins.encrypt("superdrug")
+        credentials = encrypt("health-beautycard")
         url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -178,7 +191,7 @@ class TestResources(TestCase):
     def test_account_overview(self, mock_agent_login, mock_publish_balance, mock_publish_transactions):
         mock_agent_login.return_value.account_overview.return_value = {"balance": {},
                                                                        "transactions": []}
-        credentials = logins.encrypt("advantage-card")
+        credentials = encrypt("advantage-card")
         url = "/advantage-card/account_overview?credentials={0}&user_id={1}&scheme_account_id={2}".format(
             credentials, 1, 2)
         response = self.client.get(url)
@@ -252,7 +265,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
     def test_register_view(self, mock_pool):
-        credentials = logins.encrypt("harvey-nichols")
+        credentials = encrypt("harvey-nichols")
         url = "/harvey-nichols/register"
         data = {
             "scheme_account_id": 2,
@@ -318,7 +331,7 @@ class TestResources(TestCase):
     def test_registration(self, mock_update_pending_join_account, mock_agent_login, mock_agent_register,
                           mock_publish_transaction, mock_publish_status, mock_publish_balance):
         scheme_slug = "harvey-nichols"
-        credentials = logins.encrypt(scheme_slug)
+        credentials = encrypt(scheme_slug)
         scheme_account_id = 2
         user_id = 4
 
@@ -343,7 +356,7 @@ class TestResources(TestCase):
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
 
         scheme_slug = "harvey-nichols"
-        credentials = logins.encrypt(scheme_slug)
+        credentials = encrypt(scheme_slug)
         scheme_account_id = 2
         user_id = 4
 

@@ -1,27 +1,25 @@
-import json
 import functools
+import json
 
-from flask.ext.restful.utils.cors import crossdomain
-from influxdb.exceptions import InfluxDBClientError
 import requests
-
-import settings
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
-
-from app.exceptions import AgentException, UnknownException
-from app import retry
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
-from app.utils import resolve_agent, raise_intercom_event
-from app.encoding import JsonEncoder
-from app import publish
-from app.encryption import AESCipher
-from app.publish import thread_pool_executor
-from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests, test_single_agent
 from flask import make_response, request
+from flask.ext.restful.utils.cors import crossdomain
 from flask_restful import Resource, Api, abort
 from flask_restful_swagger import swagger
+from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
+
+import settings
+from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests, test_single_agent, get_agent_list
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
+from app import retry, publish
+from app.encoding import JsonEncoder
+from app.encryption import AESCipher
+from app.exceptions import AgentException, UnknownException
+from app.publish import thread_pool_executor
+from app.utils import resolve_agent, raise_intercom_event
+from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
+                                   ACCOUNT_ALREADY_EXISTS)
 
 api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
@@ -296,7 +294,9 @@ class AgentsErrorResults(Resource):
 
     def get(self):
         run_agent_tests()
-        return get_formatted_message(settings.JUNIT_XML_FILENAME)
+        error_msg = get_formatted_message(settings.JUNIT_XML_FILENAME)
+        agent_list = get_agent_list()
+        return dict(agents=agent_list, errors=error_msg)
 
 
 api.add_resource(AgentsErrorResults, '/agents_error_results', endpoint='api.agents_error_results')
