@@ -1,3 +1,4 @@
+import os
 import json
 
 from sqlalchemy import create_engine, text
@@ -16,7 +17,7 @@ from settings import AES_KEY, HELIOS_DB_URI
 #     update_credentials()
 #     from app.tests.service.logins import CREDENTIALS
 
-if settings.CREDENTIALS_LOCAL:
+if settings.CREDENTIALS_LOCAL and os.path.exists(settings.LOCAL_CREDENTIALS_FILE):
     with open(settings.LOCAL_CREDENTIALS_FILE, 'r') as f:
         CREDENTIALS = json.loads(f.read())
 
@@ -76,5 +77,6 @@ def update_credentials():
     if settings.CREDENTIALS_LOCAL:
         return
 
-    global CREDENTIALS
-    CREDENTIALS = get_credentials()
+    else:
+        global CREDENTIALS
+        CREDENTIALS = get_credentials()
