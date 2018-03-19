@@ -8,9 +8,9 @@ from app.agents.base import MerchantApi
 class BasicMerchant(MerchantApi):
     def balance(self):
         return {
-            'points': Decimal(self.result['balance']['unit']),
-            'value': Decimal(self.result['balance']['value']),
-            'value_label': '',
+            "points": Decimal(self.result['balance']['value']),
+            "value": Decimal(0),
+            "value_label": '',
         }
 
     def scrape_transactions(self):
@@ -21,5 +21,5 @@ class BasicMerchant(MerchantApi):
         return {
             "date": arrow.get(row['timestamp']),
             "description": row['reference'],
-            "points": Decimal(row['unit']),
+            "points": Decimal(row['value']),
         }

@@ -72,7 +72,15 @@ def get_config(merchant_id, handler_type):
     :param handler_type:
     :return:
     """
-    config = {'log_level': 'DEBUG'}
+    config = {
+        'log_level': 'DEBUG',
+        'merchant_id': 'fake-merchant',
+        'merchant_url': 'http://127.0.0.1:8002/dashboard/update/',
+        'security_service': 'RSA',
+        'security_credentials': 'creds',
+        'handler_type': 'join',
+        'retry_limit': 2,
+    }
     if not config:
         raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
     return config

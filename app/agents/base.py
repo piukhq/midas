@@ -359,9 +359,9 @@ class MerchantApi(BaseMiner):
         # { error we raise: error we receive in merchant payload}
         self.errors = {
             NO_SUCH_RECORD: 'NO_SUCH_RECORD',
-            STATUS_LOGIN_FAILED: ['MALFORMED'],
+            STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: 'ALREADY_PROCESSED',
-            UNKNOWN: 'MALFORMED'
+            UNKNOWN: 'GENERAL_ERROR'
         }
 
     def login(self, credentials):
@@ -371,9 +371,13 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        handler_type = 'validate' if credentials['link'] else 'update'
+        handler_type = 'validate' if credentials.get('status') else 'update'
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+
+        error = self.result['error_codes'][0]['description']
+        if error:
+            self.handle_errors(error)
 
     def register(self, data, inbound=False):
         """
@@ -383,11 +387,14 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        # TODO: error handling?
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type='join')
         else:
-            self._outbound_handler(data, self.scheme_slug, handler_type='join')
+            self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
+
+            error = self.result['error_codes'][0]['description']
+            if error:
+                self.handle_errors(error)
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self, response):
@@ -424,16 +431,14 @@ class MerchantApi(BaseMiner):
         # TODO: logging setup for _outbound_handler
         logger.info("TODO: logging setup for _outbound_handler")
 
-        json_data = self._sync_outbound(payload, config)
+        response_data = self._sync_outbound(payload, config)
 
-        if json_data and config['log_level']:
-            # check if response is error and set logging fields
+        if response_data and config['log_level']:
             # log json_data
             # TODO: logging setup for _outbound_handler
             logger.info("TODO: logging setup for _outbound_handler")
-            pass
 
-        return json.loads(json_data)
+        return json.loads(response_data)
 
     def _inbound_handler(self, json_data, merchant_id):
         """
@@ -474,7 +479,7 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = response.json()
+                    response_json = response.content
                     # Check if request was redirected
                     # TODO: logging for redirects
                     if response.history:
