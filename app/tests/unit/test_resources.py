@@ -208,7 +208,8 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_bad_agent_updates_status(self, mock_submit):
-        credentials = logins.encrypt('avios')
+        credentials = ('JnoPkhKfU6uddLtbTTOvr1DgsNBeWhI0ADM2VGyfTFR8Wi2%2FRHQ5SX%2Bvk'
+                       'zIgqmsGGqq94x%2BcBd7Vd%2FKsRTOEBDkV45rsm6WRV6wfZTC51rQ%3D')
         url = '/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_id=1'.format(credentials)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
