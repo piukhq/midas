@@ -1,11 +1,14 @@
+import os
 import json
 
 from sqlalchemy import create_engine, text
 
+import settings
 from app.encryption import AESCipher
 from settings import AES_KEY, HELIOS_DB_URI
 
 # ------------------------------------------------------- #
+# ----- If CREDENTIALS_LOCAL is not set to True --------- #
 # - When running test locally from console please add --- #
 # - this at the top of the agent just under the imports - #
 # ------------------------------------------------------- #
@@ -14,7 +17,12 @@ from settings import AES_KEY, HELIOS_DB_URI
 #     update_credentials()
 #     from app.tests.service.logins import CREDENTIALS
 
-CREDENTIALS = None
+if settings.CREDENTIALS_LOCAL and os.path.exists(settings.LOCAL_CREDENTIALS_FILE):
+    with open(settings.LOCAL_CREDENTIALS_FILE, 'r') as f:
+        CREDENTIALS = json.loads(f.read())
+
+else:
+    CREDENTIALS = None
 
 
 def get_credentials(agent=None):
@@ -66,5 +74,9 @@ def update_credentials():
     Update the CREDENTIALS dictionary with the latest values.
     :return: None
     """
-    global CREDENTIALS
-    CREDENTIALS = get_credentials()
+    if settings.CREDENTIALS_LOCAL:
+        return
+
+    else:
+        global CREDENTIALS
+        CREDENTIALS = get_credentials()

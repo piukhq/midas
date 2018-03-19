@@ -9,4 +9,5 @@ andrew
 .DS_Store
 .vscode
 .cache
+*.json
 .pytest_cache
