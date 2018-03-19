@@ -56,5 +56,5 @@ MAX_VALUE_LABEL_LENGTH = 11
 
 HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
 
-CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', True)
+CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
