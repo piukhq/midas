@@ -527,6 +527,7 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
+
 class BackOffService:
     # TODO: Remove when implementing the back off service
     @classmethod
