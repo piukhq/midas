@@ -496,7 +496,7 @@ class MerchantApi(BaseMiner):
                     response_json = json.dumps(
                         {'error_codes': [
                             {'code': errors[UNKNOWN]['code'],
-                             'description': errors[UNKNOWN]['name'] + 'with status code {}'.format(status)}
+                             'description': errors[UNKNOWN]['name'] + ' with status code {}'.format(status)}
                         ]}
                     )
 
