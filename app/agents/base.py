@@ -29,7 +29,6 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
 from app.publish import thread_pool_executor
 
 
-
 class SSLAdapter(HTTPAdapter):
 
     def __init__(self, ssl_version=None, **kwargs):
