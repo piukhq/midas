@@ -15,7 +15,6 @@ from influxdb import InfluxDBClient
 from slacker import Slacker
 
 from app.active import AGENTS
-from app.tests.service.logins import update_credentials
 from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, INFLUX_HOST, INFLUX_PORT, INFLUX_USER, \
     INFLUX_PASSWORD, INFLUX_DATABASE, HEARTBEAT_URL
 
@@ -219,7 +218,6 @@ def resolve_issue(classname):
 
 
 def test_single_agent(a):
-    update_credentials()
     a = a.replace(" ", "_")
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     junit_single_agent_xml = 'tests_results/test_' + a + '.xml'
@@ -228,7 +226,6 @@ def test_single_agent(a):
 
 
 def run_agent_tests():
-    update_credentials()
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
