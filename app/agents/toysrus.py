@@ -27,5 +27,9 @@ class Toysrus(RoboBrowserMiner):
             'value_label': '',
         }
 
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
     def scrape_transactions(self):
-        return None
+        return []

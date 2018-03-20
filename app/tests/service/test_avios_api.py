@@ -22,6 +22,11 @@ class TestAviosAPI(unittest.TestCase):
         schemas.balance(balance)
         self.assertEqual('', balance['value_label'])
 
+    def test_transactions(self):
+        transactions = self.b.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
+
 
 class TestAviosFakeLogin(unittest.TestCase):
 
