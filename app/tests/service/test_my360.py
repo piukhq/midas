@@ -106,3 +106,7 @@ class My360LoginUserEmailFitStuffTest(StandardLoginTestsMixin, unittest.TestCase
 class My360LoginFailUserEmailFitStuffTest(StandardLoginFailTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'fit-stuff'
     SAVED_CREDENTIALS = CREDENTIALS['my360']
+
+
+if __name__ == '__main__':
+    unittest.main()
