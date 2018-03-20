@@ -176,15 +176,15 @@ def get_error_cause(error_text):
 def get_problematic_agents(test_results):
     parsed_results = parse_test_results(test_results)
 
-    agents = []
+    agent_list = []
     for class_name, result in parsed_results.items():
         if result['count'] > 0:
-            agents.append({
+            agent_list.append({
                 'classname': class_name,
                 'name': class_name.replace('test_', '', 1).replace('_', ' '),
                 'cause': result['cause']
             })
-    return agents
+    return agent_list
 
 
 def parse_test_results(test_results):
@@ -255,6 +255,15 @@ def get_agent_list():
             agents_for_helios[name] = slug if name != 'my360' else name
 
     return agents_for_helios
+
+
+def handle_helios_request():
+    send_to_helios({}, running_tests=True)
+    run_agent_tests()
+    error_msg = get_formatted_message(JUNIT_XML_FILENAME)
+    agent_list = get_agent_list()
+    helios_data = dict(agents=agent_list, errors=error_msg)
+    send_to_helios(helios_data)
 
 
 if __name__ == '__main__':

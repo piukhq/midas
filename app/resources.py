@@ -10,7 +10,7 @@ from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
 
 import settings
-from cron_test_results import resolve_issue, get_formatted_message, run_agent_tests, test_single_agent, get_agent_list
+from cron_test_results import resolve_issue, get_formatted_message, handle_helios_request, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 from app import retry, publish
 from app.encoding import JsonEncoder
@@ -291,12 +291,10 @@ api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questio
 
 
 class AgentsErrorResults(Resource):
-
-    def get(self):
-        run_agent_tests()
-        error_msg = get_formatted_message(settings.JUNIT_XML_FILENAME)
-        agent_list = get_agent_list()
-        return dict(agents=agent_list, errors=error_msg)
+    @staticmethod
+    def get():
+        thread_pool_executor.submit(handle_helios_request)
+        return dict(success=True, errors=None)
 
 
 api.add_resource(AgentsErrorResults, '/agents_error_results', endpoint='api.agents_error_results')
