@@ -9,7 +9,7 @@ class TestIhg(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Ihg(1, 1)
-        cls.m.attempt_login(CREDENTIALS['ihg'])
+        cls.m.attempt_login(CREDENTIALS['rewards-club'])
 
     def test_login(self):
         self.assertTrue(self.m.is_login_successful)
@@ -36,10 +36,10 @@ class TestIHGFail(unittest.TestCase):
             m.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    def test_login_bad_pin(self):
+    def test_login_bad_username(self):
         m = Ihg(1, 1)
         credentials = {
-            'username': 'la@loyaltyangels.com',
+            'username': 'bad',
             'pin': '0000',
             'last_name': 'bad'
         }

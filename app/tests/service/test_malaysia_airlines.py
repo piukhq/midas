@@ -10,7 +10,7 @@ class TestMalaysiaAirlines(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = MalaysiaAirlines(1, 1)
-        cls.m.attempt_login(CREDENTIALS['malaysia_airlines'])
+        cls.m.attempt_login(CREDENTIALS['enrich'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

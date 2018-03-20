@@ -80,29 +80,29 @@ class StandardLoginFailTestsMixin(object):
 # Test three my360 agents
 class My360LoginUserIDFoodCellarTest(StandardLoginTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'the-food-cellar'
-    SAVED_CREDENTIALS = CREDENTIALS['the-food-cellar']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']
 
 
 class My360LoginFailUserIDFoodCellarTest(StandardLoginFailTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'the-food-cellar'
-    SAVED_CREDENTIALS = CREDENTIALS['the-food-cellar']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']
 
 
 class My360LoginUserEmailCafeCopiaTest(StandardLoginTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'cafe-copia'
-    SAVED_CREDENTIALS = CREDENTIALS['cafe-copia']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']
 
 
 class My360LoginFailUserEmailCafeCopiaTest(StandardLoginFailTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'cafe-copia'
-    SAVED_CREDENTIALS = CREDENTIALS['cafe-copia']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']
 
 
 class My360LoginUserEmailFitStuffTest(StandardLoginTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'fit-stuff'
-    SAVED_CREDENTIALS = CREDENTIALS['fit-stuff']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']
 
 
 class My360LoginFailUserEmailFitStuffTest(StandardLoginFailTestsMixin, unittest.TestCase):
     SCHEME_NAME = 'fit-stuff'
-    SAVED_CREDENTIALS = CREDENTIALS['fit-stuff']
+    SAVED_CREDENTIALS = CREDENTIALS['my360']

@@ -24,7 +24,7 @@ flake8:
   tags:
     - docker
 
-build-master:
+build-latest:
   stage: build
   image: docker:latest
   services:
@@ -35,6 +35,6 @@ build-master:
     - docker build --pull -t "$CI_REGISTRY/midas:latest" .
     - docker push "$CI_REGISTRY/midas:latest"
   only:
-    - master
+    - develop
   tags:
     - docker

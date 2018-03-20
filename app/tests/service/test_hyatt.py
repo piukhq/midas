@@ -10,7 +10,7 @@ class TestHyatt(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Hyatt(1, 1)
-        cls.m.attempt_login(CREDENTIALS['hyatt'])
+        cls.m.attempt_login(CREDENTIALS['gold-passport'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -26,6 +26,7 @@ class TestHyattFail(unittest.TestCase):
         m = Hyatt(1, 1)
         credentials = {
             'username': '000000000F',
+            'last_name': 'wrong',
             'password': '321321321',
         }
         with self.assertRaises(LoginError) as e:

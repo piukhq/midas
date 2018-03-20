@@ -10,7 +10,7 @@ class TestJetBlue(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.j = JetBlue(1, 1)
-        cls.j.attempt_login(CREDENTIALS['jetblue'])
+        cls.j.attempt_login(CREDENTIALS['trueblue'])
 
     def test_login(self):
         self.assertEqual(self.j.browser.response.status_code, 200)
