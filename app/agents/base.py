@@ -9,6 +9,7 @@ import _ssl
 from uuid import uuid4
 
 import requests
+import arrow
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ReadTimeout, Timeout
@@ -397,6 +398,8 @@ class MerchantApi(BaseMiner):
             if error:
                 self.handle_errors(error)
 
+            self.process_join_response(self.result)
+
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self, response):
         """
@@ -422,38 +425,67 @@ class MerchantApi(BaseMiner):
         message_uid = str(uuid4())
 
         config = utils.get_config(merchant_id, handler_type)
+        logger.setLevel(config['log_level'])
 
         data['message_uid'] = message_uid
         data['callback_url'] = config.get('callback_url')
 
         payload = json.dumps(data)
 
-        # log payload
-        # TODO: logging setup for _outbound_handler
-        logger.info("TODO: logging setup for _outbound_handler")
+        # data without user password for logging only
+        temp_data = {k: v for k, v in data.items() if k != 'password'}
+
+        logging_info = {
+            "json": temp_data,
+            "message_uid": message_uid,
+            "merchant_id": merchant_id,
+            "handler_type": handler_type,
+            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "contains_errors": False
+        }
+
+        logger.info(json.dumps(logging_info))
 
         response_data = self._sync_outbound(payload, config)
+        response_json = json.loads(response_data)
 
-        if response_data and config['log_level']:
-            # log json_data
-            # TODO: logging setup for _outbound_handler
-            logger.info("TODO: logging setup for _outbound_handler")
+        if response_json:
+            logging_info['json'] = response_json
+            if response_json['error_codes']:
+                logging_info['contains_errors'] = True
+                logger.warning(json.dumps(logging_info))
+            else:
+                logger.info(json.dumps(logging_info))
 
-        return json.loads(response_data)
+        return response_json
 
-    def _inbound_handler(self, json_data, merchant_id):
+    def _inbound_handler(self, json_data, merchant_id, handler_type):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
         :param json_data: JSON payload
         :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
-        # log json_data
-        # TODO: logging setup for _outbound_handler
-        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
+        response_payload = json.loads(json_data)
 
-        return self.process_join_response(json.loads(json_data))
+        logging_info = {
+            "json": json_data,
+            "message_uid": response_payload.get['message_uid'],
+            "merchant_id": merchant_id,
+            "handler_type": handler_type,
+            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "contains_errors": False
+        }
+
+        if response_payload['error_codes']:
+            logging_info['contains_errors'] = True
+            logger.warning(json.dumps(logging_info))
+        else:
+            logger.info(json.dumps(logging_info))
+
+        return self.process_join_response(response_payload)
 
     def _sync_outbound(self, data, config):
         """
@@ -481,10 +513,17 @@ class MerchantApi(BaseMiner):
 
                 if status == 200:
                     response_json = response.content
-                    # Check if request was redirected
-                    # TODO: logging for redirects
+                    # Log if request was redirected
                     if response.history:
-                        logger.warning("TODO: logging setup for redirect in _sync_outbound")
+                        logging_info = {
+                            "json": response_json,
+                            "message_uid": json.loads(data)['message_uid'],
+                            "merchant_id": config['merchant_id'],
+                            "handler_type": config['handler_type'],
+                            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+                            "contains_errors": False
+                        }
+                        logger.warning(json.dumps(logging_info))
                     break
 
                 elif status in [503, 504, 408]:
@@ -515,6 +554,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         config = utils.get_config(merchant_id, handler_type)
+        logger.setLevel(config['log_level'])
 
         security_agent = get_security_agent(config['security_service'], config['security_credentials'])
         decoded_data = security_agent.decode(data)

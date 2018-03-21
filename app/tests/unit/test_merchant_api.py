@@ -11,7 +11,7 @@ from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError
 class TestMerchantApi(TestCase):
     def setUp(self):
         self.m = MerchantApi(1, 1)
-        self.data = json.dumps({})
+        self.data = json.dumps({'message_uid': '123-123-123-123'})
         self.config = {
             'merchant_id': 'id',
             'merchant_url': '',
@@ -23,11 +23,11 @@ class TestMerchantApi(TestCase):
 
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound):
-        mock_sync_outbound.return_value = json.dumps({"stuff": 'more stuff'})
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
 
         resp = self.m._outbound_handler({}, 1, 'update')
 
-        self.assertEqual({"stuff": 'more stuff'}, resp)
+        self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
 
     @mock.patch('requests.post', autospec=True)
     def test_sync_outbound_success_response(self, mock_request):
