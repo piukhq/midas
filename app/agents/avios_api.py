@@ -70,7 +70,7 @@ class Avios(ApiMiner):
 
     @staticmethod
     def parse_transaction(row):
-        return None
+        return row
 
     def scrape_transactions(self):
-        return None
+        return []

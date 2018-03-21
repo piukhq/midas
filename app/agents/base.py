@@ -3,6 +3,7 @@ import json
 from decimal import Decimal
 from collections import defaultdict
 import os
+import signal
 from urllib.parse import urlsplit
 
 import _ssl
@@ -77,7 +78,10 @@ class BaseMiner(object):
         raise NotImplementedError()
 
     def transactions(self):
-        return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+        try:
+            return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+        except Exception:
+            return []
 
     def hash_transactions(self, transactions):
         count = defaultdict(int)
@@ -303,7 +307,7 @@ class SeleniumMiner(BaseMiner):
                 selenium_function(self, *args)
 
             except Exception as e:
-                self.browser.quit()
+                self.close_selenium()
                 raise e
 
         return handled
@@ -319,8 +323,9 @@ class SeleniumMiner(BaseMiner):
 
     @selenium_handler
     def attempt_login(self, credentials):
+
         super().attempt_login(credentials)
-        self.browser.quit()
+        self.close_selenium()
 
     def find_captcha(self):
         self.browser.implicitly_wait(1)
@@ -336,6 +341,15 @@ class SeleniumMiner(BaseMiner):
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
+
+    def close_selenium(self):
+        pid = self.browser.service.process.pid
+        self.browser.quit()
+
+        try:
+            os.kill(int(pid), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
 
     @contextmanager
     def wait_for_page_load(self, timeout=15):

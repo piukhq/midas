@@ -32,5 +32,9 @@ class HouseOfFraser(RoboBrowserMiner):
             'value_label': '£{}'.format(value),
         }
 
-    def transactions(self):
-        return None
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def scrape_transactions(self):
+        return []

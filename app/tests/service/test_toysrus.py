@@ -18,6 +18,11 @@ class TestToysrus(unittest.TestCase):
         balance = self.t.balance()
         schemas.balance(balance)
 
+    def test_transactions(self):
+        transactions = self.t.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
+
 
 class TestToysrusFail(unittest.TestCase):
     def test_login_bad_credentials(self):

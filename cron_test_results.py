@@ -15,7 +15,6 @@ from influxdb import InfluxDBClient
 from slacker import Slacker
 
 from app.active import AGENTS
-from app.tests.service.logins import update_credentials
 from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, INFLUX_HOST, INFLUX_PORT, INFLUX_USER, \
     INFLUX_PASSWORD, INFLUX_DATABASE, HEARTBEAT_URL
 
@@ -177,15 +176,15 @@ def get_error_cause(error_text):
 def get_problematic_agents(test_results):
     parsed_results = parse_test_results(test_results)
 
-    agents = []
+    agent_list = []
     for class_name, result in parsed_results.items():
         if result['count'] > 0:
-            agents.append({
+            agent_list.append({
                 'classname': class_name,
                 'name': class_name.replace('test_', '', 1).replace('_', ' '),
                 'cause': result['cause']
             })
-    return agents
+    return agent_list
 
 
 def parse_test_results(test_results):
@@ -219,7 +218,6 @@ def resolve_issue(classname):
 
 
 def test_single_agent(a):
-    update_credentials()
     a = a.replace(" ", "_")
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     junit_single_agent_xml = 'tests_results/test_' + a + '.xml'
@@ -228,7 +226,6 @@ def test_single_agent(a):
 
 
 def run_agent_tests():
-    update_credentials()
     py_test = join(os.path.dirname(sys.executable), 'pytest')
     subprocess.call([py_test, '-n', str(parallel_processes), '--junitxml', JUNIT_XML_FILENAME, test_path])
 
@@ -258,6 +255,15 @@ def get_agent_list():
             agents_for_helios[name] = slug if name != 'my360' else name
 
     return agents_for_helios
+
+
+def handle_helios_request():
+    send_to_helios({}, running_tests=True)
+    run_agent_tests()
+    error_msg = get_formatted_message(JUNIT_XML_FILENAME)
+    agent_list = get_agent_list()
+    helios_data = dict(agents=agent_list, errors=error_msg)
+    send_to_helios(helios_data)
 
 
 if __name__ == '__main__':
