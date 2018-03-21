@@ -19,6 +19,11 @@ class TestHyatt(unittest.TestCase):
         balance = self.m.balance()
         schemas.balance(balance)
 
+    def test_transactions(self):
+        transactions = self.m.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
+
 
 class TestHyattFail(unittest.TestCase):
 
