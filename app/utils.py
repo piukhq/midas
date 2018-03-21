@@ -118,6 +118,7 @@ def get_config(merchant_id, handler_type):
         'security_service': 'RSA',
         'security_credentials': 'creds',
         'handler_type': 'join',
+        'integration_service': 'sync',
         'retry_limit': 2,
     }
     if not config:

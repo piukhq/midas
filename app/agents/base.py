@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 import _ssl
 from uuid import uuid4
 
+from hashids import Hashids
 import requests
 import arrow
 from requests import Session, HTTPError
@@ -22,6 +23,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
 from app import utils
+from app.encryption import hash_ids
 from app.security import get_security_agent
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
@@ -387,6 +389,8 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
+        self.record_uid = hash_ids.encode(self.scheme_id)
+
         handler_type = 'validate' if credentials.get('status') else 'update'
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
@@ -403,6 +407,8 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
+        self.record_uid = hash_ids.encode(self.scheme_id)
+
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type='join')
         else:
@@ -452,8 +458,10 @@ class MerchantApi(BaseMiner):
         logging_info = {
             "json": temp_data,
             "message_uid": message_uid,
+            "record_uid": self.record_uid,
             "merchant_id": merchant_id,
             "handler_type": handler_type,
+            "integration_service": config['integration_service'],
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": False
         }
@@ -487,8 +495,10 @@ class MerchantApi(BaseMiner):
         logging_info = {
             "json": json_data,
             "message_uid": response_payload.get['message_uid'],
+            "record_uid": self.record_uid,
             "merchant_id": merchant_id,
             "handler_type": handler_type,
+            "integration_service": 'async',
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": False
         }
@@ -532,8 +542,10 @@ class MerchantApi(BaseMiner):
                         logging_info = {
                             "json": response_json,
                             "message_uid": json.loads(data)['message_uid'],
+                            "record_uid": self.record_uid,
                             "merchant_id": config['merchant_id'],
                             "handler_type": config['handler_type'],
+                            "integration_service": config['integration_service'],
                             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
                             "contains_errors": False
                         }

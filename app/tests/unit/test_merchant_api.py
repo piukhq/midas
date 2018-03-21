@@ -13,11 +13,13 @@ class TestMerchantApi(TestCase):
         self.m = MerchantApi(1, 1)
         self.data = json.dumps({'message_uid': '123-123-123-123'})
         self.config = {
-            'merchant_id': 'id',
+            'log_level': 'DEBUG',
+            'merchant_id': 'fake-merchant',
             'merchant_url': '',
             'security_service': 'RSA',
             'security_credentials': 'creds',
             'handler_type': 'join',
+            'integration_service': 'sync',
             'retry_limit': 2,
         }
 
@@ -25,6 +27,7 @@ class TestMerchantApi(TestCase):
     def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
 
+        self.m.record_uid = '123'
         resp = self.m._outbound_handler({}, 1, 'update')
 
         self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
@@ -51,6 +54,7 @@ class TestMerchantApi(TestCase):
 
         mock_request.return_value = response
 
+        self.m.record_uid = '123'
         resp = self.m._sync_outbound(self.data, self.config)
 
         self.assertTrue(mock_logger.warning.called)
