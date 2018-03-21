@@ -9,7 +9,6 @@ from urllib.parse import urlsplit
 import _ssl
 from uuid import uuid4
 
-from hashids import Hashids
 import requests
 import arrow
 from requests import Session, HTTPError
