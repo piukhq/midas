@@ -107,6 +107,22 @@ class TestMerchantApi(TestCase):
         self.assertFalse(mock_back_off.activate_cooldown.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {"error_codes": []}
+
+        self.m.login({})
+
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {"error_codes": []}
+
+        self.m.register({})
+
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_handles_error_payload(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {"error_codes": [{"code": 535, "description": "NO_SUCH_RECORD"}]}
 
@@ -119,5 +135,5 @@ class TestMerchantApi(TestCase):
         mock_outbound_handler.return_value = {"error_codes": [{"code": 520, "description": "GENERAL_ERROR"}]}
 
         with self.assertRaises(LoginError) as e:
-            self.m.login({})
+            self.m.register({})
         self.assertEqual(e.exception.name, "An unknown error has occurred")
