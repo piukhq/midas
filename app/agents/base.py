@@ -363,10 +363,10 @@ class MerchantApi(BaseMiner):
 
         # { error we raise: error we receive in merchant payload}
         self.errors = {
-            NO_SUCH_RECORD: 'NO_SUCH_RECORD',
+            NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
-            ACCOUNT_ALREADY_EXISTS: 'ALREADY_PROCESSED',
-            UNKNOWN: 'GENERAL_ERROR'
+            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            UNKNOWN: ['GENERAL_ERROR']
         }
 
     def login(self, credentials):
@@ -380,9 +380,9 @@ class MerchantApi(BaseMiner):
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
-        error = self.result['error_codes'][0]['description']
+        error = self.result['error_codes']
         if error:
-            self.handle_errors(error)
+            self.handle_errors(error[0]['description'])
 
     def register(self, data, inbound=False):
         """
@@ -397,9 +397,9 @@ class MerchantApi(BaseMiner):
         else:
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
 
-            error = self.result['error_codes'][0]['description']
+            error = self.result['error_codes']
             if error:
-                self.handle_errors(error)
+                self.handle_errors(error[0]['description'])
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self, response):
