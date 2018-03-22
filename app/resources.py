@@ -436,7 +436,8 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
 def update_pending_link_account(scheme_account_id, message, tid, intercom_data=None):
     # error handling for pending scheme accounts waiting for async link to complete
     data = {'status': '10'}
-    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid,
+                  headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
     data = {'property_list': ['link_questions']}
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
