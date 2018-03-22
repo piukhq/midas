@@ -420,7 +420,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
         return
 
     # error handling for pending scheme accounts waiting for join journey to complete
-    data = {'status': 'JOIN'}
+    data = {'status': '900'}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
 
     data = {'all': True}
@@ -435,7 +435,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
 
 def update_pending_link_account(scheme_account_id, message, tid, intercom_data=None):
     # error handling for pending scheme accounts waiting for async link to complete
-    data = {'status': 'WALLET_ONLY'}
+    data = {'status': '10'}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
 
     data = {'property_list': ['link_questions']}
