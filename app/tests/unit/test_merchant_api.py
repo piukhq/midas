@@ -114,13 +114,15 @@ class TestMerchantApi(TestCase):
 
         self.assertTrue(mock_outbound_handler.called)
 
+    @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler):
+    def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
         mock_outbound_handler.return_value = {"error_codes": []}
 
         self.m.register({})
 
         self.assertTrue(mock_outbound_handler.called)
+        self.assertTrue(mock_process_join_response.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_handles_error_payload(self, mock_outbound_handler):
