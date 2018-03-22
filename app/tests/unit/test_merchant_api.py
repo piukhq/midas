@@ -115,5 +115,5 @@ class TestMerchantApi(TestCase):
         mock_outbound_handler.return_value = {"error_codes": [{"code": 520, "description": "GENERAL_ERROR"}]}
 
         with self.assertRaises(LoginError) as e:
-            self.m.login({})
+            self.m.register({})
         self.assertEqual(e.exception.name, "An unknown error has occurred")
