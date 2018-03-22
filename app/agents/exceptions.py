@@ -23,6 +23,7 @@ STATUS_REGISTRATION_FAILED = "STATUS_REGISTRATION_FAILED"
 NO_SUCH_RECORD = "NO_SUCH_RECORD"
 ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS"
 NOT_SENT = "NOT_SENT"
+RESOURCE_LIMIT_REACHED = "RESOURCE_LIMIT_REACHED"
 
 errors = {
     STATUS_LOGIN_FAILED: {"code": 403,
@@ -62,6 +63,10 @@ errors = {
     NOT_SENT: {"code": 509,
                "message": "message was not sent",
                "name": "message was not sent"},
+    RESOURCE_LIMIT_REACHED: {"code": 503,
+                             "message": "there are currently too many balance requests running, please wait before "
+                                        "trying again",
+                             "name": "Resource limit reached"},
     END_SITE_DOWN: {"code": 530,
                     "message": "The scheme end site is currently down.",
                     "name": "End site down"},

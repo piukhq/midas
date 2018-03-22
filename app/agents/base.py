@@ -5,6 +5,8 @@ from collections import defaultdict
 import os
 import signal
 from urllib.parse import urlsplit
+import time
+import functools
 
 import _ssl
 from uuid import uuid4
@@ -24,9 +26,11 @@ from app import utils
 from app.security import get_security_agent
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise
+from app.exceptions import AgentException
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, RESOURCE_LIMIT_REACHED
 from app.publish import thread_pool_executor
+from app.selenium_pid_store import SeleniumPIDStore, MaxSeleniumBrowsersReached
 
 
 class SSLAdapter(HTTPAdapter):
@@ -292,38 +296,50 @@ class ApiMiner(BaseMiner):
 class SeleniumMiner(BaseMiner):
 
     def __init__(self, retry_count, scheme_id, scheme_slug=None):
+        try:
+            self.storage = self.get_pid_store()
+        except MaxSeleniumBrowsersReached:
+            raise AgentException(RESOURCE_LIMIT_REACHED)
         self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
         self.headers = {}
         self.retry_count = retry_count
-        self.setup_browser()
+        self.setup_browser(self.storage)
 
-    def selenium_handler(selenium_function):
-        def handled(self, *args):
-            try:
-                selenium_function(self, *args)
+    @staticmethod
+    def get_pid_store():
+        storage = SeleniumPIDStore()
+        storage.terminate_old_browsers()
+        try:
+            storage.check_max_current_browsers()
+        except MaxSeleniumBrowsersReached:
+            time.sleep(60)
+            storage.check_max_current_browsers()
 
-            except Exception as e:
-                self.close_selenium()
-                raise e
+        return storage
 
-        return handled
+    def setup_browser(self, pid_store):
+        try:
+            options = webdriver.firefox.options.Options()
+            options.add_argument('--headless')
+            options.add_argument('--hide-scrollbars')
+            options.add_argument('--disable-gpu')
+            self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
+            pid = self.browser.service.process.pid
+            pid_store.set(pid)
+            self.browser.implicitly_wait(self.delay)
+        except Exception:
+            self.close_selenium()
+            raise
 
-    @selenium_handler
-    def setup_browser(self):
-        options = webdriver.firefox.options.Options()
-        options.add_argument('--headless')
-        options.add_argument('--hide-scrollbars')
-        options.add_argument('--disable-gpu')
-        self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
-        self.browser.implicitly_wait(self.delay)
-
-    @selenium_handler
     def attempt_login(self, credentials):
-
-        super().attempt_login(credentials)
-        self.close_selenium()
+        try:
+            super().attempt_login(credentials)
+            self.close_selenium()
+        except Exception:
+            self.close_selenium()
+            raise
 
     def find_captcha(self):
         self.browser.implicitly_wait(1)
@@ -341,12 +357,11 @@ class SeleniumMiner(BaseMiner):
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
 
     def close_selenium(self):
-        pid = self.browser.service.process.pid
-        self.browser.quit()
-
         try:
-            os.kill(int(pid), signal.SIGTERM)
-        except ProcessLookupError:
+            pid = self.browser.service.process.pid
+            self.browser.quit()
+            self.storage.close_process_and_delete(str(pid))
+        except (ProcessLookupError, AttributeError):
             pass
 
     @contextmanager
