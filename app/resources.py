@@ -110,7 +110,12 @@ class Balance(Resource):
 def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
-    agent_instance = agent_login(agent_class, user_info['credentials'], scheme_account_id, scheme_slug=scheme_slug)
+    agent_instance = agent_login(agent_class,
+                                 user_info['credentials'],
+                                 scheme_account_id,
+                                 scheme_slug=scheme_slug,
+                                 status=user_info['status'])
+
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
         update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
@@ -330,10 +335,10 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, from_register=False):
+def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, from_register=False, status=None):
     key = retry.get_key(agent_class.__name__, scheme_account_id)
     retry_count = retry.get_count(key)
-    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug=scheme_slug)
+    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug=scheme_slug, account_status=status)
     try:
         agent_instance.attempt_login(credentials)
     except RetryLimitError as e:

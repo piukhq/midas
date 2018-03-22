@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from app import utils
 from app.security import get_security_agent
 from settings import logger
-from app.utils import open_browser, TWO_PLACES, pluralise
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS
@@ -145,9 +145,10 @@ class RoboBrowserMiner(BaseMiner):
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.proxy = False
 
@@ -247,9 +248,10 @@ class RoboBrowserMiner(BaseMiner):
 # Based on requests library
 class ApiMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -288,10 +290,11 @@ class ApiMiner(BaseMiner):
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
         self.setup_browser()
@@ -352,10 +355,11 @@ class SeleniumMiner(BaseMiner):
 
 class MerchantApi(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.retry_count = retry_count
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
 
         # { error we raise: error we receive in merchant payload}
         self.errors = {
@@ -372,7 +376,7 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        handler_type = 'validate' if credentials.get('status') else 'update'
+        handler_type = 'validate' if self.account_status == 'WALLET_ONLY' else 'update'
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
@@ -469,11 +473,7 @@ class MerchantApi(BaseMiner):
 
         for retry_count in range(1 + config['retry_limit']):
             if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
-                response_json = json.dumps(
-                    {'error_codes': [
-                        {'code': errors[NOT_SENT]['code'], 'description': errors[NOT_SENT]['name']}
-                    ]}
-                )
+                response_json = create_error_response(errors[NOT_SENT], errors[NOT_SENT]['name'])
                 break
             else:
                 response = requests.post(config['merchant_url'], **request)
@@ -488,18 +488,11 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = json.dumps(
-                        {'error_codes': [
-                            {'code': errors[NOT_SENT]['code'], 'description': errors[NOT_SENT]['name']}
-                        ]}
-                    )
+                    response_json = create_error_response(errors[NOT_SENT], errors[NOT_SENT]['name'])
                 else:
-                    response_json = json.dumps(
-                        {'error_codes': [
-                            {'code': errors[UNKNOWN]['code'],
-                             'description': errors[UNKNOWN]['name'] + ' with status code {}'.format(status)}
-                        ]}
-                    )
+                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                                                          errors[UNKNOWN]['name'] + ' with status code {}'
+                                                          .format(status))
 
                 if retry_count == config['retry_limit']:
                     BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)

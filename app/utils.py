@@ -123,3 +123,13 @@ def get_config(merchant_id, handler_type):
     if not config:
         raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
     return config
+
+
+def create_error_response(error_code, error_description):
+    response_json = json.dumps(
+        {'error_codes': [
+            {'code': error_code,
+             'description': error_description}
+        ]}
+    )
+    return response_json
