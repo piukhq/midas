@@ -473,7 +473,7 @@ class MerchantApi(BaseMiner):
 
         for retry_count in range(1 + config['retry_limit']):
             if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
-                response_json = create_error_response(errors[NOT_SENT], errors[NOT_SENT]['name'])
+                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 break
             else:
                 response = requests.post(config['merchant_url'], **request)
@@ -488,7 +488,7 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = create_error_response(errors[NOT_SENT], errors[NOT_SENT]['name'])
+                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 else:
                     response_json = create_error_response(errors[UNKNOWN]['code'],
                                                           errors[UNKNOWN]['name'] + ' with status code {}'
