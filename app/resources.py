@@ -4,7 +4,7 @@ import json
 import requests
 from flask import make_response, request
 from flask.ext.restful.utils.cors import crossdomain
-from flask_restful import Resource, Api, abort
+from flask_restful import Resource, abort
 from flask_restful_swagger import swagger
 from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
