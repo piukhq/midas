@@ -17,9 +17,9 @@ class HarveyNichols(ApiMiner):
         self.credentials = credentials
         self.identifier_type = 'card_number'
         self.errors = {
-            NO_SUCH_RECORD: 'NoSuchRecord',
+            NO_SUCH_RECORD: ['NoSuchRecord'],
             STATUS_LOGIN_FAILED: ['Invalid', 'AuthFailed'],
-            UNKNOWN: 'Fail'
+            UNKNOWN: ['Fail']
         }
 
         # get token from redis if we have one, otherwise login to get one

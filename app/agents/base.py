@@ -1,12 +1,12 @@
+import _ssl
 import hashlib
 import json
-from decimal import Decimal
-from collections import defaultdict
 import os
-from urllib.parse import urlsplit
 import time
-
-import _ssl
+from collections import defaultdict
+from contextlib import contextmanager
+from decimal import Decimal
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import requests
@@ -16,19 +16,19 @@ from requests.exceptions import ReadTimeout, Timeout
 from requests.packages.urllib3.poolmanager import PoolManager
 from robobrowser import RoboBrowser
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from contextlib import contextmanager
+from selenium.webdriver.support.ui import WebDriverWait
 
 from app import utils
-from app.security import get_security_agent
-from settings import logger
-from app.utils import open_browser, TWO_PLACES, pluralise
-from app.exceptions import AgentException
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, RESOURCE_LIMIT_REACHED
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
+from app.exceptions import AgentException
 from app.publish import thread_pool_executor
+from app.security import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore, MaxSeleniumBrowsersReached
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
+from settings import logger
 
 
 class SSLAdapter(HTTPAdapter):
@@ -150,9 +150,10 @@ class RoboBrowserMiner(BaseMiner):
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.proxy = False
 
@@ -252,9 +253,10 @@ class RoboBrowserMiner(BaseMiner):
 # Based on requests library
 class ApiMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -293,7 +295,7 @@ class ApiMiner(BaseMiner):
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         try:
             self.storage = self.get_pid_store()
         except MaxSeleniumBrowsersReached:
@@ -301,6 +303,7 @@ class SeleniumMiner(BaseMiner):
         self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
         self.setup_browser(self.storage)
@@ -378,10 +381,19 @@ class SeleniumMiner(BaseMiner):
 
 class MerchantApi(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.retry_count = retry_count
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
+
+        # { error we raise: error we receive in merchant payload}
+        self.errors = {
+            NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
+            STATUS_LOGIN_FAILED: ['VALIDATION'],
+            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            UNKNOWN: ['GENERAL_ERROR']
+        }
 
     def login(self, credentials):
         """
@@ -390,6 +402,13 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
+        handler_type = 'validate' if self.account_status == 'WALLET_ONLY' else 'update'
+
+        self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+
+        error = self.result['error_codes']
+        if error:
+            self.handle_errors(error[0]['description'])
 
     def register(self, data, inbound=False):
         """
@@ -399,11 +418,14 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        # TODO: error handling?
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type='join')
         else:
-            self._outbound_handler(data, self.scheme_slug, handler_type='join')
+            self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
+
+            error = self.result['error_codes']
+            if error:
+                self.handle_errors(error[0]['description'])
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self, response):
@@ -440,16 +462,14 @@ class MerchantApi(BaseMiner):
         # TODO: logging setup for _outbound_handler
         logger.info("TODO: logging setup for _outbound_handler")
 
-        json_data = self._sync_outbound(payload, config)
+        response_data = self._sync_outbound(payload, config)
 
-        if json_data and config['log_level']:
-            # check if response is error and set logging fields
+        if response_data and config['log_level']:
             # log json_data
             # TODO: logging setup for _outbound_handler
             logger.info("TODO: logging setup for _outbound_handler")
-            pass
 
-        return json.loads(json_data)
+        return json.loads(response_data)
 
     def _inbound_handler(self, json_data, merchant_id):
         """
@@ -479,15 +499,14 @@ class MerchantApi(BaseMiner):
 
         for retry_count in range(1 + config['retry_limit']):
             if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
-                # TODO: check merchant response format
-                response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 break
             else:
                 response = requests.post(config['merchant_url'], **request)
                 status = response.status_code
 
                 if status == 200:
-                    response_json = response.json()
+                    response_json = response.content
                     # Check if request was redirected
                     # TODO: logging for redirects
                     if response.history:
@@ -495,11 +514,11 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = json.dumps({'status_code': errors[NOT_SENT]['code']})
+                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 else:
-                    response_json = json.dumps({'status_code': errors[UNKNOWN]['code'],
-                                                'description': 'An Unknown error has occurred with status code {}'
-                                               .format(status)})
+                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                                                          errors[UNKNOWN]['name'] + ' with status code {}'
+                                                          .format(status))
 
                 if retry_count == config['retry_limit']:
                     BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
@@ -521,6 +540,12 @@ class MerchantApi(BaseMiner):
 
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
+
+    def handle_errors(self, response, exception_type=LoginError):
+        for key, values in self.errors.items():
+            if response in values:
+                raise exception_type(key)
+        raise AgentError(UNKNOWN)
 
 
 class BackOffService:
