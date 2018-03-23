@@ -457,7 +457,7 @@ class MerchantApi(BaseMiner):
         # data without user password for logging only
         temp_data = {k: v for k, v in data.items() if k != 'password'}
 
-        logging_info = self.create_log_message(
+        logging_info = self._create_log_message(
             temp_data,
             message_uid,
             merchant_id,
@@ -491,7 +491,7 @@ class MerchantApi(BaseMiner):
         """
         response_payload = json.loads(json_data)
 
-        logging_info = self.create_log_message(
+        logging_info = self._create_log_message(
             json_data,
             response_payload.get['message_uid'],
             merchant_id,
@@ -531,7 +531,7 @@ class MerchantApi(BaseMiner):
                     response_json = response.content
                     # Log if request was redirected
                     if response.history:
-                        logging_info = self.create_log_message(
+                        logging_info = self._create_log_message(
                             response_json,
                             json.loads(data)['message_uid'],
                             config['merchant_id'],
@@ -578,7 +578,7 @@ class MerchantApi(BaseMiner):
         raise AgentError(UNKNOWN)
 
     def _create_log_message(self, json_msg, msg_uid, merchant_id, handler_type, integration_service,
-                           contains_errors=False):
+                            contains_errors=False):
         return {
             "json": json_msg,
             "message_uid": msg_uid,
@@ -589,6 +589,7 @@ class MerchantApi(BaseMiner):
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
+
 
 class BackOffService:
     # TODO: Remove when implementing the back off service
