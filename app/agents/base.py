@@ -435,19 +435,6 @@ class MerchantApi(BaseMiner):
 
         raise NotImplementedError()
 
-    def create_log_message(self, json_msg, msg_uid, merchant_id, handler_type, integration_service,
-                           contains_errors=False):
-        return {
-            "json": json_msg,
-            "message_uid": msg_uid,
-            "record_uid": self.record_uid,
-            "merchant_id": merchant_id,
-            "handler_type": handler_type,
-            "integration_service": integration_service,
-            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
-            "contains_errors": contains_errors
-        }
-
     def _outbound_handler(self, data, merchant_id, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and
@@ -590,6 +577,18 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
+    def _create_log_message(self, json_msg, msg_uid, merchant_id, handler_type, integration_service,
+                           contains_errors=False):
+        return {
+            "json": json_msg,
+            "message_uid": msg_uid,
+            "record_uid": self.record_uid,
+            "merchant_id": merchant_id,
+            "handler_type": handler_type,
+            "integration_service": integration_service,
+            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "contains_errors": contains_errors
+        }
 
 class BackOffService:
     # TODO: Remove when implementing the back off service
