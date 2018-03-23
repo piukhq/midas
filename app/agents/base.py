@@ -3,10 +3,8 @@ import json
 from decimal import Decimal
 from collections import defaultdict
 import os
-import signal
 from urllib.parse import urlsplit
 import time
-import functools
 
 import _ssl
 from uuid import uuid4

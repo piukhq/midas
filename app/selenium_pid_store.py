@@ -1,13 +1,13 @@
 from redis import StrictRedis
-from settings import SELENIUM_PID_STORE
+from settings import SELENIUM_PID_STORE, MAX_SELENIUM_BROWSERS, SELENIUM_BROWSER_TIMEOUT
 from datetime import datetime
 import os
 import signal
 
 
 class SeleniumPIDStore:
-    max_selenium_browsers = 5
-    selenium_time_limit = 300
+    max_selenium_browsers = int(MAX_SELENIUM_BROWSERS)
+    selenium_time_limit = int(SELENIUM_BROWSER_TIMEOUT)
 
     def __init__(self):
         """
@@ -72,6 +72,7 @@ class SeleniumPIDStore:
 
     def check_max_current_browsers(self):
         all_browsers = [x for x in self.storage.scan_iter(match='selenium-pid-*')]
+
         if len(all_browsers) > self.max_selenium_browsers:
             raise MaxSeleniumBrowsersReached({'error': 'Max Selenium browsers reached'})
 
