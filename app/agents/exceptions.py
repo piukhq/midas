@@ -60,9 +60,6 @@ errors = {
     ACCOUNT_ALREADY_EXISTS: {"code": 445,
                              "message": "An account with this username/email already exists",
                              "name": "Account already exists"},
-    NOT_SENT: {"code": 509,
-               "message": "message was not sent",
-               "name": "message was not sent"},
     RESOURCE_LIMIT_REACHED: {"code": 503,
                              "message": "there are currently too many balance requests running, please wait before "
                                         "trying again",
@@ -85,6 +82,9 @@ errors = {
                                        "continue. Please log into your account on the end-site and follow through any "
                                        "confirmation steps shown, then try again.",
                             "name": "Confirmation required"},
+    NOT_SENT: {"code": 535,
+               "message": "message was not sent",
+               "name": "message was not sent"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
