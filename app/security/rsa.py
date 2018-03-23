@@ -1,3 +1,4 @@
+import json
 
 
 class RSA:
@@ -11,3 +12,6 @@ class RSA:
     def encode(self, json):
         encoded_request = {'json': json}
         return encoded_request
+
+    def decode(self, data):
+        return json.dumps(data)
