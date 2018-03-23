@@ -399,7 +399,7 @@ class MerchantApi(BaseMiner):
 
         error = self.result['error_codes']
         if error:
-            self.handle_errors(error[0]['description'])
+            self._handle_errors(error[0]['description'])
 
     def register(self, data, inbound=False):
         """
@@ -418,7 +418,7 @@ class MerchantApi(BaseMiner):
 
             error = self.result['error_codes']
             if error:
-                self.handle_errors(error[0]['description'])
+                self._handle_errors(error[0]['description'])
 
             self.process_join_response(self.result)
 
@@ -434,6 +434,19 @@ class MerchantApi(BaseMiner):
         # link account (get balance and transactions)
 
         raise NotImplementedError()
+
+    def create_log_message(self, json_msg, msg_uid, merchant_id, handler_type, integration_service,
+                           contains_errors=False):
+        return {
+            "json": json_msg,
+            "message_uid": msg_uid,
+            "record_uid": self.record_uid,
+            "merchant_id": merchant_id,
+            "handler_type": handler_type,
+            "integration_service": integration_service,
+            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "contains_errors": contains_errors
+        }
 
     def _outbound_handler(self, data, merchant_id, handler_type):
         """
@@ -457,16 +470,13 @@ class MerchantApi(BaseMiner):
         # data without user password for logging only
         temp_data = {k: v for k, v in data.items() if k != 'password'}
 
-        logging_info = {
-            "json": temp_data,
-            "message_uid": message_uid,
-            "record_uid": self.record_uid,
-            "merchant_id": merchant_id,
-            "handler_type": handler_type,
-            "integration_service": config['integration_service'],
-            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
-            "contains_errors": False
-        }
+        logging_info = self.create_log_message(
+            temp_data,
+            message_uid,
+            merchant_id,
+            handler_type,
+            config['integration_service']
+        )
 
         logger.info(json.dumps(logging_info))
 
@@ -477,7 +487,7 @@ class MerchantApi(BaseMiner):
             logging_info['json'] = response_json
             if response_json['error_codes']:
                 logging_info['contains_errors'] = True
-                logger.warning(json.dumps(logging_info))
+                logger.error(json.dumps(logging_info))
             else:
                 logger.info(json.dumps(logging_info))
 
@@ -494,20 +504,17 @@ class MerchantApi(BaseMiner):
         """
         response_payload = json.loads(json_data)
 
-        logging_info = {
-            "json": json_data,
-            "message_uid": response_payload.get['message_uid'],
-            "record_uid": self.record_uid,
-            "merchant_id": merchant_id,
-            "handler_type": handler_type,
-            "integration_service": 'async',
-            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
-            "contains_errors": False
-        }
+        logging_info = self.create_log_message(
+            json_data,
+            response_payload.get['message_uid'],
+            merchant_id,
+            handler_type,
+            'async'
+        )
 
         if response_payload['error_codes']:
             logging_info['contains_errors'] = True
-            logger.warning(json.dumps(logging_info))
+            logger.error(json.dumps(logging_info))
         else:
             logger.info(json.dumps(logging_info))
 
@@ -537,16 +544,14 @@ class MerchantApi(BaseMiner):
                     response_json = response.content
                     # Log if request was redirected
                     if response.history:
-                        logging_info = {
-                            "json": response_json,
-                            "message_uid": json.loads(data)['message_uid'],
-                            "record_uid": self.record_uid,
-                            "merchant_id": config['merchant_id'],
-                            "handler_type": config['handler_type'],
-                            "integration_service": config['integration_service'],
-                            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
-                            "contains_errors": False
-                        }
+                        logging_info = self.create_log_message(
+                            response_json,
+                            json.loads(data)['message_uid'],
+                            config['merchant_id'],
+                            config['handler_type'],
+                            config['integration_service']
+                        )
+
                         logger.warning(json.dumps(logging_info))
                     break
 
@@ -579,7 +584,7 @@ class MerchantApi(BaseMiner):
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
 
-    def handle_errors(self, response, exception_type=LoginError):
+    def _handle_errors(self, response, exception_type=LoginError):
         for key, values in self.errors.items():
             if response in values:
                 raise exception_type(key)
