@@ -2,6 +2,7 @@ import importlib
 import json
 import re
 import time
+import socket
 from decimal import Decimal
 
 import lxml.html
@@ -9,7 +10,7 @@ import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN
+from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY
 
 TWO_PLACES = Decimal(10) ** -2
 
@@ -133,3 +134,12 @@ def create_error_response(error_code, error_description):
         ]}
     )
     return response_json
+
+
+def get_headers(tid):
+    headers = {'Content-type': 'application/json',
+               'transaction': tid,
+               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
+               'Authorization': 'token ' + SERVICE_API_KEY}
+
+    return headers

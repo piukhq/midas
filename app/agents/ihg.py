@@ -30,6 +30,7 @@ class Ihg(SeleniumMiner):
     def check_for_error_msg(self):
         try:
             error_messages = self.browser.find_elements_by_class_name("errorTopMsgText")
+            error_messages.extend(self.browser.find_elements_by_class_name("errorMsg"))
             for error_msg in error_messages:
                 if error_msg.is_displayed():
                     raise LoginError(STATUS_LOGIN_FAILED)
@@ -58,7 +59,7 @@ class Ihg(SeleniumMiner):
             self.browser.find_element_by_id('UHF_username').send_keys(credentials['username'])
             self.browser.find_element_by_id('UHF_password').send_keys(credentials['pin'])
             self.browser.find_element_by_class_name('signIn').click()
-            sleep(2)
+            sleep(3)
             self.check_for_error_msg()
 
         except LoginError as exception:
@@ -76,17 +77,16 @@ class Ihg(SeleniumMiner):
         self.browser.find_element_by_css_selector(
             "input[name='lastName']").send_keys(credentials['last_name'])
         self.browser.find_element_by_class_name("cta-1").click()
-        sleep(2)
-
+        sleep(3)
         self.check_for_error_msg()
 
     def login(self, credentials):
         self.browser.implicitly_wait(20)
         try:
             self._login(credentials=credentials)
-
         except Exception:
             self.is_login_successful = False
+            raise
 
         self.check_if_logged_in()
         sleep(2)

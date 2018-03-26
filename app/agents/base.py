@@ -318,7 +318,9 @@ class SeleniumMiner(BaseMiner):
             # Wait a random time to not create waves of load when all the browsers finish waiting
             time.sleep(randint(20, 40))
         if not self.storage.is_browser_available():
-            raise AgentException(RESOURCE_LIMIT_REACHED)
+            raise AgentException(
+                AgentError(RESOURCE_LIMIT_REACHED)
+            )
 
     def setup_browser(self, pid_store):
         try:
