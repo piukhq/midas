@@ -31,6 +31,7 @@ AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
 REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
 USER_TOKEN_REDIS_URL = env_var('USER_TOKEN_REDIS_URI', 'redis://localhost:6379/4')
+SELENIUM_PID_STORE = env_var('SELENIUM_PID_STORE', 'redis://localhost:6379/5')
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
@@ -63,3 +64,6 @@ HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzP
 
 CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
+
+MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
+SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
