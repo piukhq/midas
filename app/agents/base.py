@@ -24,7 +24,6 @@ from app import utils
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
-from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
@@ -318,7 +317,7 @@ class SeleniumMiner(BaseMiner):
             # Wait a random time to not create waves of load when all the browsers finish waiting
             time.sleep(randint(20, 40))
         if not self.storage.is_browser_available():
-            raise AgentException(RESOURCE_LIMIT_REACHED)
+            raise AgentError(RESOURCE_LIMIT_REACHED)
 
     def setup_browser(self, pid_store):
         try:
