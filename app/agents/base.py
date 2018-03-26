@@ -26,7 +26,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security import get_security_agent
-from app.selenium_pid_store import SeleniumPIDStore, MaxSeleniumBrowsersReached
+from app.selenium_pid_store import SeleniumPIDStore
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
 from settings import logger
 
@@ -296,11 +296,8 @@ class ApiMiner(BaseMiner):
 class SeleniumMiner(BaseMiner):
 
     def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
-        try:
-            self.storage = self.get_pid_store()
-        except MaxSeleniumBrowsersReached:
-            raise AgentException(RESOURCE_LIMIT_REACHED)
-
+        self.storage = self.get_pid_store()
+        self.check_browser_availability()
         self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
@@ -313,13 +310,13 @@ class SeleniumMiner(BaseMiner):
     def get_pid_store():
         storage = SeleniumPIDStore()
         storage.terminate_old_browsers()
-        try:
-            storage.check_max_current_browsers()
-        except MaxSeleniumBrowsersReached:
-            time.sleep(60)
-            storage.check_max_current_browsers()
-
         return storage
+
+    def check_browser_availability(self):
+        if not self.storage.is_browser_available():
+            time.sleep(60)
+        if not self.storage.is_browser_available():
+            raise AgentException(RESOURCE_LIMIT_REACHED)
 
     def setup_browser(self, pid_store):
         try:

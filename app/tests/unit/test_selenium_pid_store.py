@@ -2,14 +2,14 @@ from datetime import datetime, timedelta
 import unittest
 from unittest import mock
 
-from app.selenium_pid_store import SeleniumPIDStore, NoSuchProcess, MaxSeleniumBrowsersReached
+from app.selenium_pid_store import SeleniumPIDStore, NoSuchProcess
 
 
 @mock.patch('redis.StrictRedis.get')
 @mock.patch('redis.StrictRedis.set')
 @mock.patch('redis.StrictRedis.delete')
 @mock.patch('redis.StrictRedis.scan_iter')
-class TestEncryption(unittest.TestCase):
+class TestSeleniumPIDStore(unittest.TestCase):
     data = {}
     storage = SeleniumPIDStore()
 
@@ -80,7 +80,7 @@ class TestEncryption(unittest.TestCase):
             self.storage.set(x)
         mock_scan.return_value = [x for x in self.data.keys()]
 
-        self.storage.check_max_current_browsers()
+        self.assertTrue(self.storage.is_browser_available())
         self.assertTrue(mock_scan.called)
 
     def test_check_max_current_browsers_max_reached(self, mock_scan, mock_delete, mock_set, mock_get):
@@ -89,8 +89,7 @@ class TestEncryption(unittest.TestCase):
             self.storage.set(x)
         mock_scan.return_value = [x for x in self.data.keys()]
 
-        with self.assertRaises(MaxSeleniumBrowsersReached):
-            self.storage.check_max_current_browsers()
+        self.assertFalse(self.storage.is_browser_available())
         self.assertTrue(mock_scan.called)
 
 
