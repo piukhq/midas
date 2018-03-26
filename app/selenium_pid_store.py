@@ -69,7 +69,7 @@ class SeleniumPIDStore:
 
     def close_process_and_delete(self, pid):
         """
-        Kills the requested Process ID and removes it from redis.
+        Kills the requested process ID and removes it from redis.
         :param pid: Process ID of the selenium process.
         :return: None.
         """
