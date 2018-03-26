@@ -9,7 +9,7 @@ from app.selenium_pid_store import SeleniumPIDStore, NoSuchProcess, MaxSeleniumB
 @mock.patch('redis.StrictRedis.set')
 @mock.patch('redis.StrictRedis.delete')
 @mock.patch('redis.StrictRedis.scan_iter')
-class TestEncryption(unittest.TestCase):
+class TestSeleniumPIDStore(unittest.TestCase):
     data = {}
     storage = SeleniumPIDStore()
 
