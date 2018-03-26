@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import uuid4
+from random import randint
 
 import requests
 from requests import Session, HTTPError
@@ -314,7 +315,8 @@ class SeleniumMiner(BaseMiner):
 
     def check_browser_availability(self):
         if not self.storage.is_browser_available():
-            time.sleep(60)
+            # Wait a random time to not create waves of load when all the browsers finish waiting
+            time.sleep(randint(20, 40))
         if not self.storage.is_browser_available():
             raise AgentException(RESOURCE_LIMIT_REACHED)
 
@@ -335,10 +337,8 @@ class SeleniumMiner(BaseMiner):
     def attempt_login(self, credentials):
         try:
             super().attempt_login(credentials)
+        finally:
             self.close_selenium()
-        except Exception:
-            self.close_selenium()
-            raise
 
     def find_captcha(self):
         self.browser.implicitly_wait(1)
