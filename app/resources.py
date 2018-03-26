@@ -159,7 +159,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
             update_pending_link_account(scheme_account_id, message, tid, intercom_data=intercom_data)
         else:
-            status = int(re.findall('code: (\d+)', str(e))[0])
+            status = e.status_code
             requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
                           data=json.dumps({'status': status}, cls=JsonEncoder), headers=get_headers(tid))
 
