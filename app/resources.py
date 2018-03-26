@@ -1,6 +1,5 @@
 import functools
 import json
-import re
 
 import requests
 from flask import make_response, request
