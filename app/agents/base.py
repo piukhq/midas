@@ -24,9 +24,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from app import utils
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
-from app.security import get_security_agent
-from settings import logger
-from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
