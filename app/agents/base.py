@@ -1,9 +1,15 @@
-import hashlib
-from decimal import Decimal
-from collections import defaultdict
-from urllib.parse import urlsplit
-
 import _ssl
+import hashlib
+import json
+import os
+import time
+from collections import defaultdict
+from contextlib import contextmanager
+from decimal import Decimal
+from urllib.parse import urlsplit
+from uuid import uuid4
+from random import randint
+
 import requests
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
@@ -11,13 +17,19 @@ from requests.exceptions import ReadTimeout, Timeout
 from requests.packages.urllib3.poolmanager import PoolManager
 from robobrowser import RoboBrowser
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
 
-from app.utils import open_browser, TWO_PLACES, pluralise
+from app import utils
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA
-from app.publish import put
-from settings import HERMES_URL
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
+from app.exceptions import AgentException
+from app.publish import thread_pool_executor
+from app.security import get_security_agent
+from app.selenium_pid_store import SeleniumPIDStore
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
+from settings import logger
 
 
 class SSLAdapter(HTTPAdapter):
@@ -37,7 +49,7 @@ class SSLAdapter(HTTPAdapter):
 class BaseMiner(object):
     retry_limit = 2
     point_conversion_rate = Decimal('0')
-    connect_timeout = 1
+    connect_timeout = 3
     known_captcha_signatures = [
         'recaptcha',
         'captcha',
@@ -45,6 +57,7 @@ class BaseMiner(object):
     ]
     identifier_type = None
     identifier = None
+    async = False
 
     def register(self, credentials):
         raise NotImplementedError()
@@ -66,7 +79,10 @@ class BaseMiner(object):
         raise NotImplementedError()
 
     def transactions(self):
-        return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+        try:
+            return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+        except Exception:
+            return []
 
     def hash_transactions(self, transactions):
         count = defaultdict(int)
@@ -125,24 +141,6 @@ class BaseMiner(object):
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
-    @staticmethod
-    def update_scheme_account(scheme_account_id, message, tid, identifier=None):
-        """
-        Send an identifier to hermes and a message of success or an error message if there was a problem
-        retrieving the identifier.
-
-        :param scheme_account_id: id of scheme account to update
-        :param message: details such as error message or "success"
-        :param tid: transaction id
-        :param identifier: identifier credential e.g membership id, barcode.
-        """
-        data = {
-            'message': message,
-            'identifier': identifier,
-        }
-        put('{}/schemes/accounts/{}/join'.format(HERMES_URL, scheme_account_id), data, tid)
-        return data
-
 
 # Based on RoboBrowser Library
 class RoboBrowserMiner(BaseMiner):
@@ -153,9 +151,10 @@ class RoboBrowserMiner(BaseMiner):
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.proxy = False
 
@@ -242,13 +241,23 @@ class RoboBrowserMiner(BaseMiner):
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.parsed.prettify("utf-8"), base_href)
 
+    @staticmethod
+    def get_requests_cacert():
+        cacert_file = os.path.dirname(requests.__file__) + '/cacert.pem'
+        if os.path.isfile(cacert_file):
+            return cacert_file
+
+        # verify = True will mean requests uses certifi's cacert.pem for verifying ssl connections
+        return True
+
 
 # Based on requests library
 class ApiMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -287,41 +296,58 @@ class ApiMiner(BaseMiner):
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None):
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+        self.storage = self.get_pid_store()
+        self.check_browser_availability()
+        self.delay = 15
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
+        self.account_status = account_status
         self.headers = {}
         self.retry_count = retry_count
-        self.setup_browser()
+        self.setup_browser(self.storage)
 
-    def selenium_handler(selenium_function):
-        def handled(self, *args):
-            try:
-                selenium_function(self, *args)
+    @staticmethod
+    def get_pid_store():
+        storage = SeleniumPIDStore()
+        storage.terminate_old_browsers()
+        return storage
 
-            except Exception as e:
-                self.browser.quit()
-                raise e
+    def check_browser_availability(self):
+        if not self.storage.is_browser_available():
+            # Wait a random time to not create waves of load when all the browsers finish waiting
+            time.sleep(randint(20, 40))
+        if not self.storage.is_browser_available():
+            raise AgentException(
+                AgentError(RESOURCE_LIMIT_REACHED)
+            )
 
-        return handled
-
-    @selenium_handler
-    def setup_browser(self):
-        options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--hide-scrollbars')
-        options.add_argument('--disable-gpu')
-        self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
-        self.browser.implicitly_wait(5)
+    def setup_browser(self, pid_store):
+        try:
+            options = webdriver.firefox.options.Options()
+            options.add_argument('--headless')
+            options.add_argument('--hide-scrollbars')
+            options.add_argument('--disable-gpu')
+            self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
+            pid = self.browser.service.process.pid
+            pid_store.set(pid)
+            self.browser.implicitly_wait(self.delay)
+        except Exception:
+            self.close_selenium()
+            raise
 
     def attempt_login(self, credentials):
-        super().attempt_login(credentials)
-        self.browser.quit()
+        try:
+            super().attempt_login(credentials)
+        finally:
+            self.close_selenium()
 
     def find_captcha(self):
+        self.browser.implicitly_wait(1)
         for captcha in self.known_captcha_signatures:
             if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
                 raise AgentError(TRIPPED_CAPTCHA)
+        self.browser.implicitly_wait(self.delay)
 
     def view(self):
         """
@@ -330,3 +356,205 @@ class SeleniumMiner(BaseMiner):
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
         open_browser(self.browser.page_source.encode('utf-8'), base_href)
+
+    def close_selenium(self):
+        try:
+            pid = self.browser.service.process.pid
+            self.browser.quit()
+            self.storage.close_process_and_delete(str(pid))
+        except (ProcessLookupError, AttributeError):
+            pass
+
+    @contextmanager
+    def wait_for_page_load(self, timeout=15):
+        old_page = self.browser.find_element_by_tag_name('html')
+        yield
+        WebDriverWait(self.browser, timeout).until(
+            ec.staleness_of(old_page)
+        )
+
+    def wait_for_value(self, css_selector, text, timeout=15):
+        WebDriverWait(self.browser, timeout).until(
+            ec.text_to_be_present_in_element((webdriver.common.by.By.CSS_SELECTOR, css_selector), text)
+        )
+
+
+class MerchantApi(BaseMiner):
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+        self.retry_count = retry_count
+        self.scheme_id = scheme_id
+        self.scheme_slug = scheme_slug
+        self.account_status = account_status
+
+        # { error we raise: error we receive in merchant payload}
+        self.errors = {
+            NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
+            STATUS_LOGIN_FAILED: ['VALIDATION'],
+            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            UNKNOWN: ['GENERAL_ERROR']
+        }
+
+    def login(self, credentials):
+        """
+        Calls handler, passing in handler_type as either 'validate' or 'update' depending on if a link
+        request was made or not. A link boolean should be in the credentials to check if request was a link.
+        :param credentials: user account credentials for merchant scheme
+        :return: None
+        """
+        handler_type = 'validate' if self.account_status == 'WALLET_ONLY' else 'update'
+
+        self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+
+        error = self.result['error_codes']
+        if error:
+            self.handle_errors(error[0]['description'])
+
+    def register(self, data, inbound=False):
+        """
+        Calls handler, passing in 'join' as the handler_type.
+        :param data: user account credentials to register for merchant scheme or merchant response for outbound
+                     or inbound processes respectively.
+        :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
+        :return: None
+        """
+        if inbound:
+            self._async_inbound(data, self.scheme_slug, handler_type='join')
+        else:
+            self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
+
+            error = self.result['error_codes']
+            if error:
+                self.handle_errors(error[0]['description'])
+
+    # Should be overridden in the agent if there is agent specific processing required for their response.
+    def process_join_response(self, response):
+        """
+        Processes a merchant's response to a join request.
+        :param response: JSON data of a merchant's response
+        :return: None
+        """
+        # check for error response
+
+        # link account (get balance and transactions)
+
+        raise NotImplementedError()
+
+    def _outbound_handler(self, data, merchant_id, handler_type):
+        """
+        Handler service to apply merchant configuration and build JSON, for request to the merchant, and
+        handles response. Configuration service is called to retrieve merchant config.
+        :param data: python object data to be built into the JSON object.
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :return: dict of response data
+        """
+        message_uid = str(uuid4())
+
+        config = utils.get_config(merchant_id, handler_type)
+
+        data['message_uid'] = message_uid
+        data['callback_url'] = config.get('callback_url')
+
+        payload = json.dumps(data)
+
+        # log payload
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _outbound_handler")
+
+        response_data = self._sync_outbound(payload, config)
+
+        if response_data and config['log_level']:
+            # log json_data
+            # TODO: logging setup for _outbound_handler
+            logger.info("TODO: logging setup for _outbound_handler")
+
+        return json.loads(response_data)
+
+    def _inbound_handler(self, json_data, merchant_id):
+        """
+        Handler service for inbound response i.e. response from async join. The response json is logged,
+        converted to a python object and passed to the relevant method for processing.
+        :param json_data: JSON payload
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: dict of response data
+        """
+        # log json_data
+        # TODO: logging setup for _outbound_handler
+        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
+
+        return self.process_join_response(json.loads(json_data))
+
+    def _sync_outbound(self, data, config):
+        """
+        Synchronous outbound service to build a request and make call to merchant endpoint.
+        Calls are made to security and back off services pre-request.
+        :param data: JSON string of payload to send to merchant
+        :param config: dict of merchant configuration settings
+        :return: Response payload
+        """
+
+        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        request = security_agent.encode(data)
+
+        for retry_count in range(1 + config['retry_limit']):
+            if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
+                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                break
+            else:
+                response = requests.post(config['merchant_url'], **request)
+                status = response.status_code
+
+                if status == 200:
+                    response_json = response.content
+                    # Check if request was redirected
+                    # TODO: logging for redirects
+                    if response.history:
+                        logger.warning("TODO: logging setup for redirect in _sync_outbound")
+                    break
+
+                elif status in [503, 504, 408]:
+                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                else:
+                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                                                          errors[UNKNOWN]['name'] + ' with status code {}'
+                                                          .format(status))
+
+                if retry_count == config['retry_limit']:
+                    BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
+
+        return response_json
+
+    def _async_inbound(self, data, merchant_id, handler_type):
+        """
+        Asynchronous inbound service that will decode json based on configuration per merchant and return
+        a success response asynchronously before calling the inbound handler service.
+        :param data: Request JSON from merchant
+        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :return: None
+        """
+        config = utils.get_config(merchant_id, handler_type)
+
+        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        decoded_data = security_agent.decode(data)
+
+        # asynchronously call handler
+        thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
+
+    def handle_errors(self, response, exception_type=LoginError):
+        for key, values in self.errors.items():
+            if response in values:
+                raise exception_type(key)
+        raise AgentError(UNKNOWN)
+
+
+class BackOffService:
+    # TODO: Remove when implementing the back off service
+    @classmethod
+    def is_on_cooldown(cls, merchant_id, handler_type):
+        print('cooldown checked for {}/{}'.format(merchant_id, handler_type))
+        return False
+
+    @classmethod
+    def activate_cooldown(cls, merchant_id, handler_type, time):
+        print('activated cooldown for {}/{} of {} seconds'.format(merchant_id, handler_type, time))

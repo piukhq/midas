@@ -1,11 +1,10 @@
 from app.encoding import JsonEncoder
 import json
 from decimal import Decimal
-from app.utils import minify_number
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger, MAX_VALUE_LABEL_LENGTH
+from app.utils import minify_number, get_headers
+from settings import HADES_URL, HERMES_URL, logger, MAX_VALUE_LABEL_LENGTH
 from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
-import socket
 
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
@@ -17,22 +16,14 @@ def log_errors(session, resp):
 
 
 def post(url, data, tid):
-    headers = {'Content-type': 'application/json',
-               'transaction': tid,
-               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
-               'Authorization': 'Token ' + SERVICE_API_KEY}
     session = FuturesSession(executor=thread_pool_executor)
-    session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
+    session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid),
                  background_callback=log_errors)
 
 
 def put(url, data, tid):
-    headers = {'Content-type': 'application/json',
-               'transaction': tid,
-               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
-               'Authorization': 'Token ' + SERVICE_API_KEY}
     session = FuturesSession(executor=thread_pool_executor)
-    session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=headers,
+    session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid),
                 background_callback=log_errors)
 
 
@@ -71,6 +62,6 @@ def zero_balance(scheme_account_id, user_id, tid):
     data = {
         'points': Decimal(0),
         'value': Decimal(0),
-        'value_label': '',
+        'value_label': 'Pending',
     }
     return balance(data, scheme_account_id, user_id, tid)

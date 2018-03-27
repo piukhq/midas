@@ -9,7 +9,7 @@ class TestIceland(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Iceland(1, 1)
-        cls.m.attempt_login(CREDENTIALS['bonus-card'])
+        cls.m.attempt_login(CREDENTIALS['iceland-bonus-card'])
 
     def test_login(self):
         self.assertTrue(self.m.is_login_successful)

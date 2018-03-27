@@ -10,7 +10,7 @@ class TestVirgin(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.m = Virgin(1, 1)
-        cls.m.attempt_login(CREDENTIALS['virgin'])
+        cls.m.attempt_login(CREDENTIALS['virgin-flyingclub'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)

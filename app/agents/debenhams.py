@@ -55,7 +55,7 @@ class Debenhams(RoboBrowserMiner):
 
     @staticmethod
     def parse_transaction(row):
-        return None
+        return row
 
     def scrape_transactions(self):
         # we need some transactions in the test account before we can see the format of 'transactionHistory'.
@@ -64,4 +64,4 @@ class Debenhams(RoboBrowserMiner):
         #               '/wcs/resources/store/10701/person/@self/BCReg/card/history/wallet/points')
         # json = self.browser.response.json()
         # transactions = json['transactionHistory']
-        return None
+        return []

@@ -10,7 +10,7 @@ class TestStarRewards(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = StarRewards(1, 1)
-        cls.s.attempt_login(CREDENTIALS['star_rewards'])
+        cls.s.attempt_login(CREDENTIALS['star-rewards'])
 
     def test_login(self):
         self.assertEqual(self.s.browser.response.status_code, 200)

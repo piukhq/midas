@@ -28,7 +28,7 @@ class CoffeeOne(RoboBrowserMiner):
         self.browser.open('https://www.coffee1.co.uk/one-card/')
         self.get_token()
 
-        url = 'https://www.coffee1.co.uk/api/loyalty/balance/{}/'.format(credentials['card-number'])
+        url = 'https://www.coffee1.co.uk/api/loyalty/balance/{}/'.format(credentials['card_number'])
         query_string = {
             'pin': credentials['pin'],
             'token': self.token

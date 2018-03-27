@@ -9,6 +9,7 @@ read_env()
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8000')
 
+# logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
 
@@ -30,6 +31,7 @@ AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
 REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
 USER_TOKEN_REDIS_URL = env_var('USER_TOKEN_REDIS_URI', 'redis://localhost:6379/4')
+SELENIUM_PID_STORE = env_var('SELENIUM_PID_STORE', 'redis://localhost:6379/5')
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
@@ -52,3 +54,16 @@ INFLUX_PASSWORD = env_var('INFLUX_PASSWORD', 'root')
 INFLUX_DATABASE = env_var('INFLUX_DATABASE', 'test_results')
 
 MAX_VALUE_LABEL_LENGTH = 11
+
+# INTERCOM_TOKEN default value is for testing
+INTERCOM_TOKEN = env_var('INTERCOM_TOKEN', 'dG9rOmE4MGYzNDRjX2U5YzhfNGQ1N184MTA0X2E4YTgwNDQ2ZGY1YzoxOjA=')
+INTERCOM_HOST = 'https://api.intercom.io'
+INTERCOM_EVENTS_PATH = 'events'
+
+HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
+
+CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
+LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
+
+MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
+SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')

@@ -1,36 +1,36 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.jetblue import JetBlue
+from app.agents.showcase import Showcase
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestJetBlue(unittest.TestCase):
+class TestShowcase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.j = JetBlue(1, 1)
-        cls.j.attempt_login(CREDENTIALS['trueblue'])
+        cls.m = Showcase(1, 1)
+        cls.m.attempt_login(CREDENTIALS['showcase'])
 
     def test_login(self):
-        self.assertEqual(self.j.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
 
     def test_transactions(self):
-        transactions = self.j.transactions()
-        self.assertTrue(transactions)
+        transactions = self.m.transactions()
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
-        balance = self.j.balance()
+        balance = self.m.balance()
         schemas.balance(balance)
 
 
-class TestJetBlueFail(unittest.TestCase):
+class TestShowcaseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        j = JetBlue(1, 1)
+        m = Showcase(1, 1)
         with self.assertRaises(LoginError) as e:
-            j.attempt_login(CREDENTIALS['bad'])
+            m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 

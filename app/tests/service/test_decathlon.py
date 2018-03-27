@@ -10,7 +10,7 @@ class TestDecathlon(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.d = Decathlon(1, 1)
-        cls.d.attempt_login(CREDENTIALS['decathlon'])
+        cls.d.attempt_login(CREDENTIALS['decathlon-card'])
 
     def test_login(self):
         self.assertEqual(self.d.browser.response.status_code, 200)

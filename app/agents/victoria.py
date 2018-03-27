@@ -44,9 +44,12 @@ class Victoria(RoboBrowserMiner):
         self.check_if_logged_in()
 
     def balance(self):
-        self.browser.open('https://www.flytap.com/en-us/client-area')
-        points = self.browser.select('.center-mode')[0].text
-        points = extract_decimal(points)
+        self.browser.open('https://www.flytap.com/en-us/client-area/balance-and-transactions')
+        points = self.browser.select('div.miles-balance-content > div.number')
+        for x in points:
+            if x.select('sup')[0].text == 'Miles':
+                points = extract_decimal(x.text)
+                break
 
         return {
             'points': points,
