@@ -455,7 +455,7 @@ class MerchantApi(BaseMiner):
 
         payload = json.dumps(data)
 
-        # data without user password for logging only
+        # data without encrypted credentials for logging only
         temp_data = {k: v for k, v in data.items() if k not in ENCRYPTED_CREDENTIALS}
 
         logging_info = self._create_log_message(
