@@ -22,6 +22,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
 from app import utils
+from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.security import get_security_agent
 from settings import logger
@@ -455,7 +456,7 @@ class MerchantApi(BaseMiner):
         payload = json.dumps(data)
 
         # data without user password for logging only
-        temp_data = {k: v for k, v in data.items() if k != 'password'}
+        temp_data = {k: v for k, v in data.items() if k not in ENCRYPTED_CREDENTIALS}
 
         logging_info = self._create_log_message(
             temp_data,
