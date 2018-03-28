@@ -16,7 +16,6 @@ class Marriott(SeleniumMiner):
         self.find_captcha()
         self.is_login_successful = True
 
-    @SeleniumMiner.selenium_handler
     def login(self, credentials):
         self.browser.get('https://www.marriott.co.uk/Channels/rewards/signIn-uk.mi')
         self.browser.find_element_by_xpath('//input[@id="field-user-id"]').send_keys(credentials['email'])
