@@ -21,6 +21,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from contextlib import contextmanager
 
 from app import utils
+from app.configuration import Configuration
 from app.security import get_security_agent
 from settings import logger
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
@@ -439,10 +440,10 @@ class MerchantApi(BaseMiner):
         """
         message_uid = str(uuid4())
 
-        config = utils.get_config(merchant_id, handler_type)
+        config = Configuration(merchant_id, handler_type)
 
         data['message_uid'] = message_uid
-        data['callback_url'] = config.get('callback_url')
+        data['callback_url'] = config.callback_url
 
         payload = json.dumps(data)
 
@@ -494,7 +495,7 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = response.content
+                    response_json = security_agent.decode(response)
                     # Check if request was redirected
                     # TODO: logging for redirects
                     if response.history:
@@ -513,18 +514,18 @@ class MerchantApi(BaseMiner):
 
         return response_json
 
-    def _async_inbound(self, data, merchant_id, handler_type):
+    def _async_inbound(self, response, merchant_id, handler_type):
         """
         Asynchronous inbound service that will decode json based on configuration per merchant and return
         a success response asynchronously before calling the inbound handler service.
-        :param data: Request JSON from merchant
+        :param response: Response object
         :param merchant_id: Bink's unique identifier for a merchant (slug)
         :return: None
         """
-        config = utils.get_config(merchant_id, handler_type)
+        config = Configuration(merchant_id, handler_type)
 
-        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
-        decoded_data = security_agent.decode(data)
+        security_agent = get_security_agent(config.security_service, config.security_credentials)
+        decoded_data = security_agent.decode(response)
 
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)

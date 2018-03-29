@@ -6,6 +6,7 @@ from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError
+from app.configuration import Configuration
 
 
 class TestMerchantApi(TestCase):
@@ -133,3 +134,11 @@ class TestMerchantApi(TestCase):
         with self.assertRaises(LoginError) as e:
             self.m.register({})
         self.assertEqual(e.exception.name, "An unknown error has occurred")
+
+
+class TestConfigService(TestCase):
+    def setUp(self):
+        self.c = Configuration('fake-merchant', 'update')
+
+    def test_get_config_returns_data(self):
+        pass

@@ -1,5 +1,9 @@
 from importlib import import_module
 
+import hvac
+
+from settings import VAULT_TOKEN
+
 
 class DoesNotExist(Exception):
     pass
@@ -22,3 +26,13 @@ def get_security_agent(security_type, *args, **kwargs):
         raise DoesNotExist('No security type was found for {}'.format(security_type))
 
     return agent_instance
+
+
+def get_security_credentials(key_items):
+    client = hvac.Client(token=VAULT_TOKEN)
+
+    for key_item in key_items:
+        value = client.read('secret/{}'.format(key_item['storage_key']))['data'][key_item['type']]
+        key_item['value'] = value
+
+    return key_items
