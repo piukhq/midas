@@ -6,6 +6,7 @@ from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 
 
 class Marriott(SeleniumMiner):
+    async = True
     points = None
     is_login_successful = False
 
