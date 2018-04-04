@@ -476,7 +476,7 @@ class MerchantApi(BaseMiner):
             message_uid,
             merchant_id,
             handler_type,
-            config['integration_service']
+            config.integration_service
         )
 
         logger.info(json.dumps(logging_info))
@@ -549,9 +549,9 @@ class MerchantApi(BaseMiner):
                         logging_info = self._create_log_message(
                             response_json,
                             json.loads(data)['message_uid'],
-                            config['merchant_id'],
-                            config['handler_type'],
-                            config['integration_service']
+                            config.merchant_id,
+                            config.handler_type,
+                            config.integration_service
                         )
 
                         logger.warning(json.dumps(logging_info))

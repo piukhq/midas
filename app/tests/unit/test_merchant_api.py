@@ -18,6 +18,7 @@ class TestMerchantApi(TestCase):
         self.config = MagicMock()
         self.config.merchant_id = 'id'
         self.config.merchant_url = 'stuff'
+        self.config.integration_service = 'Sync'
         self.config.security_service = 'RSA'
         self.config.security_credentials = [{'type': '', 'storage_key': ''}]
         self.config.handler_type = 'update'
@@ -29,6 +30,7 @@ class TestMerchantApi(TestCase):
     def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound, mock_config):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value.callback_url = ''
+        mock_config.return_value.integration_service = 'Sync'
         mock_config.return_value.log_level = 'DEBUG'
         self.m.record_uid = '123'
 
@@ -145,9 +147,9 @@ class TestMerchantApi(TestCase):
         self.assertEqual(e.exception.name, "An unknown error has occurred")
 
 
-class TestConfigService(TestCase):
-    def setUp(self):
-        self.c = Configuration('fake-merchant', 'update')
-
-    def test_get_config_returns_data(self):
-        pass
+# class TestConfigService(TestCase):
+#     def setUp(self):
+#         self.c = Configuration('fake-merchant', 'update')
+#
+#     def test_get_config_returns_data(self):
+#         pass

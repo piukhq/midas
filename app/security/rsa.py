@@ -14,4 +14,4 @@ class RSA:
         return encoded_request
 
     def decode(self, data):
-        return json.dumps(data)
+        return data.content
