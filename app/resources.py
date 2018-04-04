@@ -17,7 +17,7 @@ from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor
-from app.utils import resolve_agent, raise_intercom_event
+from app.utils import resolve_agent, raise_intercom_event, get_headers
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -101,6 +101,7 @@ class Balance(Resource):
         user_info['pending'] = False
         if user_info['status'] in ['PENDING', 'WALLET_ONLY']:
             user_info['pending'] = True
+            prev_balance['pending'] = True
 
         thread_pool_executor.submit(async_get_balance_and_publish, agent_class, scheme_slug, user_info, tid)
         # return previous balance from hades so front end has something to display
@@ -156,6 +157,10 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
             update_pending_link_account(scheme_account_id, message, tid, intercom_data=intercom_data)
+        else:
+            status = e.status_code
+            requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
+                          data=json.dumps({'status': status}, cls=JsonEncoder), headers=get_headers(tid))
 
         raise e
 
@@ -420,17 +425,18 @@ def get_hades_balance(scheme_account_id):
 def update_pending_join_account(scheme_account_id, message, tid, identifier=None, intercom_data=None):
     # for updating user ID credential you get for registering (e.g. getting issued a card number)
     if identifier:
-        requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=identifier,
-                     headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+        requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
+                     data=json.dumps(identifier, cls=JsonEncoder), headers=get_headers(tid))
         return
 
     # error handling for pending scheme accounts waiting for join journey to complete
-    data = {'status': 'JOIN'}
-    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+    data = {'status': 900}
+    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
+                  data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid))
 
     data = {'all': True}
-    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
-                    headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
+                    data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
     raise_intercom_event('join-failed-event', intercom_data['user_id'], metadata)
@@ -440,12 +446,13 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
 
 def update_pending_link_account(scheme_account_id, message, tid, intercom_data=None):
     # error handling for pending scheme accounts waiting for async link to complete
-    data = {'status': 'WALLET_ONLY'}
-    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+    status_data = {'status': 10}
+    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
+                  data=json.dumps(status_data, cls=JsonEncoder), headers=get_headers(tid))
 
-    data = {'property_list': ['link_questions']}
-    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id), data=data,
-                    headers={'Authorization': 'Token ' + SERVICE_API_KEY})
+    question_data = {'property_list': ['link_questions']}
+    requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
+                    data=json.dumps(question_data), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
     raise_intercom_event('async-link-failed-event', intercom_data['user_id'], metadata)
