@@ -3,11 +3,10 @@ import json
 import requests
 
 from app.security import get_security_credentials
+from settings import HELIOS_URL
 
 
 class Configuration:
-    config_service_url = 'http://127.0.0.1:8002/dashboard/configuration'
-
     UPDATE_HANDLER = 0
     JOIN_HANDLER = 1
     VALIDATE_HANDLER = 2
@@ -52,8 +51,7 @@ class Configuration:
         self.handler_type = handler_type
 
         self.data = self._get_config_data()
-        self._process_config_data(self.data)
-        print()
+        self._process_config_data()
 
     def _get_config_data(self):
 
@@ -63,27 +61,17 @@ class Configuration:
             'handler_type': self.handler_type
         }
 
-        json_data = requests.get(self.config_service_url, params=params).content.decode('utf8')
+        json_data = requests.get(HELIOS_URL + '/configuration', params=params).content.decode('utf8')
         data = json.loads(json_data)
 
         return data
 
-    def _process_config_data(self, data):
-        self.merchant_url = data['merchant_url']
-        self.integration_service = self.INTEGRATION_CHOICES[data['integration_service']][1].upper()
-        self.security_service = self.SECURITY_TYPE_CHOICES[data['security_service']][1].upper()
-        self.retry_limit = data['retry_limit']
-        self.log_level = self.LOG_LEVEL_CHOICES[data['log_level']][1].upper()
-        self.callback_url = data['callback_url']
+    def _process_config_data(self):
+        self.merchant_url = self.data['merchant_url']
+        self.integration_service = self.INTEGRATION_CHOICES[self.data['integration_service']][1].upper()
+        self.security_service = self.SECURITY_TYPE_CHOICES[self.data['security_service']][1].upper()
+        self.retry_limit = self.data['retry_limit']
+        self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
+        self.callback_url = self.data['callback_url']
 
-        self.security_credentials = self._get_security_credentials()
-
-    def _get_security_credentials(self):
-        """
-        For use by security services and handled according to security type.
-        :return: List of dicts. Keys will depend on security service.
-        """
-        # data['security_credentials'] contain keys to retrieve actual credential values from vault.
-        credentials = get_security_credentials(self.data['security_credentials'])
-
-        return credentials
+        self.security_credentials = get_security_credentials(self.data['security_credentials'])

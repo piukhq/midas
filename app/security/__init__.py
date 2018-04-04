@@ -29,6 +29,11 @@ def get_security_agent(security_type, *args, **kwargs):
 
 
 def get_security_credentials(key_items):
+    """
+    Retrieves security credential values from key storage vault.
+    :param key_items: dict {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
+    :return: key_items: returns same dict with added 'value' key containing actual credential value.
+    """
     client = hvac.Client(token=VAULT_TOKEN)
 
     for key_item in key_items:
