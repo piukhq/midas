@@ -2,6 +2,9 @@ import base64
 import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
+from hashids import Hashids
+
+hash_ids = Hashids(min_length=32)
 
 
 class AESCipher(object):
