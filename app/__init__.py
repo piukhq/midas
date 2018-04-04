@@ -10,7 +10,7 @@ sentry = Sentry()
 
 
 def create_app(config_name="settings"):
-    from app.resources import api
+    from app.urls import api
 
     app = Flask('core')
     app.config.from_object(config_name)

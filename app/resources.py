@@ -4,7 +4,7 @@ import json
 import requests
 from flask import make_response, request
 from flask.ext.restful.utils.cors import crossdomain
-from flask_restful import Resource, Api, abort
+from flask_restful import Resource, abort
 from flask_restful_swagger import swagger
 from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
@@ -20,8 +20,6 @@ from app.publish import thread_pool_executor
 from app.utils import resolve_agent, raise_intercom_event, get_headers
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
-
-api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
 
 scheme_account_id_doc = {
     "name": "scheme_account_id",
@@ -165,9 +163,6 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         raise e
 
 
-api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
-
-
 def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
     transactions = agent_instance.transactions()
     publish.transactions(transactions, scheme_account_id, user_id, tid)
@@ -184,9 +179,6 @@ class Register(Resource):
         thread_pool_executor.submit(registration, scheme_slug, scheme_account_id, credentials, user_id, tid)
 
         return create_response({"message": "success"})
-
-
-api.add_resource(Register, '/<string:scheme_slug>/register', endpoint="api.register")
 
 
 class Transactions(Resource):
@@ -219,9 +211,6 @@ class Transactions(Resource):
             thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
 
 
-api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="api.transactions")
-
-
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
     @validate_parameters
@@ -249,9 +238,6 @@ class AccountOverview(Resource):
             raise UnknownException(e)
 
 
-api.add_resource(AccountOverview, '/<string:scheme_slug>/account_overview', endpoint="api.account_overview")
-
-
 class TestResults(Resource):
     """
     This is used for Apollo to access the results of the agent tests run by a cron
@@ -262,9 +248,6 @@ class TestResults(Resource):
             response = make_response(xml.read(), 200)
         response.headers['Content-Type'] = "text/xml"
         return response
-
-
-api.add_resource(TestResults, '/test_results', endpoint="api.test_results")
 
 
 class ResolveAgentIssue(Resource):
@@ -278,9 +261,6 @@ class ResolveAgentIssue(Resource):
         except InfluxDBClientError:
             pass
         return 'The specified issue has been resolved.'
-
-
-api.add_resource(ResolveAgentIssue, '/resolve_issue/<string:classname>', endpoint='api.resolve_issue')
 
 
 class AgentQuestions(Resource):
@@ -297,9 +277,6 @@ class AgentQuestions(Resource):
         return agent.update_questions(questions)
 
 
-api.add_resource(AgentQuestions, '/agent_questions', endpoint='api.agent_questions')
-
-
 class AgentsErrorResults(Resource):
     @staticmethod
     def get():
@@ -307,17 +284,11 @@ class AgentsErrorResults(Resource):
         return dict(success=True, errors=None)
 
 
-api.add_resource(AgentsErrorResults, '/agents_error_results', endpoint='api.agents_error_results')
-
-
 class SingleAgentErrorResult(Resource):
     @staticmethod
     def get(agent):
         path = test_single_agent(agent)
         return get_formatted_message(path)
-
-
-api.add_resource(SingleAgentErrorResult, '/agents_error_results/<agent>', endpoint='api.single_agent_error_result')
 
 
 def decrypt_credentials(credentials):
