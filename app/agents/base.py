@@ -23,7 +23,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 from app.configuration import Configuration
-from app import utils
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
