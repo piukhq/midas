@@ -70,10 +70,10 @@ class Configuration:
 
     def _process_config_data(self, data):
         self.merchant_url = data['merchant_url']
-        self.integration_service = data['integration_service']
-        self.security_service = data['security_service']
+        self.integration_service = self.INTEGRATION_CHOICES[data['integration_service']][1].upper()
+        self.security_service = self.SECURITY_TYPE_CHOICES[data['security_service']][1].upper()
         self.retry_limit = data['retry_limit']
-        self.log_level = data['log_level']
+        self.log_level = self.LOG_LEVEL_CHOICES[data['log_level']][1].upper()
         self.callback_url = data['callback_url']
 
         self.security_credentials = self._get_security_credentials()
@@ -83,7 +83,7 @@ class Configuration:
         For use by security services and handled according to security type.
         :return: List of dicts. Keys will depend on security service.
         """
-        # data['credentials'] contain keys to retrieve actual credential values from vault.
+        # data['security_credentials'] contain keys to retrieve actual credential values from vault.
         credentials = get_security_credentials(self.data['security_credentials'])
 
         return credentials

@@ -1,4 +1,5 @@
 import json
+from unittest.mock import MagicMock
 
 import requests
 
@@ -13,20 +14,32 @@ class TestMerchantApi(TestCase):
     def setUp(self):
         self.m = MerchantApi(1, 1)
         self.data = json.dumps({})
-        self.config = {
-            'merchant_id': 'id',
-            'merchant_url': '',
-            'security_service': 'RSA',
-            'security_credentials': 'creds',
-            'handler_type': 'join',
-            'retry_limit': 2,
-        }
+        # self.config = {
+        #     'merchant_id': 'id',
+        #     'merchant_url': '',
+        #     'security_service': 'RSA',
+        #     'security_credentials': 'creds',
+        #     'handler_type': 'join',
+        #     'retry_limit': 2,
+        # }
 
+        self.config = MagicMock()
+        self.config.merchant_id = 'id'
+        self.config.merchant_url = 'stuff'
+        self.config.security_service = 'RSA'
+        self.config.security_credentials = [{'type': '', 'storage_key': ''}]
+        self.config.handler_type = 'update'
+        self.config.retry_limit = 2
+        self.config.callback_url = ''
+
+    @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound):
+    def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound, mock_config):
         mock_sync_outbound.return_value = json.dumps({"stuff": 'more stuff'})
+        mock_config.return_value.callback_url = ''
+        mock_config.return_value.log_level = 'DEBUG'
 
-        resp = self.m._outbound_handler({}, 1, 'update')
+        resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
 
         self.assertEqual({"stuff": 'more stuff'}, resp)
 

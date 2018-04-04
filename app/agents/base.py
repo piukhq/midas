@@ -453,7 +453,7 @@ class MerchantApi(BaseMiner):
 
         response_data = self._sync_outbound(payload, config)
 
-        if response_data and config['log_level']:
+        if response_data and config.log_level:
             # log json_data
             # TODO: logging setup for _outbound_handler
             logger.info("TODO: logging setup for _outbound_handler")
@@ -483,15 +483,15 @@ class MerchantApi(BaseMiner):
         :return: Response payload
         """
 
-        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
+        security_agent = get_security_agent(config.security_service, config.security_credentials)
         request = security_agent.encode(data)
 
-        for retry_count in range(1 + config['retry_limit']):
-            if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
+        for retry_count in range(1 + config.retry_limit):
+            if BackOffService.is_on_cooldown(config.merchant_id, config.handler_type):
                 response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 break
             else:
-                response = requests.post(config['merchant_url'], **request)
+                response = requests.post(config.merchant_url, **request)
                 status = response.status_code
 
                 if status == 200:
@@ -509,8 +509,8 @@ class MerchantApi(BaseMiner):
                                                           errors[UNKNOWN]['name'] + ' with status code {}'
                                                           .format(status))
 
-                if retry_count == config['retry_limit']:
-                    BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
+                if retry_count == config.retry_limit:
+                    BackOffService.activate_cooldown(config.merchant_id, config.handler_type, 100)
 
         return response_json
 
