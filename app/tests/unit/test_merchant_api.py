@@ -171,13 +171,13 @@ class TestMerchantApi(TestCase):
         }
 
         expected = {
-            'handler_type': 'join',
+            'handler_type': 'JOIN',
             'integration_service': 'ASYNC',
             'security_service': 'RSA',
             'log_level': 'WARNING',
         }
 
-        c = Configuration('fake-merchant', 'join')
+        c = Configuration('fake-merchant', Configuration.JOIN_HANDLER)
 
         config_items = c.__dict__.items()
         for item in expected.items():
