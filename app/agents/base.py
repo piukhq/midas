@@ -407,7 +407,8 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         self.record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = 'validate' if self.account_status == 'WALLET_ONLY' else 'update'
+        handler_type = Configuration.VALIDATE_HANDLER if self.account_status == 'WALLET_ONLY'\
+            else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
@@ -426,9 +427,9 @@ class MerchantApi(BaseMiner):
         self.record_uid = hash_ids.encode(self.scheme_id)
 
         if inbound:
-            self._async_inbound(data, self.scheme_slug, handler_type='join')
+            self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
-            self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
+            self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
             error = self.result['error_codes']
             if error:
@@ -510,7 +511,7 @@ class MerchantApi(BaseMiner):
             response_payload.get['message_uid'],
             merchant_id,
             handler_type,
-            'async'
+            'ASYNC'
         )
 
         if response_payload['error_codes']:
