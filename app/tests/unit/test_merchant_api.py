@@ -146,10 +146,39 @@ class TestMerchantApi(TestCase):
             self.m.register({})
         self.assertEqual(e.exception.name, "An unknown error has occurred")
 
+    @mock.patch('app.configuration.get_security_credentials')
+    @mock.patch('requests.get', autospec=True)
+    def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
+        mock_request.return_value.content = json.dumps({
+            'id': 2,
+            'merchant_id': 'fake-merchant',
+            'merchant_url': '',
+            'handler_type': 1,
+            'integration_service': 1,
+            'callback_url': None,
+            'security_service': 0,
+            'retry_limit': 0,
+            'log_level': 2,
+            'security_credentials': [
+                {'type': 'public_key',
+                 'storage_key': '123456'}
+            ]}).encode()
 
-# class TestConfigService(TestCase):
-#     def setUp(self):
-#         self.c = Configuration('fake-merchant', 'update')
-#
-#     def test_get_config_returns_data(self):
-#         pass
+        mock_get_security_creds.return_value = {
+            'type': 'public_key',
+            'storage_key': '123456',
+            'value': 'asdfghjkl'
+        }
+
+        expected = {
+            'handler_type': 'join',
+            'integration_service': 'ASYNC',
+            'security_service': 'RSA',
+            'log_level': 'WARNING',
+        }
+
+        c = Configuration('fake-merchant', 'join')
+
+        config_items = c.__dict__.items()
+        for item in expected.items():
+            self.assertIn(item, config_items)

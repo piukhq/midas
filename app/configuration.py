@@ -7,6 +7,20 @@ from settings import HELIOS_URL
 
 
 class Configuration:
+    """
+    Configuration for merchant API integration. Requires merchant id and handler type to retrieve
+    configurations.
+    Config parameters:
+    - merchant_id: merchant slug.
+    - handler_type: join, update.
+    - merchant_url: url of merchant endpoint.
+    - callback_url: Endpoint url for merchant to call for response (Async processes only)
+    - integration_service: sync or async process.
+    - security_service: type of security to use e.g RSA.
+    - security_credentials: credentials required for dealing with security e.g public/private keys.
+    - retry_limit: number of times to retry on failed request.
+    - log_level: level of logging to record e.g DEBUG for all, WARNING for warning logs and above.
+    """
     UPDATE_HANDLER = 0
     JOIN_HANDLER = 1
     VALIDATE_HANDLER = 2
@@ -48,14 +62,12 @@ class Configuration:
     def __init__(self, merchant_id, handler_type):
 
         self.merchant_id = merchant_id
-        self.handler_type = handler_type
+        self.handler_type = self.HANDLER_TYPE_CHOICES[handler_type][1].upper()
 
         self.data = self._get_config_data()
         self._process_config_data()
 
     def _get_config_data(self):
-
-        # TODO: error handling
         params = {
             'merchant_id': self.merchant_id,
             'handler_type': self.handler_type
