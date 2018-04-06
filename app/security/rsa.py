@@ -9,8 +9,8 @@ class RSA:
         self.credentials = credentials
 
     def encode(self, json):
-        encoded_request = {'json': json,
-                           'headers': 'headers',
-                           'other_stuff': 'stuff'}
-
+        encoded_request = {'json': json}
         return encoded_request
+
+    def decode(self, data):
+        return data.content
