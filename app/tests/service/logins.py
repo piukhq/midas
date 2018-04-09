@@ -1,4 +1,5 @@
 import json
+import os
 
 from sqlalchemy import create_engine, text
 
@@ -52,6 +53,11 @@ def encrypt(scheme_slug):
 
 
 if settings.CREDENTIALS_LOCAL:
+    print('* Warning, you are using local credentials for agent tests.')
+    if not os.path.exists(settings.LOCAL_CREDENTIALS_FILE):
+        with open(settings.LOCAL_CREDENTIALS_FILE, 'w') as f:
+            f.write('{}')
+
     with open(settings.LOCAL_CREDENTIALS_FILE, 'r') as f:
         CREDENTIALS = json.loads(f.read())
 
