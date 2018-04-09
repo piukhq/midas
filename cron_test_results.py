@@ -231,7 +231,7 @@ def run_agent_tests():
 
 
 def get_formatted_message(xml_file_path):
-    with open(xml_file_path) as f:
+    with open(xml_file_path, encoding='utf-8') as f:
         test_results = xmltodict.parse(f.read())
 
     bad_agents = get_problematic_agents(test_results)
