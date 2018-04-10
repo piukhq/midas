@@ -9,7 +9,7 @@ from app.agents.exceptions import AgentError, VALIDATION
 
 class RSA:
     """
-    TODO: Complete functional implementation
+    Generate and verify requests with an RSA signature.
     """
 
     def __init__(self, credentials):
