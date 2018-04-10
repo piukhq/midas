@@ -287,5 +287,5 @@ class TestMerchantApi(TestCase):
         request.headers['AUTHORIZATION'] = 'bad signature'
         request.content = self.json_data
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(AgentError):
             rsa.decode(request)
