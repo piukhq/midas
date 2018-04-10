@@ -424,11 +424,10 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        self.record_uid = hash_ids.encode(self.scheme_id)
-
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
+            self.record_uid = hash_ids.encode(self.scheme_id)
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
             error = self.result['error_codes']
@@ -583,6 +582,8 @@ class MerchantApi(BaseMiner):
 
         security_agent = get_security_agent(config.security_service, config.security_credentials)
         decoded_data = security_agent.decode(response)
+
+        self.record_uid = hash_ids.decode(json.loads(decoded_data)['record_uid'])[0]
 
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
