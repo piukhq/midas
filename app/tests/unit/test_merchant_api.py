@@ -3,6 +3,8 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import requests
+from Crypto.PublicKey import RSA as CRYPTO_RSA
+from Crypto.Signature.PKCS1_v1_5 import PKCS115_SigScheme
 from flask.ext.testing import TestCase
 
 from app import create_app
@@ -18,14 +20,15 @@ class TestMerchantApi(TestCase):
     m = MerchantApi(1, 1)
     json_data = json.dumps({
         'message_uid': '123-123-123-123',
-        'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58'    # hash for a scheme account id of 1
+        'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
+        'timestamp': 1523356514.250829
         })
 
-    signature = b'qOmitDJLhyZnBFZGRHm4Nz0hiRl/FKXv8y1f5r3aX/Fdu6ayTaVeY3OzSwbgbT03p1YSM09yHdcyX' \
-                b'ACGIWt/Bet6mmeyEUOZgLkv3PVS3et/dvftM4ZnnmTu/Nu7KjJNkBZnhLB8DPRQ7tTWsI0TbCDgxU' \
-                b'onLBibMXQfvHp9fq6KCcdXzgKC+O5Bzk+15g7G+crNnDW65ce56MJhIDBzeiXis4tqiy5K6jMnIhj' \
-                b'oRWPxlGsBXe2v37NUlmL3qQk0QsIWn8jcS5cRXahPBwKtwn10KcYpEKm89Xse5iqJO1Vx0cj4vHoe' \
-                b'RXW7DMtkcfPv79ZcCn6oHsL7+7jsMD+QNQ=='
+    signature = b'AwVdd/Wiuaal/eMnnn5/OvqbeBr8ruQgz6kQZy8/Pu7c1PjYMYhmQAkXfAmvGnFdRSpOusPtfU' \
+                b'9soEgASzCytAJU4lEVe6lyeQZuP5pKn1BOo4uM/7miQzQhS3L+/W9Uosf2puSnTiW7d8CfED62' \
+                b'EVn/3Bc1fitLVOiBUjAtPpv28LBaeD32eXaHKR511+UkwEUEgcgtG75dnEqr4Eq52lnsZMkw02' \
+                b'SXqZd7edterXH04MsjwI6r9htIZPl/k8EArAyL0rK8RkH5qwwAiWuSmjrpCZEglb6B/I9tphww' \
+                b'jtI9iCiRoh52uk7QeUMC6fXBqP9s21oolaNRbig0Lqr1UA=='
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -262,14 +265,17 @@ class TestMerchantApi(TestCase):
         for item in expected.items():
             self.assertIn(item, config_items)
 
-    def test_rsa_security_encode(self):
+    @mock.patch('app.security.rsa.time.time', autospec=True)
+    def test_rsa_security_encode(self, mock_time):
+        mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
-
         request_params = rsa.encode(self.json_data)
 
         self.assertEqual(request_params, {'json': self.json_data, 'headers': {'Authorization': self.signature}})
 
-    def test_rsa_security_decode_success(self):
+    @mock.patch('app.security.rsa.time.time', autospec=True)
+    def test_rsa_security_decode_success(self, mock_time):
+        mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
         request.json = self.json_data
@@ -280,7 +286,9 @@ class TestMerchantApi(TestCase):
 
         self.assertEqual(request_json, self.json_data)
 
-    def test_rsa_security_decode_raises_exception_on_fail(self):
+    @mock.patch('app.security.rsa.time.time', autospec=True)
+    def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
+        mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
         request.json = self.json_data
@@ -289,3 +297,21 @@ class TestMerchantApi(TestCase):
 
         with self.assertRaises(AgentError):
             rsa.decode(request)
+
+    @mock.patch.object(PKCS115_SigScheme, 'verify', autospec=True)
+    @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
+    @mock.patch('app.security.rsa.time.time', autospec=True)
+    def test_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
+        mock_time.return_value = 9876543210.000000
+
+        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
+        request = requests.Request()
+        request.json = self.json_data
+        request.headers['AUTHORIZATION'] = self.signature
+        request.content = self.json_data
+
+        with self.assertRaises(AgentError):
+            rsa.decode(request)
+
+        self.assertFalse(mock_import_key.called)
+        self.assertFalse(mock_verify.called)
