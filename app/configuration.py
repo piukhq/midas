@@ -60,9 +60,8 @@ class Configuration:
     )
 
     def __init__(self, merchant_id, handler_type):
-
         self.merchant_id = merchant_id
-        self.handler_type = self.HANDLER_TYPE_CHOICES[handler_type][1].upper()
+        self.handler_type = (handler_type, self.HANDLER_TYPE_CHOICES[handler_type][1].upper())
 
         self.data = self._get_config_data()
         self._process_config_data()
@@ -70,7 +69,7 @@ class Configuration:
     def _get_config_data(self):
         params = {
             'merchant_id': self.merchant_id,
-            'handler_type': self.handler_type
+            'handler_type': self.handler_type[0]
         }
 
         json_data = requests.get(HELIOS_URL + '/configuration', params=params).content.decode('utf8')
