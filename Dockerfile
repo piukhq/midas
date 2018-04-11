@@ -1,42 +1,46 @@
-FROM ubuntu:xenial
-MAINTAINER Chris Pressland <cp@bink.com>
+FROM python:3.6
 
-ADD . /usr/local/src/midas
+ADD . /app
 
-RUN addgroup --gid 1550 apps && \
- adduser --system --no-create-home --uid 1550 --gid 1550 apps && \
- echo "deb http://ppa.launchpad.net/nginx/stable/ubuntu xenial main" >> /etc/apt/sources.list && \
- echo "deb-src http://ppa.launchpad.net/nginx/stable/ubuntu xenial main" >> /etc/apt/sources.list && \
- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C300EE8C && \
- apt-get update && \
- apt-get -y install rsync git git-core python3 python3-pip libpq-dev libxml2-dev libxslt1-dev libgtk-3-dev libdbus-glib-1-dev python3-dev nodejs nginx curl xvfb wget && \
- curl -L 'https://github.com/just-containers/s6-overlay/releases/download/v1.18.1.5/s6-overlay-amd64.tar.gz' -o /tmp/s6-overlay-amd64.tar.gz && \
- tar xzf /tmp/s6-overlay-amd64.tar.gz -C / && \
- sed -i -e 's/user www-data;/user apps;/g' /etc/nginx/nginx.conf && \
- rm -rf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default && \
- rsync -a --remove-source-files /usr/local/src/midas/docker_root/ / && \
- echo "Host git.bink.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config && \
- chmod -R 600 /root/.ssh && \
- pip3 install --upgrade pip && \
- pip3 install uwsgi && \
- pip3 install -r /usr/local/src/midas/requirements.txt && \
- pip3 install pytest && \
- pip3 install pytest-xdist && \
- chown apps:apps /usr/local/src -R && \
- curl -L 'https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz' -o /tmp/geckodriver.tar.gz && \
- tar xzf /tmp/geckodriver.tar.gz && \
- mv geckodriver /usr/local/bin/  && \
- wget https://ftp.mozilla.org/pub/firefox/releases/55.0/linux-x86_64/en-US/firefox-55.0.tar.bz2 && \
- tar -xjf firefox-55.0.tar.bz2 && \
- mv firefox /usr/local/firefox && \
- ln -s /usr/local/firefox/firefox /usr/bin/firefox && \
- rm firefox-55.0.tar.bz2 && \
- mkdir /home/apps && \
- chown -R apps:apps /home/apps && \
- ln -s /usr/local/bin/pytest /usr/bin/pytest && \
- apt-get -y remove rsync git git-core curl && \
- apt-get -y autoremove && \
- apt-get clean && \
- rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.ssh /usr/local/src/midas/docker_root
+ARG FIREFOX_URL=https://ftp.mozilla.org/pub/firefox/releases/55.0/linux-x86_64/en-US/firefox-55.0.tar.bz2
+ARG GECKODRIVER_URL=https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz
 
-ENTRYPOINT ["/init"]
+RUN apt update && apt -y install curl bzip2 ca-certificates xvfb && \
+    curl -L "$FIREFOX_URL" -o /tmp/firefox.tar.bz2 && \
+    tar xvf /tmp/firefox.tar.bz2 -C /usr/local && \
+    ln -s /usr/local/firefox/firefox /usr/bin/firefox && \
+    curl -L "$GECKODRIVER_URL" -o /tmp/geckodriver.tar.gz && \
+    tar xvf /tmp/geckodriver.tar.gz -C /usr/local/bin && \
+    mkdir -p /root/.ssh && mv /app/deploy_key /root/.ssh/id_rsa && \
+    chmod 0600 /root/.ssh/id_rsa && \
+    ssh-keyscan git.bink.com > /root/.ssh/known_hosts && \
+    pip install uwsgi && pip install -r /app/requirements.txt && \
+    pip install pytest pytest-xdist && \
+    apt -y remove bzip2 curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp* /root/.ssh
+
+
+
+
+
+
+    
+
+ #rsync -a --remove-source-files /usr/local/src/midas/docker_root/ / && \
+ #echo "Host git.bink.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config && \
+ #chmod -R 600 /root/.ssh && \
+ #pip3 install --upgrade pip && \
+ #pip3 install uwsgi && \
+ #pip3 install -r /usr/local/src/midas/requirements.txt && \
+ #pip3 install pytest && \
+ #pip3 install pytest-xdist && \
+ #chown apps:apps /usr/local/src -R && \
+ #rm firefox-55.0.tar.bz2 && \
+ #mkdir /home/apps && \
+ #chown -R apps:apps /home/apps && \
+ #ln -s /usr/local/bin/pytest /usr/bin/pytest && \
+ #apt-get -y remove rsync git git-core curl && \
+ #apt-get -y autoremove && \
+ #apt-get clean && \
+ #rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.ssh /usr/local/src/midas/docker_root
+
+#ENTRYPOINT ["/init"]
