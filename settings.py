@@ -7,7 +7,7 @@ from environment import env_var, read_env
 read_env()
 
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
-DEV_PORT = env_var('DEV_PORT', '8000')
+DEV_PORT = env_var('DEV_PORT', '8001')
 
 # logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
@@ -32,6 +32,7 @@ AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
 USER_TOKEN_REDIS_URL = env_var('USER_TOKEN_REDIS_URI', 'redis://localhost:6379/4')
 SELENIUM_PID_STORE = env_var('SELENIUM_PID_STORE', 'redis://localhost:6379/5')
+BACK_OFF_SERVICE_STORE = env_var('BACKOFF_SERVICE_STORE', 'redis://localhost:6379/6')
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
@@ -70,3 +71,5 @@ VAULT_TOKEN = env_var('VAULT_TOKEN', 'my_root')
 
 MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
 SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
+
+BACK_OFF_COOLDOWN = 120

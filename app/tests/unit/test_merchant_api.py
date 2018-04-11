@@ -7,6 +7,7 @@ from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError
+from app.back_off_service import BackOffService
 from app.configuration import Configuration
 
 
@@ -182,3 +183,27 @@ class TestMerchantApi(TestCase):
         config_items = c.__dict__.items()
         for item in expected.items():
             self.assertIn(item, config_items)
+
+
+class TestBackOffService(TestCase):
+    def setUp(self):
+        self.back_off = BackOffService()
+
+    def tearDown(self):
+        self.back_off.storage.delete('merchant-id-update')
+
+    @mock.patch('app.back_off_service.time.time', autospec=True)
+    def test_back_off_service_activate_cooldown_stores_datetime(self, mock_time):
+        mock_time.return_value = 9876543210.0
+        self.back_off.activate_cooldown('merchant-id', 'update', 100)
+
+        date = self.back_off.storage.get('merchant-id-update')
+        self.assertEqual(date, b'9876543310.0')
+
+    @mock.patch('app.back_off_service.time.time', autospec=True)
+    def test_back_off_service_is_on_cooldown(self, mock_time):
+        mock_time.return_value = 1100.0
+        self.back_off.storage.set('merchant-id-update', 1200.0)
+        resp = self.back_off.is_on_cooldown('merchant-id', 'update')
+
+        self.assertTrue(resp)
