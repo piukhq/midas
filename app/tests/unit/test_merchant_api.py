@@ -185,23 +185,37 @@ class TestMerchantApi(TestCase):
             self.assertIn(item, config_items)
 
 
+@mock.patch('redis.StrictRedis.get')
+@mock.patch('redis.StrictRedis.set')
 class TestBackOffService(TestCase):
-    def setUp(self):
-        self.back_off = BackOffService()
+    data = {}
+    back_off = BackOffService()
+
+    def redis_set(self, key, val):
+        self.data[key] = val
+
+    def redis_get(self, key):
+        return self.data.get(key)
 
     def tearDown(self):
         self.back_off.storage.delete('merchant-id-update')
 
     @mock.patch('app.back_off_service.time.time', autospec=True)
-    def test_back_off_service_activate_cooldown_stores_datetime(self, mock_time):
+    def test_back_off_service_activate_cooldown_stores_datetime(self, mock_time, mock_set, mock_get):
+        mock_set.side_effect = self.redis_set
+        mock_get.side_effect = self.redis_get
+
         mock_time.return_value = 9876543210.0
         self.back_off.activate_cooldown('merchant-id', 'update', 100)
 
         date = self.back_off.storage.get('merchant-id-update')
-        self.assertEqual(date, b'9876543310.0')
+        self.assertEqual(date, 9876543310.0)
 
     @mock.patch('app.back_off_service.time.time', autospec=True)
-    def test_back_off_service_is_on_cooldown(self, mock_time):
+    def test_back_off_service_is_on_cooldown(self, mock_time, mock_set, mock_get):
+        mock_set.side_effect = self.redis_set
+        mock_get.side_effect = self.redis_get
+
         mock_time.return_value = 1100.0
         self.back_off.storage.set('merchant-id-update', 1200.0)
         resp = self.back_off.is_on_cooldown('merchant-id', 'update')
