@@ -188,7 +188,6 @@ class TestMerchantApi(TestCase):
 @mock.patch('redis.StrictRedis.get')
 @mock.patch('redis.StrictRedis.set')
 class TestBackOffService(TestCase):
-    data = {}
     back_off = BackOffService()
 
     def redis_set(self, key, val):
@@ -196,6 +195,9 @@ class TestBackOffService(TestCase):
 
     def redis_get(self, key):
         return self.data.get(key)
+
+    def setUp(self):
+        self.data = {}
 
     @mock.patch('app.back_off_service.time.time', autospec=True)
     def test_back_off_service_activate_cooldown_stores_datetime(self, mock_time, mock_set, mock_get):
