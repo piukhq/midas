@@ -74,7 +74,7 @@ class TestMerchantApi(TestCase):
         response.status_code = 503
 
         mock_request.return_value = response
-        mock_back_off.is_on_cooldown.return_value = False
+        mock_back_off.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {"error_codes": [{"code": errors[NOT_SENT]['code'],
                                           "description": errors[NOT_SENT]['message']}]}
@@ -82,7 +82,7 @@ class TestMerchantApi(TestCase):
         resp = self.m._sync_outbound(self.data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
-        self.assertTrue(mock_back_off.activate_cooldown.called)
+        self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
 
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
@@ -91,7 +91,7 @@ class TestMerchantApi(TestCase):
         response.status_code = 500
 
         mock_request.return_value = response
-        mock_backoff.is_on_cooldown.return_value = False
+        mock_backoff.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {"error_codes": [{"code": errors[UNKNOWN]['code'],
                                           "description": errors[UNKNOWN]['name'] + " with status code {}"
@@ -99,19 +99,19 @@ class TestMerchantApi(TestCase):
         resp = self.m._sync_outbound(self.data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
-        self.assertTrue(mock_backoff.activate_cooldown.called)
+        self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
 
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
     def test_sync_outbound_does_not_send_when_on_cooldown(self, mock_request, mock_back_off):
-        mock_back_off.is_on_cooldown.return_value = True
+        mock_back_off.return_value.is_on_cooldown.return_value = True
         expected_resp = {"error_codes": [{"code": errors[NOT_SENT]['code'],
                                           "description": errors[NOT_SENT]['message']}]}
         resp = self.m._sync_outbound(self.data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertFalse(mock_request.called)
-        self.assertFalse(mock_back_off.activate_cooldown.called)
+        self.assertFalse(mock_back_off.return_value.activate_cooldown.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
