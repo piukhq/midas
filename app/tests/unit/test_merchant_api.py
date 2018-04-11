@@ -39,27 +39,31 @@ class TestMerchantApi(TestCase):
 
         self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
 
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_success_response(self, mock_request):
+    def test_sync_outbound_success_response(self, mock_request, mock_back_off):
         response = requests.Response()
         response.status_code = 200
         response._content = json.dumps({"stuff": "more stuff"})
 
         mock_request.return_value = response
+        mock_back_off.return_value.is_on_cooldown.return_value = False
 
         resp = self.m._sync_outbound(self.data, self.config)
 
         self.assertEqual(response._content, resp)
 
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_logs_for_redirects(self, mock_request, mock_logger):
+    def test_sync_outbound_logs_for_redirects(self, mock_request, mock_logger, mock_back_off):
         response = requests.Response()
         response.status_code = 200
         response.history = [requests.Response()]
         response._content = json.dumps({"stuff": "more stuff"})
 
         mock_request.return_value = response
+        mock_back_off.return_value.is_on_cooldown.return_value = False
 
         self.m.record_uid = '123'
         resp = self.m._sync_outbound(self.data, self.config)
