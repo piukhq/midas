@@ -265,7 +265,7 @@ class TestMerchantApi(TestCase):
         for item in expected.items():
             self.assertIn(item, config_items)
 
-    @mock.patch('app.security.rsa.time.time', autospec=True)
+    @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_encode(self, mock_time):
         mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
@@ -273,7 +273,7 @@ class TestMerchantApi(TestCase):
 
         self.assertEqual(request_params, {'json': self.json_data, 'headers': {'Authorization': self.signature}})
 
-    @mock.patch('app.security.rsa.time.time', autospec=True)
+    @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_success(self, mock_time):
         mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
@@ -286,7 +286,7 @@ class TestMerchantApi(TestCase):
 
         self.assertEqual(request_json, self.json_data)
 
-    @mock.patch('app.security.rsa.time.time', autospec=True)
+    @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
         mock_time.return_value = 1523356514.250829
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
@@ -300,7 +300,7 @@ class TestMerchantApi(TestCase):
 
     @mock.patch.object(PKCS115_SigScheme, 'verify', autospec=True)
     @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
-    @mock.patch('app.security.rsa.time.time', autospec=True)
+    @mock.patch('app.security.base.time.time', autospec=True)
     def test_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
         mock_time.return_value = 9876543210.000000
 
