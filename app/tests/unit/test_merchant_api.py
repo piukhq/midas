@@ -208,19 +208,19 @@ class TestBackOffService(TestCase):
         mock_set.side_effect = self.redis_set
         mock_get.side_effect = self.redis_get
 
-        mock_time.return_value = 9876543210.0
+        mock_time.return_value = 9876543210
         self.back_off.activate_cooldown('merchant-id', 'update', 100)
 
-        date = self.back_off.storage.get('merchant-id-update')
-        self.assertEqual(date, 9876543310.0)
+        date = self.back_off.storage.get('back-off:merchant-id:update')
+        self.assertEqual(date, 9876543310)
 
     @mock.patch('app.back_off_service.time.time', autospec=True)
     def test_back_off_service_is_on_cooldown(self, mock_time, mock_set, mock_get):
         mock_set.side_effect = self.redis_set
         mock_get.side_effect = self.redis_get
 
-        mock_time.return_value = 1100.0
-        self.back_off.storage.set('merchant-id-update', 1200.0)
+        mock_time.return_value = 1100
+        self.back_off.storage.set('back-off:merchant-id:update', 1200)
         resp = self.back_off.is_on_cooldown('merchant-id', 'update')
 
         self.assertTrue(resp)
