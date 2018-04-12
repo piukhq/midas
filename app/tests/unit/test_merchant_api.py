@@ -21,14 +21,15 @@ class TestMerchantApi(TestCase):
     json_data = json.dumps({
         'message_uid': '123-123-123-123',
         'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
-        'timestamp': 1523356514.250829
+        'timestamp': 1523356514
         })
 
-    signature = b'AwVdd/Wiuaal/eMnnn5/OvqbeBr8ruQgz6kQZy8/Pu7c1PjYMYhmQAkXfAmvGnFdRSpOusPtfU' \
-                b'9soEgASzCytAJU4lEVe6lyeQZuP5pKn1BOo4uM/7miQzQhS3L+/W9Uosf2puSnTiW7d8CfED62' \
-                b'EVn/3Bc1fitLVOiBUjAtPpv28LBaeD32eXaHKR511+UkwEUEgcgtG75dnEqr4Eq52lnsZMkw02' \
-                b'SXqZd7edterXH04MsjwI6r9htIZPl/k8EArAyL0rK8RkH5qwwAiWuSmjrpCZEglb6B/I9tphww' \
-                b'jtI9iCiRoh52uk7QeUMC6fXBqP9s21oolaNRbig0Lqr1UA=='
+    signature = b'qzJFhSeIrDrheAAwZu6u4jN/pWXZfVzqIZLou5/DIV8wQarL4KN/iIOizZ' \
+                b'TYt7Q3bFyZh00VYoZjWvW9d26cHAWh6MUKEcXycpzsWabt+R4bkQI/GmKc' \
+                b'lZ4m8ZLWySF3UhLHWoLqBf115uvnuN7Bt8n+1AzfXMZWl6ydlQ1VALmfgz' \
+                b'hZ0djzCTFucfhoM7TX+ZUNMjNAw/2zQO3ckWg9dFoU8ojKehMYYHZMOtdr' \
+                b'vhgsG1S4WhERvuXQYfWze8mxHh3Ie/yBc7FEuL02WCLtDC4j4L4L3K+nfY' \
+                b'swn0oReya7/2PIiTUq2yiXrIOvO6c8mLNO08uxPgWZnI8vu/tmHw=='
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -267,15 +268,16 @@ class TestMerchantApi(TestCase):
 
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_encode(self, mock_time):
-        mock_time.return_value = 1523356514.250829
+        mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
         request_params = rsa.encode(self.json_data)
 
-        self.assertEqual(request_params, {'json': self.json_data, 'headers': {'Authorization': self.signature}})
+        self.assertEqual(request_params, {'json': self.json_data,
+                                          'headers': {'Authorization': 'Signature {}'.format(self.signature)}})
 
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_success(self, mock_time):
-        mock_time.return_value = 1523356514.250829
+        mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
         request.json = self.json_data
@@ -288,7 +290,7 @@ class TestMerchantApi(TestCase):
 
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
-        mock_time.return_value = 1523356514.250829
+        mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
         request.json = self.json_data
@@ -302,7 +304,7 @@ class TestMerchantApi(TestCase):
     @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
-        mock_time.return_value = 9876543210.000000
+        mock_time.return_value = 9876543210
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()

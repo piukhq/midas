@@ -27,7 +27,7 @@ class RSA(BaseSecurity):
         encoded_request = {
             'json': json_data,
             'headers': {
-                'Authorization': base64.b64encode(signature)
+                'Authorization': 'Signature {}'.format(base64.b64encode(signature))
             }
         }
         return encoded_request

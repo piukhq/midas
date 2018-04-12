@@ -39,7 +39,7 @@ class BaseSecurity:
     @staticmethod
     def _add_timestamp(json_data):
         data = json.loads(json_data)
-        data['timestamp'] = time.time()
+        data['timestamp'] = int(time.time())
         return json.dumps(data)
 
     def _get_key(self, key_type):
