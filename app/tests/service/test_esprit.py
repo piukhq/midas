@@ -10,7 +10,7 @@ class TestEsprit(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.e = Esprit(1, 1)
-        cls.e.attempt_login(CREDENTIALS['esprit'])
+        cls.e.attempt_login(CREDENTIALS['my-esprit'])
 
     def test_login(self):
         self.assertEqual(self.e.browser.response.status_code, 200)

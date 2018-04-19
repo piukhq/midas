@@ -14,10 +14,10 @@ class TestDebenhams(unittest.TestCase):
     def test_login(self):
         self.assertEqual(self.d.browser.response.status_code, 200)
 
-    # def test_transactions(self):
-    #     transactions = self.d.transactions()
-    #     self.assertIsNotNone(transactions)
-    #     schemas.transactions(transactions)
+    def test_transactions(self):
+        transactions = self.d.transactions()
+        self.assertIsNotNone(transactions)
+        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.d.balance()
@@ -38,7 +38,7 @@ class TestDebenhamsFail(unittest.TestCase):
 
     def test_login_bad_password(self):
         credentials = {
-            'email': 'loyaltycards01@gmail.com',
+            'email': 'loyaltyangelsc@gmail.com',
             'password': '234234',
         }
         d = Debenhams(1, 1)

@@ -2,7 +2,6 @@ from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, STATUS_ACCOUNT_LOCKED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 import base64
 
 
@@ -49,7 +48,7 @@ class ThaiAirways(RoboBrowserMiner):
         self.headers["Referer"] = "https://www.thaiairways.com/en_TH/rop/index.page"
         self.headers["X-Requested-With"] = "XMLHttpRequest"
 
-        self.open_url(url, method='post', data=data, read_timeout=10)
+        self.browser.open(url, method='post', data=data)
 
         if "token" in self.browser.response.json().keys():
             self.token = self.browser.response.json()['token']
@@ -62,14 +61,9 @@ class ThaiAirways(RoboBrowserMiner):
             "member_id": self.member_id,
             "token": self.token
         }
-        self.headers["Content-Type"] = "application/x-www-form-urlencoded; charset= UTF-8"
-        self.headers["Host"] = "www.thaiairways.com"
-        self.headers["Origin"] = "https://www.thaiairways.com"
-        self.headers["Referer"] = "https://www.thaiairways.com/app/rop/"
-        self.headers["X-Requested-With"] = "XMLHttpRequest"
-        self.open_url(url, method="post", data=data)
-        points = extract_decimal(self.browser.response.json()["data"]["CurrentMileageRS"]["CurrentMileage"])
+        self.browser.open(url, method="post", data=data)
 
+        points = extract_decimal(self.browser.response.json()["data"]["CurrentMileageRS"]["CurrentMileage"])
         return {
             'points': points,
             'value': Decimal('0'),
@@ -91,9 +85,4 @@ class ThaiAirways(RoboBrowserMiner):
             "stmLanguagePref": "en",
         }
         '''
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []

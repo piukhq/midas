@@ -10,7 +10,7 @@ class TestCooperative(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.b = Cooperative(1, 1)
-        cls.b.attempt_login(CREDENTIALS["cooperative"])
+        cls.b.attempt_login(CREDENTIALS["the-co-operative-membership"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)

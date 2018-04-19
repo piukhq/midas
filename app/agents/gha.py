@@ -1,11 +1,12 @@
+from decimal import Decimal
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-from decimal import Decimal
-import arrow
 
 
 class Gha(RoboBrowserMiner):
+
     def login(self, credentials):
         url = 'https://www.gha.com/member/login'
         data = {
@@ -19,7 +20,9 @@ class Gha(RoboBrowserMiner):
                          (('div.Message--error > p', STATUS_LOGIN_FAILED, 'We found errors in the following:'), ))
 
     def balance(self):
-        points = extract_decimal(self.browser.select('span.l-status-progress-value')[0].text)
+        self.open_url('https://www.gha.com/member/dashboard')
+        span = self.browser.select('span.chart__info-strong')[0]
+        points = extract_decimal(span.text)
 
         reward = self.calculate_tiered_reward(points, [
             (30, 'Black membership'),
@@ -39,9 +42,4 @@ class Gha(RoboBrowserMiner):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []

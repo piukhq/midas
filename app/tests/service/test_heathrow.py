@@ -10,7 +10,7 @@ class TestHeathrow(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.h = Heathrow(1, 1)
-        cls.h.attempt_login(CREDENTIALS['heathrow'])
+        cls.h.attempt_login(CREDENTIALS['heathrow-rewards'])
 
     def test_login(self):
         self.assertEqual(self.h.browser.response.status_code, 200)

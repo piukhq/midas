@@ -1,16 +1,15 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.papa_johns import PapaJohns
+from app.agents.the_club import TheClub
 from app.agents import schemas
 from app.tests.service.logins import CREDENTIALS
 
 
-class TestPapaJohns(unittest.TestCase):
-
+class TestMacdonaldHotels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = PapaJohns(1, 1)
-        cls.b.attempt_login(CREDENTIALS['papa_johns'])
+        cls.b = TheClub(1, 1)
+        cls.b.attempt_login(CREDENTIALS["macdonald-hotels"])
 
     def test_login(self):
         self.assertTrue(self.b.is_login_successful)
@@ -25,13 +24,12 @@ class TestPapaJohns(unittest.TestCase):
         schemas.balance(balance)
 
 
-class TestPapaJohnsFail(unittest.TestCase):
-
+class TestMacdonaldHotelsFail(unittest.TestCase):
     def test_login_fail(self):
-        b = PapaJohns(1, 1)
+        b = TheClub(1, 1)
         with self.assertRaises(LoginError) as e:
-            b.attempt_login(CREDENTIALS['bad'])
-        self.assertEqual(e.exception.name, 'Invalid credentials')
+            b.attempt_login(CREDENTIALS["bad"])
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':

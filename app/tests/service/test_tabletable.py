@@ -10,7 +10,7 @@ class TestTabletable(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.t = Tabletable(1, 1)
-        cls.t.attempt_login(CREDENTIALS['tabletable'])
+        cls.t.attempt_login(CREDENTIALS['tasty-rewards'])
 
     def test_login(self):
         self.assertEqual(self.t.browser.response.status_code, 200)

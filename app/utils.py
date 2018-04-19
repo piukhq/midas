@@ -1,9 +1,16 @@
 import importlib
-import lxml.html
+import json
 import re
-from Crypto import Random
+import time
+import socket
 from decimal import Decimal
+
+import lxml.html
+import requests
+from Crypto import Random
+
 from app.active import AGENTS
+from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY
 
 TWO_PLACES = Decimal(10) ** -2
 
@@ -63,3 +70,76 @@ def minify_number(n):
             break
 
     return '{0}{1}'.format(total, units[count - 1])
+
+
+def raise_intercom_event(event_name, user_id, metadata):
+    headers = {
+        'Authorization': 'Bearer {0}'.format(INTERCOM_TOKEN),
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'user_id': user_id,
+        'event_name': event_name,
+        'created_at': int(time.time()),
+        'metadata': metadata
+    }
+
+    response = requests.post(
+        '{host}/{path}'.format(host=INTERCOM_HOST, path=INTERCOM_EVENTS_PATH),
+        headers=headers,
+        data=json.dumps(payload)
+    )
+
+    try:
+        if response.status_code != 202:
+            raise IntercomException('Error with {} intercom event: {}'.format(event_name, response.text))
+
+    except IntercomException:
+        pass
+
+    return response
+
+
+class IntercomException(Exception):
+    pass
+
+
+def get_config(merchant_id, handler_type):
+    """
+    TODO: get config from helios database
+    :param merchant_id:
+    :param handler_type:
+    :return:
+    """
+    config = {
+        'log_level': 'DEBUG',
+        'merchant_id': 'fake-merchant',
+        'merchant_url': 'http://127.0.0.1:8002/dashboard/update/',
+        'security_service': 'RSA',
+        'security_credentials': 'creds',
+        'handler_type': 'join',
+        'retry_limit': 2,
+    }
+    if not config:
+        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
+    return config
+
+
+def create_error_response(error_code, error_description):
+    response_json = json.dumps(
+        {'error_codes': [
+            {'code': error_code,
+             'description': error_description}
+        ]}
+    )
+    return response_json
+
+
+def get_headers(tid):
+    headers = {'Content-type': 'application/json',
+               'transaction': tid,
+               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
+               'Authorization': 'token ' + SERVICE_API_KEY}
+
+    return headers

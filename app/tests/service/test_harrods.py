@@ -10,7 +10,7 @@ class TestHarrods(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.h = Harrods(1, 1)
-        cls.h.attempt_login(CREDENTIALS['harrods'])
+        cls.h.attempt_login(CREDENTIALS['harrods-rewards'])
 
     def test_login(self):
         self.assertTrue(self.h.is_login_successful())
