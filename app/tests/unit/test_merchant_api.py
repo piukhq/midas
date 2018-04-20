@@ -345,10 +345,11 @@ class TestMerchantApi(TestCase):
         self.assertFalse(mock_import_key.called)
         self.assertFalse(mock_verify.called)
 
+    @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch.object(MerchantApi, 'register')
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.configuration.Configuration')
-    def test_callback_authorize_decorator(self, mock_config, mock_decode, mock_register):
+    def test_callback_authorize_decorator(self, mock_config, mock_decode, mock_register, mock_retry):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
@@ -357,6 +358,7 @@ class TestMerchantApi(TestCase):
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
         self.assertTrue(mock_register.called)
+        self.assertTrue(mock_retry.get_key.called)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
