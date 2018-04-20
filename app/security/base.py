@@ -29,8 +29,7 @@ class BaseSecurity:
         """
         raise NotImplementedError()
 
-    def _validate_timestamp(self, json_data):
-        data = json.loads(json_data)
+    def _validate_timestamp(self, data):
         message_time = data['timestamp']
         current_time = time.time()
         if (current_time - message_time) > self.time_limit:

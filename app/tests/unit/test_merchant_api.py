@@ -69,15 +69,15 @@ class TestMerchantApi(TestCase):
                        'rd+HHng9B7ykxZzktb3f kaziz@Kashims-iMac.local')
 
     config = MagicMock()
-    config.merchant_id = 'id'
+    config.scheme_slug = 'id'
     config.merchant_url = 'stuff'
-    config.integration_service = 'Sync'
+    config.integration_service = 'SYNC'
     config.security_service = 'RSA'
     config.security_credentials = [{'type': '', 'storage_key': ''}]
-    config.handler_type = 'update'
+    config.handler_type = 'UPDATE'
     config.retry_limit = 2
     config.callback_url = ''
-    config.log_level = Configuration.DEBUG_LOG_LEVEL
+    config.log_level = 'DEBUG'
 
     def create_app(self):
         return create_app(self, )
@@ -85,26 +85,24 @@ class TestMerchantApi(TestCase):
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_reponse_json(self, mock_sync_outbound, mock_config):
-        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
-        mock_config.return_value.callback_url = ''
-        mock_config.return_value.integration_service = 'Sync'
-        mock_config.return_value.log_level = 'DEBUG'
+        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_config.return_value = self.config
         self.m.record_uid = '123'
 
         resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
 
-        self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
+        self.assertEqual({"errors": [], 'json': 'test'}, resp)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('requests.post', autospec=True)
     def test_sync_outbound_success_response(self, mock_request, mock_encode, mock_decode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
+        mock_decode.return_value = self.json_data
 
         response = requests.Response()
         response.status_code = 200
-        response._content = json.dumps(self.json_data)
+        response._content = self.json_data
 
         mock_request.return_value = response
 
@@ -195,6 +193,30 @@ class TestMerchantApi(TestCase):
         self.assertFalse(mock_request.called)
         self.assertFalse(mock_back_off.activate_cooldown.called)
 
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
+    def test_async_inbound_success(self, mock_process_join, mock_logger):
+        mock_process_join.return_value = ''
+        self.m.record_uid = self.m.scheme_id
+
+        resp = self.m._inbound_handler(self.json_data, '', self.config.handler_type)
+
+        self.assertTrue(mock_logger.info.called)
+        self.assertEqual(resp, '')
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
+    def test_async_inbound_logs_errors(self, mock_process_join, mock_logger):
+        mock_process_join.return_value = ''
+        self.m.record_uid = self.m.scheme_id
+        data = json.loads(self.json_data)
+        data['errors'] = ['some error']
+
+        resp = self.m._inbound_handler(json.dumps(data), '', self.config.handler_type)
+
+        self.assertTrue(mock_logger.error.called)
+        self.assertEqual(resp, '')
+
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {"error_codes": []}
@@ -223,11 +245,16 @@ class TestMerchantApi(TestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"error_codes": [{"code": 520, "description": "GENERAL_ERROR"}]}
+        mock_outbound_handler.return_value = {
+            "errors": [
+                "some unknown error"
+            ],
+            "code": "GENERAL_ERROR"
+        }
 
         with self.assertRaises(LoginError) as e:
             self.m.register({})
-        self.assertEqual(e.exception.name, "An unknown error has occurred")
+        self.assertEqual(e.exception.name, 'An unknown error has occurred')
 
     @mock.patch('app.configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
@@ -280,7 +307,7 @@ class TestMerchantApi(TestCase):
         mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
-        request.json = self.json_data
+        request.json = json.loads(self.json_data)
         request.headers['AUTHORIZATION'] = self.signature
         request.content = self.json_data
 
@@ -293,7 +320,7 @@ class TestMerchantApi(TestCase):
         mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
-        request.json = self.json_data
+        request.json = json.loads(self.json_data)
         request.headers['AUTHORIZATION'] = 'bad signature'
         request.content = self.json_data
 
@@ -308,7 +335,7 @@ class TestMerchantApi(TestCase):
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
-        request.json = self.json_data
+        request.json = json.loads(self.json_data)
         request.headers['AUTHORIZATION'] = self.signature
         request.content = self.json_data
 
@@ -317,3 +344,35 @@ class TestMerchantApi(TestCase):
 
         self.assertFalse(mock_import_key.called)
         self.assertFalse(mock_verify.called)
+
+    @mock.patch.object(MerchantApi, 'register')
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.configuration.Configuration')
+    def test_callback_authorize_decorator(self, mock_config, mock_decode, mock_register):
+        mock_config.return_value = self.config
+        mock_decode.return_value = self.json_data
+
+        response = self.client.post('/join/merchant/harvey-nichols')
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertTrue(mock_register.called)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'success': True})
+
+    @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.configuration.Configuration')
+    def test_async_join_callback_returns_success(self, mock_config, mock_decode, mock_thread):
+        mock_config.return_value = self.config
+        mock_decode.return_value = self.json_data
+
+        response = self.client.post('/join/merchant/harvey-nichols')
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertTrue(mock_thread.called)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'success': True})

@@ -40,7 +40,7 @@ class RSA(BaseSecurity):
         self._validate_timestamp(request.json)
 
         key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key'))
-        digest = SHA256.new(request.json.encode('utf8'))
+        digest = SHA256.new(request.content.encode('utf8'))
         signer = PKCS1_v1_5.new(key)
         signature = base64.b64decode(request.headers['AUTHORIZATION'])
 

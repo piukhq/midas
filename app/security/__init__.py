@@ -1,7 +1,9 @@
 from importlib import import_module
 
 import hvac
+from flask import request
 
+from app import configuration
 from settings import VAULT_TOKEN
 
 
@@ -44,3 +46,22 @@ def get_security_credentials(key_items):
         raise TypeError('Could not locate security credentials in vault.') from e
 
     return key_items
+
+
+def authorise(handler_type):
+    """
+    Decorator function for validation of requests from merchant APIs. Should be used on all callback views.
+    Requires scheme slug and handler type to retrieve configuration details on which security type to use.
+    Scheme slug should be passed in as a parameter in the view and handler type passed in as a decorator param.
+    :param handler_type: Int. should be a choice from Configuration.HANDLER_TYPE_CHOICES
+    :return: decorated function
+    """
+    def decorator(fn):
+        def wrapper(*args, **kwargs):
+            config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
+            security_agent = get_security_agent(config.security_service, config.security_credentials)
+
+            decoded_data = security_agent.decode(request)
+            return fn(data=decoded_data, config=config, *args, **kwargs)
+        return wrapper
+    return decorator
