@@ -1,34 +1,39 @@
-import re
-import arrow
-
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
+import arrow
 
 
 class Virgin(RoboBrowserMiner):
-    point_value_pattern = re.compile(r'"smBalance":"(\d+)"')
-    login_result_pattern = re.compile(r'"loggedIn":[a-z]+')
+    is_login_successful = False
+    json_response = None
 
-    def login(self, credentials):
-        self.open_url('https://www.virginatlantic.com/custlogin/loginPage.action')
-        form = self.browser.get_form('loginForm_LoginPage')
+    def check_if_logged_in(self):
+        self.json_response = self.browser.response.json()
 
-        form['username'].value = credentials['username']
-        form['password'].value = credentials['password']
-        self.browser.submit_form(form)
-
-        self.open_url('https://www.virginatlantic.com')
-        pretty_html = self.browser.parsed.prettify()
-        result = self.login_result_pattern.findall(pretty_html)[0]
-
-        if result[-5:] == 'false':
+        if self.json_response['loggedIn']:
+            self.is_login_successful = True
+        else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
+    def _login(self, credentials):
+        self.browser.open("https://www.virginatlantic.com/")
+
+        login_form = self.browser.get_form(action='https://www.virginatlantic.com/custlogin/login.action')
+        login_form['username'] = credentials['username']
+        login_form['password'] = credentials['password']
+        self.browser.submit_form(login_form)
+
+        self.browser.open("https://www.virginatlantic.com/"
+                          "custlogin/getDashBrdData.action", method="post")
+
+    def login(self, credentials):
+        self._login(credentials)
+        self.check_if_logged_in()
+
     def balance(self):
-        pretty_html = self.browser.parsed.prettify()
-        points = self.point_value_pattern.findall(pretty_html)[0]
+        points = self.json_response['smBalance']
 
         return {
             'points': Decimal(points),
@@ -39,17 +44,23 @@ class Virgin(RoboBrowserMiner):
     @staticmethod
     def parse_transaction(row):
         items = row.find_all('td')
-        date_locator = items[0].contents[1]
-        description_locator = items[2].contents[1]
-        points_locator = items[3].contents[3]
         return {
-            'date': arrow.get(date_locator.strip(), 'DD MMMM YYYY'),
-            'description': description_locator.strip(),
-            'points': extract_decimal(points_locator.text),
+            'date': Virgin.clean_date(items[0].contents[0]),
+            'description': Virgin.clean_description(items[1].text),
+            'points': extract_decimal(items[2].contents[0].strip()),
         }
 
+    @staticmethod
+    def clean_date(date):
+        date = arrow.get(date.strip(), 'DD/MM/YY')
+        return date
+
+    @staticmethod
+    def clean_description(description):
+        description = description.replace('\xa0►\xa0', ' > ')
+        return description.strip()
+
     def scrape_transactions(self):
-        self.open_url('https://www.virginatlantic.com/acctactvty/manageacctactvty.action')
-        table = self.browser.select('table.activityTable')[0]
-        rows = table.select('tr')[1:]
-        return rows
+        self.open_url('https://www.virginatlantic.com/'
+                      'myprofile/displayMySkyMiles.action')
+        return self.browser.select('.myAccountStatement')
