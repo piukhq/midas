@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -18,18 +19,16 @@ class TestMerchantApi(TestCase):
     TESTING = True
 
     m = MerchantApi(1, 1)
-    json_data = json.dumps({
-        'message_uid': '123-123-123-123',
-        'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
-        'timestamp': 1523356514
-        })
+    json_data = json.dumps({'message_uid': '123-123-123-123',
+                            'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
+                            'timestamp': 1523356514})
 
-    signature = b'qzJFhSeIrDrheAAwZu6u4jN/pWXZfVzqIZLou5/DIV8wQarL4KN/iIOizZ' \
-                b'TYt7Q3bFyZh00VYoZjWvW9d26cHAWh6MUKEcXycpzsWabt+R4bkQI/GmKc' \
-                b'lZ4m8ZLWySF3UhLHWoLqBf115uvnuN7Bt8n+1AzfXMZWl6ydlQ1VALmfgz' \
-                b'hZ0djzCTFucfhoM7TX+ZUNMjNAw/2zQO3ckWg9dFoU8ojKehMYYHZMOtdr' \
-                b'vhgsG1S4WhERvuXQYfWze8mxHh3Ie/yBc7FEuL02WCLtDC4j4L4L3K+nfY' \
-                b'swn0oReya7/2PIiTUq2yiXrIOvO6c8mLNO08uxPgWZnI8vu/tmHw=='
+    signature = b'qzJFhSeIrDrheAAwZu6u4jN/pWXZfVzqIZLou5/DIV8wQarL4KN/iIOizZTYt7' \
+                b'Q3bFyZh00VYoZjWvW9d26cHAWh6MUKEcXycpzsWabt+R4bkQI/GmKclZ4m8ZLW' \
+                b'ySF3UhLHWoLqBf115uvnuN7Bt8n+1AzfXMZWl6ydlQ1VALmfgzhZ0djzCTFucf' \
+                b'hoM7TX+ZUNMjNAw/2zQO3ckWg9dFoU8ojKehMYYHZMOtdrvhgsG1S4WhERvuXQ' \
+                b'YfWze8mxHh3Ie/yBc7FEuL02WCLtDC4j4L4L3K+nfYswn0oReya7/2PIiTUq2y' \
+                b'iXrIOvO6c8mLNO08uxPgWZnI8vu/tmHw=='
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -293,27 +292,34 @@ class TestMerchantApi(TestCase):
         for item in expected.items():
             self.assertIn(item, config_items)
 
-    @mock.patch('app.security.base.time.time', autospec=True)
-    def test_rsa_security_encode(self, mock_time):
-        mock_time.return_value = 1523356514
+    @mock.patch.object(RSA, '_add_timestamp')
+    def test_rsa_security_encode(self, mock_add_timestamp):
+        expected_json = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
+                                                ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58'),
+                                                ('timestamp', 1523356514)]))
+        mock_add_timestamp.return_value = expected_json
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
         request_params = rsa.encode(self.json_data)
 
-        self.assertEqual(request_params, {'json': self.json_data,
-                                          'headers': {'Authorization': 'Signature {}'.format(self.signature)}})
+        self.assertTrue(mock_add_timestamp.called)
+        self.assertDictEqual(request_params, {'json': expected_json,
+                                              'headers': {'Authorization': 'Signature {}'.format(self.signature)}})
 
-    @mock.patch('app.security.base.time.time', autospec=True)
-    def test_rsa_security_decode_success(self, mock_time):
-        mock_time.return_value = 1523356514
+    @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
+    def test_rsa_security_decode_success(self, mock_validate_time):
+        request_payload = OrderedDict([('message_uid', '123-123-123-123'),
+                                       ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58'),
+                                       ('timestamp', 1523356514)])
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
         request = requests.Request()
-        request.json = json.loads(self.json_data)
+        request.json = request_payload
         request.headers['AUTHORIZATION'] = self.signature
-        request.content = self.json_data
+        request.content = json.dumps(request_payload)
 
         request_json = rsa.decode(request)
 
-        self.assertEqual(request_json, self.json_data)
+        self.assertTrue(mock_validate_time.called)
+        self.assertEqual(request_json, json.dumps(request_payload))
 
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
@@ -353,7 +359,7 @@ class TestMerchantApi(TestCase):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
-        response = self.client.post('/join/merchant/harvey-nichols')
+        response = self.client.post('/join/merchant/iceland')
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -371,7 +377,7 @@ class TestMerchantApi(TestCase):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
-        response = self.client.post('/join/merchant/harvey-nichols')
+        response = self.client.post('/join/merchant/iceland')
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
