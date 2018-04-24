@@ -21,7 +21,7 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
-
+from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
@@ -33,7 +33,7 @@ from app.publish import thread_pool_executor
 from app.security import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
-from settings import logger
+from settings import logger, BACK_OFF_COOLDOWN
 
 
 class SSLAdapter(HTTPAdapter):
@@ -537,9 +537,10 @@ class MerchantApi(BaseMiner):
 
         security_agent = get_security_agent(config.security_service, config.security_credentials)
         request = security_agent.encode(data)
+        back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):
-            if BackOffService.is_on_cooldown(config.scheme_slug, config.handler_type):
+            if back_off_service.is_on_cooldown(config.merchant_id, config.handler_type):
                 response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 break
             else:
@@ -570,7 +571,7 @@ class MerchantApi(BaseMiner):
                                                           .format(status))
 
                 if retry_count == config.retry_limit:
-                    BackOffService.activate_cooldown(config.scheme_slug, config.handler_type, 100)
+                    back_off_service.activate_cooldown(config.merchant_id, config.handler_type, BACK_OFF_COOLDOWN)
 
         return response_json
 
@@ -610,15 +611,3 @@ class MerchantApi(BaseMiner):
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
-
-
-class BackOffService:
-    # TODO: Remove when implementing the back off service
-    @classmethod
-    def is_on_cooldown(cls, merchant_id, handler_type):
-        print('cooldown checked for {}/{}'.format(merchant_id, handler_type))
-        return False
-
-    @classmethod
-    def activate_cooldown(cls, merchant_id, handler_type, time):
-        print('activated cooldown for {}/{} of {} seconds'.format(merchant_id, handler_type, time))

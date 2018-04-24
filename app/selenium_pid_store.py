@@ -1,5 +1,5 @@
 from redis import StrictRedis
-from settings import SELENIUM_PID_STORE, MAX_SELENIUM_BROWSERS, SELENIUM_BROWSER_TIMEOUT
+from settings import REDIS_URL, MAX_SELENIUM_BROWSERS, SELENIUM_BROWSER_TIMEOUT
 from datetime import datetime
 import os
 import signal
@@ -13,7 +13,7 @@ class SeleniumPIDStore:
         """
         Connect to the Redis database containing Selenium process IDs.
         """
-        self.storage = StrictRedis.from_url(SELENIUM_PID_STORE)
+        self.storage = StrictRedis.from_url(REDIS_URL)
 
     @staticmethod
     def _key(pid):

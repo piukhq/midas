@@ -3,13 +3,13 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
     STATUS_LOGIN_FAILED, NO_SUCH_RECORD
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import USER_TOKEN_REDIS_URL
+from settings import REDIS_URL
 import arrow
 
 
 class HarveyNichols(ApiMiner):
 
-    token_store = UserTokenStore(USER_TOKEN_REDIS_URL)
+    token_store = UserTokenStore(REDIS_URL)
 
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
 
@@ -160,7 +160,7 @@ class HarveyNichols(ApiMiner):
         if json_result['outcome'] == 'Success':
             self.customer_number = json_result['customerNumber']
             self.token = json_result['token']
-            self.token_store.set(self.scheme_id, self.token)
+            self.token_store.set('user-token-store:{}'.format(self.scheme_id), self.token)
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
