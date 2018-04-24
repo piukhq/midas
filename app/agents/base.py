@@ -384,12 +384,17 @@ class SeleniumMiner(BaseMiner):
 
 
 class MerchantApi(BaseMiner):
+    """
+    Base class for merchant API integrations.
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+    """
+
+    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None, config=None):
         self.retry_count = retry_count
         self.scheme_id = scheme_id
         self.scheme_slug = scheme_slug
         self.account_status = account_status
+        self.config = config
 
         # { error we raise: error we receive in merchant payload}
         self.errors = {
@@ -419,21 +424,20 @@ class MerchantApi(BaseMiner):
     def register(self, data, inbound=False):
         """
         Calls handler, passing in 'join' as the handler_type.
-        :param data: user account credentials to register for merchant scheme or merchant response for outbound
-                     or inbound processes respectively.
+        :param data: user account credentials to register for merchant scheme or validated merchant response data
+        for outbound or inbound processes respectively.
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        self.record_uid = hash_ids.encode(self.scheme_id)
-
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
+            self.record_uid = hash_ids.encode(self.scheme_id)
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
-            error = self.result['error_codes']
+            error = self.result.get('errors')
             if error:
-                self._handle_errors(error[0]['description'])
+                self._handle_errors(self.result['code'])
 
             self.process_join_response(self.result)
 
@@ -450,22 +454,23 @@ class MerchantApi(BaseMiner):
 
         raise NotImplementedError()
 
-    def _outbound_handler(self, data, merchant_id, handler_type):
+    def _outbound_handler(self, data, scheme_slug, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and
         handles response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
         :param handler_type: type of handler to retrieve correct config e.g update, validate, join
         :return: dict of response data
         """
         message_uid = str(uuid4())
-        config = Configuration(merchant_id, handler_type)
+        if not self.config:
+            self.config = Configuration(scheme_slug, handler_type)
 
-        logger.setLevel(config.log_level)
+        logger.setLevel(self.config.log_level)
 
         data['message_uid'] = message_uid
-        data['callback_url'] = config.callback_url
+        data['callback_url'] = self.config.callback_url
 
         payload = json.dumps(data)
 
@@ -475,32 +480,31 @@ class MerchantApi(BaseMiner):
         logging_info = self._create_log_message(
             temp_data,
             message_uid,
-            merchant_id,
+            scheme_slug,
             handler_type,
-            config.integration_service
+            self.config.integration_service
         )
 
         logger.info(json.dumps(logging_info))
 
-        response_data = self._sync_outbound(payload, config)
+        response_data = self._sync_outbound(payload, self.config)
         response_json = json.loads(response_data)
 
-        if response_json:
-            logging_info['json'] = response_json
-            if response_json['error_codes']:
-                logging_info['contains_errors'] = True
-                logger.error(json.dumps(logging_info))
-            else:
-                logger.info(json.dumps(logging_info))
+        logging_info['json'] = response_json
+        if response_json['errors']:
+            logging_info['contains_errors'] = True
+            logger.error(json.dumps(logging_info))
+        else:
+            logger.info(json.dumps(logging_info))
 
         return response_json
 
-    def _inbound_handler(self, json_data, merchant_id, handler_type):
+    def _inbound_handler(self, json_data, scheme_slug, handler_type):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
         :param json_data: JSON payload
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
         :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
@@ -508,13 +512,13 @@ class MerchantApi(BaseMiner):
 
         logging_info = self._create_log_message(
             json_data,
-            response_payload.get['message_uid'],
-            merchant_id,
+            response_payload.get('message_uid'),
+            scheme_slug,
             handler_type,
             'ASYNC'
         )
 
-        if response_payload['error_codes']:
+        if response_payload.get('errors'):
             logging_info['contains_errors'] = True
             logger.error(json.dumps(logging_info))
         else:
@@ -551,7 +555,7 @@ class MerchantApi(BaseMiner):
                         logging_info = self._create_log_message(
                             response_json,
                             json.loads(data)['message_uid'],
-                            config.merchant_id,
+                            config.scheme_slug,
                             config.handler_type,
                             config.integration_service
                         )
@@ -571,19 +575,20 @@ class MerchantApi(BaseMiner):
 
         return response_json
 
-    def _async_inbound(self, response, merchant_id, handler_type):
+    def _async_inbound(self, decoded_data, scheme_slug, handler_type):
         """
-        Asynchronous inbound service that will decode json based on configuration per merchant and return
+        Asynchronous inbound service that will set logging level based on configuration per merchant and return
         a success response asynchronously before calling the inbound handler service.
-        :param response: Response object
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param decoded_data: validated merchant response data. JSON string.
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: None
         """
-        config = Configuration(merchant_id, handler_type)
-        logger.setLevel(config.log_level)
+        if not self.config:
+            self.config = Configuration(scheme_slug, handler_type)
+        logger.setLevel(self.config.log_level)
 
-        security_agent = get_security_agent(config.security_service, config.security_credentials)
-        decoded_data = security_agent.decode(response)
+        self.record_uid = self.scheme_id
 
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
@@ -594,13 +599,13 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
-    def _create_log_message(self, json_msg, msg_uid, merchant_id, handler_type, integration_service,
+    def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service,
                             contains_errors=False):
         return {
             "json": json_msg,
             "message_uid": msg_uid,
             "record_uid": self.record_uid,
-            "merchant_id": merchant_id,
+            "merchant_id": scheme_slug,
             "handler_type": handler_type,
             "integration_service": integration_service,
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),

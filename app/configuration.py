@@ -3,7 +3,7 @@ import json
 import requests
 
 from app.security import get_security_credentials
-from settings import HELIOS_URL
+from settings import HELIOS_URL, SERVICE_API_KEY
 
 
 class Configuration:
@@ -11,7 +11,7 @@ class Configuration:
     Configuration for merchant API integration. Requires merchant id and handler type to retrieve
     configurations.
     Config parameters:
-    - merchant_id: merchant slug.
+    - scheme_slug: merchant slug.
     - handler_type: join, update.
     - merchant_url: url of merchant endpoint.
     - callback_url: Endpoint url for merchant to call for response (Async processes only)
@@ -59,21 +59,25 @@ class Configuration:
         (CRITICAL_LOG_LEVEL, "Critical")
     )
 
-    def __init__(self, merchant_id, handler_type):
-
-        self.merchant_id = merchant_id
-        self.handler_type = self.HANDLER_TYPE_CHOICES[handler_type][1].upper()
+    def __init__(self, scheme_slug, handler_type):
+        """
+        :param scheme_slug: merchant identifier.
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES.
+        """
+        self.scheme_slug = scheme_slug
+        self.handler_type = (handler_type, self.HANDLER_TYPE_CHOICES[handler_type][1].upper())
 
         self.data = self._get_config_data()
         self._process_config_data()
 
     def _get_config_data(self):
         params = {
-            'merchant_id': self.merchant_id,
-            'handler_type': self.handler_type
+            'merchant_id': self.scheme_slug,
+            'handler_type': self.handler_type[0]
         }
+        headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
-        json_data = requests.get(HELIOS_URL + '/configuration', params=params).content.decode('utf8')
+        json_data = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers).content.decode('utf8')
         data = json.loads(json_data)
 
         return data
