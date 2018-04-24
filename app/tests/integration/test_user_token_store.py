@@ -1,10 +1,10 @@
 import unittest
 from gaia.user_token import UserTokenStore
-from settings import USER_TOKEN_REDIS_URL
+from settings import REDIS_URL
 
 
 class TestUserTokenStore(unittest.TestCase):
-    user_token_store = UserTokenStore(USER_TOKEN_REDIS_URL)
+    user_token_store = UserTokenStore(REDIS_URL)
 
     def test_user_token_store_add_and_delete_token(self):
         test_scheme_acct_id = 'test_1'
