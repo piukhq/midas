@@ -18,15 +18,14 @@ class Virgin(RoboBrowserMiner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def _login(self, credentials):
-        self.browser.open("https://www.virginatlantic.com/")
+        self.browser.open('https://www.virginatlantic.com/')
 
         login_form = self.browser.get_form(action='https://www.virginatlantic.com/custlogin/login.action')
         login_form['username'] = credentials['username']
         login_form['password'] = credentials['password']
         self.browser.submit_form(login_form)
 
-        self.browser.open("https://www.virginatlantic.com/"
-                          "custlogin/getDashBrdData.action", method="post")
+        self.browser.open('https://www.virginatlantic.com/custlogin/getDashBrdData.action', method='post')
 
     def login(self, credentials):
         self._login(credentials)
@@ -61,6 +60,5 @@ class Virgin(RoboBrowserMiner):
         return description.strip()
 
     def scrape_transactions(self):
-        self.open_url('https://www.virginatlantic.com/'
-                      'myprofile/displayMySkyMiles.action')
+        self.open_url('https://www.virginatlantic.com/myprofile/displayMySkyMiles.action')
         return self.browser.select('.myAccountStatement')
