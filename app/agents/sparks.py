@@ -1,7 +1,6 @@
-from decimal import Decimal
-
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from decimal import Decimal
 
 
 class Sparks(RoboBrowserMiner):
@@ -9,12 +8,11 @@ class Sparks(RoboBrowserMiner):
     auth_token = ''
 
     def _check_if_logged_in(self):
-        cookies = [item[0] for item in
-                   self.browser.session.cookies.items()]
+        cookies = self.browser.session.cookies
 
-        if 'MS_USER_COOKIE' in cookies:
-            self.is_login_successful = True
-
+        if 'IS_LOYALTY_USER_COOKIE' in cookies.keys():
+            if cookies['IS_LOYALTY_USER_COOKIE']:
+                self.is_login_successful = True
         else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
