@@ -1,8 +1,10 @@
+from decimal import Decimal
+
+import arrow
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
-from decimal import Decimal
-import arrow
 
 
 class Virgin(RoboBrowserMiner):
@@ -43,21 +45,14 @@ class Virgin(RoboBrowserMiner):
     @staticmethod
     def parse_transaction(row):
         items = row.find_all('td')
+        date = items[0].contents[0].strip()
+        description = items[1].text.strip()
+
         return {
-            'date': Virgin.clean_date(items[0].contents[0]),
-            'description': Virgin.clean_description(items[1].text),
+            'date': arrow.get(date, 'DD/MM/YY'),
+            'description': description.replace('\xa0►\xa0', ' > '),
             'points': extract_decimal(items[2].contents[0].strip()),
         }
-
-    @staticmethod
-    def clean_date(date):
-        date = arrow.get(date.strip(), 'DD/MM/YY')
-        return date
-
-    @staticmethod
-    def clean_description(description):
-        description = description.replace('\xa0►\xa0', ' > ')
-        return description.strip()
 
     def scrape_transactions(self):
         self.open_url('https://www.virginatlantic.com/myprofile/displayMySkyMiles.action')
