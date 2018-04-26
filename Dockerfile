@@ -18,6 +18,8 @@ RUN addgroup --gid 1550 apps && \
  echo "Host git.bink.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config && \
  chmod -R 600 /root/.ssh && \
  pip3 install --upgrade pip && \
+ # Fix for pip 10.0.1 bug
+ hash -r pip && \
  pip3 install uwsgi && \
  pip3 install -r /usr/local/src/midas/requirements.txt && \
  pip3 install pytest && \
