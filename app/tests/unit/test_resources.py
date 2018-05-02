@@ -225,7 +225,7 @@ class TestResources(TestCase):
     def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException):
-            agent_login(Avios, {}, 5)
+            agent_login(Avios, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}})
         self.assertTrue(mock_retry.max_out_count.called)
 
     @mock.patch('app.resources.retry', autospec=True)
@@ -235,7 +235,7 @@ class TestResources(TestCase):
         mock_identifier.value = None
         mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException) as e:
-            agent_login(Avios, {}, 5)
+            agent_login(Avios, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}})
         self.assertTrue(mock_retry.inc_count.called)
         self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
                                                       'of login tries please wait 15 minutes.')
@@ -284,11 +284,13 @@ class TestResources(TestCase):
         user_info = {
             'metadata': {},
             'scheme_slug': 'test slug',
-            'user_id': 'test user id'
+            'user_id': 'test user id',
+            'credentials': {},
+            'scheme_account_id': 2,
+            'status': 'PENDING'
         }
-        scheme_account_id = 2
 
-        agent_register(HarveyNichols, {}, scheme_account_id, user_info, 1)
+        agent_register(HarveyNichols, user_info, {}, 1)
 
         self.assertTrue(mock_register.called)
         self.assertFalse(mock_update_pending_join_account.called)
@@ -298,26 +300,31 @@ class TestResources(TestCase):
     def test_agent_register_fail(self, mock_update_pending_join_account, mock_register):
         mock_register.side_effect = RegistrationError(STATUS_REGISTRATION_FAILED)
         mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
-        scheme_account_id = 2
         user_info = {
             'metadata': {},
             'scheme_slug': 'test slug',
-            'user_id': 'test user id'
+            'user_id': 'test user id',
+            'credentials': {},
+            'scheme_account_id': 2,
+            'status': 'PENDING'
         }
 
         with self.assertRaises(AgentException):
-            agent_register(HarveyNichols, {}, scheme_account_id, user_info, 1)
-            self.assertTrue(mock_register.called)
-            self.assertTrue(mock_update_pending_join_account.called)
+            agent_register(HarveyNichols, user_info, {}, 1)
+
+        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch.object(HarveyNichols, 'register')
     @mock.patch('app.resources.update_pending_join_account', autospec=False)
     def test_agent_register_fail_account_exists(self, mock_update_pending_join_account, mock_register):
         mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
-        scheme_slug = "harvey-nichols"
-        scheme_account_id = 2
-
-        agent_register(HarveyNichols, {}, scheme_account_id, scheme_slug, 1)
+        user_info = {
+            'credentials': '',
+            'scheme_account_id': 2,
+            'status': ''
+        }
+        agent_register(HarveyNichols, user_info, {}, '')
 
         self.assertTrue(mock_register.called)
         self.assertFalse(mock_update_pending_join_account.called)
@@ -331,11 +338,15 @@ class TestResources(TestCase):
     def test_registration(self, mock_update_pending_join_account, mock_agent_login, mock_agent_register,
                           mock_publish_transaction, mock_publish_status, mock_publish_balance):
         scheme_slug = "harvey-nichols"
-        credentials = encrypt(scheme_slug)
-        scheme_account_id = 2
-        user_id = 4
 
-        result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
+        user_info = {
+            'credentials': encrypt(scheme_slug),
+            'user_id': 4,
+            'scheme_account_id': 2,
+            'status': ''
+        }
+
+        result = registration(scheme_slug, user_info, tid=None)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -356,12 +367,15 @@ class TestResources(TestCase):
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
 
         scheme_slug = "harvey-nichols"
-        credentials = encrypt(scheme_slug)
-        scheme_account_id = 2
-        user_id = 4
 
-        result = registration(scheme_slug, scheme_account_id, credentials, user_id, tid=None)
+        user_info = {
+            'credentials': encrypt(scheme_slug),
+            'user_id': 4,
+            'scheme_account_id': 2,
+            'status': ''
+        }
 
+        result = registration(scheme_slug, user_info, tid=None)
         self.assertTrue(mock_agent_register.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
@@ -372,16 +386,20 @@ class TestResources(TestCase):
     def test_agent_login_success(self, mock_login, mock_retry):
         mock_login.return_value = {'message': 'success'}
 
-        agent_login(HarveyNichols, {}, 2, "harvey-nichols")
+        agent_login(HarveyNichols, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}}, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.retry', autospec=True)
     @mock.patch.object(HarveyNichols, 'attempt_login')
     def test_agent_login_system_fail_(self, mock_login, mock_retry):
         mock_login.side_effect = AgentError(NO_SUCH_RECORD)
-
+        user_info = {
+            'scheme_account_id': 1,
+            'credentials': {},
+            'status': ''
+        }
         with self.assertRaises(AgentError):
-            agent_login(HarveyNichols, {}, 2, "harvey-nichols", from_register=True)
+            agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_register=True)
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.retry', autospec=True)
@@ -390,7 +408,7 @@ class TestResources(TestCase):
         mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):
-            agent_login(HarveyNichols, {}, 2, "harvey-nichols")
+            agent_login(HarveyNichols, self.user_info, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)

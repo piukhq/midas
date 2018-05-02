@@ -20,17 +20,22 @@ from app.security.rsa import RSA
 class TestMerchantApi(FlaskTestCase):
     TESTING = True
 
-    m = MerchantApi(1, 1)
+    user_info = {'scheme_account_id': 1,
+                 'status': '',
+                 'user_id': 1}
+
+    m = MerchantApi(1, user_info)
     json_data = json.dumps({'message_uid': '123-123-123-123',
                             'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
-                            'timestamp': 1523356514})
+                            'timestamp': 1523356514,
+                            'merchant_scheme_id1': '0XzkL39J4q2VolejRejNmGQBW71gPv58'})
 
-    signature = b'qzJFhSeIrDrheAAwZu6u4jN/pWXZfVzqIZLou5/DIV8wQarL4KN/iIOizZTYt7' \
-                b'Q3bFyZh00VYoZjWvW9d26cHAWh6MUKEcXycpzsWabt+R4bkQI/GmKclZ4m8ZLW' \
-                b'ySF3UhLHWoLqBf115uvnuN7Bt8n+1AzfXMZWl6ydlQ1VALmfgzhZ0djzCTFucf' \
-                b'hoM7TX+ZUNMjNAw/2zQO3ckWg9dFoU8ojKehMYYHZMOtdrvhgsG1S4WhERvuXQ' \
-                b'YfWze8mxHh3Ie/yBc7FEuL02WCLtDC4j4L4L3K+nfYswn0oReya7/2PIiTUq2y' \
-                b'iXrIOvO6c8mLNO08uxPgWZnI8vu/tmHw=='
+    signature = (b'qzJFhSeIrDrheAAwZu6u4jN/pWXZfVzqIZLou5/DIV8wQarL4KN/iIOizZTYt7'
+                 b'Q3bFyZh00VYoZjWvW9d26cHAWh6MUKEcXycpzsWabt+R4bkQI/GmKclZ4m8ZLW'
+                 b'ySF3UhLHWoLqBf115uvnuN7Bt8n+1AzfXMZWl6ydlQ1VALmfgzhZ0djzCTFucf'
+                 b'hoM7TX+ZUNMjNAw/2zQO3ckWg9dFoU8ojKehMYYHZMOtdrvhgsG1S4WhERvuXQ'
+                 b'YfWze8mxHh3Ie/yBc7FEuL02WCLtDC4j4L4L3K+nfYswn0oReya7/2PIiTUq2y'
+                 b'iXrIOvO6c8mLNO08uxPgWZnI8vu/tmHw==').decode('utf8')
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -83,15 +88,17 @@ class TestMerchantApi(FlaskTestCase):
     def create_app(self):
         return create_app(self, )
 
+    @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config):
+    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
 
         resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
 
+        self.assertTrue(mock_logger.info.called)
         self.assertEqual({"errors": [], 'json': 'test'}, resp)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
@@ -101,16 +108,20 @@ class TestMerchantApi(FlaskTestCase):
     def test_sync_outbound_success_response(self, mock_request, mock_back_off, mock_encode, mock_decode):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
-        response = requests.Response()
+
+        response = MagicMock()
+        response.json.return_value = json.loads(self.json_data)
+        response.content = self.json_data
+        response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
         response.status_code = 200
-        response._content = self.json_data
+        response.history = None
 
         mock_request.return_value = response
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         resp = self.m._sync_outbound(self.json_data, self.config)
 
-        self.assertEqual(response._content, resp)
+        self.assertEqual(resp, self.json_data)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
@@ -119,11 +130,11 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('requests.post', autospec=True)
     def test_sync_outbound_logs_for_redirects(self, mock_request, mock_logger, mock_back_off, mock_encode, mock_decode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
+        mock_decode.return_value = self.json_data
         response = requests.Response()
         response.status_code = 200
         response.history = [requests.Response()]
-        response._content = json.dumps(self.json_data)
+        response.headers['Authorization'] = 'Signature {}'.format(self.signature)
 
         mock_request.return_value = response
         mock_back_off.return_value.is_on_cooldown.return_value = False
@@ -132,7 +143,7 @@ class TestMerchantApi(FlaskTestCase):
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertTrue(mock_logger.warning.called)
-        self.assertEqual(response._content, resp)
+        self.assertEqual(resp, self.json_data)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
@@ -149,8 +160,10 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
-        expected_resp = {"error_codes": [{"code": errors[NOT_SENT]['code'],
-                                          "description": errors[NOT_SENT]['message']}]}
+        expected_resp = {
+            "errors": [errors[NOT_SENT]['message']],
+            "code": errors[NOT_SENT]['code']
+        }
 
         resp = self.m._sync_outbound(self.json_data, self.config)
 
@@ -171,9 +184,8 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_backoff.return_value.is_on_cooldown.return_value = False
 
-        expected_resp = {"error_codes": [{"code": errors[UNKNOWN]['code'],
-                                          "description": errors[UNKNOWN]['name'] + " with status code {}"
-                                          .format(response.status_code)}]}
+        expected_resp = {"errors": [errors[UNKNOWN]['name'] + " with status code {}".format(response.status_code)],
+                         "code": errors[UNKNOWN]['code']}
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
@@ -187,8 +199,8 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = json.dumps(self.json_data)
         mock_back_off.return_value.is_on_cooldown.return_value = True
-        expected_resp = {"error_codes": [{"code": errors[NOT_SENT]['code'],
-                                          "description": errors[NOT_SENT]['message']}]}
+        expected_resp = {"errors": [errors[NOT_SENT]['message']],
+                         "code": errors[NOT_SENT]['code']}
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
@@ -213,24 +225,34 @@ class TestMerchantApi(FlaskTestCase):
         self.m.record_uid = self.m.scheme_id
         data = json.loads(self.json_data)
         data['errors'] = ['some error']
+        data['code'] = 'some error code'
 
-        resp = self.m._inbound_handler(json.dumps(data), '', self.config.handler_type)
+        self.m._inbound_handler(json.dumps(data), '', self.config.handler_type)
 
         self.assertTrue(mock_logger.error.called)
-        self.assertEqual(resp, '')
+
+    def test_process_join_handles_errors(self):
+        self.m.record_uid = self.m.scheme_id
+        self.m.result = {'errors': ['some error'],
+                         'code': 'GENERAL_ERROR'}
+
+        with self.assertRaises(AgentError) as e:
+            self.m.process_join_response()
+
+        self.assertEqual(e.exception.name, "An unknown error has occurred")
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"error_codes": []}
+        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234'}
 
-        self.m.login({})
+        self.m.login({'card_number': '1234'})
 
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
-        mock_outbound_handler.return_value = {"error_codes": []}
+        mock_outbound_handler.return_value = {"errors": []}
 
         self.m.register({})
 
@@ -239,7 +261,8 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_handles_error_payload(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"error_codes": [{"code": 535, "description": "NO_SUCH_RECORD"}]}
+        mock_outbound_handler.return_value = {"errors": ['Account does not exist'],
+                                              "code": "NO_SUCH_RECORD"}
 
         with self.assertRaises(LoginError) as e:
             self.m.login({})
@@ -305,7 +328,8 @@ class TestMerchantApi(FlaskTestCase):
         request_params = rsa.encode(self.json_data)
 
         self.assertTrue(mock_add_timestamp.called)
-        self.assertDictEqual(request_params, {'json': expected_json,
+        self.maxDiff = None
+        self.assertDictEqual(request_params, {'json': json.loads(expected_json),
                                               'headers': {'Authorization': 'Signature {}'.format(self.signature)}})
 
     @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
@@ -313,13 +337,14 @@ class TestMerchantApi(FlaskTestCase):
         request_payload = OrderedDict([('message_uid', '123-123-123-123'),
                                        ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58'),
                                        ('timestamp', 1523356514)])
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
-        request = requests.Request()
-        request.json = request_payload
-        request.headers['AUTHORIZATION'] = self.signature
+        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        request = MagicMock()
+        request.json.return_value = request_payload
+        request.text = json.dumps(request_payload)
+        request.headers = {'AUTHORIZATION': 'Signature {}'.format(self.signature)}
         request.content = json.dumps(request_payload)
 
-        request_json = rsa.decode(request)
+        request_json = rsa.decode(request.headers['AUTHORIZATION'], request_payload)
 
         self.assertTrue(mock_validate_time.called)
         self.assertEqual(request_json, json.dumps(request_payload))
@@ -327,14 +352,14 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
         mock_time.return_value = 1523356514
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
+        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
         request = requests.Request()
         request.json = json.loads(self.json_data)
         request.headers['AUTHORIZATION'] = 'bad signature'
         request.content = self.json_data
 
         with self.assertRaises(AgentError):
-            rsa.decode(request)
+            rsa.decode(request.headers['AUTHORIZATION'], request.json)
 
     @mock.patch.object(PKCS115_SigScheme, 'verify', autospec=True)
     @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
@@ -342,35 +367,17 @@ class TestMerchantApi(FlaskTestCase):
     def test_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
         mock_time.return_value = 9876543210
 
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_private_key}])
+        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
         request = requests.Request()
         request.json = json.loads(self.json_data)
         request.headers['AUTHORIZATION'] = self.signature
         request.content = self.json_data
 
         with self.assertRaises(AgentError):
-            rsa.decode(request)
+            rsa.decode(request.headers['AUTHORIZATION'], request.json)
 
         self.assertFalse(mock_import_key.called)
         self.assertFalse(mock_verify.called)
-
-    @mock.patch('app.resources_callbacks.retry', autospec=True)
-    @mock.patch.object(MerchantApi, 'register')
-    @mock.patch.object(RSA, 'decode', autospec=True)
-    @mock.patch('app.security.configuration.Configuration')
-    def test_callback_authorize_decorator(self, mock_config, mock_decode, mock_register, mock_retry):
-        mock_config.return_value = self.config
-        mock_decode.return_value = self.json_data
-
-        response = self.client.post('/join/merchant/iceland')
-
-        self.assertTrue(mock_config.called)
-        self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_register.called)
-        self.assertTrue(mock_retry.get_key.called)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'success': True})
 
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
@@ -380,7 +387,11 @@ class TestMerchantApi(FlaskTestCase):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
-        response = self.client.post('/join/merchant/iceland')
+        headers = {
+            "Authorization": "Signature {}".format(self.signature)
+        }
+
+        response = self.client.post('/join/merchant/iceland', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)

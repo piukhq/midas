@@ -21,6 +21,7 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
+from app import publish
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
@@ -155,10 +156,10 @@ class RoboBrowserMiner(BaseMiner):
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
-        self.scheme_id = scheme_id
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.proxy = False
 
@@ -258,10 +259,10 @@ class RoboBrowserMiner(BaseMiner):
 # Based on requests library
 class ApiMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
-        self.scheme_id = scheme_id
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -300,13 +301,13 @@ class ApiMiner(BaseMiner):
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None):
         self.storage = self.get_pid_store()
         self.check_browser_availability()
         self.delay = 15
-        self.scheme_id = scheme_id
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.retry_count = retry_count
         self.setup_browser(self.storage)
@@ -332,7 +333,7 @@ class SeleniumMiner(BaseMiner):
             options.add_argument('--headless')
             options.add_argument('--hide-scrollbars')
             options.add_argument('--disable-gpu')
-            self.browser = webdriver.Firefox(firefox_options=options, log_path=None)
+            self.browser = webdriver.Firefox(firefox_options=options, log_path='/dev/null')
             pid = self.browser.service.process.pid
             pid_store.set(pid)
             self.browser.implicitly_wait(self.delay)
@@ -389,12 +390,15 @@ class MerchantApi(BaseMiner):
 
     """
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None, config=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         self.retry_count = retry_count
-        self.scheme_id = scheme_id
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.user_info = user_info
         self.config = config
+
+        self.record_uid = None
+        self.result = None
 
         # { error we raise: error we receive in merchant payload}
         self.errors = {
@@ -411,15 +415,24 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
+        if self.user_info['status'] == 'PENDING':
+            return
+
+        self.identifier_type = 'card_number'
+
         self.record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = Configuration.VALIDATE_HANDLER if self.account_status == 'WALLET_ONLY'\
+        handler_type = Configuration.VALIDATE_HANDLER if self.user_info['status'] == 'WALLET_ONLY'\
             else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
-        error = self.result['error_codes']
+        error = self.result.get('errors')
         if error:
-            self._handle_errors(error[0]['description'])
+            self._handle_errors(self.result['code'])
+
+        # For adding the scheme account credential answer to db after first successful login
+        if self.identifier_type not in credentials:
+            self.identifier = {self.identifier_type: self.result['card_number']}
 
     def register(self, data, inbound=False):
         """
@@ -432,27 +445,28 @@ class MerchantApi(BaseMiner):
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
-            self.record_uid = hash_ids.encode(self.scheme_id)
+            self.record_uid = data['record_uid'] = hash_ids.encode(self.scheme_id)
+
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
-            error = self.result.get('errors')
-            if error:
-                self._handle_errors(self.result['code'])
-
-            self.process_join_response(self.result)
+            # Async joins will return empty 200 responses so there is nothing to process.
+            if self.config.integration_service == 'SYNC':
+                self.process_join_response()
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
-    def process_join_response(self, response):
+    def process_join_response(self):
         """
         Processes a merchant's response to a join request.
-        :param response: JSON data of a merchant's response
         :return: None
         """
         # check for error response
+        error = self.result.get('errors')
+        if error:
+            self._handle_errors(self.result['code'])
 
-        # link account (get balance and transactions)
-
-        raise NotImplementedError()
+        # Sets account as ACTIVE so balance will be retrieved on next wallet refresh.
+        status = 1
+        publish.status(self.scheme_id, status, self.result['message_uid'])
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """
@@ -470,7 +484,9 @@ class MerchantApi(BaseMiner):
         logger.setLevel(self.config.log_level)
 
         data['message_uid'] = message_uid
+        data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
+        data['merchant_scheme_id1'] = hash_ids.encode(self.user_info['user_id'])
 
         payload = json.dumps(data)
 
@@ -482,22 +498,27 @@ class MerchantApi(BaseMiner):
             message_uid,
             scheme_slug,
             handler_type,
-            self.config.integration_service
+            self.config.integration_service,
+            "OUTBOUND"
         )
 
         logger.info(json.dumps(logging_info))
 
-        response_data = self._sync_outbound(payload, self.config)
-        response_json = json.loads(response_data)
+        response_json = self._sync_outbound(payload, self.config)
 
-        logging_info['json'] = response_json
-        if response_json['errors']:
-            logging_info['contains_errors'] = True
-            logger.error(json.dumps(logging_info))
-        else:
-            logger.info(json.dumps(logging_info))
+        response_data = {}
+        if response_json:
+            response_data = json.loads(response_json)
 
-        return response_json
+            logging_info['direction'] = "INBOUND"
+            logging_info['json'] = response_data
+            if response_data.get('errors'):
+                logging_info['contains_errors'] = True
+                logger.error(json.dumps(logging_info))
+            else:
+                logger.info(json.dumps(logging_info))
+
+        return response_data
 
     def _inbound_handler(self, json_data, scheme_slug, handler_type):
         """
@@ -508,39 +529,41 @@ class MerchantApi(BaseMiner):
         :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
-        response_payload = json.loads(json_data)
+        self.result = json.loads(json_data)
 
         logging_info = self._create_log_message(
             json_data,
-            response_payload.get('message_uid'),
+            self.result.get('message_uid'),
             scheme_slug,
             handler_type,
-            'ASYNC'
+            'ASYNC',
+            'INBOUND'
         )
 
-        if response_payload.get('errors'):
+        if self.result.get('errors'):
             logging_info['contains_errors'] = True
             logger.error(json.dumps(logging_info))
         else:
             logger.info(json.dumps(logging_info))
 
-        return self.process_join_response(response_payload)
+        return self.process_join_response()
 
-    def _sync_outbound(self, data, config):
+    def _sync_outbound(self, json_data, config):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
         Calls are made to security and back off services pre-request.
-        :param data: JSON string of payload to send to merchant
+        :param json_data: JSON string of payload to send to merchant
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
 
         security_agent = get_security_agent(config.security_service, config.security_credentials)
-        request = security_agent.encode(data)
+
+        request = security_agent.encode(json_data)
         back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):
-            if back_off_service.is_on_cooldown(config.merchant_id, config.handler_type):
+            if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
                 response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
                 break
             else:
@@ -548,16 +571,17 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = security_agent.decode(response)
+                    response_json = security_agent.decode(response.headers['Authorization'], response.content)
 
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
                             response_json,
-                            json.loads(data)['message_uid'],
+                            json.loads(json_data)['message_uid'],
                             config.scheme_slug,
                             config.handler_type,
-                            config.integration_service
+                            config.integration_service,
+                            "OUTBOUND"
                         )
 
                         logger.warning(json.dumps(logging_info))
@@ -571,7 +595,7 @@ class MerchantApi(BaseMiner):
                                                           .format(status))
 
                 if retry_count == config.retry_limit:
-                    back_off_service.activate_cooldown(config.merchant_id, config.handler_type, BACK_OFF_COOLDOWN)
+                    back_off_service.activate_cooldown(config.scheme_slug, config.handler_type, BACK_OFF_COOLDOWN)
 
         return response_json
 
@@ -599,7 +623,7 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
-    def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service,
+    def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
                             contains_errors=False):
         return {
             "json": json_msg,
@@ -608,6 +632,7 @@ class MerchantApi(BaseMiner):
             "merchant_id": scheme_slug,
             "handler_type": handler_type,
             "integration_service": integration_service,
+            "direction": direction,
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
