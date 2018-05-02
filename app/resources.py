@@ -386,10 +386,12 @@ def registration(scheme_slug, user_info, tid):
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug,
                                      from_register=True)
         if agent_instance.identifier:
-            update_pending_join_account(user_info['scheme_account_id'], "success", tid, identifier=agent_instance.identifier)
+            update_pending_join_account(user_info['scheme_account_id'], "success", tid,
+                                        identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid, intercom_data=intercom_data)
+            update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid,
+                                        intercom_data=intercom_data)
         else:
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True

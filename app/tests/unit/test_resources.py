@@ -408,7 +408,7 @@ class TestResources(TestCase):
         mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):
-            agent_login(HarveyNichols, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}}, "harvey-nichols")
+            agent_login(HarveyNichols, self.user_info, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)

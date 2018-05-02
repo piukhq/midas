@@ -88,15 +88,17 @@ class TestMerchantApi(FlaskTestCase):
     def create_app(self):
         return create_app(self, )
 
+    @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config):
+    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
 
         resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
 
+        self.assertTrue(mock_logger.info.called)
         self.assertEqual({"errors": [], 'json': 'test'}, resp)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
