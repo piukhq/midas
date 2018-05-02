@@ -1,4 +1,5 @@
 import base64
+import json
 
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA as CRYPTO_RSA
@@ -25,27 +26,32 @@ class RSA(BaseSecurity):
         signature = signer.sign(digest)
 
         encoded_request = {
-            'json': json_data,
+            'json': json.loads(json_data),
             'headers': {
-                'Authorization': 'Signature {}'.format(base64.b64encode(signature))
+                'Authorization': 'Signature {}'.format(base64.b64encode(signature).decode('utf8'))
             }
         }
         return encoded_request
 
-    def decode(self, request):
+    def decode(self, auth_header, data):
         """
-        :param request: request object
+        :param auth_header: base64 encoded signature decoded as a utf8 string prepended with 'Signature'
+        e.g 'Signature fgdkhe3232uiuhijfjkrejwft3iuf3wkherj'
+        :param data: dict of payload
         :return: json string of payload
         """
-        self._validate_timestamp(request.json)
+        self._validate_timestamp(data)
+
+        json_data = json.dumps(data)
 
         key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key'))
-        digest = SHA256.new(request.content.encode('utf8'))
+        digest = SHA256.new(json_data.encode('utf8'))
         signer = PKCS1_v1_5.new(key)
-        signature = base64.b64decode(request.headers['AUTHORIZATION'])
+        encoded_sig = auth_header.replace('Signature ', '')
+        signature = base64.b64decode(encoded_sig)
 
         verified = signer.verify(digest, signature)
         if not verified:
             raise AgentError(VALIDATION)
 
-        return request.content
+        return json.dumps(data)

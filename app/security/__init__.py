@@ -1,3 +1,4 @@
+import json
 from importlib import import_module
 
 import hvac
@@ -33,8 +34,8 @@ def get_security_agent(security_type, *args, **kwargs):
 def get_security_credentials(key_items):
     """
     Retrieves security credential values from key storage vault.
-    :param key_items: dict {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
-    :return: key_items: returns same dict with added 'value' key containing actual credential value.
+    :param key_items: list of dicts {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
+    :return: key_items: returns same list of dict with added 'value' keys containing actual credential values.
     """
     client = hvac.Client(token=VAULT_TOKEN)
 
@@ -61,7 +62,7 @@ def authorise(handler_type):
             config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
             security_agent = get_security_agent(config.security_service, config.security_credentials)
 
-            decoded_data = security_agent.decode(request)
+            decoded_data = json.loads(security_agent.decode(request.headers['Authorization'], request.json))
             return fn(data=decoded_data, config=config, *args, **kwargs)
         return wrapper
     return decorator

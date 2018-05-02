@@ -15,16 +15,14 @@ class BaseSecurity:
         """
         self.credentials = credentials
 
-    def encode(self, json_data):
+    def encode(self, *args, **kwargs):
         """
-        :param json_data: json string of payload
         :return: dict of parameters to be unpacked for requests.post()
         """
         raise NotImplementedError()
 
-    def decode(self, request):
+    def decode(self, *args, **kwargs):
         """
-        :param request: request object
         :return: json string of payload
         """
         raise NotImplementedError()
@@ -45,4 +43,4 @@ class BaseSecurity:
         for item in self.credentials:
             if item['type'] == key_type:
                 return item['value']
-        raise KeyError('{} not in credentials')
+        raise KeyError('{} not in credentials'.format(key_type))
