@@ -110,10 +110,8 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
     agent_instance = agent_login(agent_class,
-                                 user_info['credentials'],
-                                 scheme_account_id,
-                                 scheme_slug=scheme_slug,
-                                 status=user_info['status'])
+                                 user_info,
+                                 scheme_slug=scheme_slug)
 
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
@@ -171,12 +169,15 @@ def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
 class Register(Resource):
 
     def post(self, scheme_slug):
-        scheme_account_id = int(request.get_json()['scheme_account_id'])
+        user_info = {
+            'user_id': int(request.get_json()['user_id']),
+            'credentials': decrypt_credentials(request.get_json()['credentials']),
+            'status': 'PENDING',    # May be better to receive this information from hermes.
+            'scheme_account_id': int(request.get_json()['scheme_account_id']),
+        }
         tid = request.headers.get('transaction')
-        user_id = int(request.get_json()['user_id'])
-        credentials = decrypt_credentials(request.get_json()['credentials'])
 
-        thread_pool_executor.submit(registration, scheme_slug, scheme_account_id, credentials, user_id, tid)
+        thread_pool_executor.submit(registration, scheme_slug, user_info, tid)
 
         return create_response({"message": "success"})
 
@@ -191,15 +192,25 @@ class Transactions(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        scheme_account_id = int(request.args['scheme_account_id'])
-        user_id = int(request.args['user_id'])
-        credentials = decrypt_credentials(request.args['credentials'])
+
+        user_info = {
+            'user_id': int(request.args['user_id']),
+            'credentials': decrypt_credentials(request.args['credentials']),
+            'status': request.args.get('status'),
+            'scheme_account_id': int(request.args['scheme_account_id']),
+        }
+
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
+        agent_instance = agent_login(agent_class,
+                                     user_info,
+                                     scheme_slug=scheme_slug)
 
         try:
             status = 1
-            transactions = publish.transactions(agent_instance.transactions(), scheme_account_id, user_id, tid)
+            transactions = publish.transactions(agent_instance.transactions(),
+                                                user_info['scheme_account_id'],
+                                                user_info['user_id'],
+                                                tid)
             return create_response(transactions)
         except (LoginError, AgentError) as e:
             status = e.code
@@ -208,7 +219,7 @@ class Transactions(Resource):
             status = 520
             raise UnknownException(e)
         finally:
-            thread_pool_executor.submit(publish.status, scheme_account_id, status, tid)
+            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], status, tid)
 
 
 class AccountOverview(Resource):
@@ -220,16 +231,27 @@ class AccountOverview(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
-        credentials = decrypt_credentials(request.args['credentials'])
-        scheme_account_id = int(request.args['scheme_account_id'])
-        user_id = int(request.args['user_id'])
-        tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug)
+        user_info = {
+            'user_id': int(request.args['user_id']),
+            'credentials': decrypt_credentials(request.args['credentials']),
+            'status': request.args.get('status'),
+            'scheme_account_id': int(request.args['scheme_account_id']),
+        }
 
+        tid = request.headers.get('transaction')
+        agent_instance = agent_login(agent_class,
+                                     user_info,
+                                     scheme_slug=scheme_slug)
         try:
             account_overview = agent_instance.account_overview()
-            publish.balance(account_overview["balance"], scheme_account_id, user_id, tid)
-            publish.transactions(account_overview["transactions"], scheme_account_id, user_id, tid)
+            publish.balance(account_overview["balance"],
+                            user_info['scheme_account_id'],
+                            user_info['user_id'],
+                            tid)
+            publish.transactions(account_overview["transactions"],
+                                 user_info['scheme_account_id'],
+                                 user_info['user_id'],
+                                 tid)
 
             return create_response(account_overview)
         except (LoginError, AgentError) as e:
@@ -273,7 +295,7 @@ class AgentQuestions(Resource):
             if k != 'scheme_slug':
                 questions[k] = v
 
-        agent = get_agent_class(scheme_slug)(1, 1, scheme_slug)
+        agent = get_agent_class(scheme_slug)(1, {'scheme_account_id': 1, 'status': 1}, scheme_slug)
         return agent.update_questions(questions)
 
 
@@ -309,12 +331,12 @@ def get_agent_class(scheme_slug):
         abort(404, message='No such agent')
 
 
-def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, from_register=False, status=None):
-    key = retry.get_key(agent_class.__name__, scheme_account_id)
+def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
+    key = retry.get_key(agent_class.__name__, user_info['scheme_account_id'])
     retry_count = retry.get_count(key)
-    agent_instance = agent_class(retry_count, scheme_account_id, scheme_slug=scheme_slug, account_status=status)
+    agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
-        agent_instance.attempt_login(credentials)
+        agent_instance.attempt_login(user_info['credentials'])
     except RetryLimitError as e:
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
@@ -329,14 +351,14 @@ def agent_login(agent_class, credentials, scheme_account_id, scheme_slug=None, f
     return agent_instance
 
 
-def agent_register(agent_class, credentials, scheme_account_id, intercom_data, tid, scheme_slug=None):
-    agent_instance = agent_class(0, scheme_account_id, scheme_slug=scheme_slug)
+def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None):
+    agent_instance = agent_class(0, user_info, scheme_slug=scheme_slug)
     error = None
     try:
-        agent_instance.attempt_register(credentials)
+        agent_instance.attempt_register(user_info['credentials'])
     except Exception as e:
         if not e.args[0] == ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(scheme_account_id, e.args[0], tid, intercom_data=intercom_data)
+            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data)
         else:
             error = ACCOUNT_ALREADY_EXISTS
 
@@ -345,41 +367,42 @@ def agent_register(agent_class, credentials, scheme_account_id, intercom_data, t
     }
 
 
-def registration(scheme_slug, scheme_account_id, credentials, user_id, tid):
+def registration(scheme_slug, user_info, tid):
     intercom_data = {
-        'user_id': user_id,
+        'user_id': user_info['user_id'],
         'metadata': {'scheme': scheme_slug},
     }
+
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
         # Update the scheme status on hermes to JOIN(900)
-        publish.status(scheme_account_id, 900, tid)
+        publish.status(user_info['scheme_account_id'], 900, tid)
         abort(e.code, message=e.data['message'])
 
-    register_result = agent_register(agent_class, credentials, scheme_account_id, intercom_data, tid,
+    register_result = agent_register(agent_class, user_info, intercom_data, tid,
                                      scheme_slug=scheme_slug)
     try:
-        agent_instance = agent_login(agent_class, credentials, scheme_account_id, scheme_slug=scheme_slug,
+        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug,
                                      from_register=True)
         if agent_instance.identifier:
-            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+            update_pending_join_account(user_info['scheme_account_id'], "success", tid, identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(scheme_account_id, str(e.args[0]), tid, intercom_data=intercom_data)
+            update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid, intercom_data=intercom_data)
         else:
-            publish.zero_balance(scheme_account_id, user_id, tid)
+            publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True
 
     try:
         status = 1
-        publish.balance(agent_instance.balance(), scheme_account_id, user_id, tid)
-        publish_transactions(agent_instance, scheme_account_id, user_id, tid)
+        publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_id'], tid)
+        publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_id'], tid)
     except Exception as e:
         status = 520
         raise UnknownException(e)
     finally:
-        publish.status(scheme_account_id, status, tid)
+        publish.status(user_info['scheme_account_id'], status, tid)
         return True
 
 
