@@ -47,4 +47,12 @@ class Hertz(RoboBrowserMiner):
         }
 
     def scrape_transactions(self):
-        return self.account_data['data']['transactions']
+        transactions = []
+        month = arrow.utcnow()
+        for _ in range(3):
+            url = 'https://www.hertz.co.uk/rentacar/rest/member/rewards/statement/{}'.format(month.format('YYYY-MM'))
+            self.browser.open(url)
+            transactions.extend(self.browser.response.json()['data'].get('transactions', []))
+            month = month.replace(months=-1)
+
+        return transactions
