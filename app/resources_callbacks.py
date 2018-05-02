@@ -1,5 +1,3 @@
-import json
-
 from flask_restful import Resource
 
 from app import retry
