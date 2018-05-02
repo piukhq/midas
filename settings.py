@@ -9,7 +9,7 @@ read_env()
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8001')
 
-# logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
+logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
 
@@ -64,7 +64,7 @@ CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
 # Vault settings for merchant api security credential storage
-VAULT_TOKEN = env_var('VAULT_TOKEN', 'my_root')
+VAULT_TOKEN = env_var('VAULT_TOKEN', 'myroot')
 
 MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
 SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
