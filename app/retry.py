@@ -7,9 +7,9 @@ redis = FlaskRedis()
 
 
 def get_count(key):
-    retry_count = redis.get(key)
-    if retry_count:
-        return int(retry_count)
+    # retry_count = redis.get(key)
+    # if retry_count:
+    #     return int(retry_count)
     return 0
 
 

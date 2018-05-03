@@ -74,7 +74,7 @@ AGENTS = {
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
-    'harvey-nichols': 'harvey_nichols.HarveyNichols',
+    'harvey-nichols': 'merchant_api_generic.MerchantAPIGeneric',
     'omni': 'omni.Omni',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',

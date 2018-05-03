@@ -7,7 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
 from urllib.parse import urlsplit
-from uuid import uuid4
+from uuid import uuid1
 from random import randint
 
 import requests
@@ -387,7 +387,6 @@ class SeleniumMiner(BaseMiner):
 class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
-
     """
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
@@ -415,9 +414,6 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        if self.user_info['status'] == 'PENDING':
-            return
-
         self.identifier_type = 'card_number'
 
         self.record_uid = hash_ids.encode(self.scheme_id)
@@ -477,7 +473,7 @@ class MerchantApi(BaseMiner):
         :param handler_type: type of handler to retrieve correct config e.g update, validate, join
         :return: dict of response data
         """
-        message_uid = str(uuid4())
+        message_uid = str(uuid1())
         if not self.config:
             self.config = Configuration(scheme_slug, handler_type)
 
@@ -556,9 +552,7 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
-
         security_agent = get_security_agent(config.security_service, config.security_credentials)
-
         request = security_agent.encode(json_data)
         back_off_service = BackOffService()
 
@@ -571,8 +565,7 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = security_agent.decode(response.headers['Authorization'], response.content)
-
+                    response_json = security_agent.decode(response.headers['Authorization'], response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
@@ -583,7 +576,6 @@ class MerchantApi(BaseMiner):
                             config.integration_service,
                             "OUTBOUND"
                         )
-
                         logger.warning(json.dumps(logging_info))
                     break
 

@@ -28,31 +28,31 @@ class RSA(BaseSecurity):
         encoded_request = {
             'json': json.loads(json_data),
             'headers': {
-                'Authorization': 'Signature {}\ntimestamp={}'.format(base64.b64encode(signature).decode('utf8'),
-                                                                     timestamp)
+                'Authorization': 'Signature {}timestamp={}'.format(base64.b64encode(signature).decode('utf8'),
+                                                                   timestamp)
             }
         }
         return encoded_request
 
-    def decode(self, auth_header, data):
+    def decode(self, auth_header, json_data):
         """
         :param auth_header: base64 encoded signature decoded as a utf8 string prepended with 'Signature' and
         appended with a new line character and timestamp.
         e.g 'Signature fgdkhe3232uiuhijfjkrejwft3iuf3wkherj==\ntimestamp=12345678'
-        :param data: dict of payload
+        :param json_data: json string of payload
         :return: json string of payload
         """
         try:
-            signature, timestamp = auth_header.split('\ntimestamp=')
+            signature, timestamp = auth_header.split('timestamp=')
         except ValueError as e:
             raise AgentError(VALIDATION) from e
 
         self._validate_timestamp(timestamp)
 
-        json_data = '{}\ntimestamp={}'.format(json.dumps(data), timestamp)
+        json_data_with_timestamp = '{}timestamp={}'.format(json_data, timestamp)
 
         key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key'))
-        digest = SHA256.new(json_data.encode('utf8'))
+        digest = SHA256.new(json_data_with_timestamp.encode('utf8'))
         signer = PKCS1_v1_5.new(key)
         encoded_sig = auth_header.replace('Signature ', '')
         signature = base64.b64decode(encoded_sig)
@@ -61,4 +61,4 @@ class RSA(BaseSecurity):
         if not verified:
             raise AgentError(VALIDATION)
 
-        return json.dumps(data)
+        return json_data

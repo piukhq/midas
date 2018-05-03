@@ -1,3 +1,5 @@
+import json
+
 from flask_restful import Resource
 
 from app import retry
@@ -24,6 +26,6 @@ class JoinCallback(Resource):
         retry_count = retry.get_count(key)
         agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
-        agent_instance.register(data, inbound=True)
+        agent_instance.register(json.dumps(data), inbound=True)
 
         return create_response({'success': True})

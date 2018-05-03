@@ -29,12 +29,12 @@ class TestMerchantApi(FlaskTestCase):
                             'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
                             'merchant_scheme_id1': '0XzkL39J4q2VolejRejNmGQBW71gPv58'})
 
-    signature = (b'iQ8f7/n4jgHCeCPkpNxJNRZPLzKW+Ewu0o1FNxkSxr2VYrEBdXSD7E6a'
-                 b'wc6kLAZPWLGflNO0B8M+8NgRPDeOSeFlfJOukyxhE4x6vXmHMkFxKt5Y'
-                 b'xByUrBNTXaABeu5OFnLgwnzI5RbvP2GidI5WYFdAh6fAltrYyTwraQhP'
-                 b'kElOqj6su+2FA3GXtnnXlGnwQsKAXVaRhmWXUXJEuIcuk6JuAzK1Tcyo'
-                 b'LFm98BW7n1CbjfhwFHXqCAPjr4ZsuQnZtC4krk1pZsYabpQ5IgaaRxbJ'
-                 b'Bp5eUQc4JpCrCeXD9SohJf4qwFs6H4ceegRCNXzn/8iqnGEiE82SfiMaMvduew==').decode('utf8')
+    signature = (b'Tr7N44RTxiKtOeLIoqFCPk6oQOA4ektTmZb/ddhc3uWJy5YD0Qrx5WqDs'
+                 b'4TiP7JrI/fbYBD4gCRC/mYmlaXQ02OanYIVlkQTF97H4KMX41QCZixYyl'
+                 b'fFfeMBlj65NV2XUSBwpZiq+0pHrcZON2gmrvr7QanOsO9wv/Pf/3Moub3'
+                 b'Jt7qSsSG9o/XAHFrGhy6RQH4jlXbgwQMeI+3cEKf7CquE//tW6+RXVWW4'
+                 b'/T7zjEo9R2yw0uBZU5tr6nyYTkJq1DBRFowMq2ZoArZ8t7gGi8vVxlkfM'
+                 b'mPoyb2MALwk1lCQyyxJSaOxiWm6DSH5R2zpxeDeInnK8pR81aCU9PPhQw==').decode('utf8')
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -248,6 +248,15 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_outbound_handler.called)
 
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234'}
+
+        self.m.login({})
+
+        self.assertTrue(mock_outbound_handler.called)
+        self.assertEqual(self.m.identifier, {'card_number': '1234'})
+
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
@@ -322,12 +331,12 @@ class TestMerchantApi(FlaskTestCase):
         json_data = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
                                             ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')]))
         timestamp = 1523356514
-        json_with_timestamp = '{}\ntimestamp={}'.format(json_data, timestamp)
+        json_with_timestamp = '{}timestamp={}'.format(json_data, timestamp)
         mock_add_timestamp.return_value = json_with_timestamp, timestamp
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
         expected_result = {
             'json': json.loads(json_data),
-            'headers': {'Authorization': 'Signature {}\ntimestamp={}'.format(self.signature, timestamp)}
+            'headers': {'Authorization': 'Signature {}timestamp={}'.format(self.signature, timestamp)}
         }
 
         request_params = rsa.encode(json_data)
@@ -347,7 +356,7 @@ class TestMerchantApi(FlaskTestCase):
         request = MagicMock()
         request.json.return_value = request_payload
         request.text = json.dumps(request_payload)
-        request.headers = {'AUTHORIZATION': 'Signature {}\ntimestamp=1523356514'.format(self.signature)}
+        request.headers = {'AUTHORIZATION': 'Signature {}timestamp=1523356514'.format(self.signature)}
         request.content = json.dumps(request_payload)
 
         request_json = rsa.decode(request.headers['AUTHORIZATION'], request_payload)
@@ -374,7 +383,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_time.return_value = 9876543210
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
-        auth_header = 'Signature {}\ntimestamp=12345'.format(self.signature)
+        auth_header = 'Signature {}timestamp=12345'.format(self.signature)
 
         with self.assertRaises(AgentError) as e:
             rsa.decode(auth_header, json.loads(self.json_data))
