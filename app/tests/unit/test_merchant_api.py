@@ -353,13 +353,9 @@ class TestMerchantApi(FlaskTestCase):
         mock_validate_time.return_value = 'Signature {}'.format(self.signature)
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
-        request = MagicMock()
-        request.json.return_value = request_payload
-        request.text = json.dumps(request_payload)
-        request.headers = {'AUTHORIZATION': 'Signature {}timestamp=1523356514'.format(self.signature)}
-        request.content = json.dumps(request_payload)
+        header = 'Signature {}timestamp=1523356514'.format(self.signature)
 
-        request_json = rsa.decode(request.headers['AUTHORIZATION'], request_payload)
+        request_json = rsa.decode(header, json.dumps(request_payload))
 
         self.assertTrue(mock_validate_time.called)
         self.assertEqual(request_json, json.dumps(request_payload))
