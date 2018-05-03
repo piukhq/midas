@@ -31,6 +31,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
+from app.resources import update_pending_join_account
 from app.security import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
@@ -452,7 +453,8 @@ class MerchantApi(BaseMiner):
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self):
         """
-        Processes a merchant's response to a join request.
+        Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
+        scheme credential answer of 'card_number' or 'barcode' to database.
         :return: None
         """
         # check for error response
@@ -460,7 +462,16 @@ class MerchantApi(BaseMiner):
         if error:
             self._handle_errors(self.result['code'])
 
-        # Sets account as ACTIVE so balance will be retrieved on next wallet refresh.
+        _identifier = None
+        for identifier in ['barcode', 'card_number']:
+            value = self.result.get(identifier)
+            if value:
+                _identifier = {identifier: value}
+                break
+
+        update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
+                                    identifier=_identifier)
+
         status = 1
         publish.status(self.scheme_id, status, self.result['message_uid'])
 
