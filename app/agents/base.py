@@ -396,6 +396,7 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
+        self.identifier_type = 'card_number'    # Should be barcode but is card_number for testing with harvey nichols
 
         self.record_uid = None
         self.result = None
@@ -415,8 +416,6 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        self.identifier_type = 'card_number'
-
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if self.user_info['status'] == 'WALLET_ONLY'\
             else Configuration.UPDATE_HANDLER
@@ -428,7 +427,7 @@ class MerchantApi(BaseMiner):
             self._handle_errors(self.result['code'])
 
         # For adding the scheme account credential answer to db after first successful login
-        if self.identifier_type not in credentials:
+        if self.identifier_type not in credentials or not credentials.get(self.identifier_type):
             self.identifier = {self.identifier_type: self.result['card_number']}
 
     def register(self, data, inbound=False):
@@ -494,6 +493,10 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
         data['merchant_scheme_id1'] = hash_ids.encode(self.user_info['user_id'])
+
+        # For joining and linking users with ghost cards
+        identifier = data.get(self.identifier_type)
+        self.identifier = {self.identifier_type: identifier} if identifier else None
 
         payload = json.dumps(data)
 
