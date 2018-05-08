@@ -38,7 +38,7 @@ class RSA(BaseSecurity):
         """
         :param auth_header: base64 encoded signature decoded as a utf8 string prepended with 'Signature' and
         appended with a new line character and timestamp.
-        e.g 'Signature fgdkhe3232uiuhijfjkrejwft3iuf3wkherj==\ntimestamp=12345678'
+        e.g 'Signature fgdkhe3232uiuhijfjkrejwft3iuf3wkherj==timestamp=12345678'
         :param json_data: json string of payload
         :return: json string of payload
         """
