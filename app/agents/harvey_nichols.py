@@ -132,7 +132,7 @@ class HarveyNichols(ApiMiner):
             }
         }
         if credentials.get('phone'):
-            data['phone'] = credentials['phone'],
+            data['CustomerSignUpRequest']['phone'] = credentials['phone']
 
         self.register_response = self.make_request(url, method='post', timeout=10, json=data)
         message = self.register_response.json()['CustomerSignUpResult']['outcome']
