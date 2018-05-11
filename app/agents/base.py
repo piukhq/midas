@@ -396,12 +396,12 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
-        self.identifier_type = 'card_number'    # Should be barcode but is card_number for testing with harvey nichols
+        self.identifier_type = ['barcode', 'card_number']
 
         self.record_uid = None
         self.result = None
 
-        # { error we raise: error we receive in merchant payload}
+        # { error we raise: error we receive in merchant payload }
         self.errors = {
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
@@ -416,9 +416,10 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
+        account_link = self.user_info['status'] == 'WALLET_ONLY'
+
         self.record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = Configuration.VALIDATE_HANDLER if self.user_info['status'] == 'WALLET_ONLY'\
-            else Configuration.UPDATE_HANDLER
+        handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
@@ -426,9 +427,15 @@ class MerchantApi(BaseMiner):
         if error:
             self._handle_errors(self.result['code'])
 
-        # For adding the scheme account credential answer to db after first successful login
-        if self.identifier_type not in credentials or not credentials.get(self.identifier_type):
-            self.identifier = {self.identifier_type: self.result['card_number']}
+        # For adding the scheme account credential answer to db after first successful login or if they change.
+        identifiers = self._get_identifiers(self.result)
+        self.identifier = {}
+        try:
+            for key, value in identifiers.items():
+                if credentials[key] != value:
+                    self.identifier[key] = value
+        except KeyError:
+            self.identifier = identifiers
 
     def register(self, data, inbound=False):
         """
@@ -461,15 +468,9 @@ class MerchantApi(BaseMiner):
         if error:
             self._handle_errors(self.result['code'])
 
-        _identifier = None
-        for identifier in ['barcode', 'card_number']:
-            value = self.result.get(identifier)
-            if value:
-                _identifier = {identifier: value}
-                break
-
+        identifier = self._get_identifiers(self.result)
         update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
-                                    identifier=_identifier)
+                                    identifier=identifier)
 
         status = 1
         publish.status(self.scheme_id, status, self.result['message_uid'])
@@ -493,10 +494,6 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
         data['merchant_scheme_id1'] = hash_ids.encode(self.user_info['user_id'])
-
-        # For joining and linking users with ghost cards
-        identifier = data.get(self.identifier_type)
-        self.identifier = {self.identifier_type: identifier} if identifier else None
 
         payload = json.dumps(data)
 
@@ -642,3 +639,12 @@ class MerchantApi(BaseMiner):
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
+
+    def _get_identifiers(self, data):
+        """Checks if data contains any identifiers (i.e barcode, card_number) and returns a dict with their values."""
+        _identifier = {}
+        for identifier in self.identifier_type:
+            value = data.get(identifier)
+            if value:
+                _identifier[identifier] = value
+        return _identifier
