@@ -460,7 +460,7 @@ class MerchantApi(BaseMiner):
     def process_join_response(self):
         """
         Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
-        scheme credential answer of 'card_number' or 'barcode' to database.
+        identifiers/scheme credential answers to database.
         :return: None
         """
         # check for error response
