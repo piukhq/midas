@@ -332,6 +332,20 @@ def get_agent_class(scheme_slug):
 
 
 def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
+    """
+    Instantiates an agent class and attempts to login.
+    :param agent_class: Class object inheriting BaseMiner class.
+    :param user_info: Dictionary of user information.
+    {
+        'user_id': int,
+        'credentials': str,
+        'status': str,
+        'scheme_account_id': int
+    }
+    :param scheme_slug: String of merchant identifier e.g 'harvey-nichols'
+    :param from_register: Boolean of whether the login call is from the registration process.
+    :return: Class instance of the agent.
+    """
     key = retry.get_key(agent_class.__name__, user_info['scheme_account_id'])
     retry_count = retry.get_count(key)
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)

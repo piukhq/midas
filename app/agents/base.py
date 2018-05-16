@@ -7,7 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
 from urllib.parse import urlsplit
-from uuid import uuid4
+from uuid import uuid1
 from random import randint
 
 import requests
@@ -31,6 +31,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
+from app.resources import update_pending_join_account
 from app.security import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
@@ -387,7 +388,6 @@ class SeleniumMiner(BaseMiner):
 class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
-
     """
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
@@ -396,11 +396,12 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
+        self.identifier_type = ['barcode', 'card_number']
 
         self.record_uid = None
         self.result = None
 
-        # { error we raise: error we receive in merchant payload}
+        # { error we raise: error we receive in merchant payload }
         self.errors = {
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
@@ -415,14 +416,10 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        if self.user_info['status'] == 'PENDING':
-            return
-
-        self.identifier_type = 'card_number'
+        account_link = self.user_info['status'] == 'WALLET_ONLY'
 
         self.record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = Configuration.VALIDATE_HANDLER if self.user_info['status'] == 'WALLET_ONLY'\
-            else Configuration.UPDATE_HANDLER
+        handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
@@ -430,9 +427,15 @@ class MerchantApi(BaseMiner):
         if error:
             self._handle_errors(self.result['code'])
 
-        # For adding the scheme account credential answer to db after first successful login
-        if self.identifier_type not in credentials:
-            self.identifier = {self.identifier_type: self.result['card_number']}
+        # For adding the scheme account credential answer to db after first successful login or if they change.
+        identifiers = self._get_identifiers(self.result)
+        self.identifier = {}
+        try:
+            for key, value in identifiers.items():
+                if credentials[key] != value:
+                    self.identifier[key] = value
+        except KeyError:
+            self.identifier = identifiers
 
     def register(self, data, inbound=False):
         """
@@ -456,7 +459,8 @@ class MerchantApi(BaseMiner):
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self):
         """
-        Processes a merchant's response to a join request.
+        Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
+        identifiers/scheme credential answers to database.
         :return: None
         """
         # check for error response
@@ -464,7 +468,10 @@ class MerchantApi(BaseMiner):
         if error:
             self._handle_errors(self.result['code'])
 
-        # Sets account as ACTIVE so balance will be retrieved on next wallet refresh.
+        identifier = self._get_identifiers(self.result)
+        update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
+                                    identifier=identifier)
+
         status = 1
         publish.status(self.scheme_id, status, self.result['message_uid'])
 
@@ -477,7 +484,7 @@ class MerchantApi(BaseMiner):
         :param handler_type: type of handler to retrieve correct config e.g update, validate, join
         :return: dict of response data
         """
-        message_uid = str(uuid4())
+        message_uid = str(uuid1())
         if not self.config:
             self.config = Configuration(scheme_slug, handler_type)
 
@@ -556,9 +563,7 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
-
         security_agent = get_security_agent(config.security_service, config.security_credentials)
-
         request = security_agent.encode(json_data)
         back_off_service = BackOffService()
 
@@ -571,8 +576,7 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = security_agent.decode(response.headers['Authorization'], response.content)
-
+                    response_json = security_agent.decode(response.headers['Authorization'], response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
@@ -583,7 +587,6 @@ class MerchantApi(BaseMiner):
                             config.integration_service,
                             "OUTBOUND"
                         )
-
                         logger.warning(json.dumps(logging_info))
                     break
 
@@ -636,3 +639,12 @@ class MerchantApi(BaseMiner):
             "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
+
+    def _get_identifiers(self, data):
+        """Checks if data contains any identifiers (i.e barcode, card_number) and returns a dict with their values."""
+        _identifier = {}
+        for identifier in self.identifier_type:
+            value = data.get(identifier)
+            if value:
+                _identifier[identifier] = value
+        return _identifier

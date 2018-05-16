@@ -1,5 +1,3 @@
-import json
-
 import time
 
 from app.agents.exceptions import AgentError, VALIDATION
@@ -27,17 +25,17 @@ class BaseSecurity:
         """
         raise NotImplementedError()
 
-    def _validate_timestamp(self, data):
-        message_time = data['timestamp']
+    def _validate_timestamp(self, timestamp):
         current_time = time.time()
-        if (current_time - message_time) > self.time_limit:
+        if (current_time - int(timestamp)) > self.time_limit:
             raise AgentError(VALIDATION)
 
     @staticmethod
     def _add_timestamp(json_data):
-        data = json.loads(json_data)
-        data['timestamp'] = int(time.time())
-        return json.dumps(data)
+        """Appends a timestamp to a json string."""
+        current_time = int(time.time())
+        json_with_timestamp = '{}timestamp={}'.format(json_data, current_time)
+        return json_with_timestamp, current_time
 
     def _get_key(self, key_type):
         for item in self.credentials:
