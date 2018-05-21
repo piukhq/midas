@@ -323,24 +323,25 @@ class SeleniumMiner(BaseMiner):
             )
 
     def setup_browser(self, pid_store):
-        try:
-            options = webdriver.firefox.options.Options()
-            options.add_argument('--headless')
-            options.add_argument('--hide-scrollbars')
-            options.add_argument('--disable-gpu')
-            self.browser = webdriver.Firefox(firefox_options=options, log_path='/dev/null')
-            pid = self.browser.service.process.pid
-            pid_store.set(pid)
-            self.browser.implicitly_wait(self.delay)
-        except Exception:
-            self.close_selenium()
-            raise
-
-    def attempt_login(self, credentials):
-        try:
-            super().attempt_login(credentials)
-        finally:
-            self.close_selenium()
+        pass
+    #     try:
+    #         options = webdriver.firefox.options.Options()
+    #         options.add_argument('--headless')
+    #         options.add_argument('--hide-scrollbars')
+    #         options.add_argument('--disable-gpu')
+    #         self.browser = webdriver.Firefox(firefox_options=options, log_path='/dev/null')
+    #         pid = self.browser.service.process.pid
+    #         pid_store.set(pid)
+    #         self.browser.implicitly_wait(self.delay)
+    #     except Exception:
+    #         self.close_selenium()
+    #         raise
+    #
+    # def attempt_login(self, credentials):
+    #     try:
+    #         super().attempt_login(credentials)
+    #     finally:
+    #         self.close_selenium()
 
     def find_captcha(self):
         self.browser.implicitly_wait(1)
