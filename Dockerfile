@@ -1,6 +1,7 @@
 FROM python:3.6
 
-ADD . /app
+WORKDIR /app
+ADD . .
 
 ARG FIREFOX_URL=https://ftp.mozilla.org/pub/firefox/releases/55.0/linux-x86_64/en-US/firefox-55.0.tar.bz2
 ARG GECKODRIVER_URL=https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz
