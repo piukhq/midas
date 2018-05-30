@@ -2,60 +2,61 @@ from app.agents.base import SeleniumMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
 from app.utils import extract_decimal
 from decimal import Decimal
-from selenium.common.exceptions import TimeoutException
+from time import sleep
+from selenium.common.exceptions import NoSuchElementException
 
 
 class HouseOfFraser(SeleniumMiner):
     point_conversion_rate = Decimal('0.01')
-    is_successful_login = None
 
     def _login(self, credentials):
         self.browser.get('https://www.houseoffraser.co.uk/account/login/checkuserexists')
         self.browser.find_element_by_css_selector('#email').send_keys(credentials['email'])
         self.browser.find_element_by_css_selector('#js-login-password').send_keys(credentials['password'])
         self.browser.find_element_by_css_selector('#js-signin-submit').click()
+        sleep(5)
 
     def _check(self):
-        try:
-            self.wait_for_value('[data-bind="click: Logout"]', '', timeout=5)
+        if self.browser.current_url == "https://www.houseoffraser.co.uk/":
             self.is_successful_login = True
-        except TimeoutException:
-            self.is_successful_login = False
-            self.browser.implicitly_wait(1)
-            incorrect_password = self.browser.find_elements_by_css_selector('#js-login-password-error')
-            incorrect_credentials = self.browser.find_elements_by_css_selector('[data-bind="text: ErrorMessage"]')
-
+        else:
+            sleep(10)
+            self.browser.implicitly_wait(10)
+            try:
+                incorrect_password = self.browser.find_element_by_css_selector('#js-login-password-error').text
+            except NoSuchElementException:
+                incorrect_password = None
+            try:
+                incorrect_credentials = self.browser.find_element_by_css_selector(
+                    '[data-bind="text: ErrorMessage"]').text
+            except NoSuchElementException:
+                incorrect_credentials = None
             if incorrect_password or incorrect_credentials:
                 raise LoginError(STATUS_LOGIN_FAILED)
-            else:
-                raise LoginError(UNKNOWN)
 
-    def login(self, credentials):
-        try:
-            self._login(credentials=credentials)
-        except Exception:
-            self.is_successful_login = False
             raise LoginError(UNKNOWN)
 
+    def login(self, credentials):
+        self._login(credentials=credentials)
         self._check()
+        self.get_balance()
 
+    def get_balance(self):
         self.browser.get('https://www.houseoffraser.co.uk/recognition/recognitionsummary')
-        self.wait_for_page_load()
+        sleep(5)
         points = self.browser.find_element_by_css_selector('[data-bind="text: PointBalance()"]').text
-        self.points_value = extract_decimal(points)
-        self.value = self.calculate_point_value(self.points_value)
+        self.points = extract_decimal(points)
+        self.value = self.calculate_point_value(self.points)
         self.balance_value = self.browser.find_element_by_css_selector('[data-bind="text: RewardsBalance()"]').text
 
     def balance(self):
-
         return {
-            'points': self.points_value,
+            'points': self.points,
             'value': self.value,
             'value_label': '£{}'.format(self.value),
             'balance': extract_decimal(self.balance_value)
         }
 
-    @staticmethod
     def parse_transaction(row):
         return row
 
