@@ -1,61 +1,66 @@
 from app.agents.base import SeleniumMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
-from selenium.common.exceptions import TimeoutException
+from time import sleep
 
 
 class MalaysiaAirlines(SeleniumMiner):
-    is_login_successful = False
 
-    def _check_if_logged_in(self):
-        self.wait_for_page_load()
+    def check_if_logged_in(self):
         try:
             username = self.browser.find_element_by_class_name('username')
-            self.wait_for_element_to_be_visible(username, timeout=15)
-            self.is_login_successful = True
-        except TimeoutException:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            if username.is_displayed():
+                self.is_login_successful = True
+            else:
+                raise LoginError(STATUS_LOGIN_FAILED)
+        except LoginError as exception:
+            raise exception
 
     def _login(self, credentials):
         self.browser.get('https://www.malaysiaairlines.com/enrich-portal/login.html')
-        self.wait_for_page_load()
+        sleep(5)
         self.browser.find_element_by_name('mhNumber').send_keys(credentials['card_number'])
-        self.browser.find_elements_by_name('Password')[3].send_keys(credentials['password'])
+        sleep(5)
+        self.browser.find_elements_by_name('Password')[2].send_keys(credentials['password'])
+        sleep(5)
         self.browser.find_element_by_class_name('login-form').click()
+        sleep(60)
 
     def login(self, credentials):
-        # website can be very slow
-        self.browser.implicitly_wait(60)
-        try:
-            self._login(credentials)
-        except Exception:
-            raise LoginError(UNKNOWN)
+        self._login(credentials)
+        self.check_if_logged_in()
 
-        self._check_if_logged_in()
         self.points = self.browser.find_element_by_class_name('miles-value').text
-        self.transaction_list = self.browser.find_elements_by_class_name('miles-table tbody tr')
+        self.get_transactions()
 
     def balance(self):
-
         return {
             'points': extract_decimal(self.points),
             'value': Decimal('0'),
             'value_label': '',
         }
 
+    def get_transactions(self):
+        transaction_list = self.browser.find_elements_by_class_name('miles-table tbody tr')
+        self.sorted_transactions = []
+        for transaction in transaction_list:
+            transaction_dict = {
+                'date': transaction.find_element_by_class_name('date').text,
+                'description': transaction.find_element_by_class_name('activity').text,
+                'points': transaction.find_element_by_class_name('earn').text
+            }
+            self.transactions.append(transaction_dict)
+
     @staticmethod
     def parse_transaction(row):
-        date = row.find_element_by_class_name('date').text
-        description = row.find_element_by_class_name('activity').text
-        points = row.find_element_by_class_name('earn').text
 
         return {
-            'date': arrow.get(date, 'DD MMM YYYY'),
-            'description': description,
-            'points': Decimal(points)
+            'date': arrow.get(row['date'], 'DD MMM YYYY'),
+            'description': row['description'],
+            'points': Decimal(row['points'])
         }
 
     def scrape_transactions(self):
-        return self.transaction_list
+        return self.sorted_transactions
