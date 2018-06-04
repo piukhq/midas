@@ -61,7 +61,7 @@ deploy-staging:
   environment: staging
   script:
     - kubectl config use-context staging
-    - kubectl set image deployment/midas:$CI_COMMIT_TAG
+    - kubectl set image deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
   only:
     - tags
 
@@ -71,7 +71,7 @@ deploy-prod:
   environment: prod
   script:
     - kubectl config use-context prod
-    - kubectl set image deployment/midas:$CI_COMMIT_TAG
+    - kubectl set image deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
   when: manual
   only:
     - tags
