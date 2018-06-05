@@ -41,7 +41,7 @@ def get_security_credentials(key_items):
 
     try:
         for key_item in key_items:
-            value = client.read('secret/{}'.format(key_item['storage_key']))['data'][key_item['type']]
+            value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data'][key_item['type']]
             key_item['value'] = value
     except TypeError as e:
         raise TypeError('Could not locate security credentials in vault.') from e
