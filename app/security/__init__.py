@@ -62,7 +62,7 @@ def authorise(handler_type):
             config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
             security_agent = get_security_agent(config.security_service, config.security_credentials)
 
-            decoded_data = json.loads(security_agent.decode(request.headers['Authorization'],
+            decoded_data = json.loads(security_agent.decode(request.headers,
                                                             request.get_data().decode('utf8')))
             return fn(data=decoded_data, config=config, *args, **kwargs)
         return wrapper

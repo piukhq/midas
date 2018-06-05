@@ -583,7 +583,8 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status == 200:
-                    response_json = security_agent.decode(response.headers['Authorization'], response.text)
+                    response_json = security_agent.decode(response.headers,
+                                                          response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(

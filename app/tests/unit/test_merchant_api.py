@@ -111,7 +111,8 @@ class TestMerchantApi(FlaskTestCase):
         response = MagicMock()
         response.json.return_value = json.loads(self.json_data)
         response.content = self.json_data
-        response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
+        response.headers = {'Authorization': 'Signature {}'.format(self.signature),
+                            }
         response.status_code = 200
         response.history = None
 
@@ -337,7 +338,8 @@ class TestMerchantApi(FlaskTestCase):
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
         expected_result = {
             'json': json.loads(json_data),
-            'headers': {'Authorization': 'Signature {}timestamp={}'.format(self.signature, timestamp)}
+            'headers': {'Authorization': 'Signature {}'.format(self.signature),
+                        'X-REQ-TIMESTAMP': timestamp}
         }
 
         request_params = rsa.encode(json_data)
@@ -354,9 +356,12 @@ class TestMerchantApi(FlaskTestCase):
         mock_validate_time.return_value = 'Signature {}'.format(self.signature)
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
-        header = 'Signature {}timestamp=1523356514'.format(self.signature)
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+            'X-REQ-TIMESTAMP': 1523356514
+        }
 
-        request_json = rsa.decode(header, json.dumps(request_payload))
+        request_json = rsa.decode(headers, json.dumps(request_payload))
 
         self.assertTrue(mock_validate_time.called)
         self.assertEqual(request_json, json.dumps(request_payload))
@@ -367,11 +372,14 @@ class TestMerchantApi(FlaskTestCase):
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
         request = requests.Request()
         request.json = json.loads(self.json_data)
-        request.headers['AUTHORIZATION'] = 'bad signature'
+        request.headers = {
+            "Authorization": "bad signature",
+            'X-REQ-TIMESTAMP': 1523356514
+        }
         request.content = self.json_data
 
         with self.assertRaises(AgentError):
-            rsa.decode(request.headers['AUTHORIZATION'], request.json)
+            rsa.decode(request.headers, request.json)
 
     @mock.patch.object(PKCS115_SigScheme, 'verify', autospec=True)
     @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
@@ -380,10 +388,13 @@ class TestMerchantApi(FlaskTestCase):
         mock_time.return_value = 9876543210
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
-        auth_header = 'Signature {}timestamp=12345'.format(self.signature)
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+            'X-REQ-TIMESTAMP': 12345
+        }
 
         with self.assertRaises(AgentError) as e:
-            rsa.decode(auth_header, json.loads(self.json_data))
+            rsa.decode(headers, json.loads(self.json_data))
 
         self.assertEqual(e.exception.name, 'Failed validation')
         self.assertFalse(mock_import_key.called)
@@ -398,7 +409,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_decode.return_value = self.json_data
 
         headers = {
-            "Authorization": "Signature {}".format(self.signature)
+            "Authorization": "Signature {}".format(self.signature),
         }
 
         response = self.client.post('/join/merchant/iceland', headers=headers)
