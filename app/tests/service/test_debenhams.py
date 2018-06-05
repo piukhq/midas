@@ -36,15 +36,20 @@ class TestDebenhamsFail(unittest.TestCase):
             d.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
-    def test_login_bad_password(self):
-        credentials = {
-            'email': 'loyaltyangelsc@gmail.com',
-            'password': '234234',
-        }
-        d = Debenhams(1, 1)
-        with self.assertRaises(LoginError) as e:
-            d.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "Invalid credentials")
+    # -------------------------------------------------------------- #
+    # Debenhams currently locks out accounts that run this test.     #
+    # if needed use a fresh account to test manually.                #
+    # -------------------------------------------------------------- #
+
+    # def test_login_bad_password(self):
+    #     credentials = {
+    #         'email': 'loyaltyangelsc@gmail.com',
+    #         'password': '234234',
+    #     }
+    #     d = Debenhams(1, 1)
+    #     with self.assertRaises(LoginError) as e:
+    #         d.attempt_login(credentials)
+    #     self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 if __name__ == '__main__':

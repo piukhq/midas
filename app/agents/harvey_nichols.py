@@ -128,10 +128,11 @@ class HarveyNichols(ApiMiner):
                 'title': credentials['title'],
                 'forename': credentials['first_name'],
                 'surname': credentials['last_name'],
-                'phone': credentials['phone'],
                 'applicationId': 'CX_MOB'
             }
         }
+        if credentials.get('phone'):
+            data['CustomerSignUpRequest']['phone'] = credentials['phone']
 
         self.register_response = self.make_request(url, method='post', timeout=10, json=data)
         message = self.register_response.json()['CustomerSignUpResult']['outcome']

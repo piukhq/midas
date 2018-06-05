@@ -31,7 +31,7 @@ class HollandAndBarrett(RoboBrowserMiner):
     def balance(self):
         info_box = self.browser.select('section.s-account-module.rfl-summary > div > div > h3')[0]
         point_text = info_box.contents[0].strip()
-        value_text = str(info_box.contents[4])
+        value_text = str(info_box.contents[3].strip())
         value_text = re.sub(self.balance_re, '', value_text)
 
         points, value = self.point_value_re.findall(point_text)[0]
