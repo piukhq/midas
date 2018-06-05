@@ -2,18 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.club_individual import ClubIndividual
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestClubIndividual(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = ClubIndividual(1, 1)
+        cls.e = ClubIndividual(*AGENT_CLASS_ARGUMENTS)
         cls.e.attempt_login(CREDENTIALS['club-individual'])
-
-    def test_login(self):
-        self.assertTrue(self.e.is_login_successful)
 
     def test_balance(self):
         balance = self.e.balance()
@@ -28,7 +25,7 @@ class TestClubIndividual(unittest.TestCase):
 class TestClubIndividualFail(unittest.TestCase):
 
     def test_login_fail(self):
-        eu = ClubIndividual(1, 1)
+        eu = ClubIndividual(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '0000000',
         }

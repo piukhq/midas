@@ -7,6 +7,15 @@ import settings
 from app.encryption import AESCipher
 from settings import AES_KEY, HELIOS_DB_URI
 
+AGENT_CLASS_ARGUMENTS = [
+    1,
+    {
+        'scheme_account_id': 1,
+        'status': '',
+        'user_id': 1
+    }
+]
+
 
 def get_credentials(agent=None):
     """
