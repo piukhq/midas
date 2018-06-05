@@ -1,7 +1,7 @@
 import unittest
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
 from gaia.user_token import UserTokenStore
 from settings import USER_TOKEN_REDIS_URL
@@ -11,7 +11,7 @@ class TestHarveyNichols(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = HarveyNichols(1, 1)
+        cls.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['harvey-nichols'])
 
     def test_login(self):
@@ -35,7 +35,7 @@ class TestHarveyNichols(unittest.TestCase):
 
 class TestHarveyNicholsFail(unittest.TestCase):
     def setUp(self):
-        self.h = HarveyNichols(1, 1)
+        self.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
 
     def test_login_fail_no_user(self):
         credentials = {
@@ -59,7 +59,7 @@ class TestHarveyNicholsFail(unittest.TestCase):
 class TestToken(unittest.TestCase):
 
     def test_invalid_token(self):
-        self.h = HarveyNichols(1, 1)
+        self.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
 
         store = UserTokenStore(USER_TOKEN_REDIS_URL)
         store.set(1, '1')

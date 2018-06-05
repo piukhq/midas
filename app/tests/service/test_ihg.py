@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.ihg import Ihg
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestIhg(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Ihg(1, 1)
+        cls.m = Ihg(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['rewards-club'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestIhg(unittest.TestCase):
 
 class TestIHGFail(unittest.TestCase):
     def test_login_fail(self):
-        m = Ihg(1, 1)
+        m = Ihg(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'bad@bad.com',
             'pin': '0000',
@@ -37,7 +37,7 @@ class TestIHGFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_username(self):
-        m = Ihg(1, 1)
+        m = Ihg(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'bad',
             'pin': '0000',

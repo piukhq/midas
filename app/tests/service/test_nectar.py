@@ -2,14 +2,14 @@ import unittest
 from app.agents.nectar import Nectar
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestNectar(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Nectar(1, 1)
+        cls.b = Nectar(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["nectar"])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestNectar(unittest.TestCase):
 class TestNectarFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = Nectar(1, 1)
+        b = Nectar(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '11111111111111',
             'password': '32132132131',

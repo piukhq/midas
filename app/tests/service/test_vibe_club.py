@@ -3,14 +3,14 @@ import unittest
 from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.vibe_club import VibeClub
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestVibeClub(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = VibeClub(1, 1)
+        cls.h = VibeClub(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['vibe-club'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestVibeClub(unittest.TestCase):
 class TestVibeClubFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = VibeClub(1, 1)
+        h = VibeClub(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

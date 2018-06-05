@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 from app.agents.avios_api import Avios
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -11,7 +11,7 @@ class TestAviosAPI(unittest.TestCase):
     @classmethod
     @mock.patch('app.agents.avios_api.sentry')
     def setUpClass(cls, mock_sentry):
-        cls.b = Avios(1, 1)
+        cls.b = Avios(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS['avios'])
 
     def test_login(self):
@@ -32,7 +32,7 @@ class TestAviosFakeLogin(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.a = Avios(1, 1)
+        cls.a = Avios(*AGENT_CLASS_ARGUMENTS)
 
     @mock.patch('app.agents.avios_api.sentry')
     def test_missing_card_number(self, mock_sentry):
@@ -54,7 +54,7 @@ class TestAviosFail(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.a = Avios(1, 1)
+        cls.a = Avios(*AGENT_CLASS_ARGUMENTS)
 
     @mock.patch('app.agents.avios_api.sentry')
     def test_login_bad_card_number(self, mock_sentry):

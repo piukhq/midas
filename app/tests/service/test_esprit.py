@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.esprit import Esprit
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestEsprit(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = Esprit(1, 1)
+        cls.e = Esprit(*AGENT_CLASS_ARGUMENTS)
         cls.e.attempt_login(CREDENTIALS['my-esprit'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestEsprit(unittest.TestCase):
 class TestEspritFail(unittest.TestCase):
 
     def test_login_fail(self):
-        es = Esprit(1, 1)
+        es = Esprit(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',

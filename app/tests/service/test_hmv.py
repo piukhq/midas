@@ -1,14 +1,14 @@
 import unittest
 from app.agents.hmv import HMV
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
 class TestHMV(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = HMV(1, 1)
+        cls.b = HMV(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["pure-hmv"])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestHMV(unittest.TestCase):
 class TestHMVFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
-        b = HMV(1, 1)
+        b = HMV(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")

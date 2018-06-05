@@ -2,7 +2,7 @@ import unittest
 
 from app.agents.my360 import My360
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
 
