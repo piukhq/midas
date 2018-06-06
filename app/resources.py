@@ -62,9 +62,6 @@ class Healthz(Resource):
         return ''
 
 
-api.add_resource(Healthz, '/healthz', endpoint='healthz')
-
-
 class Balance(Resource):
 
     @validate_parameters
