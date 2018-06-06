@@ -18,11 +18,12 @@ AGENTS = {
     # 'play-points': 'play_points.PlayPoints',               # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
     # 'papa-johns': 'papa_johns.PapaJohns',                  # Papa johns have IP blocked us on production
-    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
+    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several measures to stop scraping.
     # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
     # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
     # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
+    # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -44,7 +45,6 @@ AGENTS = {
     'esquires-coffee': 'esquires_coffee.EsquiresCoffee',
     'tesco-clubcard': 'tesco.Tesco',
     'tesco-clubcard1': 'tesco.Tesco',
-    'toysrus': 'toysrus.Toysrus',
     'the-waterstones-card': 'waterstones.Waterstones',
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
     'harrods-rewards': 'harrods.Harrods',

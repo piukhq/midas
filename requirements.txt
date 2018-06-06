@@ -57,4 +57,4 @@ pytest-xdist==1.22.0
 SQLAlchemy==1.2.2
 psycopg2-binary==2.7.4
 certifi
-git+ssh://git@git.bink.com/Olympus/gaia.git
+git+ssh://git@git.bink.com/Olympus/gaia.git#egg=gaia
