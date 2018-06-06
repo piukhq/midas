@@ -66,12 +66,16 @@ class TestMerchantApi(FlaskTestCase):
         '-----END RSA PRIVATE KEY-----\n'
     )
 
-    test_public_key = ('ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCzDZVcAdGo9oINVgjou6DdSr1C6KTubewj'
-                       'wGTOp0KQGZqQ9nlyyxtzgSzERNMD1XRXUoMxTLq8ZRJo3yluDgw8Nk7NSUnI5wECFopalQfg'
-                       'HDQ6UG0o9V7A3nWfw1ke/CqHf1/mvBU1UHlPaFpM6y4bRDuugflM9izvkXztsQvBEsKdbJej'
-                       'r1/qjp8fs34zYI3XVLVQpPtmSpovZ+bcta5/wZYCQ6u+tmnqOzeQoIK7O0j4nE/3cBrfjXVp'
-                       'UfWO3RaDJ7H56R0A7bKQara1uz28aL//pnB5l7L4HX7YusK6bX5a6Vp/WUYs0XkGjp8e5dfD'
-                       'rd+HHng9B7ykxZzktb3f kaziz@Kashims-iMac.local')
+    test_public_key = (
+        '-----BEGIN RSA PUBLIC KEY-----\n'
+        'MIIBCgKCAQEAsw2VXAHRqPaCDVYI6Lug3Uq9Quik7m3sI8BkzqdCkBmakPZ5cssb\n'
+        'c4EsxETTA9V0V1KDMUy6vGUSaN8pbg4MPDZOzUlJyOcBAhaKWpUH4Bw0OlBtKPVe\n'
+        'wN51n8NZHvwqh39f5rwVNVB5T2haTOsuG0Q7roH5TPYs75F87bELwRLCnWyXo69f\n'
+        '6o6fH7N+M2CN11S1UKT7ZkqaL2fm3LWuf8GWAkOrvrZp6js3kKCCuztI+JxP93Aa\n'
+        '3411aVH1jt0Wgyex+ekdAO2ykGq2tbs9vGi//6ZweZey+B1+2LrCum1+Wulaf1lG\n'
+        'LNF5Bo6fHuXXw63fhx54PQe8pMWc5LW93wIDAQAB\n'
+        '-----END RSA PUBLIC KEY-----\n'
+    )
 
     config = MagicMock()
     config.scheme_slug = 'id'
