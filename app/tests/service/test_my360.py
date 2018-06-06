@@ -11,7 +11,7 @@ class StandardLoginTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, '')
+        cls.m = My360(*AGENT_CLASS_ARGUMENTS)
 
     def setUp(self):
         self.m.scheme_slug = self.SCHEME_NAME
@@ -37,7 +37,7 @@ class StandardLoginFailTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, '')
+        cls.m = My360(*AGENT_CLASS_ARGUMENTS)
 
     def setUp(self):
         self.m.scheme_slug = self.SCHEME_NAME
