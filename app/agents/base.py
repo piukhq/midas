@@ -397,7 +397,7 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
-        self.identifier_type = ['barcode', 'card_number']
+        self.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
         # used to map merchant identifiers to scheme credential types
         self.merchant_identifier_mapping = {
             'merchant_scheme_id2': 'merchant_identifier'
@@ -500,7 +500,7 @@ class MerchantApi(BaseMiner):
         data['callback_url'] = self.config.callback_url
 
         merchant_scheme_ids = self.get_merchant_ids(data)
-        data['merchant_scheme_id1'] = merchant_scheme_ids['merchant_scheme_id1']
+        data.update(merchant_scheme_ids)
 
         payload = json.dumps(data)
 
@@ -632,6 +632,7 @@ class MerchantApi(BaseMiner):
     def get_merchant_ids(self, credentials):
         merchant_ids = {
             'merchant_scheme_id1': hash_ids.encode(self.user_info['user_id']),
+            'merchant_scheme_id2': credentials.get('merchant_identifier'),
         }
 
         return merchant_ids

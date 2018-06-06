@@ -90,6 +90,20 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
+                                                                          mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_config.return_value = self.config
+        self.m.record_uid = '123'
+        self.m._outbound_handler({'card_number': '123'}, 'fake-merchant-id', 'update')
+
+        self.assertTrue(mock_logger.info.called)
+        self.assertIn('merchant_scheme_id1', mock_sync_outbound.call_args[0][0])
+        self.assertIn('merchant_scheme_id2', mock_sync_outbound.call_args[0][0])
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
         mock_config.return_value = self.config
@@ -257,7 +271,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.login({})
         self.assertTrue(mock_outbound_handler.called)
-        self.assertEqual(self.m.identifier, {'card_number': '1234', converted_identifier_type:'abc'})
+        self.assertEqual(self.m.identifier, {'card_number': '1234', converted_identifier_type: 'abc'})
 
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
@@ -452,10 +466,8 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(credentials_to_update, expected_dict)
 
     def test_get_merchant_ids(self):
-        merchant_ids = self.m.get_merchant_ids({'merchant_identifier': '123'})
-
+        merchant_ids = self.m.get_merchant_ids({})
         self.assertIn('merchant_scheme_id1', merchant_ids)
-        self.assertIn('merchant_scheme_id2', merchant_ids)
 
 
 @mock.patch('redis.StrictRedis.get')
