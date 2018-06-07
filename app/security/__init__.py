@@ -5,7 +5,7 @@ import hvac
 from flask import request
 
 from app import configuration
-from settings import VAULT_TOKEN
+from settings import VAULT_TOKEN, VAULT_URL
 
 
 class DoesNotExist(Exception):
@@ -37,7 +37,7 @@ def get_security_credentials(key_items):
     :param key_items: list of dicts {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
     :return: key_items: returns same list of dict with added 'value' keys containing actual credential values.
     """
-    client = hvac.Client(token=VAULT_TOKEN)
+    client = hvac.Client(token=VAULT_TOKEN, url=VAULT_URL)
 
     try:
         for key_item in key_items:

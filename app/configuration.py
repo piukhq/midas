@@ -80,6 +80,10 @@ class Configuration:
         json_data = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers).content.decode('utf8')
         data = json.loads(json_data)
 
+        error_message = data.get('message')
+        if error_message and 'does not exist' in error_message:
+            raise ConfigurationDoesNotExist(error_message)
+
         return data
 
     def _process_config_data(self):
@@ -91,3 +95,7 @@ class Configuration:
         self.callback_url = self.data['callback_url']
 
         self.security_credentials = get_security_credentials(self.data['security_credentials'])
+
+
+class ConfigurationDoesNotExist(Exception):
+    pass
