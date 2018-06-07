@@ -29,12 +29,12 @@ class TestMerchantApi(FlaskTestCase):
                             'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
                             'merchant_scheme_id1': '0XzkL39J4q2VolejRejNmGQBW71gPv58'})
 
-    signature = (b'Tr7N44RTxiKtOeLIoqFCPk6oQOA4ektTmZb/ddhc3uWJy5YD0Qrx5WqDs'
-                 b'4TiP7JrI/fbYBD4gCRC/mYmlaXQ02OanYIVlkQTF97H4KMX41QCZixYyl'
-                 b'fFfeMBlj65NV2XUSBwpZiq+0pHrcZON2gmrvr7QanOsO9wv/Pf/3Moub3'
-                 b'Jt7qSsSG9o/XAHFrGhy6RQH4jlXbgwQMeI+3cEKf7CquE//tW6+RXVWW4'
-                 b'/T7zjEo9R2yw0uBZU5tr6nyYTkJq1DBRFowMq2ZoArZ8t7gGi8vVxlkfM'
-                 b'mPoyb2MALwk1lCQyyxJSaOxiWm6DSH5R2zpxeDeInnK8pR81aCU9PPhQw==').decode('utf8')
+    signature = (b'BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T'
+                 b'a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb'
+                 b'lNA5EQo8kmjlC4YoD2a3rYVKKmJv27DpPIYXW17tZr1i5ZMifGPKgzbv'
+                 b'vKzcNZeOOT2q5UE+HbGdeuw13SLoBPJkLE028g+XSk+WbDH4SwiybnGY'
+                 b'401duxapoRkQUpUIgayoz4b6uVlm4TbiS+vFmULVcLZ0rvhLoC2l0S1c'
+                 b'27Ti+F4QntxmTOfcxw6SB+V0PEr8gIk59lHSKqKiDcGRjnOIES084DKeMyuMUQ==').decode('utf8')
 
     test_private_key = (
         '-----BEGIN RSA PRIVATE KEY-----\n'
@@ -336,7 +336,7 @@ class TestMerchantApi(FlaskTestCase):
         json_data = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
                                             ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')]))
         timestamp = 1523356514
-        json_with_timestamp = '{}timestamp={}'.format(json_data, timestamp)
+        json_with_timestamp = '{}{}'.format(json_data, timestamp)
         mock_add_timestamp.return_value = json_with_timestamp, timestamp
         rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
         expected_result = {

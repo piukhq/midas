@@ -59,7 +59,7 @@ class RSA(BaseSecurity):
 
         self._validate_timestamp(timestamp)
 
-        json_data_with_timestamp = '{}timestamp={}'.format(json_data, timestamp)
+        json_data_with_timestamp = '{}{}'.format(json_data, timestamp)
 
         key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key'))
         digest = SHA256.new(json_data_with_timestamp.encode('utf8'))
