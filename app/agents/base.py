@@ -477,7 +477,7 @@ class MerchantApi(BaseMiner):
         update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
                                     identifier=identifier)
 
-        status = 1
+        status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.result['message_uid'])
 
     def _outbound_handler(self, data, scheme_slug, handler_type):

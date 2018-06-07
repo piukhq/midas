@@ -123,7 +123,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
 
     try:
-        status = 1
+        status = SchemeAccountStatus.ACTIVE
         balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
         # Asynchronously get the transactions for the a user
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
@@ -133,10 +133,10 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         status = e.code
         raise AgentException(e)
     except Exception as e:
-        status = 520
+        status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        if user_info.get('pending') and not status == 1:
+        if user_info.get('pending') and not status == SchemeAccountStatus.ACTIVE:
             pass
         else:
             threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
@@ -211,7 +211,7 @@ class Transactions(Resource):
                                      scheme_slug=scheme_slug)
 
         try:
-            status = 1
+            status = SchemeAccountStatus.ACTIVE
             transactions = publish.transactions(agent_instance.transactions(),
                                                 user_info['scheme_account_id'],
                                                 user_info['user_id'],
@@ -221,7 +221,7 @@ class Transactions(Resource):
             status = e.code
             raise AgentException(e)
         except Exception as e:
-            status = 520
+            status = SchemeAccountStatus.UNKNOWN_ERROR
             raise UnknownException(e)
         finally:
             thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], status, tid)
@@ -416,11 +416,11 @@ def registration(scheme_slug, user_info, tid):
         return True
 
     try:
-        status = 1
+        status = SchemeAccountStatus.ACTIVE
         publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_id'], tid)
         publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_id'], tid)
     except Exception as e:
-        status = 520
+        status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
         publish.status(user_info['scheme_account_id'], status, tid)
@@ -445,7 +445,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
         return
 
     # error handling for pending scheme accounts waiting for join journey to complete
-    data = {'status': 900}
+    data = {'status': SchemeAccountStatus.JOIN}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
                   data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid))
 
@@ -461,7 +461,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
 
 def update_pending_link_account(scheme_account_id, message, tid, intercom_data=None):
     # error handling for pending scheme accounts waiting for async link to complete
-    status_data = {'status': 10}
+    status_data = {'status': SchemeAccountStatus.WALLET_ONLY}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
                   data=json.dumps(status_data, cls=JsonEncoder), headers=get_headers(tid))
 
