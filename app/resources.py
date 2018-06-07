@@ -74,7 +74,7 @@ class Balance(Resource):
         user_info = {
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
-            'status': request.args.get('status'),
+            'status': int(request.args.get('status')),
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -177,7 +177,7 @@ class Register(Resource):
         user_info = {
             'user_id': int(request.get_json()['user_id']),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': 'PENDING',    # May be better to receive this information from hermes.
+            'status': SchemeAccountStatus.PENDING,    # May be better to receive this information from hermes.
             'scheme_account_id': int(request.get_json()['scheme_account_id']),
         }
         tid = request.headers.get('transaction')

@@ -478,7 +478,7 @@ class TestResources(TestCase):
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}&status={3}".format(
-            credentials, 1, 2, 'WALLET_ONLY'
+            credentials, 1, 2, SchemeAccountStatus.WALLET_ONLY
         )
         resp = self.client.get(url)
 
