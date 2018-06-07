@@ -17,7 +17,7 @@ from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor
-from app.utils import resolve_agent, raise_intercom_event, get_headers
+from app.utils import resolve_agent, raise_intercom_event, get_headers, SchemeAccountStatus
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -95,14 +95,14 @@ class Balance(Resource):
     @staticmethod
     def handle_async_balance(agent_class, scheme_slug, user_info, tid):
         scheme_account_id = user_info['scheme_account_id']
-        if user_info['status'] == 'WALLET_ONLY':
+        if user_info['status'] == SchemeAccountStatus.WALLET_ONLY:
             prev_balance = publish.zero_balance(scheme_account_id, user_info['user_id'], tid)
             publish.status(scheme_account_id, 0, tid)
         else:
             prev_balance = get_hades_balance(scheme_account_id)
 
         user_info['pending'] = False
-        if user_info['status'] in ['PENDING', 'WALLET_ONLY']:
+        if user_info['status'] in [SchemeAccountStatus.PENDING, SchemeAccountStatus.WALLET_ONLY]:
             user_info['pending'] = True
             prev_balance['pending'] = True
 

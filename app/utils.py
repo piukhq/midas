@@ -15,6 +15,27 @@ from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVIC
 TWO_PLACES = Decimal(10) ** -2
 
 
+class SchemeAccountStatus:
+    PENDING = 0
+    ACTIVE = 1
+    INVALID_CREDENTIALS = 403
+    INVALID_MFA = 432
+    END_SITE_DOWN = 530
+    IP_BLOCKED = 531
+    TRIPPED_CAPTCHA = 532
+    INCOMPLETE = 5
+    LOCKED_BY_ENDSITE = 434
+    RETRY_LIMIT_REACHED = 429
+    RESOURCE_LIMIT_REACHED = 503
+    UNKNOWN_ERROR = 520
+    MIDAS_UNREACHABLE = 9
+    AGENT_NOT_FOUND = 404
+    WALLET_ONLY = 10
+    PASSWORD_EXPIRED = 533
+    JOIN = 900
+    NO_SUCH_RECORD = 444
+
+
 def extract_decimal(s):
     """
     We need to use the quantize method to ensure whole

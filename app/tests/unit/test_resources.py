@@ -17,6 +17,7 @@ from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, async_get_balance_and_publish, \
     get_balance_and_publish, update_pending_link_account, update_pending_join_account
+from app.utils import SchemeAccountStatus
 from settings import AES_KEY
 
 CREDENTIALS = {
@@ -37,7 +38,7 @@ class TestResources(TestCase):
     user_info = {
         'user_id': 1,
         'credentials': {'credentials': 'test'},
-        'status': 'WALLET_ONLY',
+        'status': SchemeAccountStatus.WALLET_ONLY,
         'scheme_account_id': 123,
         'pending': True
     }
@@ -225,7 +226,7 @@ class TestResources(TestCase):
     def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
         mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException):
-            agent_login(Avios, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}})
+            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
         self.assertTrue(mock_retry.max_out_count.called)
 
     @mock.patch('app.resources.retry', autospec=True)
@@ -235,7 +236,7 @@ class TestResources(TestCase):
         mock_identifier.value = None
         mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
         with self.assertRaises(AgentException) as e:
-            agent_login(Avios, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}})
+            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
         self.assertTrue(mock_retry.inc_count.called)
         self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
                                                       'of login tries please wait 15 minutes.')
@@ -287,7 +288,7 @@ class TestResources(TestCase):
             'user_id': 'test user id',
             'credentials': {},
             'scheme_account_id': 2,
-            'status': 'PENDING'
+            'status': SchemeAccountStatus.PENDING
         }
 
         agent_register(HarveyNichols, user_info, {}, 1)
@@ -306,7 +307,7 @@ class TestResources(TestCase):
             'user_id': 'test user id',
             'credentials': {},
             'scheme_account_id': 2,
-            'status': 'PENDING'
+            'status': SchemeAccountStatus.PENDING
         }
 
         with self.assertRaises(AgentException):
@@ -386,7 +387,8 @@ class TestResources(TestCase):
     def test_agent_login_success(self, mock_login, mock_retry):
         mock_login.return_value = {'message': 'success'}
 
-        agent_login(HarveyNichols, {'scheme_account_id': 2, 'status': 'ACTIVE', 'credentials': {}}, "harvey-nichols")
+        agent_login(HarveyNichols,
+                    {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}}, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.retry', autospec=True)
