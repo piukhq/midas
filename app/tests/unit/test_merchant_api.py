@@ -465,7 +465,7 @@ class TestMerchantApi(FlaskTestCase):
         # Should error on any status code other than 200 i.e if helios is down or no config found etc.
         mock_request.return_value.status_code = 404
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(AgentError):
             Configuration('', 1)
 
     @mock.patch.object(Client, 'read')
@@ -489,7 +489,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_vault_client.return_value = None
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(AgentError):
             Configuration('', 1)
 
     @mock.patch('app.resources_callbacks.retry', autospec=True)
