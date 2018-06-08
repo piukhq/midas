@@ -11,7 +11,16 @@ AGENT_CLASS_ARGUMENTS = [
     1,
     {
         'scheme_account_id': 1,
-        'status': '',
+        'status': 'ACTIVE',
+        'user_id': 1
+    }
+]
+
+AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
+    1,
+    {
+        'scheme_account_id': 1,
+        'status': 'WALLET_ONLY',
         'user_id': 1
     }
 ]
