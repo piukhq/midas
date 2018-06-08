@@ -71,10 +71,11 @@ class Balance(Resource):
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
+        status = request.args.get('status')
         user_info = {
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
-            'status': int(request.args.get('status')),
+            'status': int(status) if status else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
