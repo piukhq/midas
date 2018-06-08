@@ -6,7 +6,7 @@ from app.agents.base import MerchantApi
 
 
 class ClubIndividual(MerchantApi):
-    identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+    identifier_type = ['card_number', 'merchant_scheme_id2']
 
     def balance(self):
         value = Decimal(self.result['alt_value'])
