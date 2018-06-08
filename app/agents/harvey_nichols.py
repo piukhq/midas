@@ -3,13 +3,13 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
     STATUS_LOGIN_FAILED, NO_SUCH_RECORD
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import USER_TOKEN_REDIS_URL
+from settings import REDIS_URL
 import arrow
 
 
 class HarveyNichols(ApiMiner):
 
-    token_store = UserTokenStore(USER_TOKEN_REDIS_URL)
+    token_store = UserTokenStore(REDIS_URL)
 
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
 
@@ -128,7 +128,7 @@ class HarveyNichols(ApiMiner):
                 'title': credentials['title'],
                 'forename': credentials['first_name'],
                 'surname': credentials['last_name'],
-                'applicationId': 'CX_MOB'
+                'applicationId': 'BINK_APP'
             }
         }
         if credentials.get('phone'):
@@ -151,7 +151,7 @@ class HarveyNichols(ApiMiner):
             "CustomerSignOnRequest": {
                 'username': credentials['email'],
                 'password': credentials['password'],
-                'applicationId': "CX_MOB"
+                'applicationId': "BINK_APP"
             }
         }
 
