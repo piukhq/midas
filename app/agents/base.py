@@ -32,7 +32,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.resources import update_pending_join_account
-from app.security import get_security_agent
+from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
 from settings import logger, BACK_OFF_COOLDOWN

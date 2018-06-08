@@ -297,6 +297,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
     def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
+        mock_request.return_value.status_code = 200
         mock_request.return_value.content = json.dumps({
             'id': 2,
             'merchant_id': 'fake-merchant',
@@ -406,7 +407,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
-    @mock.patch('app.security.configuration.Configuration')
+    @mock.patch('app.security.utils.configuration.Configuration')
     def test_async_join_callback_returns_success(self, mock_config, mock_decode, mock_thread, mock_retry):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
