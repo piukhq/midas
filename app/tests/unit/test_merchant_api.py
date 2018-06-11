@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
-from Crypto.Signature.PKCS1_v1_5 import PKCS115_SigScheme
+from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask.ext.testing import TestCase as FlaskTestCase
 from hvac import Client
 
