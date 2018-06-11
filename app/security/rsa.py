@@ -3,7 +3,7 @@ import json
 
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA as CRYPTO_RSA
-from Crypto.Signature import PKCS1_v1_5
+from Crypto.Signature import pkcs1_15
 
 from app.agents.exceptions import AgentError, VALIDATION, CONFIGURATION_ERROR
 from app.security.base import BaseSecurity
@@ -22,7 +22,7 @@ class RSA(BaseSecurity):
 
         key = CRYPTO_RSA.importKey(self._get_key('bink_private_key'))
         digest = SHA256.new(json_data_with_timestamp.encode('utf8'))
-        signer = PKCS1_v1_5.new(key)
+        signer = pkcs1_15.new(key)
         signature = base64.b64encode(signer.sign(digest)).decode('utf8')
 
         encoded_request = {
@@ -66,11 +66,12 @@ class RSA(BaseSecurity):
             raise AgentError(CONFIGURATION_ERROR) from e
 
         digest = SHA256.new(json_data_with_timestamp.encode('utf8'))
-        signer = PKCS1_v1_5.new(key)
+        signer = pkcs1_15.new(key)
         decoded_sig = base64.b64decode(signature)
 
-        verified = signer.verify(digest, decoded_sig)
-        if not verified:
-            raise AgentError(VALIDATION)
+        try:
+            signer.verify(digest, decoded_sig)
+        except ValueError as e:
+            raise AgentError(VALIDATION) from e
 
         return json_data
