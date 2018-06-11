@@ -80,7 +80,7 @@ AGENTS = {
     'love-your-body': 'the_body_shop.TheBodyShop',
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
-    'iceland': 'merchant_api_generic.MerchantAPIGeneric',
+    'test-iceland': 'merchant_api_generic.MerchantAPIGeneric',
     'pure-hmv': 'hmv.HMV',
     'victoria': 'victoria.Victoria',
     'star-rewards': 'star_rewards.StarRewards',

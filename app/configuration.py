@@ -2,7 +2,8 @@ import json
 
 import requests
 
-from app.security import get_security_credentials
+from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
+from app.security.utils import get_security_credentials
 from settings import HELIOS_URL, SERVICE_API_KEY
 
 
@@ -77,10 +78,13 @@ class Configuration:
         }
         headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
-        json_data = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers).content.decode('utf8')
-        data = json.loads(json_data)
+        resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
+        json_data = resp.content.decode('utf8')
 
-        return data
+        if resp.status_code != 200:
+            raise AgentError(CONFIGURATION_ERROR)
+
+        return json.loads(json_data)
 
     def _process_config_data(self):
         self.merchant_url = self.data['merchant_url']
@@ -90,4 +94,7 @@ class Configuration:
         self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
         self.callback_url = self.data['callback_url']
 
-        self.security_credentials = get_security_credentials(self.data['security_credentials'])
+        try:
+            self.security_credentials = get_security_credentials(self.data['security_credentials'])
+        except TypeError as e:
+            raise AgentError(CONFIGURATION_ERROR) from e

@@ -4,8 +4,9 @@ from unittest.mock import MagicMock
 
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
-from Crypto.Signature.PKCS1_v1_5 import PKCS115_SigScheme
+from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask.ext.testing import TestCase as FlaskTestCase
+from hvac import Client
 
 from app import create_app
 from app.agents.base import MerchantApi
@@ -297,6 +298,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
     def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
+        mock_request.return_value.status_code = 200
         mock_request.return_value.content = json.dumps({
             'id': 2,
             'merchant_id': 'fake-merchant',
@@ -365,18 +367,17 @@ class TestMerchantApi(FlaskTestCase):
         }
 
         request_json = rsa.decode(headers, json.dumps(request_payload))
-
         self.assertTrue(mock_validate_time.called)
         self.assertEqual(request_json, json.dumps(request_payload))
 
     @mock.patch('app.security.base.time.time', autospec=True)
-    def test_rsa_security_decode_raises_exception_on_fail(self, mock_time):
+    def test_rsa_security_decode_raises_exception_on_failed_verification(self, mock_time):
         mock_time.return_value = 1523356514
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
         request = requests.Request()
         request.json = json.loads(self.json_data)
         request.headers = {
-            "Authorization": "bad signature",
+            "Authorization": "signature badbadbadbbb",
             'X-REQ-TIMESTAMP': 1523356514
         }
         request.content = self.json_data
@@ -387,7 +388,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(PKCS115_SigScheme, 'verify', autospec=True)
     @mock.patch.object(CRYPTO_RSA, 'importKey', autospec=True)
     @mock.patch('app.security.base.time.time', autospec=True)
-    def test_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
+    def test_rsa_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
         mock_time.return_value = 9876543210
 
         rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
@@ -403,10 +404,98 @@ class TestMerchantApi(FlaskTestCase):
         self.assertFalse(mock_import_key.called)
         self.assertFalse(mock_verify.called)
 
+    @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
+    def test_rsa_security_raises_exception_when_public_key_is_not_in_credentials(self, mock_validate_timestamp):
+        rsa = RSA([{'type': 'not_public_key', 'value': self.test_public_key}])
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+            'X-REQ-TIMESTAMP': 12345
+        }
+
+        with self.assertRaises(AgentError) as e:
+            rsa.decode(headers, json.loads(self.json_data))
+
+        self.assertEqual(e.exception.name, 'Configuration error')
+        self.assertTrue(mock_validate_timestamp.called)
+
+    @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
+    def test_rsa_security_raises_exception_when_missing_headers(self, mock_validate_timestamp):
+        request_payload = OrderedDict([('message_uid', '123-123-123-123'),
+                                       ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')])
+
+        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        headers = {
+            'X-REQ-TIMESTAMP': 12345
+        }
+
+        with self.assertRaises(AgentError) as e:
+            rsa.decode(headers, json.dumps(request_payload))
+
+        self.assertEqual(e.exception.name, 'Failed validation')
+
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+        }
+
+        with self.assertRaises(AgentError) as e:
+            rsa.decode(headers, json.dumps(request_payload))
+
+        self.assertEqual(e.exception.name, 'Failed validation')
+
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+            'X-REQ-TIMESTAMP': 1523356514
+        }
+        rsa.decode(headers, json.dumps(request_payload))
+
+        self.assertTrue(mock_validate_timestamp.called)
+
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_authorise_returns_error_when_auth_fails(self, mock_config):
+        headers = {'Authorization': 'bad signature', 'X-REQ-TIMESTAMP': 156789765}
+
+        mock_config.return_value = self.config
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertEqual(response.status_code, 401)
+
+    @mock.patch('requests.get', autospec=True)
+    def test_config_service_raises_exception_on_fail(self, mock_request):
+        # Should error on any status code other than 200 i.e if helios is down or no config found etc.
+        mock_request.return_value.status_code = 404
+
+        with self.assertRaises(AgentError):
+            Configuration('', 1)
+
+    @mock.patch.object(Client, 'read')
+    @mock.patch('requests.get', autospec=True)
+    def test_exception_is_raised_if_credentials_not_in_vault(self, mock_request, mock_vault_client):
+        mock_request.return_value.status_code = 200
+        mock_request.return_value.content = json.dumps({
+            'id': 2,
+            'merchant_id': 'fake-merchant',
+            'merchant_url': '',
+            'handler_type': 1,
+            'integration_service': 1,
+            'callback_url': None,
+            'security_service': 0,
+            'retry_limit': 0,
+            'log_level': 2,
+            'security_credentials': [
+                {'type': 'public_key',
+                 'storage_key': '123456'}
+            ]}).encode()
+
+        mock_vault_client.return_value = None
+
+        with self.assertRaises(AgentError):
+            Configuration('', 1)
+
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
-    @mock.patch('app.security.configuration.Configuration')
+    @mock.patch('app.security.utils.configuration.Configuration')
     def test_async_join_callback_returns_success(self, mock_config, mock_decode, mock_thread, mock_retry):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
@@ -415,7 +504,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/iceland', headers=headers)
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
