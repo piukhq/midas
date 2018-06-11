@@ -397,7 +397,11 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
-        self.identifier_type = ['barcode', 'card_number']
+        self.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+        # used to map merchant identifiers to scheme credential types
+        self.merchant_identifier_mapping = {
+            'merchant_scheme_id2': 'merchant_identifier'
+        }
 
         self.record_uid = None
         self.result = None
@@ -494,7 +498,9 @@ class MerchantApi(BaseMiner):
         data['message_uid'] = message_uid
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
-        data['merchant_scheme_id1'] = hash_ids.encode(self.user_info['user_id'])
+
+        merchant_scheme_ids = self.get_merchant_ids(data)
+        data.update(merchant_scheme_ids)
 
         payload = json.dumps(data)
 
@@ -622,6 +628,15 @@ class MerchantApi(BaseMiner):
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
 
+    # agents will override this if unique values are needed
+    def get_merchant_ids(self, credentials):
+        merchant_ids = {
+            'merchant_scheme_id1': hash_ids.encode(self.user_info['user_id']),
+            'merchant_scheme_id2': credentials.get('merchant_identifier'),
+        }
+
+        return merchant_ids
+
     def _handle_errors(self, response, exception_type=LoginError):
         for key, values in self.errors.items():
             if response in values:
@@ -648,5 +663,6 @@ class MerchantApi(BaseMiner):
         for identifier in self.identifier_type:
             value = data.get(identifier)
             if value:
-                _identifier[identifier] = value
+                converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
+                _identifier[converted_credential_type] = value
         return _identifier

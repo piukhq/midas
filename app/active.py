@@ -91,6 +91,7 @@ AGENTS = {
     'macdonald-hotels': 'the_club.TheClub',
     'marriott-rewards-card': 'marriott.Marriott',
     'club-individual': 'club_individual.ClubIndividual',
+    'test-club-individual': 'club_individual_merchant_integration.ClubIndividual',
     'showcase': 'showcase.Showcase',
     'krisflyer': 'krisflyer.Krisflyer',
     'stansted-farm': 'my360.My360',

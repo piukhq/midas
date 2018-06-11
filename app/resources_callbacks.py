@@ -15,7 +15,6 @@ class JoinCallback(Resource):
     @authorise(Configuration.JOIN_HANDLER)
     def post(self, scheme_slug, data, config):
         user_info = {
-            'user_id':  hash_ids.decode(data['merchant_scheme_id1'])[0],
             'credentials': None,
             'status': 'PENDING',
             'scheme_account_id': hash_ids.decode(data['record_uid'])[0]

@@ -6,7 +6,7 @@ from flask import request
 
 from app import configuration, AgentException
 from app.agents.exceptions import AgentError
-from settings import VAULT_TOKEN
+from settings import VAULT_TOKEN, VAULT_URL
 
 
 class DoesNotExist(Exception):
@@ -38,11 +38,11 @@ def get_security_credentials(key_items):
     :param key_items: list of dicts {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
     :return: key_items: returns same list of dict with added 'value' keys containing actual credential values.
     """
-    client = hvac.Client(token=VAULT_TOKEN)
+    client = hvac.Client(token=VAULT_TOKEN, url=VAULT_URL)
 
     try:
         for key_item in key_items:
-            value = client.read('secret/{}'.format(key_item['storage_key']))['data'][key_item['type']]
+            value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data'][key_item['type']]
             key_item['value'] = value
     except TypeError as e:
         raise TypeError('Could not locate security credentials in vault.') from e

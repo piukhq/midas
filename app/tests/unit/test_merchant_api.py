@@ -95,6 +95,20 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
+                                                                          mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_config.return_value = self.config
+        self.m.record_uid = '123'
+        self.m._outbound_handler({'card_number': '123'}, 'fake-merchant-id', 'update')
+
+        self.assertTrue(mock_logger.info.called)
+        self.assertIn('merchant_scheme_id1', mock_sync_outbound.call_args[0][0])
+        self.assertIn('merchant_scheme_id2', mock_sync_outbound.call_args[0][0])
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
         mock_config.return_value = self.config
@@ -256,12 +270,13 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234'}
+        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
+        self.m.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+        converted_identifier_type = self.m.merchant_identifier_mapping['merchant_scheme_id2']
 
         self.m.login({})
-
         self.assertTrue(mock_outbound_handler.called)
-        self.assertEqual(self.m.identifier, {'card_number': '1234'})
+        self.assertEqual(self.m.identifier, {'card_number': '1234', converted_identifier_type: 'abc'})
 
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
@@ -513,6 +528,39 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
+
+    def test_merchant_scheme_id_conversion(self):
+        self.m.identifier_type = ['merchant_scheme_id2', 'barcode']
+        data = {
+            'merchant_scheme_id2': '123',
+            'barcode': '123'
+        }
+        credentials_to_update = self.m._get_identifiers(data)
+
+        expected_dict = {
+            'merchant_identifier': '123',
+            'barcode': '123'
+        }
+        self.assertEqual(credentials_to_update, expected_dict)
+
+    def test_merchant_scheme_id_conversion_with_different_values(self):
+        self.m.identifier_type = ['merchant_scheme_id1', 'merchant_scheme_id3']
+        data = {
+            'merchant_scheme_id1': '123',
+            'merchant_scheme_id3': '123'
+        }
+        self.m.merchant_identifier_mapping = {'merchant_scheme_id3': 'email'}
+        credentials_to_update = self.m._get_identifiers(data)
+
+        expected_dict = {
+            'merchant_scheme_id1': '123',
+            'email': '123'
+        }
+        self.assertEqual(credentials_to_update, expected_dict)
+
+    def test_get_merchant_ids(self):
+        merchant_ids = self.m.get_merchant_ids({})
+        self.assertIn('merchant_scheme_id1', merchant_ids)
 
 
 @mock.patch('redis.StrictRedis.get')
