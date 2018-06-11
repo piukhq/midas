@@ -456,7 +456,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_config.return_value = self.config
 
-        response = self.client.post('/join/merchant/iceland', headers=headers)
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
 
         self.assertEqual(response.status_code, 401)
 
@@ -504,7 +504,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/iceland', headers=headers)
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
