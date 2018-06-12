@@ -1,14 +1,16 @@
 from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, CONFIRMATION_REQUIRED
 from app.utils import extract_decimal
 from decimal import Decimal
-import arrow
 
 
 class Maximiles(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.0009')
 
     def login(self, credentials):
+        terms_and_cond_url = ('https://www.maximiles.co.uk/accept-terms-and-conditions?r='
+                              'https%3A%2F%2Fwww.maximiles.co.uk%2Fmy-account')
+
         self.open_url('http://www.maximiles.co.uk/my-account/login')
 
         self.headers = {
@@ -33,6 +35,9 @@ class Maximiles(RoboBrowserMiner):
 
         self.browser.submit_form(login_form, headers=self.headers)
 
+        if self.browser.url == terms_and_cond_url:
+            raise LoginError(CONFIRMATION_REQUIRED)
+
         selector = 'div.error > ul > li'
         self.check_error('/my-account/login', ((selector, STATUS_LOGIN_FAILED, 'Invalid Username/password'),))
 
@@ -52,9 +57,4 @@ class Maximiles(RoboBrowserMiner):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal(0),
-        }
-        return [t]
+        return []
