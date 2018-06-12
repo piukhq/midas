@@ -128,7 +128,7 @@ class HarveyNichols(ApiMiner):
                 'title': credentials['title'],
                 'forename': credentials['first_name'],
                 'surname': credentials['last_name'],
-                'applicationId': 'CX_MOB'
+                'applicationId': 'BINK_APP'
             }
         }
         if credentials.get('phone'):
@@ -151,7 +151,7 @@ class HarveyNichols(ApiMiner):
             "CustomerSignOnRequest": {
                 'username': credentials['email'],
                 'password': credentials['password'],
-                'applicationId': "CX_MOB"
+                'applicationId': "BINK_APP"
             }
         }
 
