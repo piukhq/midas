@@ -29,7 +29,17 @@ DEBUG = env_var('MIDAS_DEBUG', False)
 LOCAL = env_var('MIDAS_LOCAL', False)
 AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
-REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
+REDIS_PASSWORD = env_var('REDIS_PASSWORD', '')
+FORMAT_PASSWORD = '{}@'.format(REDIS_PASSWORD) if REDIS_PASSWORD else ''
+REDIS_HOST = env_var('REDIS_HOST', 'localhost')
+REDIS_PORT = env_var('REDIS_PORT', '6379')
+REDIS_DB = env_var('REDIS_DB', '0')
+REDIS_URL = 'redis://{}{}:{}/{}'.format(
+    FORMAT_PASSWORD,
+    REDIS_HOST,
+    REDIS_PORT,
+    REDIS_DB
+)
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
