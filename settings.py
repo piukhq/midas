@@ -30,8 +30,6 @@ LOCAL = env_var('MIDAS_LOCAL', False)
 AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
 REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
-USER_TOKEN_REDIS_URL = env_var('USER_TOKEN_REDIS_URI', 'redis://localhost:6379/4')
-SELENIUM_PID_STORE = env_var('SELENIUM_PID_STORE', 'redis://localhost:6379/5')
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
