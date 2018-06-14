@@ -11,11 +11,17 @@ class ClubIndividual(MerchantApi):
     def balance(self):
         value = Decimal(self.result['alt_value'])
         value_units = self.result['alt_unit']
+        tier_list = {
+            'Platinum': 0,
+            'Black': 1
+        }
+        tier = tier_list[self.result['tier']]
 
         return {
-            "points": Decimal(self.result['balance_value']),
-            "value": value,
-            "value_label": '{} {}'.format(value, value_units),
+            'points': Decimal(self.result['balance_value']),
+            'value': value,
+            'value_label': '{} {}'.format(value, value_units),
+            'reward_tier': tier,
         }
 
     def scrape_transactions(self):
@@ -24,9 +30,9 @@ class ClubIndividual(MerchantApi):
     @staticmethod
     def parse_transactions(row):
         return {
-            "date": arrow.get(row['timestamp']),
-            "description": row['reference'],
-            "points": Decimal(row['balance_value']),
+            'date': arrow.get(row['timestamp']),
+            'description': row['reference'],
+            'points': Decimal(row['balance_value']),
         }
 
     def get_bink_merchant_ids(self, credentials):
