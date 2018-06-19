@@ -534,19 +534,19 @@ class MerchantApi(BaseMiner):
 
         return response_data
 
-    def _inbound_handler(self, json_data, scheme_slug, handler_type):
+    def _inbound_handler(self, data, scheme_slug, handler_type):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
-        :param json_data: JSON payload
+        :param data: dict of payload
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
         :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
-        self.result = json.loads(json_data)
+        self.result = data
 
         logging_info = self._create_log_message(
-            json_data,
+            data,
             self.result.get('message_uid'),
             scheme_slug,
             handler_type,
@@ -610,11 +610,11 @@ class MerchantApi(BaseMiner):
 
         return response_json
 
-    def _async_inbound(self, decoded_data, scheme_slug, handler_type):
+    def _async_inbound(self, data, scheme_slug, handler_type):
         """
         Asynchronous inbound service that will set logging level based on configuration per merchant and return
         a success response asynchronously before calling the inbound handler service.
-        :param decoded_data: validated merchant response data. JSON string.
+        :param data: dict of validated merchant response data.
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
         :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: None
@@ -623,10 +623,10 @@ class MerchantApi(BaseMiner):
             self.config = Configuration(scheme_slug, handler_type)
         logger.setLevel(self.config.log_level)
 
-        self.record_uid = self.scheme_id
+        self.record_uid = hash_ids.encode(self.scheme_id)
 
         # asynchronously call handler
-        thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
+        thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug, handler_type)
 
     # agents will override this if unique values are needed
     def get_merchant_ids(self, credentials):

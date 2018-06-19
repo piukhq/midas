@@ -52,9 +52,9 @@ class RSA(BaseSecurity):
         except KeyError as e:
             raise AgentError(VALIDATION) from e
 
-        if auth_header[0:9].lower() == 'signature':
-            signature = auth_header[10:]
-        else:
+        prefix, signature = auth_header.split(' ')
+
+        if prefix.lower() != 'signature':
             raise AgentError(VALIDATION)
 
         self._validate_timestamp(timestamp)

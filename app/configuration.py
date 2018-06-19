@@ -78,13 +78,15 @@ class Configuration:
         }
         headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
-        resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
-        json_data = resp.content.decode('utf8')
+        try:
+            resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
+        except requests.RequestException as e:
+            raise AgentError(CONFIGURATION_ERROR) from e
 
         if resp.status_code != 200:
             raise AgentError(CONFIGURATION_ERROR)
 
-        return json.loads(json_data)
+        return resp.json()
 
     def _process_config_data(self):
         self.merchant_url = self.data['merchant_url']

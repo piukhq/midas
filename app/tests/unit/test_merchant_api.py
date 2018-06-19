@@ -27,8 +27,8 @@ class TestMerchantApi(FlaskTestCase):
 
     m = MerchantApi(1, user_info)
     json_data = json.dumps({'message_uid': '123-123-123-123',
-                            'record_uid': '0XzkL39J4q2VolejRejNmGQBW71gPv58',    # hash for a scheme account id of 1
-                            'merchant_scheme_id1': '0XzkL39J4q2VolejRejNmGQBW71gPv58'})
+                            'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',    # hash for a scheme account id of 1
+                            'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
 
     signature = (b'BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T'
                  b'a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb'
@@ -232,7 +232,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_process_join.return_value = ''
         self.m.record_uid = self.m.scheme_id
 
-        resp = self.m._inbound_handler(self.json_data, '', self.config.handler_type)
+        resp = self.m._inbound_handler(json.loads(self.json_data), '', self.config.handler_type)
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual(resp, '')
@@ -246,7 +246,7 @@ class TestMerchantApi(FlaskTestCase):
         data['errors'] = ['some error']
         data['code'] = 'some error code'
 
-        self.m._inbound_handler(json.dumps(data), '', self.config.handler_type)
+        self.m._inbound_handler(data, '', self.config.handler_type)
 
         self.assertTrue(mock_logger.error.called)
 
@@ -314,7 +314,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('requests.get', autospec=True)
     def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
         mock_request.return_value.status_code = 200
-        mock_request.return_value.content = json.dumps({
+        mock_request.return_value.json.return_value = {
             'id': 2,
             'merchant_id': 'fake-merchant',
             'merchant_url': '',
@@ -327,7 +327,7 @@ class TestMerchantApi(FlaskTestCase):
             'security_credentials': [
                 {'type': 'public_key',
                  'storage_key': '123456'}
-            ]}).encode()
+            ]}
 
         mock_get_security_creds.return_value = {
             'type': 'public_key',
@@ -487,7 +487,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('requests.get', autospec=True)
     def test_exception_is_raised_if_credentials_not_in_vault(self, mock_request, mock_vault_client):
         mock_request.return_value.status_code = 200
-        mock_request.return_value.content = json.dumps({
+        mock_request.return_value.json.return_value = {
             'id': 2,
             'merchant_id': 'fake-merchant',
             'merchant_url': '',
@@ -500,7 +500,7 @@ class TestMerchantApi(FlaskTestCase):
             'security_credentials': [
                 {'type': 'public_key',
                  'storage_key': '123456'}
-            ]}).encode()
+            ]}
 
         mock_vault_client.return_value = None
 
