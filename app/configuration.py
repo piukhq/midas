@@ -1,5 +1,3 @@
-import json
-
 import requests
 
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
