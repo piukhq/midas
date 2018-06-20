@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.rspb import RSPB
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestRSPB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = RSPB(1, 1)
+        cls.m = RSPB(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['rspb'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestRSPB(unittest.TestCase):
 
 class TestRSPBFail(unittest.TestCase):
     def test_login_fail(self):
-        m = RSPB(1, 1)
+        m = RSPB(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS['bad']
 
         with self.assertRaises(LoginError) as e:

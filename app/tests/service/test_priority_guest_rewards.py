@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.priority_guest_rewards import PriorityGuestRewards
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestPriorityGuestRewards(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = PriorityGuestRewards(1, 1)
+        cls.m = PriorityGuestRewards(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['priority-guest-rewards'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestPriorityGuestRewards(unittest.TestCase):
 class TestPriorityGuestRewardsFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = PriorityGuestRewards(1, 1)
+        m = PriorityGuestRewards(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'R0000000',
             'password': '32132132',

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.foyles_bookstore import FoylesBookstore
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestFoylesBookstore(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.w = FoylesBookstore(1, 1)
+        cls.w = FoylesBookstore(*AGENT_CLASS_ARGUMENTS)
         cls.w.attempt_login(CREDENTIALS['foyalty'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestFoylesBookstore(unittest.TestCase):
 class TestFoylesBookstoreFail(unittest.TestCase):
 
     def test_login_fail(self):
-        w = FoylesBookstore(1, 1)
+        w = FoylesBookstore(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'barcode': '000000000000',
             'email': 'bad@bad.com',

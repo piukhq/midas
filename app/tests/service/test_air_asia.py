@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.air_asia import AirAsia
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestAirAsia(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = AirAsia(1, 1)
+        cls.m = AirAsia(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['big-rewards'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestAirAsia(unittest.TestCase):
 class TestAirAsiaFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = AirAsia(1, 1)
+        m = AirAsia(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

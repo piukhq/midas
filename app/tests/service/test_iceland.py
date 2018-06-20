@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.iceland import Iceland
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestIceland(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Iceland(1, 1)
+        cls.m = Iceland(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['iceland-bonus-card'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestIceland(unittest.TestCase):
 
 class TestIcelandFail(unittest.TestCase):
     def test_login_bad_card_number(self):
-        m = Iceland(1, 1)
+        m = Iceland(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '00000000000',
             'password': 't7Ixmj424Q'
@@ -36,7 +36,7 @@ class TestIcelandFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
-        m = Iceland(1, 1)
+        m = Iceland(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '30403486285',
             'password': '0000'

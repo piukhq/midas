@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.shell import Shell
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestShell(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Shell(1, 1)
+        cls.b = Shell(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["shell"])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestShell(unittest.TestCase):
 class TestShellFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = Shell(1, 1)
+        b = Shell(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'bad@bad.com',
             'password': '32132132131',

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.nandos import Nandos
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestNandos(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.n = Nandos(1, 1)
+        cls.n = Nandos(*AGENT_CLASS_ARGUMENTS)
         cls.n.attempt_login(CREDENTIALS['nandos'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestNandos(unittest.TestCase):
 class TestNandosFail(unittest.TestCase):
 
     def test_login_fail(self):
-        n = Nandos(1, 1)
+        n = Nandos(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             n.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
