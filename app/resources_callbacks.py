@@ -5,6 +5,7 @@ from app.agents.exceptions import AgentError
 from app.configuration import Configuration
 from app.encryption import hash_ids
 from app.resources import get_agent_class, create_response
+from app.utils import SchemeAccountStatus
 from app.security.utils import authorise
 
 
@@ -14,7 +15,7 @@ class JoinCallback(Resource):
     def post(self, scheme_slug, data, config):
         user_info = {
             'credentials': None,
-            'status': 'PENDING',
+            'status': SchemeAccountStatus.PENDING,
             'scheme_account_id': hash_ids.decode(data['record_uid'])[0]
         }
         try:

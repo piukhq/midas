@@ -34,7 +34,7 @@ from app.publish import thread_pool_executor
 from app.resources import update_pending_join_account
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
-from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus
 from settings import logger, BACK_OFF_COOLDOWN
 
 
@@ -421,7 +421,7 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        account_link = self.user_info['status'] == 'WALLET_ONLY'
+        account_link = self.user_info['status'] == SchemeAccountStatus.WALLET_ONLY
 
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
@@ -477,7 +477,7 @@ class MerchantApi(BaseMiner):
         update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
                                     identifier=identifier)
 
-        status = 1
+        status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.result['message_uid'])
 
     def _outbound_handler(self, data, scheme_slug, handler_type):

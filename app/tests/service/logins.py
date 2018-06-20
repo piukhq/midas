@@ -5,13 +5,14 @@ from sqlalchemy import create_engine, text
 
 import settings
 from app.encryption import AESCipher
+from app.utils import SchemeAccountStatus
 from settings import AES_KEY, HELIOS_DB_URI
 
 AGENT_CLASS_ARGUMENTS = [
     1,
     {
         'scheme_account_id': 1,
-        'status': 'ACTIVE',
+        'status': SchemeAccountStatus.ACTIVE,
         'user_id': 1
     }
 ]
@@ -20,7 +21,7 @@ AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
     1,
     {
         'scheme_account_id': 1,
-        'status': 'WALLET_ONLY',
+        'status': SchemeAccountStatus.WALLET_ONLY,
         'user_id': 1
     }
 ]
