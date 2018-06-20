@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.space_nk import SpaceNK
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestSpaceNK(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = SpaceNK(1, 1)
+        cls.m = SpaceNK(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['space-nk'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestSpaceNK(unittest.TestCase):
 class TestSpaceNKFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = SpaceNK(1, 1)
+        m = SpaceNK(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login({'barcode': '99999999999999999999'})
         self.assertEqual(e.exception.name, 'Invalid credentials')

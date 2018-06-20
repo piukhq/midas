@@ -3,14 +3,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.qantas import Qantas
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestQantas(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Qantas(1, 1)
+        cls.m = Qantas(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['frequent-flyer'])
 
     def test_login(self):
@@ -31,7 +31,7 @@ class TestQantas(unittest.TestCase):
 class TestQantasFail(unittest.TestCase):
 
     def test_login_wrong_pin_fail(self):
-        miner = Qantas(1, 1)
+        miner = Qantas(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             "card_number": CREDENTIALS['qantas']['card_number'],
             "last_name": CREDENTIALS['qantas']['last_name'],

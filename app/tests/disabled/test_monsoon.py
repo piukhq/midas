@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.monsoon import Monsoon
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMonsoon(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Monsoon(1, 1)
+        cls.m = Monsoon(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['monsoon'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestMonsoon(unittest.TestCase):
 class TestMonsoonFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Monsoon(1, 1)
+        m = Monsoon(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

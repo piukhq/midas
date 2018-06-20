@@ -1,8 +1,7 @@
-import json
-
 import requests
 
-from app.security import get_security_credentials
+from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
+from app.security.utils import get_security_credentials
 from settings import HELIOS_URL, SERVICE_API_KEY
 
 
@@ -77,14 +76,15 @@ class Configuration:
         }
         headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
-        json_data = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers).content.decode('utf8')
-        data = json.loads(json_data)
+        try:
+            resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
+        except requests.RequestException as e:
+            raise AgentError(CONFIGURATION_ERROR) from e
 
-        error_message = data.get('message')
-        if error_message and 'does not exist' in error_message:
-            raise ConfigurationDoesNotExist(error_message)
+        if resp.status_code != 200:
+            raise AgentError(CONFIGURATION_ERROR)
 
-        return data
+        return resp.json()
 
     def _process_config_data(self):
         self.merchant_url = self.data['merchant_url']
@@ -94,8 +94,7 @@ class Configuration:
         self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
         self.callback_url = self.data['callback_url']
 
-        self.security_credentials = get_security_credentials(self.data['security_credentials'])
-
-
-class ConfigurationDoesNotExist(Exception):
-    pass
+        try:
+            self.security_credentials = get_security_credentials(self.data['security_credentials'])
+        except TypeError as e:
+            raise AgentError(CONFIGURATION_ERROR) from e

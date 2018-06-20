@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.showcase import Showcase
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestShowcase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Showcase(1, 1)
+        cls.m = Showcase(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['showcase'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestShowcase(unittest.TestCase):
 class TestShowcaseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Showcase(1, 1)
+        m = Showcase(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

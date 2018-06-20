@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.the_club import TheClub
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMacdonaldHotels(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = TheClub(1, 1)
+        cls.b = TheClub(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["macdonald-hotels"])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestMacdonaldHotels(unittest.TestCase):
 
 class TestMacdonaldHotelsFail(unittest.TestCase):
     def test_login_fail(self):
-        b = TheClub(1, 1)
+        b = TheClub(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "Invalid credentials")

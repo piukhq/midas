@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.the_works import TheWorks
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestTheWorks(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = TheWorks(1, 1)
+        cls.m = TheWorks(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['together-rewards-card'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestTheWorks(unittest.TestCase):
 class TestTheWorksFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = TheWorks(1, 1)
+        m = TheWorks(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')
