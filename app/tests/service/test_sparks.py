@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.sparks import Sparks
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestSparks(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Sparks(1, 1)
+        cls.m = Sparks(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['sparks'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestSparks(unittest.TestCase):
 class TestSparksFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Sparks(1, 1)
+        m = Sparks(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

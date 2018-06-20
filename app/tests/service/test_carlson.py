@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.carlson import Carlson
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestCarlson(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Carlson(1, 1)
+        cls.m = Carlson(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['clubcarlson'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestCarlson(unittest.TestCase):
 class TestCarlsonFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Carlson(1, 1)
+        m = Carlson(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '0000000000000000',
             'password': '321321321',

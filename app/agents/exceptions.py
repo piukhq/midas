@@ -24,8 +24,13 @@ NO_SUCH_RECORD = "NO_SUCH_RECORD"
 ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS"
 NOT_SENT = "NOT_SENT"
 RESOURCE_LIMIT_REACHED = "RESOURCE_LIMIT_REACHED"
+VALIDATION = "VALIDATION"
+CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
 
 errors = {
+    VALIDATION: {"code": 401,
+                 "message": "Validation of the request has failed.",
+                 "name": "Failed validation"},
     STATUS_LOGIN_FAILED: {"code": 403,
                           "message": "We could not update your account because your username and/or password were "
                                      "reported to be incorrect. Please re-verify your username and password.",
@@ -60,6 +65,9 @@ errors = {
     ACCOUNT_ALREADY_EXISTS: {"code": 445,
                              "message": "An account with this username/email already exists",
                              "name": "Account already exists"},
+    CONFIGURATION_ERROR: {"code": 446,
+                          "message": "There is an error with the configuration or it was not possible to retrieve.",
+                          "name": "Configuration error"},
     RESOURCE_LIMIT_REACHED: {"code": 503,
                              "message": "there are currently too many balance requests running, please wait before "
                                         "trying again",
@@ -91,7 +99,8 @@ errors = {
 }
 
 SYSTEM_ACTION_REQUIRED = [
-    END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED
+    END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED,
+    CONFIGURATION_ERROR
 ]
 
 

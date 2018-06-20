@@ -72,5 +72,11 @@ HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzP
 CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
+VAULT_URL = env_var('VAULT_URL', 'http://localhost:8200')
+# Vault settings for merchant api security credential storage
+VAULT_TOKEN = env_var('VAULT_TOKEN', 'myroot')
+
 MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
 SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
+
+BACK_OFF_COOLDOWN = 120

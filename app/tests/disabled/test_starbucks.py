@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.starbucks import Starbucks
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestStarbucks(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.s = Starbucks(1, 1)
+        cls.s = Starbucks(*AGENT_CLASS_ARGUMENTS)
         cls.s.attempt_login(CREDENTIALS['starbucks'])
 
     def test_balance(self):
@@ -22,7 +22,7 @@ class TestStarbucks(unittest.TestCase):
 class TestStarbucksFail(unittest.TestCase):
 
     def test_login_fail(self):
-        s = Starbucks(1, 1)
+        s = Starbucks(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'bad@bad.com',
             'password': '321321321321',

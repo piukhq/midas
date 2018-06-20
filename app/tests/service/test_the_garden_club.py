@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.the_garden_club import TheGardenClub
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestTheGardenClub(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = TheGardenClub(1, 1)
+        cls.m = TheGardenClub(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['the-garden-club'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestTheGardenClub(unittest.TestCase):
 
 class TestTheGardenClubFail(unittest.TestCase):
     def test_login_fail(self):
-        m = TheGardenClub(1, 1)
+        m = TheGardenClub(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS['bad']
         with self.assertRaises(LoginError) as e:
             m.attempt_login(credentials)

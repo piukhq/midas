@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.aerclub import AerClub
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestAerClub(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = AerClub(1, 1)
+        cls.m = AerClub(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['aerclub'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestAerClub(unittest.TestCase):
 
 class TestAerClubFail(unittest.TestCase):
     def test_login_fail(self):
-        m = AerClub(1, 1)
+        m = AerClub(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'email': 'bad@bad.com',
             'password': '0000'

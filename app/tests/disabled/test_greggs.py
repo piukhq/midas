@@ -2,13 +2,13 @@ import unittest
 from app.agents.greggs import Greggs
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestGreggs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.g = Greggs(1, 1)
+        cls.g = Greggs(*AGENT_CLASS_ARGUMENTS)
         cls.g.attempt_login(CREDENTIALS["greggs"])
 
     def test_login(self):
@@ -31,7 +31,7 @@ class TestGreggsFail(unittest.TestCase):
             'email': 'bad@bad.com',
             'password': '145RAfwafwf2'
         }
-        g = Greggs(1, 1)
+        g = Greggs(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             g.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
