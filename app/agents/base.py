@@ -408,6 +408,7 @@ class MerchantApi(BaseMiner):
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
+            NOT_SENT: ['NOT_SENT'],
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],

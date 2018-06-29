@@ -65,9 +65,6 @@ errors = {
     ACCOUNT_ALREADY_EXISTS: {"code": 445,
                              "message": "An account with this username/email already exists",
                              "name": "Account already exists"},
-    CONFIGURATION_ERROR: {"code": 446,
-                          "message": "There is an error with the configuration or it was not possible to retrieve.",
-                          "name": "Configuration error"},
     RESOURCE_LIMIT_REACHED: {"code": 503,
                              "message": "there are currently too many balance requests running, please wait before "
                                         "trying again",
@@ -91,8 +88,11 @@ errors = {
                                        "confirmation steps shown, then try again.",
                             "name": "Confirmation required"},
     NOT_SENT: {"code": 535,
-               "message": "message was not sent",
-               "name": "message was not sent"},
+               "message": "Message was not sent",
+               "name": "Message was not sent"},
+    CONFIGURATION_ERROR: {"code": 536,
+                          "message": "There is an error with the configuration or it was not possible to retrieve.",
+                          "name": "Configuration error"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
@@ -100,7 +100,7 @@ errors = {
 
 SYSTEM_ACTION_REQUIRED = [
     END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED,
-    CONFIGURATION_ERROR
+    CONFIGURATION_ERROR, NOT_SENT
 ]
 
 
