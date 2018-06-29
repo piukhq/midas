@@ -115,16 +115,17 @@ class Balance(Resource):
 def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
-    agent_instance = agent_login(agent_class,
-                                 user_info,
-                                 scheme_slug=scheme_slug)
 
-    # Send identifier (e.g membership id) to hermes if it's not already stored.
-    if agent_instance.identifier:
-        update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
-
+    status = SchemeAccountStatus.ACTIVE
     try:
-        status = SchemeAccountStatus.ACTIVE
+        agent_instance = agent_login(agent_class,
+                                     user_info,
+                                     scheme_slug=scheme_slug)
+
+        # Send identifier (e.g membership id) to hermes if it's not already stored.
+        if agent_instance.identifier:
+            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+
         balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
         # Asynchronously get the transactions for the a user
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
@@ -133,6 +134,9 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     except (LoginError, AgentError) as e:
         status = e.code
         raise AgentException(e)
+    except AgentException as e:
+        status = e.status_code
+        raise
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
@@ -207,12 +211,13 @@ class Transactions(Resource):
         }
 
         tid = request.headers.get('transaction')
-        agent_instance = agent_login(agent_class,
-                                     user_info,
-                                     scheme_slug=scheme_slug)
+        status = SchemeAccountStatus.ACTIVE
 
         try:
-            status = SchemeAccountStatus.ACTIVE
+            agent_instance = agent_login(agent_class,
+                                         user_info,
+                                         scheme_slug=scheme_slug)
+
             transactions = publish.transactions(agent_instance.transactions(),
                                                 user_info['scheme_account_id'],
                                                 user_info['user_id'],

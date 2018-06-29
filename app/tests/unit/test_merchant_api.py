@@ -297,6 +297,13 @@ class TestMerchantApi(FlaskTestCase):
             self.m.login({})
         self.assertEqual(e.exception.name, "Account does not exist")
 
+        mock_outbound_handler.return_value = {"errors": ['Message was not sent'],
+                                              "code": "NOT_SENT"}
+
+        with self.assertRaises(LoginError) as e:
+            self.m.login({})
+        self.assertEqual(e.exception.name, "Message was not sent")
+
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {
