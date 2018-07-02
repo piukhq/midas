@@ -31,5 +31,5 @@ sudo docker-compose run --service-ports redis
   - String Value, URL for Hades
 - `HERMES_URL`
   - String Value, URL for Hermes
-- `MIDAS_SENTRY_DSN`
+- `SENTRY_DSN`
   - String Value, Sentry DNS for Midas
