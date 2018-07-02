@@ -88,6 +88,7 @@ class TestMerchantApi(FlaskTestCase):
     config.retry_limit = 2
     config.callback_url = ''
     config.log_level = 'DEBUG'
+    config.country = 'GB'
 
     def create_app(self):
         return create_app(self, )
@@ -331,6 +332,7 @@ class TestMerchantApi(FlaskTestCase):
             'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
+            'country': 'GB',
             'security_credentials': [
                 {'type': 'public_key',
                  'storage_key': '123456'}
@@ -504,6 +506,7 @@ class TestMerchantApi(FlaskTestCase):
             'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
+            'country': 'GB',
             'security_credentials': [
                 {'type': 'public_key',
                  'storage_key': '123456'}

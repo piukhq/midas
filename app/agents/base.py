@@ -496,6 +496,9 @@ class MerchantApi(BaseMiner):
 
         logger.setLevel(self.config.log_level)
 
+        if handler_type == Configuration.JOIN_HANDLER:
+            data['country'] = self.config.country
+
         data['message_uid'] = message_uid
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
