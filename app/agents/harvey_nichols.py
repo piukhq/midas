@@ -5,6 +5,7 @@ from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
 import arrow
+import random
 
 
 class HarveyNichols(ApiMiner):
@@ -166,6 +167,97 @@ class HarveyNichols(ApiMiner):
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: json_result['customerNumber']}
+                self.send_opt_ins(self.identifier_type)
+
 
         else:
             self.handle_errors(json_result['outcome'])
+
+    def send_opt_ins(self, customer_number, email_created, push_created, email=False, push=False):
+        sm = HNOptInsSoapMessage(customer_number, email_created, push_created, email, push)
+        soap_string = sm.soap_message_template
+
+
+class HNOptInsSoapMessage:
+
+    def __init__(self, customer_id, email_created, push_created, email="true", push="true"):
+        self.preferences = ''
+        self.customer_id = customer_id
+        self.email_created = email_created
+        self.push_created = push_created
+        random.seed()
+        self.note_id = random.randint(100000000000, 999999999999)
+        self.notes = "Preference changes: "
+        self.email_value = email     # if set to None the element will not be rendered
+        self.push_value = push
+        self.proforma = {
+            "EMAIL": (
+                {("EMAIL_OPTIN", self.email_value, "EMAIL_OPTIN set to {self.email_value}")},
+                {("EMAIL_OPTIN_DATETIME", self.email_created, f"EMAIL_OPTIN_DATETIME set to {self.email_created}")},
+                {("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")}
+            ),
+            "PUSH": [
+                {"PUSH_OPTIN": (self.push_value, "PUSH_OPTIN set to {self.push_value}")},
+                {"PUSH_OPTIN_DATETIME": (self.push_created, f"PUSH_OPTIN_DATETIME set to {self.push_created}")},
+                {"PUSH_OPTIN_SOURCE": ("BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")}
+            ]
+        }
+        if email:
+            self.add_preferences(self, "EMAIL", self.email_created)
+        if push:
+            self.add_preferences(self, "PUSH", self.push_created)
+
+    def add_preferences(self, type, created):
+        for optin_item in self.proforma[self.type]:
+            self.notes = f'{self.notes} | {optin_item[2]}'
+            self.preferences = f'{self.preferences}' \
+                               f'{self.preference_template(type, optin_item[0], optin_item[1], created)}'
+
+    def preference_template(self, type, optin, value, created):
+        return f""" <retail:customerPreferenceMap>
+<item key="{optin}">
+    <retail:customerPreference>
+        <retail:optionPathId>{type}:{optin}</retail:optionPathId>
+        <retail:created>{created}</retail:created>
+        <retail:optionSetId type="customerPreferenceOptionSet" optionSetId="GDPR_CONSENT">
+            <retail:groupId groupHierarchyId="All" groupTypeId="region">All</retail:groupId>
+        </retail:optionSetId>           
+        <retail:customerId>{self.customer_id}</retail:customerId>
+        <retail:preferenceId>{self.customer_id}GDPR{type}:{optin}</retail:preferenceId>
+        <retail:value id="{type}:{optin}">{value}</retail:value>    
+    </retail:customerPreference>
+</item>
+"""
+
+    def soap_message_template(self):
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
+    <SOAP-ENV:Body>
+        <retail:saveCustomerPreferenceMap xmlns:retail="http://www.enactor.com/retail">
+            <retail:userId>ADMIN</retail:userId>
+            <retail:customerPreferenceMap>
+            {self.preferences}
+         </retail:customerPreferenceMap>
+        </retail:saveCustomerPreferenceMap>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    def audit_message(self):
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
+    <SOAP-ENV:Body>
+        <crm:saveCustomerNote xmlns:crm="http://www.enactor.com/crm" xmlns:core="http://www.enactor.com/core"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:retail="http://www.enactor.com/retail">
+            <retail:customerNote>
+                <retail:userId>ADMIN</retail:userId>
+                <retail:customerId>{self.customer_id}</retail:customerId>
+                <retail:isPrivate>false</retail:isPrivate>
+                <retail:noteId>{self.note_id}</retail:noteId>
+            <retail:notes></retail:notes>{self.notes}</retail:customerNote>
+        </crm:saveCustomerNote>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+
+"""Preference changes: EMAIL_OPTIN set to true | EMAIL_OPTIN_DATETIME set to 2018-06-22T10:35:15 | EMAIL_OPTIN_SOURCE set to BINK_APP | PUSH_OPTIN set to true | PUSH_OPTIN_DATETIME set to 2018-06-22T10:35:15 | PUSH_OPTIN_SOURCE set to BINK_APP </retail:notes>    </retail:customerNote>
+        </crm:saveCustomerNote>"""
