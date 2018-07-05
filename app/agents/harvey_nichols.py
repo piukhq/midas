@@ -175,61 +175,77 @@ class HarveyNichols(ApiMiner):
 
     def send_opt_ins(self, customer_number, email_created, push_created, email=False, push=False):
         sm = HNOptInsSoapMessage(customer_number, email_created, push_created, email, push)
-        soap_string = sm.soap_message_template
+        soap_string = sm.optin_soap_message
 
 
 class HNOptInsSoapMessage:
 
-    def __init__(self, customer_id, email_created, push_created, email="true", push="true"):
+    def __init__(self, customer_id, email_created_ext, push_created_ext, email_optin=None, push_optin=None):
+        email = self.set_value(email_optin)
+        push = self.set_value(push_optin)
+        email_created = self.format_date(email_created_ext)
+        push_created = self.format_date(push_created_ext)
+
+        self.sep = ""
         self.preferences = ''
         self.customer_id = customer_id
-        self.email_created = email_created
-        self.push_created = push_created
         random.seed()
-        self.note_id = random.randint(100000000000, 999999999999)
+        self.note_id = f"{random.randint(0, 999999999999):0>12}"
         self.notes = "Preference changes: "
-        self.email_value = email     # if set to None the element will not be rendered
-        self.push_value = push
-        self.proforma = {
-            "EMAIL": (
-                {("EMAIL_OPTIN", self.email_value, "EMAIL_OPTIN set to {self.email_value}")},
-                {("EMAIL_OPTIN_DATETIME", self.email_created, f"EMAIL_OPTIN_DATETIME set to {self.email_created}")},
-                {("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")}
-            ),
-            "PUSH": [
-                {"PUSH_OPTIN": (self.push_value, "PUSH_OPTIN set to {self.push_value}")},
-                {"PUSH_OPTIN_DATETIME": (self.push_created, f"PUSH_OPTIN_DATETIME set to {self.push_created}")},
-                {"PUSH_OPTIN_SOURCE": ("BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")}
-            ]
-        }
+        self.proforma = {}
         if email:
-            self.add_preferences(self, "EMAIL", self.email_created)
+            self.proforma["EMAIL"] = (
+                ("EMAIL_OPTIN", email, f"EMAIL_OPTIN set to {email}"),
+                ("EMAIL_OPTIN_DATETIME", email_created, f"EMAIL_OPTIN_DATETIME set to {email_created}"),
+                ("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")
+            )
+            self.add_preferences("EMAIL", email_created)
         if push:
-            self.add_preferences(self, "PUSH", self.push_created)
+            self.proforma["PUSH"] = (("PUSH_OPTIN", push, f"PUSH_OPTIN set to {push}"),
+                ("PUSH_OPTIN_DATETIME", push_created, f"PUSH_OPTIN_DATETIME set to {push_created}"),
+                ("PUSH_OPTIN_SOURCE", "BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")
+            )
+            self.add_preferences("PUSH", push_created)
 
-    def add_preferences(self, type, created):
-        for optin_item in self.proforma[self.type]:
-            self.notes = f'{self.notes} | {optin_item[2]}'
+    @staticmethod
+    def format_date(email_created_ext):
+        arrow_date = arrow.get(email_created_ext)
+        return arrow_date.format('YYYY-MM-DDTHH:mm:ss')
+
+    @staticmethod
+    def set_value(optin_value):
+        if optin_value is None:
+            return None
+        if optin_value:
+            return "true"
+        else:
+            return "false"
+
+    def add_preferences(self, optin_type, created):
+
+        for optin_item in self.proforma[optin_type]:
+            self.notes = f'{self.notes}{self.sep}{optin_item[2]}'
+            self.sep = " | "
             self.preferences = f'{self.preferences}' \
-                               f'{self.preference_template(type, optin_item[0], optin_item[1], created)}'
+                               f'{self.preference_template(optin_type, optin_item[0], optin_item[1], created)}'
 
-    def preference_template(self, type, optin, value, created):
-        return f""" <retail:customerPreferenceMap>
-<item key="{optin}">
+    def preference_template(self, optin_type, optin, value, created):
+        return f"""<item key="{optin}">
     <retail:customerPreference>
-        <retail:optionPathId>{type}:{optin}</retail:optionPathId>
+        <retail:optionPathId>{optin_type}:{optin}</retail:optionPathId>
         <retail:created>{created}</retail:created>
         <retail:optionSetId type="customerPreferenceOptionSet" optionSetId="GDPR_CONSENT">
             <retail:groupId groupHierarchyId="All" groupTypeId="region">All</retail:groupId>
         </retail:optionSetId>           
         <retail:customerId>{self.customer_id}</retail:customerId>
-        <retail:preferenceId>{self.customer_id}GDPR{type}:{optin}</retail:preferenceId>
-        <retail:value id="{type}:{optin}">{value}</retail:value>    
+        <retail:preferenceId>{self.customer_id}GDPR{optin_type}:{optin}</retail:preferenceId>
+        <retail:value id="{optin_type}:{optin}">{value}</retail:value>    
     </retail:customerPreference>
 </item>
 """
 
-    def soap_message_template(self):
+    @property
+    def optin_soap_message(self):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
     <SOAP-ENV:Body>
@@ -237,12 +253,13 @@ class HNOptInsSoapMessage:
             <retail:userId>ADMIN</retail:userId>
             <retail:customerPreferenceMap>
             {self.preferences}
-         </retail:customerPreferenceMap>
+            </retail:customerPreferenceMap>
         </retail:saveCustomerPreferenceMap>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>"""
 
-    def audit_message(self):
+    @property
+    def audit_note(self):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
     <SOAP-ENV:Body>
@@ -258,6 +275,4 @@ class HNOptInsSoapMessage:
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>"""
 
-
-"""Preference changes: EMAIL_OPTIN set to true | EMAIL_OPTIN_DATETIME set to 2018-06-22T10:35:15 | EMAIL_OPTIN_SOURCE set to BINK_APP | PUSH_OPTIN set to true | PUSH_OPTIN_DATETIME set to 2018-06-22T10:35:15 | PUSH_OPTIN_SOURCE set to BINK_APP </retail:notes>    </retail:customerNote>
-        </crm:saveCustomerNote>"""
+""
