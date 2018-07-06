@@ -6,6 +6,7 @@ from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
 import arrow
 import random
+import requests
 
 
 class HarveyNichols(ApiMiner):
@@ -13,6 +14,7 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
 
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL ='http://10.215.110.101:8090/axis2/services/CRMCustomerDataService.CRMCustomerDataServiceHttpSoap11Endpoint/'
 
     def login(self, credentials):
         self.credentials = credentials
@@ -171,10 +173,10 @@ class HarveyNichols(ApiMiner):
                 sm = HNOptInsSoapMessage(self.customer_number)
                 try:
                     for consent in credentials['consents']:
-                        sm.add_consent(consent['slug'], consent['value'], consent['created'])
+                        sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
                     soap_string = sm.optin_soap_message
                     # send Soap message
-
+                    resp = requests.post(self.CONSENTS_URL)
                     # send Soap Audit Note
                     audit_soap_string = sm.audit_note
                 except AttributeError as e:
@@ -285,7 +287,8 @@ class HNOptInsSoapMessage:
                 <retail:customerId>{self.customer_id}</retail:customerId>
                 <retail:isPrivate>false</retail:isPrivate>
                 <retail:noteId>{self.note_id}</retail:noteId>
-            <retail:notes></retail:notes>{self.notes}</retail:customerNote>
+                <retail:notes>{self.notes}</retail:notes>
+            </retail:customerNote>
         </crm:saveCustomerNote>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>"""
