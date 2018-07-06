@@ -167,25 +167,28 @@ class HarveyNichols(ApiMiner):
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: json_result['customerNumber']}
-                self.send_opt_ins(self.identifier_type)
+
+                sm = HNOptInsSoapMessage(self.customer_number)
+                try:
+                    for consent in credentials['consents']:
+                        sm.add_consent(consent['slug'], consent['value'], consent['created'])
+                    soap_string = sm.optin_soap_message
+                    # send Soap message
+
+                    # send Soap Audit Note
+                    audit_soap_string = sm.audit_note
+                except AttributeError as e:
+                    # What do we do when there are no consents? or Errors?
+                    pass
 
 
         else:
             self.handle_errors(json_result['outcome'])
 
-    def send_opt_ins(self, customer_number, email_created, push_created, email=False, push=False):
-        sm = HNOptInsSoapMessage(customer_number, email_created, push_created, email, push)
-        soap_string = sm.optin_soap_message
-
 
 class HNOptInsSoapMessage:
 
-    def __init__(self, customer_id, email_created_ext, push_created_ext, email_optin=None, push_optin=None):
-        email = self.set_value(email_optin)
-        push = self.set_value(push_optin)
-        email_created = self.format_date(email_created_ext)
-        push_created = self.format_date(push_created_ext)
-
+    def __init__(self, customer_id):
         self.sep = ""
         self.preferences = ''
         self.customer_id = customer_id
@@ -193,19 +196,27 @@ class HNOptInsSoapMessage:
         self.note_id = f"{random.randint(0, 999999999999):0>12}"
         self.notes = "Preference changes: "
         self.proforma = {}
-        if email:
-            self.proforma["EMAIL"] = (
-                ("EMAIL_OPTIN", email, f"EMAIL_OPTIN set to {email}"),
-                ("EMAIL_OPTIN_DATETIME", email_created, f"EMAIL_OPTIN_DATETIME set to {email_created}"),
-                ("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")
-            )
-            self.add_preferences("EMAIL", email_created)
-        if push:
-            self.proforma["PUSH"] = (("PUSH_OPTIN", push, f"PUSH_OPTIN set to {push}"),
-                ("PUSH_OPTIN_DATETIME", push_created, f"PUSH_OPTIN_DATETIME set to {push_created}"),
-                ("PUSH_OPTIN_SOURCE", "BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")
-            )
-            self.add_preferences("PUSH", push_created)
+        self.push_created = ''
+        self.email_created = ''
+
+    def add_consent(self, slug, value, created):
+        consent_value = self.set_value(value)      # condition logic value to string equivalent or None
+        date_created = self.format_date(created)    #
+        if consent_value:
+            if slug == "EMAIL":
+                self.proforma["EMAIL"] = (
+                    ("EMAIL_OPTIN", consent_value, f"EMAIL_OPTIN set to {consent_value}"),
+                    ("EMAIL_OPTIN_DATETIME", date_created, f"EMAIL_OPTIN_DATETIME set to {date_created}"),
+                    ("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")
+                )
+                self.email_created = date_created
+            elif slug == "PUSH":
+                self.proforma["PUSH"] = (
+                    ("PUSH_OPTIN", consent_value, f"PUSH_OPTIN set to {consent_value}"),
+                    ("PUSH_OPTIN_DATETIME", date_created, f"PUSH_OPTIN_DATETIME set to {date_created}"),
+                    ("PUSH_OPTIN_SOURCE", "BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")
+                )
+                self.push_created = date_created
 
     @staticmethod
     def format_date(email_created_ext):
@@ -221,13 +232,13 @@ class HNOptInsSoapMessage:
         else:
             return "false"
 
-    def add_preferences(self, optin_type, created):
-
-        for optin_item in self.proforma[optin_type]:
-            self.notes = f'{self.notes}{self.sep}{optin_item[2]}'
-            self.sep = " | "
-            self.preferences = f'{self.preferences}' \
-                               f'{self.preference_template(optin_type, optin_item[0], optin_item[1], created)}'
+    def process_preference(self, optin_type, created):
+        if optin_type in self.proforma:
+            for optin_item in self.proforma[optin_type]:
+                self.notes = f'{self.notes}{self.sep}{optin_item[2]}'
+                self.sep = " | "
+                self.preferences = f'{self.preferences}' \
+                                   f'{self.preference_template(optin_type, optin_item[0], optin_item[1], created)}'
 
     def preference_template(self, optin_type, optin, value, created):
         return f"""<item key="{optin}">
@@ -246,6 +257,10 @@ class HNOptInsSoapMessage:
 
     @property
     def optin_soap_message(self):
+        # process in correct order adding to messages
+        self.process_preference("EMAIL",  self.email_created)
+        self.process_preference("PUSH", self.push_created)
+
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
     <SOAP-ENV:Body>
