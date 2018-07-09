@@ -16,16 +16,15 @@ def create_app(config_name="settings"):
 
     app = Flask('core')
     app.config.from_object(config_name)
+    app.config['SENTRY_CONFIG'] = {
+        'ignore_exceptions': [AgentException, UnknownException],
+    }
     if settings.SENTRY_DSN:
         sentry.init_app(
             app,
             dsn=settings.SENTRY_DSN,
             logging=True,
-            level=logging.ERROR,
-            ignore_exceptions=[
-                AgentException,
-                UnknownException,
-            ])
+            level=logging.ERROR)
         sentry.client.release = __version__
     api.init_app(app)
     redis.init_app(app)
