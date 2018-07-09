@@ -174,13 +174,22 @@ class HarveyNichols(ApiMiner):
                 try:
                     for consent in credentials['consents']:
                         sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
-                    soap_string = sm.optin_soap_message
+                    headers = {
+                        "Connection": "Keep-Alive",
+                        "Content-Type": "text/xml; charset=utf-8",
+                        "SOAPAction": "urn:saveCustomerPreferenceMap"
+
+                    }
                     # send Soap message
-                    resp = requests.post(self.CONSENTS_URL)
+                    resp = requests.post(self.CONSENTS_URL, data=sm.optin_soap_message, headers = headers )
                     # send Soap Audit Note
-                    audit_soap_string = sm.audit_note
+                    # @todo check soap respponse and raise error - requires HN information
+                    headers["SOAPAction"] = "urn:saveCustomerNote"
+                    resp = requests.post(self.CONSENTS_URL, data=sm.audit_note, headers=headers)
+                    # @todo check soap respponse and raise error - requires HN information
                 except AttributeError as e:
                     # What do we do when there are no consents? or Errors?
+                    # @todo when HN defines the error handling protocol implement it here
                     pass
 
 
@@ -195,6 +204,7 @@ class HNOptInsSoapMessage:
         self.preferences = ''
         self.customer_id = customer_id
         random.seed()
+        # todo verify leading 0s are required and if this is sufficiently random for HN application
         self.note_id = f"{random.randint(0, 999999999999):0>12}"
         self.notes = "Preference changes: "
         self.proforma = {}
