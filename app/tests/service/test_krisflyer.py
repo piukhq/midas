@@ -1,7 +1,7 @@
 import unittest
 from app.agents.krisflyer import Krisflyer
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestKrisflyer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = Krisflyer(1, 1)
+        cls.h = Krisflyer(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['krisflyer'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestKrisflyer(unittest.TestCase):
 class TestKrisflyerFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = Krisflyer(1, 1)
+        h = Krisflyer(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '1111111111',
             'pin': '000000',

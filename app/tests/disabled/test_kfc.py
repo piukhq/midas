@@ -2,14 +2,14 @@ import unittest
 from app.agents.kfc import Kfc
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestKfc(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Kfc(1, 1)
+        cls.b = Kfc(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["kfc"])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestKfc(unittest.TestCase):
 class TestKfcFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = Kfc(1, 1)
+        b = Kfc(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS["bad"])
         self.assertEqual(e.exception.name, "Invalid credentials")

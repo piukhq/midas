@@ -29,7 +29,16 @@ DEBUG = env_var('MIDAS_DEBUG', False)
 LOCAL = env_var('MIDAS_LOCAL', False)
 AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
-REDIS_URL = env_var('MIDAS_REDIS_URI', 'redis://localhost:6379/0')
+REDIS_PASSWORD = env_var('REDIS_PASSWORD', '')
+REDIS_HOST = env_var('REDIS_HOST', 'localhost')
+REDIS_PORT = env_var('REDIS_PORT', '6379')
+REDIS_DB = env_var('REDIS_DB', '0')
+REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
+    'password': REDIS_PASSWORD,
+    'host': REDIS_HOST,
+    'port': REDIS_PORT,
+    'db': REDIS_DB
+})
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 
@@ -39,7 +48,7 @@ HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92a
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
-SENTRY_DNS = env_var('MIDAS_SENTRY_DNS', None)
+SENTRY_DSN = env_var('SENTRY_DSN')
 
 RAVEN_IGNORE_EXCEPTIONS = [AgentException]
 
@@ -63,5 +72,11 @@ HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzP
 CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
+VAULT_URL = env_var('VAULT_URL', 'http://localhost:8200')
+# Vault settings for merchant api security credential storage
+VAULT_TOKEN = env_var('VAULT_TOKEN', 'myroot')
+
 MAX_SELENIUM_BROWSERS = env_var('MAX_SELENIUM_BROWSERS', '5')
 SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
+
+BACK_OFF_COOLDOWN = 120

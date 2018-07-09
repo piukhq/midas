@@ -15,6 +15,27 @@ from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVIC
 TWO_PLACES = Decimal(10) ** -2
 
 
+class SchemeAccountStatus:
+    PENDING = 0
+    ACTIVE = 1
+    INVALID_CREDENTIALS = 403
+    INVALID_MFA = 432
+    END_SITE_DOWN = 530
+    IP_BLOCKED = 531
+    TRIPPED_CAPTCHA = 532
+    INCOMPLETE = 5
+    LOCKED_BY_ENDSITE = 434
+    RETRY_LIMIT_REACHED = 429
+    RESOURCE_LIMIT_REACHED = 503
+    UNKNOWN_ERROR = 520
+    MIDAS_UNREACHABLE = 9
+    AGENT_NOT_FOUND = 404
+    WALLET_ONLY = 10
+    PASSWORD_EXPIRED = 533
+    JOIN = 900
+    NO_SUCH_RECORD = 444
+
+
 def extract_decimal(s):
     """
     We need to use the quantize method to ensure whole
@@ -105,34 +126,11 @@ class IntercomException(Exception):
     pass
 
 
-def get_config(merchant_id, handler_type):
-    """
-    TODO: get config from helios database
-    :param merchant_id:
-    :param handler_type:
-    :return:
-    """
-    config = {
-        'log_level': 'DEBUG',
-        'merchant_id': 'fake-merchant',
-        'merchant_url': 'http://127.0.0.1:8002/dashboard/update/',
-        'security_service': 'RSA',
-        'security_credentials': 'creds',
-        'handler_type': 'join',
-        'retry_limit': 2,
-    }
-    if not config:
-        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
-    return config
-
-
 def create_error_response(error_code, error_description):
-    response_json = json.dumps(
-        {'error_codes': [
-            {'code': error_code,
-             'description': error_description}
-        ]}
-    )
+    response_json = json.dumps({
+        'errors': [error_description],
+        'code': error_code
+    })
     return response_json
 
 

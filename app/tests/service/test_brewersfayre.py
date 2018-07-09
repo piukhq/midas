@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.brewersfayre import BrewersFayre
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestBrewersFayre(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.t = BrewersFayre(1, 1)
+        cls.t = BrewersFayre(*AGENT_CLASS_ARGUMENTS)
         cls.t.attempt_login(CREDENTIALS['bonus-club'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestBrewersFayre(unittest.TestCase):
 class TestBrewersFayreFail(unittest.TestCase):
 
     def test_login_fail(self):
-        t = BrewersFayre(1, 1)
+        t = BrewersFayre(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             t.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

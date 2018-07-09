@@ -1,7 +1,7 @@
 import unittest
 from app.agents.esquires_coffee import EsquiresCoffee
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestEsqiuresCoffee(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = EsquiresCoffee(1, 1)
+        cls.h = EsquiresCoffee(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['esquires-coffee'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestEsqiuresCoffee(unittest.TestCase):
 class TestEsquiresCoffeeFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = EsquiresCoffee(1, 1)
+        h = EsquiresCoffee(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

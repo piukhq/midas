@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.enterprise import Enterprise
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestEnterprise(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = Enterprise(1, 1)
+        cls.e = Enterprise(*AGENT_CLASS_ARGUMENTS)
         cls.e.attempt_login(CREDENTIALS['enterprise'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestEnterprise(unittest.TestCase):
 class TestEnterpriseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        en = Enterprise(1, 1)
+        en = Enterprise(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '3213213@bad.com',
             'password': '3213213123',
@@ -38,7 +38,7 @@ class TestEnterpriseFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
-        en = Enterprise(1, 1)
+        en = Enterprise(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': 'chris.gormley2@me.com',
             'password': 'DDHansbrics101',
