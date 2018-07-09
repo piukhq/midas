@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.eurostar import Eurostar
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestEurostar(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = Eurostar(1, 1)
+        cls.e = Eurostar(*AGENT_CLASS_ARGUMENTS)
         cls.e.attempt_login(CREDENTIALS['eurostar-plus-points'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestEurostar(unittest.TestCase):
 class TestEurostarFail(unittest.TestCase):
 
     def test_login_fail(self):
-        eu = Eurostar(1, 1)
+        eu = Eurostar(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             eu.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

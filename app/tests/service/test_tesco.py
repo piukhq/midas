@@ -1,7 +1,7 @@
 import unittest
 from app.agents.tesco import Tesco
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
 
 
@@ -9,7 +9,7 @@ class TestTesco(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Tesco(1, 1)
+        cls.b = Tesco(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS.get("tesco-clubcard") or CREDENTIALS.get("tesco-clubcard1")
         cls.b.attempt_login(credentials)
 
@@ -29,7 +29,7 @@ class TestTesco(unittest.TestCase):
 class TestTescoFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = Tesco(1, 1)
+        b = Tesco(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '979999999999999',
             'email': 'magnanimiter@crucem.sustine',

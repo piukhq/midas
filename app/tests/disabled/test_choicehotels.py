@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.choicehotels import ChoiceHotels
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestChoiceHotels(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = ChoiceHotels(1, 1)
+        cls.m = ChoiceHotels(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['choicehotels'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestChoiceHotels(unittest.TestCase):
 class TestChoiceHotelsFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = ChoiceHotels(1, 1)
+        m = ChoiceHotels(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '3213123123123',
             'password': '3213231312312',

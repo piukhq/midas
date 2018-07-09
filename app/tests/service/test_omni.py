@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.omni import Omni
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestOmni(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Omni(1, 1)
+        cls.m = Omni(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['omni'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestOmni(unittest.TestCase):
 class TestOmniFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Omni(1, 1)
+        m = Omni(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

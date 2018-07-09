@@ -4,14 +4,14 @@ from decimal import Decimal
 from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.british_airways import BritishAirways
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestBritishAirways(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = BritishAirways(1, 1)
+        cls.b = BritishAirways(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["british-airways"])
 
     def test_login(self):
@@ -33,7 +33,7 @@ class TestBritishAirways(unittest.TestCase):
 class TestBritishAirwaysFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = BritishAirways(1, 1)
+        b = BritishAirways(*AGENT_CLASS_ARGUMENTS)
         bad_cred = {
             'username': "00000000",
             'password': '321321321'

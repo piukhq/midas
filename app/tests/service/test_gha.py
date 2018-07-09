@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.gha import Gha
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestGha(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Gha(1, 1)
+        cls.m = Gha(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['discovery'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestGha(unittest.TestCase):
 class TestGhaFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Gha(1, 1)
+        m = Gha(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '3213123123123',
             'password': '3213231312312',
