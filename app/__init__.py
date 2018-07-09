@@ -22,7 +22,7 @@ def create_app(config_name="settings"):
             dsn=settings.SENTRY_DSN,
             logging=True,
             level=logging.ERROR,
-            ignored_exceptions=[
+            ignore_exceptions=[
                 AgentException,
                 UnknownException,
             ])
