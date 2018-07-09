@@ -21,7 +21,11 @@ def create_app(config_name="settings"):
             app,
             dsn=settings.SENTRY_DSN,
             logging=True,
-            level=logging.ERROR)
+            level=logging.ERROR,
+            ignored_exceptions=[
+                AgentException,
+                UnknownException,
+            ])
         sentry.client.release = __version__
     api.init_app(app)
     redis.init_app(app)
