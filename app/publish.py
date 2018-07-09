@@ -1,11 +1,12 @@
-from app.encoding import JsonEncoder
 import json
-from decimal import Decimal
-from app.utils import minify_number, get_headers
-from settings import HADES_URL, HERMES_URL, logger, MAX_VALUE_LABEL_LENGTH
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
+
 from requests_futures.sessions import FuturesSession
 
+from app.encoding import JsonEncoder
+from app.utils import get_headers, minify_number
+from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH, logger
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
@@ -27,19 +28,19 @@ def put(url, data, tid):
                 background_callback=log_errors)
 
 
-def transactions(transactions_items, scheme_account_id, user_id, tid):
+def transactions(transactions_items, scheme_account_id, user_set, tid):
     if not transactions_items:
         return None
     for transaction_item in transactions_items:
         transaction_item['scheme_account_id'] = scheme_account_id
-        transaction_item['user_id'] = user_id
+        transaction_item['user_id'] = user_set
     post("{}/transactions".format(HADES_URL), transactions_items, tid)
     return transactions_items
 
 
-def balance(balance_item, scheme_account_id, user_id, tid):
+def balance(balance_item, scheme_account_id, user_set, tid):
     balance_item['scheme_account_id'] = scheme_account_id
-    balance_item['user_id'] = user_id
+    balance_item['user_set'] = user_set
     balance_item['points_label'] = minify_number(balance_item['points'])
 
     if 'reward_tier' not in balance_item:
@@ -58,10 +59,10 @@ def status(scheme_account_id, status, tid):
     return status
 
 
-def zero_balance(scheme_account_id, user_id, tid):
+def zero_balance(scheme_account_id, user_set, tid):
     data = {
         'points': Decimal(0),
         'value': Decimal(0),
         'value_label': 'Pending',
     }
-    return balance(data, scheme_account_id, user_id, tid)
+    return balance(data, scheme_account_id, user_set, tid)

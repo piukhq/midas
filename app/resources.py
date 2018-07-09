@@ -10,16 +10,16 @@ from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
 
 import settings
-from cron_test_results import resolve_issue, get_formatted_message, handle_helios_request, test_single_agent
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
-from app import retry, publish
+from app import publish, retry
+from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
+                                   SYSTEM_ACTION_REQUIRED, errors)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor
-from app.utils import resolve_agent, raise_intercom_event, get_headers, SchemeAccountStatus
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
+from app.utils import SchemeAccountStatus, get_headers, raise_intercom_event, resolve_agent
+from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
 
 scheme_account_id_doc = {
     "name": "scheme_account_id",
@@ -31,6 +31,12 @@ user_id_doc = {
     "name": "user_id",
     "required": True,
     "dataType": "integer",
+    "paramType": "query"
+}
+user_set_doc = {
+    "name": "user_set",
+    "required": True,
+    "dataType": "string",
     "paramType": "query"
 }
 credentials_doc = {
@@ -45,6 +51,7 @@ def validate_parameters(method):
     """
     Checks swaggers defined parameters exist in query string
     """
+
     @functools.wraps(method)
     def f(*args, **kwargs):
         for parameter in method.__swagger_attr['parameters']:
@@ -54,6 +61,7 @@ def validate_parameters(method):
                 abort(400, message="Missing required query parameter '{0}'".format(parameter["name"]))
 
         return method(*args, **kwargs)
+
     return f
 
 
@@ -67,15 +75,15 @@ class Balance(Resource):
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, credentials_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
         status = request.args.get('status')
         user_info = {
-            'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
+            'user_set': request.args['user_set'],
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -97,7 +105,7 @@ class Balance(Resource):
     def handle_async_balance(agent_class, scheme_slug, user_info, tid):
         scheme_account_id = user_info['scheme_account_id']
         if user_info['status'] == SchemeAccountStatus.WALLET_ONLY:
-            prev_balance = publish.zero_balance(scheme_account_id, user_info['user_id'], tid)
+            prev_balance = publish.zero_balance(scheme_account_id, tid)
             publish.status(scheme_account_id, 0, tid)
         else:
             prev_balance = get_hades_balance(scheme_account_id)
@@ -126,10 +134,10 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         if agent_instance.identifier:
             update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
 
-        balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
+        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_set'], tid)
         # Asynchronously get the transactions for the a user
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
-                                                   user_info['user_id'], tid))
+                                                   user_info['user_set'], tid))
         return balance
     except (LoginError, AgentError) as e:
         status = e.code
@@ -171,9 +179,9 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         raise e
 
 
-def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
+def publish_transactions(agent_instance, scheme_account_id, user_set, tid):
     transactions = agent_instance.transactions()
-    publish.transactions(transactions, scheme_account_id, user_id, tid)
+    publish.transactions(transactions, scheme_account_id, user_set, tid)
 
 
 class Register(Resource):
@@ -182,7 +190,7 @@ class Register(Resource):
         user_info = {
             'user_id': int(request.get_json()['user_id']),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': SchemeAccountStatus.PENDING,    # May be better to receive this information from hermes.
+            'status': SchemeAccountStatus.PENDING,  # May be better to receive this information from hermes.
             'scheme_account_id': int(request.get_json()['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -235,6 +243,7 @@ class Transactions(Resource):
 
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
+
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
@@ -275,6 +284,7 @@ class TestResults(Resource):
     """
     This is used for Apollo to access the results of the agent tests run by a cron
     """
+
     @crossdomain(origin='*')
     def get(self):
         with open(settings.JUNIT_XML_FILENAME) as xml:
