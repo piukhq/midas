@@ -571,7 +571,7 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
-        security_agent = get_security_agent(config.security_service, config.security_credentials)
+        security_agent = get_security_agent(config.security_service[0], config.security_credentials)
         request = security_agent.encode(json_data)
         back_off_service = BackOffService()
 
