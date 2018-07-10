@@ -1,8 +1,8 @@
+import hvac
 import requests
 
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
-from app.security.utils import get_security_credentials
-from settings import HELIOS_URL, SERVICE_API_KEY
+from settings import HELIOS_URL, SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL
 
 
 class Configuration:
@@ -39,9 +39,11 @@ class Configuration:
     )
 
     RSA_SECURITY = 0
+    OPEN_AUTH_SECURITY = 1
 
     SECURITY_TYPE_CHOICES = (
         (RSA_SECURITY, "RSA"),
+        (OPEN_AUTH_SECURITY, "Open Auth (No Authentication)")
     )
 
     DEBUG_LOG_LEVEL = 0
@@ -89,12 +91,30 @@ class Configuration:
     def _process_config_data(self):
         self.merchant_url = self.data['merchant_url']
         self.integration_service = self.INTEGRATION_CHOICES[self.data['integration_service']][1].upper()
-        self.security_service = self.SECURITY_TYPE_CHOICES[self.data['security_service']][1].upper()
+        self.security_service = self.SECURITY_TYPE_CHOICES[self.data['security_service']]
         self.retry_limit = self.data['retry_limit']
         self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
         self.callback_url = self.data['callback_url']
 
         try:
-            self.security_credentials = get_security_credentials(self.data['security_credentials'])
+            self.security_credentials = self.get_security_credentials(self.data['security_credentials'])
         except TypeError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
+
+    @staticmethod
+    def get_security_credentials(key_items):
+        """
+        Retrieves security credential values from key storage vault.
+        :param key_items: list of dicts {'type': e.g 'bink_public_key', 'storage_key': auto-generated hash from helios}
+        :return: key_items: returns same list of dict with added 'value' keys containing actual credential values.
+        """
+        client = hvac.Client(token=VAULT_TOKEN, url=VAULT_URL)
+
+        try:
+            for key_item in key_items:
+                value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data'][key_item['type']]
+                key_item['value'] = value
+        except TypeError as e:
+            raise TypeError('Could not locate security credentials in vault.') from e
+
+        return key_items

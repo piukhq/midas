@@ -15,6 +15,7 @@ from unittest import mock, TestCase
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
+from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
 
 
@@ -82,7 +83,7 @@ class TestMerchantApi(FlaskTestCase):
     config.scheme_slug = 'id'
     config.merchant_url = 'stuff'
     config.integration_service = 'SYNC'
-    config.security_service = 'RSA'
+    config.security_service = (0, 'RSA')
     config.security_credentials = [{'type': '', 'storage_key': ''}]
     config.handler_type = 'UPDATE'
     config.retry_limit = 2
@@ -317,7 +318,7 @@ class TestMerchantApi(FlaskTestCase):
             self.m.register({})
         self.assertEqual(e.exception.name, 'An unknown error has occurred')
 
-    @mock.patch('app.configuration.get_security_credentials')
+    @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
     def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
         mock_request.return_value.status_code = 200
@@ -345,7 +346,7 @@ class TestMerchantApi(FlaskTestCase):
         expected = {
             'handler_type': (1, 'JOIN'),
             'integration_service': 'ASYNC',
-            'security_service': 'RSA',
+            'security_service': (0, 'RSA'),
             'log_level': 'WARNING',
         }
 
@@ -354,6 +355,24 @@ class TestMerchantApi(FlaskTestCase):
         config_items = c.__dict__.items()
         for item in expected.items():
             self.assertIn(item, config_items)
+
+    def test_open_auth_encode(self):
+        json_data = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
+                                            ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')]))
+
+        expected_result = {'json': json.loads(json_data)}
+        open_auth = OpenAuth([])
+        request_params = open_auth.encode(json_data)
+
+        self.assertDictEqual(request_params, expected_result)
+
+    def test_open_auth_decode(self):
+        request_payload = OrderedDict([('message_uid', '123-123-123-123'),
+                                       ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')])
+        open_auth = OpenAuth([])
+        request_json = open_auth.decode({}, json.dumps(request_payload))
+
+        self.assertEqual(request_json, json.dumps(request_payload))
 
     @mock.patch.object(RSA, '_add_timestamp')
     def test_rsa_security_encode(self, mock_add_timestamp):
@@ -372,7 +391,6 @@ class TestMerchantApi(FlaskTestCase):
         request_params = rsa.encode(json_data)
 
         self.assertTrue(mock_add_timestamp.called)
-        self.maxDiff = None
         self.assertDictEqual(request_params, expected_result)
 
     @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
