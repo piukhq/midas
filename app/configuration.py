@@ -95,6 +95,7 @@ class Configuration:
         self.retry_limit = self.data['retry_limit']
         self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
         self.callback_url = self.data['callback_url']
+        self.country = self.data['country']
 
         try:
             self.security_credentials = self.get_security_credentials(self.data['security_credentials'])
