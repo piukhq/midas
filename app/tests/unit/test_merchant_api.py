@@ -102,7 +102,9 @@ class TestMerchantApi(FlaskTestCase):
         mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
-        self.m._outbound_handler({'card_number': '123'}, 'fake-merchant-id', 'update')
+        self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+                                 'fake-merchant-id',
+                                 'update')
 
         self.assertTrue(mock_logger.info.called)
         self.assertIn('merchant_scheme_id1', mock_sync_outbound.call_args[0][0])
@@ -116,7 +118,9 @@ class TestMerchantApi(FlaskTestCase):
         mock_config.return_value = self.config
         self.m.record_uid = '123'
 
-        resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
+        resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+                                        'fake-merchant-id',
+                                        'update')
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual({"errors": [], 'json': 'test'}, resp)
