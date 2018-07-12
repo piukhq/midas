@@ -33,3 +33,5 @@ sudo docker-compose run --service-ports redis
   - String Value, URL for Hermes
 - `SENTRY_DSN`
   - String Value, Sentry DNS for Midas
+- `LOG_LEVEL`
+  - Level threshold for logger, defaults to 10 (DEBUG)
