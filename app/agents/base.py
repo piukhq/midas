@@ -503,6 +503,11 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
 
+        data.update({
+            consent['slug']: consent['value']
+            for consent in data.pop('consents')
+        })
+
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
 
