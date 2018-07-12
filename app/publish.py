@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from requests_futures.sessions import FuturesSession
 
 
-thread_pool_executor = ThreadPoolExecutor(max_workers=3)
+thread_pool_executor = ThreadPoolExecutor(max_workers=6)
 
 
 def log_errors(session, resp):
