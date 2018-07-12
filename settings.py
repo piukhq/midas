@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import graypy
 from app import AgentException
@@ -9,9 +10,13 @@ read_env()
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8000')
 
+LOG_LEVEL = env_var('LOG_LEVEL', logging.DEBUG)
 # logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=LOG_LEVEL, format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
+
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.setLevel(logging.WARNING)
 
 GRAYLOG_HOST = env_var('GRAYLOG_HOST')
 if GRAYLOG_HOST:

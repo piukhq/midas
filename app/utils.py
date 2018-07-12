@@ -4,7 +4,6 @@ import re
 import time
 import socket
 from decimal import Decimal
-from datetime import datetime
 
 import lxml.html
 import requests
@@ -152,20 +151,17 @@ def log_task(func):
             scheme_account_message = ''
 
         try:
-            logger.debug('{0} - starting {1} task{2}'.format(
-                datetime.now(),
+            logger.debug('starting {0} task{1}'.format(
                 func.__name__,
                 scheme_account_message
             ))
             result = func(*args, **kwargs)
-            logger.debug('{0} - finished {1} task{2}'.format(
-                datetime.now(),
+            logger.debug('finished {0} task{1}'.format(
                 func.__name__,
                 scheme_account_message
             ))
         except Exception as e:
-            logger.debug('{0} - error with {1} task{2}. error: {3}'.format(
-                datetime.now(),
+            logger.debug('error with {0} task{1}. error: {2}'.format(
                 func.__name__,
                 scheme_account_message,
                 repr(e)
