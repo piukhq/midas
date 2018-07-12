@@ -13,7 +13,8 @@ DEV_PORT = env_var('DEV_PORT', '8000')
 LOG_LEVEL = env_var('LOG_LEVEL', logging.DEBUG)
 # logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
-logging.basicConfig(stream=sys.stdout, level=LOG_LEVEL, format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
+logging.basicConfig(stream=sys.stdout,
+                    level=LOG_LEVEL, format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
 
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.WARNING)
