@@ -10,7 +10,7 @@ read_env()
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8000')
 
-LOG_LEVEL = env_var('LOG_LEVEL', logging.DEBUG)
+LOG_LEVEL = env_var('LOG_LEVEL', logging.ERROR)
 # logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
 logger = logging.getLogger('midas_logger')
 logging.basicConfig(stream=sys.stdout,
