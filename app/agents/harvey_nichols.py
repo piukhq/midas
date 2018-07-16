@@ -4,7 +4,7 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
-from app import celery
+import app
 import arrow
 import random
 import requests
@@ -198,7 +198,12 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(json_result['outcome'])
 
 
-@celery.task
+@app.celery.task
+def test_celery():
+    print("test celery")
+
+
+@app.celery.task
 def retry_havery_nic_optins():
     print("retry")
     sm = HNOptInsSoapMessage("232424",

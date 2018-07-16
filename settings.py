@@ -46,7 +46,7 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {
     'harvey_retry': {
-        'task': 'app.agents.harvey_nichols.retry_havery_nic_optins',
+        'task': 'app.test_celery',
         'schedule': 10.0,
         'args': ()
     }

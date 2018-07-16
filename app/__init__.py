@@ -10,11 +10,8 @@ import settings
 
 
 sentry = Sentry()
-celery = None      # set when create_app is called always use "from app import celery" not "import celery"
+celery = None
 
-
-def get_celery():
-    return celery
 
 def make_celery(app):
     celery_app = Celery(app.import_name, backend=app.config['CELERY_RESULT_BACKEND'],
@@ -46,9 +43,10 @@ def create_app(config_name="settings"):
         sentry.client.release = __version__
     api.init_app(app)
     redis.init_app(app)
-
     global celery
     celery = make_celery(app)
+
+
 
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):
@@ -67,4 +65,9 @@ def create_app(config_name="settings"):
 
 
 if celery is None:
-    app = create_app()
+    create_app()
+
+
+@celery.task
+def test_celery():
+    print("test celery")
