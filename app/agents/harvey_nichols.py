@@ -4,9 +4,11 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
+from app import celery
 import arrow
 import random
 import requests
+
 
 
 class HarveyNichols(ApiMiner):
@@ -170,22 +172,21 @@ class HarveyNichols(ApiMiner):
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: json_result['customerNumber']}
 
-                sm = HNOptInsSoapMessage(self.customer_number)
+                sm = HNOptInsSoapMessage(self.customer_number,
+                                         headers={"Connection": "Keep-Alive", "Content-Type": "text/xml; charset=utf-8"}
+                                         )
                 try:
                     for consent in credentials['consents']:
                         sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
-                    headers = {
-                        "Connection": "Keep-Alive",
-                        "Content-Type": "text/xml; charset=utf-8",
-                        "SOAPAction": "urn:saveCustomerPreferenceMap"
 
-                    }
                     # send Soap message
-                    resp = requests.post(self.CONSENTS_URL, data=sm.optin_soap_message, headers = headers )
+                    resp = requests.post(self.CONSENTS_URL, data=sm.optin_soap_message, timeout=10,
+                                         headers=sm.optin_headers)
                     # send Soap Audit Note
                     # @todo check soap respponse and raise error - requires HN information
-                    headers["SOAPAction"] = "urn:saveCustomerNote"
-                    resp = requests.post(self.CONSENTS_URL, data=sm.audit_note, headers=headers)
+
+                    resp = requests.post(self.CONSENTS_URL, data=sm.audit_note, timeout=10,
+                                         headers=sm.audit_note_headers)
                     # @todo check soap respponse and raise error - requires HN information
                 except AttributeError as e:
                     # What do we do when there are no consents? or Errors?
@@ -197,12 +198,23 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(json_result['outcome'])
 
 
+@celery.task
+def retry_havery_nic_optins():
+    print("retry")
+    sm = HNOptInsSoapMessage("232424",
+                             headers={"Connection": "Keep-Alive", "Content-Type": "text/xml; charset=utf-8"}
+                             )
+    print(data=sm.optin_soap_message)
+
+
+
 class HNOptInsSoapMessage:
 
-    def __init__(self, customer_id):
+    def __init__(self, customer_id, base_headers):
         self.sep = ""
         self.preferences = ''
         self.customer_id = customer_id
+        self.headers = base_headers
         random.seed()
         # todo verify leading 0s are required and if this is sufficiently random for HN application
         self.note_id = f"{random.randint(0, 999999999999):0>12}"
@@ -268,6 +280,11 @@ class HNOptInsSoapMessage:
 """
 
     @property
+    def optin_headers(self):
+        self.headers['SOAPAction'] = "urn:saveCustomerPreferenceMap"
+        return self.headers
+
+    @property
     def optin_soap_message(self):
         # process in correct order adding to messages
         self.process_preference("EMAIL",  self.email_created)
@@ -286,6 +303,11 @@ class HNOptInsSoapMessage:
 </SOAP-ENV:Envelope>"""
 
     @property
+    def audit_note_headers(self):
+        self.headers['SOAPAction'] = "urn:saveCustomerNote"
+        return self.headers
+
+    @property
     def audit_note(self):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
@@ -302,5 +324,3 @@ class HNOptInsSoapMessage:
         </crm:saveCustomerNote>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>"""
-
-""
