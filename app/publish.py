@@ -12,7 +12,7 @@ thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 
 def log_errors(session, resp):
     if not resp.ok:
-        logger.error("Could not request to the url: {0}".format(resp.url))
+        logger.warning("Could not request to the url: {0}".format(resp.url))
 
 
 def post(url, data, tid):
