@@ -2,7 +2,7 @@ import hvac
 import requests
 
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
-from settings import HELIOS_URL, SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL
+from settings import SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL, CONFIG_SERVICE_URL
 
 
 class Configuration:
@@ -79,7 +79,7 @@ class Configuration:
         headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
         try:
-            resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
+            resp = requests.get(CONFIG_SERVICE_URL + '/configuration', params=params, headers=headers)
         except requests.RequestException as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 

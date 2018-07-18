@@ -41,10 +41,10 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
 })
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
-
 HERMES_URL = env_var('HERMES_URL', 'http://local.hermes.chingrewards.com:8000')
 HELIOS_URL = env_var('HELIOS_URL', 'https://api.bink-dev.xyz/dashboard')
 HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92ac-6e05e0916e82')
+CONFIG_SERVICE_URL = env_var('CONFIG_SERVICE_URL', '')
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
