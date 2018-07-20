@@ -40,17 +40,20 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
     'db': REDIS_DB
 })
 
-REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '0')
+REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {
-    'harvey_retry': {
-        'task': 'app.test_celery',
-        'schedule': 10.0,
+    'retry_send_credentials': {
+        'task': 'app.tasks.resend.credentials_retry',
+        'schedule': 60.0,
         'args': ()
     }
 }
+CELERY_IMPORTS = [
+    'app.tasks.resend'
+]
 
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')

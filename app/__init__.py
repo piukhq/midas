@@ -6,28 +6,12 @@ from app.exceptions import AgentException, UnknownException
 from app.retry import redis
 from app.version import __version__
 from celery import Celery
+
 import settings
 
 
 sentry = Sentry()
-celery = None
-
-
-def make_celery(app):
-    celery_app = Celery(app.import_name, backend=app.config['CELERY_RESULT_BACKEND'],
-                    broker=app.config['CELERY_BROKER_URL'])
-    celery_app.conf.update(app.config)
-    TaskBase = celery_app.Task
-
-    class ContextTask(TaskBase):
-        abstract = True
-
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-
-    celery_app.Task = ContextTask
-    return celery_app
+celery = Celery(backend=settings.CELERY_RESULT_BACKEND, broker=settings.CELERY_BROKER_URL, config_source=settings)
 
 
 def create_app(config_name="settings"):
@@ -43,9 +27,6 @@ def create_app(config_name="settings"):
         sentry.client.release = __version__
     api.init_app(app)
     redis.init_app(app)
-    global celery
-    celery = make_celery(app)
-
 
 
     @app.errorhandler(AgentException)
@@ -62,12 +43,3 @@ def create_app(config_name="settings"):
         return response
 
     return app
-
-
-if celery is None:
-    create_app()
-
-
-@celery.task
-def test_celery():
-    print("test celery")
