@@ -4,11 +4,10 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
-from app.tasks.resend import add_retry_task
+from app.tasks.resend import ReTryTaskStore
 import arrow
 import random
 import requests
-
 
 
 class HarveyNichols(ApiMiner):
@@ -16,7 +15,8 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
 
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
-    CONSENTS_URL ='http://10.215.110.101:8090/axis2/services/CRMCustomerDataService.CRMCustomerDataServiceHttpSoap11Endpoint/'
+    CONSENTS_URL ='http://10.215.110.101:8090/' \
+                  'axis2/services/CRMCustomerDataService.CRMCustomerDataServiceHttpSoap11Endpoint/'
 
     def login(self, credentials):
         self.credentials = credentials
@@ -175,66 +175,71 @@ class HarveyNichols(ApiMiner):
                     "url": self.CONSENTS_URL,
                     "customer_number": self.customer_number,
                     "consents": credentials['consents'],
-                    "retries": 0,
+                    "retries": 10,
                     "consents_sent": False,
-                    "notes_sent": False
+                    "notes_sent": False,
+                    "errors": []
                 }
-                if not try_havery_nic_optins(optin_data):
-                    retry_try_havery_nic_optins(optin_data)
-                    # could detect return and retry note response alon
+                sent, message = try_harvey_nic_optins(optin_data)
+                if not sent:
+                    optin_data["errors"].append(message)
+                    task = ReTryTaskStore()
+                    task.set_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
         else:
             self.handle_errors(json_result['outcome'])
 
 
-def try_havery_nic_optins(optin_data):
-    if optin_data["retries"] > 10:
-        return True         # abort after 10 retries
-
-    sm = HNOptInsSoapMessage(optin_data["customer_number"],
-                             base_headers={"Connection": "Keep-Alive", "Content-Type": "text/xml; charset=utf-8"}
-                             )
+def try_harvey_nic_optins(optin_data):
+    """This function sends the Harvey Nichols Soap Posts - sending optins and if successful an audit message.
+    Note if the response needs to be recorded send from this routine.
+    The routine should manage state of process so that only when complete of fatal error will it return true
+    It is therefore possible to continue retries if an internal log status message fails
+    :param optin_data:
+    :return:  Tuple:
+                continue_status: True to terminate any retries, False to continue to rety
+                response_list:  list of logged errors (successful one will not be wriiten to redis)
+    """
+    sm = HNOptInsSoapMessage(optin_data["customer_number"])
     try:
         for consent in optin_data["consents"]:
             sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
 
-        if not optin_data["consents_sent"]:
+        if not optin_data.get("consents_sent", False):
             # send Soap message
             resp = requests.post(optin_data["url"], data=sm.optin_soap_message, timeout=10,
                                  headers=sm.optin_headers)
             if resp.status_code > 299:
-                return False
+                return False, f"Error Code {resp.status_code}"
             else:
                 optin_data["consents_sent"] = True
 
         # send Soap Audit Note
-        # @todo check soap respponse and raise error - requires HN information
+        # @todo check soap response and raise error - requires HN information
 
         resp = requests.post(optin_data["url"], data=sm.audit_note, timeout=10,
                              headers=sm.audit_note_headers)
-        # @todo check soap respponse and raise error - requires HN information
+        # @todo check soap response and raise error - requires HN information
 
         if resp.status_code > 299:
-            return False     # this will retry the notes upto 10 attempts combined
+            return False, f"Error Code {resp.status_code}"     # this will retry the notes upto 10 attempts combined
         else:
             optin_data["notes_sent"] = True
-        return True
+        return True, "done"
     except AttributeError as e:
-        # What do we do when there are no consents? or Errors?
-        # @todo when HN defines the error handling protocol implement it here
-        pass
-
-
-def retry_try_havery_nic_optins(optin_data):
-    add_retry_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
+        # If data is invalid or missing parameters no point in retrying so abort
+        return True, "Attribute error"
 
 
 class HNOptInsSoapMessage:
 
-    def __init__(self, customer_id, base_headers):
+    def __init__(self, customer_id, base_headers=None):
+        if base_headers is None:
+            self.headers = {"Connection": "Keep-Alive", "Content-Type": "text/xml; charset=utf-8"}
+        else:
+            self.headers = base_headers
         self.sep = ""
         self.preferences = ''
         self.customer_id = customer_id
-        self.headers = base_headers
         random.seed()
         # todo verify leading 0s are required and if this is sufficiently random for HN application
         self.note_id = f"{random.randint(0, 999999999999):0>12}"
@@ -244,7 +249,7 @@ class HNOptInsSoapMessage:
         self.email_created = ''
 
     def add_consent(self, slug, value, created):
-        consent_value = self.set_value(value)      # condition logic value to string equivalent or None
+        consent_value = self.set_value(value)       # condition logic value to string equivalent or None
         date_created = self.format_date(created)    #
         if consent_value:
             if slug == "EMAIL":

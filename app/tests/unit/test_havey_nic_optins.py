@@ -169,7 +169,7 @@ class TestHNOptins(unittest.TestCase):
         self.assertDictEqual(expected_dict, items_dict)
 
     def test_soap_message_consent_order(self):
-        sm = HNOptInsSoapMessage("12345678")
+        sm = HNOptInsSoapMessage("12345678", )
         sm.add_consent("EMAIL", True , "2018-12-01 19:45")
         sm.add_consent("PUSH", True, "2018-12-01 19:42:12")
 
