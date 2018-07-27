@@ -24,7 +24,8 @@ class TestMerchantApi(FlaskTestCase):
 
     user_info = {'scheme_account_id': 1,
                  'status': '',
-                 'user_id': 1}
+                 'user_id': 1,
+                 'link': True}
 
     m = MerchantApi(1, user_info)
     json_data = json.dumps({'message_uid': '123-123-123-123',

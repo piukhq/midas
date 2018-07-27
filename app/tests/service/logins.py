@@ -22,6 +22,7 @@ AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
     {
         'scheme_account_id': 1,
         'status': SchemeAccountStatus.WALLET_ONLY,
+        'link': True,
         'user_id': 1
     }
 ]
