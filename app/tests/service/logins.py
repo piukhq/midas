@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, text
 
 import settings
 from app.encryption import AESCipher
-from app.utils import SchemeAccountStatus
+from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY, HELIOS_DB_URI
 
 AGENT_CLASS_ARGUMENTS = [
@@ -22,7 +22,7 @@ AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
     {
         'scheme_account_id': 1,
         'status': SchemeAccountStatus.WALLET_ONLY,
-        'link': True,
+        'journey_type': JourneyTypes.LINK,
         'user_id': 1
     }
 ]

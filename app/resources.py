@@ -78,7 +78,7 @@ class Balance(Resource):
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
-            'journey_type': int(journey_type) if status else None,
+            'journey_type': int(journey_type) if journey_type else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
