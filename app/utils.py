@@ -37,6 +37,10 @@ class SchemeAccountStatus:
     NO_SUCH_RECORD = 444
 
 
+class JourneyTypes:
+    LINK = 1
+
+
 def extract_decimal(s):
     """
     We need to use the quantize method to ensure whole

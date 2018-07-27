@@ -17,6 +17,7 @@ from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
+from app.utils import JourneyTypes
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -25,7 +26,7 @@ class TestMerchantApi(FlaskTestCase):
     user_info = {'scheme_account_id': 1,
                  'status': '',
                  'user_id': 1,
-                 'link': True}
+                 'journey_type': JourneyTypes.LINK}
 
     m = MerchantApi(1, user_info)
     json_data = json.dumps({'message_uid': '123-123-123-123',
