@@ -176,8 +176,7 @@ class HarveyNichols(ApiMiner):
                     "customer_number": self.customer_number,
                     "consents": credentials['consents'],
                     "retries": 10,
-                    "consents_sent": False,
-                    "notes_sent": False,
+                    "state": "Consents",
                     "errors": []
                 }
                 sent, message = try_harvey_nic_optins(optin_data)
@@ -204,14 +203,14 @@ def try_harvey_nic_optins(optin_data):
         for consent in optin_data["consents"]:
             sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
 
-        if not optin_data.get("consents_sent", False):
+        if optin_data["state"] == "Consents":
             # send Soap message
             resp = requests.post(optin_data["url"], data=sm.optin_soap_message, timeout=10,
                                  headers=sm.optin_headers)
             if resp.status_code > 299:
-                return False, f"Error Code {resp.status_code}"
+                return False, f"{optin_data['state']}: Error Code {resp.status_code}"
             else:
-                optin_data["consents_sent"] = True
+                optin_data["state"] = "Notes"
 
         # send Soap Audit Note
         # @todo check soap response and raise error - requires HN information
@@ -221,13 +220,15 @@ def try_harvey_nic_optins(optin_data):
         # @todo check soap response and raise error - requires HN information
 
         if resp.status_code > 299:
-            return False, f"Error Code {resp.status_code}"     # this will retry the notes upto 10 attempts combined
+            return False, f"{optin_data['state']}:Error Code {resp.status_code}"     # this will retry the notes upto 10 attempts combined
         else:
-            optin_data["notes_sent"] = True
-        return True, "done"
+            optin_data["state"] = "done"
+        return True, optin_data["state"]
     except AttributeError as e:
         # If data is invalid or missing parameters no point in retrying so abort
-        return True, "Attribute error"
+        return True, f"{optin_data['state']}: Attribute error {str(e)}"
+    except IOError as e:
+        return False, f"{optin_data['state']}: IO error {str(e)}"
 
 
 class HNOptInsSoapMessage:

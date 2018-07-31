@@ -6,8 +6,7 @@ import json
 
 
 @celery.task
-def credentials_retry():
-    print(" in resend task")
+def retry_tasks():
     # needs to try all tasks in list on each scheduled retry beat
     task = ReTryTaskStore()
     for i in range(0, task.length):

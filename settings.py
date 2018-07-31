@@ -40,14 +40,15 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
     'db': REDIS_DB
 })
 
+RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
 REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {
-    'retry_send_credentials': {
-        'task': 'app.tasks.resend.credentials_retry',
-        'schedule': 60.0,
+    'retry_tasks': {
+        'task': 'app.tasks.resend.retry_tasks',
+        'schedule': int(RETRY_PERIOD),
         'args': ()
     }
 }
