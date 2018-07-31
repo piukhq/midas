@@ -596,6 +596,15 @@ class TestMerchantApi(FlaskTestCase):
         merchant_ids = self.m.get_merchant_ids({})
         self.assertIn('merchant_scheme_id1', merchant_ids)
 
+    def test_credential_mapping(self):
+        self.m.credential_mapping = {'barcode': 'customer_number', 'date_of_birth': 'dob'}
+        json_credentials = json.dumps({'barcode': '12345', 'date_of_birth': '01/01/2001'})
+
+        mapped_credentials = self.m.map_credentials_to_request(json_credentials)
+        expected_credentials = json.dumps({'customer_number': '12345', 'dob': '01/01/2001'})
+
+        self.assertEqual(mapped_credentials, expected_credentials)
+
 
 @mock.patch('redis.StrictRedis.get')
 @mock.patch('redis.StrictRedis.set')

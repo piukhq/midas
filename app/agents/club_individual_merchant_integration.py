@@ -7,6 +7,11 @@ from app.agents.base import MerchantApi
 
 class ClubIndividual(MerchantApi):
     identifier_type = ['card_number', 'merchant_scheme_id2']
+    credential_mapping = {
+        'date_of_birth': 'dob',
+        'phone': 'phone1',
+        'phone_2': 'phone2'
+    }
 
     def balance(self):
         value = Decimal(self.result['alt_value'])

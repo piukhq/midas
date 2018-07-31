@@ -390,6 +390,12 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
+    credential_mapping = {}
+    identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+    # used to map merchant identifiers to scheme credential types
+    merchant_identifier_mapping = {
+        'merchant_scheme_id2': 'merchant_identifier',
+    }
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         self.retry_count = retry_count
@@ -397,11 +403,6 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
-        self.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
-        # used to map merchant identifiers to scheme credential types
-        self.merchant_identifier_mapping = {
-            'merchant_scheme_id2': 'merchant_identifier'
-        }
 
         self.record_uid = None
         self.result = None
@@ -579,6 +580,7 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
+        json_data = self.map_credentials_to_request(json_data)
         security_agent = get_security_agent(config.security_service[0], config.security_credentials)
         request = security_agent.encode(json_data)
         back_off_service = BackOffService()
@@ -675,3 +677,17 @@ class MerchantApi(BaseMiner):
                 converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
                 _identifier[converted_credential_type] = value
         return _identifier
+
+    def map_credentials_to_request(self, data):
+        """
+        Converts credential keys to correct JSON keys in merchant request.
+        Agents will override the credential_mapping class attribute to define the changes.
+        :param data: JSON object of credentials being sent to merchant.
+        :return: JSON object of credentials with keys converted into the JSON keys to be sent to a merchant.
+        """
+        data = json.loads(data)
+        for key, value in self.credential_mapping.items():
+            if key in data:
+                data[value] = data.pop(key)
+
+        return json.dumps(data)
