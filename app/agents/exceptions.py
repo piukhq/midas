@@ -26,6 +26,7 @@ NOT_SENT = "NOT_SENT"
 RESOURCE_LIMIT_REACHED = "RESOURCE_LIMIT_REACHED"
 VALIDATION = "VALIDATION"
 CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
+SERVICE_CONNECTION_ERROR = "SERVER_CONNECTION_ERROR"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -93,6 +94,9 @@ errors = {
     CONFIGURATION_ERROR: {"code": 536,
                           "message": "There is an error with the configuration or it was not possible to retrieve.",
                           "name": "Configuration error"},
+    SERVICE_CONNECTION_ERROR: {"code": 537,
+                               "message": "There was in issue connecting to an external service.",
+                               "name": "Service connection error"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
