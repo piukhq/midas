@@ -15,8 +15,28 @@ from unittest import mock, TestCase
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
+from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
+
+
+mock_config = MagicMock()
+mock_config.scheme_slug = 'id'
+mock_config.merchant_url = 'stuff'
+mock_config.integration_service = 'SYNC'
+mock_config.security_credentials = {
+    'outbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_public_key', 'service': 0}],
+    'inbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key', 'service': 0}]
+}
+mock_config.handler_type = 'UPDATE'
+mock_config.retry_limit = 2
+mock_config.callback_url = ''
+mock_config.log_level = 'DEBUG'
+mock_config.country = 'GB'
+
+json_data = json.dumps({'message_uid': '123-123-123-123',
+                        'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',  # hash for a scheme account id of 1
+                        'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -27,9 +47,8 @@ class TestMerchantApi(FlaskTestCase):
                  'user_id': 1}
 
     m = MerchantApi(1, user_info)
-    json_data = json.dumps({'message_uid': '123-123-123-123',
-                            'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',    # hash for a scheme account id of 1
-                            'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
+
+    json_data = json_data
 
     signature = (b'BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T'
                  b'a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb'
@@ -79,17 +98,7 @@ class TestMerchantApi(FlaskTestCase):
         '-----END RSA PUBLIC KEY-----\n'
     )
 
-    config = MagicMock()
-    config.scheme_slug = 'id'
-    config.merchant_url = 'stuff'
-    config.integration_service = 'SYNC'
-    config.security_service = (0, 'RSA')
-    config.security_credentials = [{'type': '', 'storage_key': ''}]
-    config.handler_type = 'UPDATE'
-    config.retry_limit = 2
-    config.callback_url = ''
-    config.log_level = 'DEBUG'
-    config.country = 'GB'
+    config = mock_config
 
     def create_app(self):
         return create_app(self, )
@@ -170,14 +179,11 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off,  mock_encode,
-                                                                  mock_decode):
+    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off,  mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
 
         response = requests.Response()
         response.status_code = 503
@@ -186,8 +192,10 @@ class TestMerchantApi(FlaskTestCase):
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {
-            "errors": [errors[NOT_SENT]['message']],
-            "code": errors[NOT_SENT]['code']
+            "error_codes": [{
+                "code": NOT_SENT,
+                "description": errors[NOT_SENT]['message']
+            }]
         }
 
         resp = self.m._sync_outbound(self.json_data, self.config)
@@ -195,13 +203,11 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode, mock_decode):
+    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
 
         response = requests.Response()
         response.status_code = 500
@@ -209,23 +215,27 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_backoff.return_value.is_on_cooldown.return_value = False
 
-        expected_resp = {"errors": [errors[UNKNOWN]['name'] + " with status code {}".format(response.status_code)],
-                         "code": errors[UNKNOWN]['code']}
+        expected_resp = {
+            "error_codes": [{
+                "code": UNKNOWN,
+                "description": errors[UNKNOWN]['name'] + " with status code {}".format(response.status_code)
+            }]
+        }
+
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_does_not_send_when_on_cooldown(self, mock_request, mock_back_off, mock_encode, mock_decode):
+    def test_sync_outbound_does_not_send_when_on_cooldown(self, mock_request, mock_back_off, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
         mock_back_off.return_value.is_on_cooldown.return_value = True
-        expected_resp = {"errors": [errors[NOT_SENT]['message']],
-                         "code": errors[NOT_SENT]['code']}
+
+        expected_resp = {"error_codes": [{"code": NOT_SENT, "description": errors[NOT_SENT]['message']}]}
+
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
@@ -334,14 +344,14 @@ class TestMerchantApi(FlaskTestCase):
             'handler_type': 1,
             'integration_service': 1,
             'callback_url': None,
-            'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
             'country': 'GB',
-            'security_credentials': [
-                {'type': 'public_key',
-                 'storage_key': '123456'}
-            ]}
+            'security_credentials': {
+                'outbound': [{'storage_key': '', 'value': '', 'credential_type': 'compound_key', 'service': 2}],
+                'inbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key', 'service': 0}]
+            }
+        }
 
         mock_get_security_creds.return_value = {
             'type': 'public_key',
@@ -352,8 +362,9 @@ class TestMerchantApi(FlaskTestCase):
         expected = {
             'handler_type': (1, 'JOIN'),
             'integration_service': 'ASYNC',
-            'security_service': (0, 'RSA'),
             'log_level': 'WARNING',
+            'country': 'GB',
+            'retry_limit': 0
         }
 
         c = Configuration('fake-merchant', Configuration.JOIN_HANDLER)
@@ -525,7 +536,6 @@ class TestMerchantApi(FlaskTestCase):
             'handler_type': 1,
             'integration_service': 1,
             'callback_url': None,
-            'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
             'country': 'GB',
@@ -630,3 +640,103 @@ class TestBackOffService(TestCase):
         resp = self.back_off.is_on_cooldown('merchant-id', 'update')
 
         self.assertTrue(resp)
+
+
+class TestOAuth(TestCase):
+
+    def setUp(self):
+        self.config = mock_config
+        self.json_data = json_data
+        self.token_response = {
+            'token_type': 'Bearer',
+            'ext_expires_in': '',
+            'expires_in': '',
+            'not_before': '',
+            'expires_on': '',
+            'resource': '',
+            'access_token': 'some_token'
+        }
+
+        self.auth_creds = self.config.security_credentials
+        self.auth_creds['outbound'] = [{
+            "storage_key": "",
+            "value": {
+                "payload": {
+                    "client_id": "",
+                    "client_secret": "",
+                    "resource": "",
+                    "grant_type": ""},
+                "url": "",
+                "prefix": "Bearer"
+            },
+            "credential_type": "compound_key",
+            "service": 2
+        }]
+
+    @mock.patch('requests.post')
+    def test_oauth_encode_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = self.token_response
+        mock_request.return_value = mock_response
+
+        expected_request = {
+            'headers': {'Authorization': 'Bearer some_token'},
+            'json': {
+                'message_uid': '123-123-123-123',
+                'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',
+                'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'
+            }
+        }
+
+        auth = OAuth(self.auth_creds)
+
+        request = auth.encode(self.json_data)
+
+        self.assertTrue(mock_request.called)
+        self.assertEqual(request, expected_request)
+
+    @mock.patch('requests.post')
+    def test_oath_encode_raises_error_on_connection_error(self, mock_request):
+        mock_request.side_effect = requests.ConnectionError
+        auth = OAuth(self.auth_creds)
+
+        with self.assertRaises(AgentError) as e:
+            auth.encode(self.json_data)
+
+        self.assertEqual(e.exception.name, 'Service connection error')
+
+    @mock.patch('requests.post')
+    def test_oauth_encode_raises_error_on_incorrect_credential_setup(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = self.token_response
+        mock_request.return_value = mock_response
+
+        missing_creds = self.auth_creds
+
+        required_keys = ["payload", "url", "prefix"]
+
+        keys_dict = {
+            "payload": {
+                "client_id": "",
+                "client_secret": "",
+                "resource": "",
+                "grant_type": ""
+            },
+            "url": "",
+            "prefix": "Bearer"
+        }
+
+        # ensures function raises error if any required keys are missing from the data stored in the vault
+        for required_key in required_keys:
+            value = keys_dict.copy()
+            value.pop(required_key)
+            missing_creds['outbound'] = [{
+                "value": value,
+            }]
+
+            auth = OAuth(self.auth_creds)
+
+            with self.assertRaises(AgentError) as e:
+                auth.encode(self.json_data)
+
+            self.assertEqual(e.exception.name, 'Configuration error')

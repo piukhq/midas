@@ -129,8 +129,12 @@ class IntercomException(Exception):
 
 def create_error_response(error_code, error_description):
     response_json = json.dumps({
-        'errors': [error_description],
-        'code': error_code
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
     })
     return response_json
 

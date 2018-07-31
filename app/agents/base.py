@@ -458,6 +458,11 @@ class MerchantApi(BaseMiner):
 
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
+            # check for error response
+            error = self.result.get('error_codes')
+            if error:
+                self._handle_errors(error[0]['code'])
+
             # Async joins will return empty 200 responses so there is nothing to process.
             if self.config.integration_service == 'SYNC':
                 self.process_join_response()
@@ -490,7 +495,7 @@ class MerchantApi(BaseMiner):
         :param handler_type: type of handler to retrieve correct config e.g update, validate, join
         :return: dict of response data
         """
-        message_uid = str(uuid1())
+        self.message_uid = str(uuid1())
         if not self.config:
             self.config = Configuration(scheme_slug, handler_type)
 
@@ -499,7 +504,7 @@ class MerchantApi(BaseMiner):
         if handler_type == Configuration.JOIN_HANDLER:
             data['country'] = self.config.country
 
-        data['message_uid'] = message_uid
+        data['message_uid'] = self.message_uid
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
 
@@ -518,7 +523,7 @@ class MerchantApi(BaseMiner):
 
         logging_info = self._create_log_message(
             temp_data,
-            message_uid,
+            self.message_uid,
             scheme_slug,
             handler_type,
             self.config.integration_service,
@@ -579,13 +584,14 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
-        security_agent = get_security_agent(config.security_service[0], config.security_credentials)
+        security_agent = get_security_agent(config.security_credentials['outbound'][0]['service'],
+                                            config.security_credentials)
         request = security_agent.encode(json_data)
         back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):
             if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
-                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 break
             else:
                 response = requests.post(config.merchant_url, **request)
@@ -608,9 +614,9 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                    response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 else:
-                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                    response_json = create_error_response(UNKNOWN,
                                                           errors[UNKNOWN]['name'] + ' with status code {}'
                                                           .format(status))
 
