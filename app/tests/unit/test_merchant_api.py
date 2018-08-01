@@ -18,6 +18,7 @@ from app.configuration import Configuration
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
+from app.utils import JourneyTypes
 
 
 mock_config = MagicMock()
@@ -44,7 +45,8 @@ class TestMerchantApi(FlaskTestCase):
 
     user_info = {'scheme_account_id': 1,
                  'status': '',
-                 'user_id': 1}
+                 'user_id': 1,
+                 'journey_type': JourneyTypes.LINK.value}
 
     m = MerchantApi(1, user_info)
 
