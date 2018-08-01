@@ -390,7 +390,11 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
-    credential_mapping = {}
+    credential_mapping = {
+        'date_of_birth': 'dob',
+        'phone': 'phone1',
+        'phone_2': 'phone2'
+    }
     identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
     # used to map merchant identifiers to scheme credential types
     merchant_identifier_mapping = {
