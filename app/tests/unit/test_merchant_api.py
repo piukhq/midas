@@ -533,6 +533,16 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_authorise_returns_error_on_unknown_exception(self, mock_config):
+        headers = {'Authorization': 'bad signature', 'X-REQ-TIMESTAMP': 156789765}
+
+        mock_config.side_effect = Exception
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertEqual(response.status_code, 520)
+
     @mock.patch('requests.get', autospec=True)
     def test_config_service_raises_exception_on_fail(self, mock_request):
         # Should error on any status code other than 200 i.e if helios is down or no config found etc.
