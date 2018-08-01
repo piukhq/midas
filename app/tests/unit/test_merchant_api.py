@@ -26,8 +26,8 @@ mock_config.scheme_slug = 'id'
 mock_config.merchant_url = 'stuff'
 mock_config.integration_service = 'SYNC'
 mock_config.security_credentials = {
-    'outbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_public_key', 'service': 0}],
-    'inbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key', 'service': 0}]
+    'outbound': {'service': 0, 'credentials': [{'storage_key': '', 'value': '', 'credential_type': 'bink_public_key'}]},
+    'inbound': {'service': 0, 'credentials': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key'}]}
 }
 mock_config.handler_type = 'UPDATE'
 mock_config.retry_limit = 2
@@ -350,8 +350,22 @@ class TestMerchantApi(FlaskTestCase):
             'log_level': 2,
             'country': 'GB',
             'security_credentials': {
-                'outbound': [{'storage_key': '', 'value': '', 'credential_type': 'compound_key', 'service': 2}],
-                'inbound': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key', 'service': 0}]
+                'outbound': {
+                    'service': 2,
+                    'credentials': [{
+                        'storage_key': '',
+                        'value': '',
+                        'credential_type': 'compound_key'
+                    }]
+                },
+                'inbound': {
+                    'service': 0,
+                    'credentials': [{
+                        'storage_key': '',
+                        'value': '',
+                        'credential_type': 'bink_private_key'
+                    }]
+                }
             }
         }
 
@@ -669,7 +683,7 @@ class TestOAuth(TestCase):
         }
 
         self.auth_creds = self.config.security_credentials
-        self.auth_creds['outbound'] = [{
+        self.auth_creds['outbound']['credentials'] = [{
             "storage_key": "",
             "value": {
                 "payload": {
@@ -741,7 +755,7 @@ class TestOAuth(TestCase):
         for required_key in required_keys:
             value = keys_dict.copy()
             value.pop(required_key)
-            missing_creds['outbound'] = [{
+            missing_creds['outbound']['credentials'] = [{
                 "value": value,
             }]
 

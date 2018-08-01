@@ -43,7 +43,7 @@ def authorise(handler_type):
         def wrapper(*args, **kwargs):
             try:
                 config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
-                security_agent = get_security_agent(config.security_credentials['inbound'][0]['service'],
+                security_agent = get_security_agent(config.security_credentials['inbound']['service'],
                                                     config.security_credentials)
 
                 decoded_data = json.loads(security_agent.decode(request.headers,

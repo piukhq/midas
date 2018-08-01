@@ -97,13 +97,13 @@ class Configuration:
         self.callback_url = self.data['callback_url']
         self.country = self.data['country']
 
-        self.security_credentials = {}
+        self.security_credentials = self.data['security_credentials']
         try:
-            self.security_credentials['inbound'] = self.get_security_credentials(
-                self.data['security_credentials']['inbound']
+            self.security_credentials['inbound']['credentials'] = self.get_security_credentials(
+                self.data['security_credentials']['inbound']['credentials']
             )
-            self.security_credentials['outbound'] = self.get_security_credentials(
-                self.data['security_credentials']['outbound']
+            self.security_credentials['outbound']['credentials'] = self.get_security_credentials(
+                self.data['security_credentials']['outbound']['credentials']
             )
         except TypeError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
