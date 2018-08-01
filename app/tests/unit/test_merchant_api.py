@@ -46,7 +46,7 @@ class TestMerchantApi(FlaskTestCase):
     user_info = {'scheme_account_id': 1,
                  'status': '',
                  'user_id': 1,
-                 'journey_type': JourneyTypes.LINK}
+                 'journey_type': JourneyTypes.LINK.value}
 
     m = MerchantApi(1, user_info)
 

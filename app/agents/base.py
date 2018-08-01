@@ -427,7 +427,7 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        account_link = self.user_info['journey_type'] == JourneyTypes.LINK
+        account_link = self.user_info['journey_type'] == JourneyTypes.LINK.value
 
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER

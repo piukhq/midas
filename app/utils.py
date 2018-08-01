@@ -5,6 +5,7 @@ import time
 import socket
 from decimal import Decimal
 from datetime import datetime
+from enum import Enum
 
 import lxml.html
 import requests
@@ -37,7 +38,7 @@ class SchemeAccountStatus:
     NO_SUCH_RECORD = 444
 
 
-class JourneyTypes:
+class JourneyTypes(Enum):
     LINK = 1
 
 
