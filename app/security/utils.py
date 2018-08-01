@@ -51,7 +51,7 @@ def authorise(handler_type):
             except AgentError as e:
                 raise AgentException(e)
             except Exception as e:
-                raise AgentException(UNKNOWN) from e
+                raise AgentException(AgentError(UNKNOWN)) from e
 
             return fn(data=decoded_data, config=config, *args, **kwargs)
         return wrapper
