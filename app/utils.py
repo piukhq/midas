@@ -5,6 +5,7 @@ import time
 import socket
 from decimal import Decimal
 from datetime import datetime
+from enum import Enum
 
 import lxml.html
 import requests
@@ -35,6 +36,10 @@ class SchemeAccountStatus:
     PASSWORD_EXPIRED = 533
     JOIN = 900
     NO_SUCH_RECORD = 444
+
+
+class JourneyTypes(Enum):
+    LINK = 1
 
 
 def extract_decimal(s):
