@@ -513,10 +513,11 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
 
-        data.update({
-            consent['slug']: consent['value']
-            for consent in data.pop('consents')
-        })
+        if data.get('consents'):
+            data.update({
+                consent['slug']: consent['value']
+                for consent in data.pop('consents')
+            })
 
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
@@ -590,9 +591,9 @@ class MerchantApi(BaseMiner):
         :return: Response payload
         """
         json_data = self.map_credentials_to_request(json_data)
-        security_agent = get_security_agent(config.security_credentials['outbound'][0]['service'],
-                                            config.security_credentials)
-        request = security_agent.encode(json_data)
+        outbound_security_agent = get_security_agent(config.security_credentials['outbound']['service'],
+                                                     config.security_credentials)
+        request = outbound_security_agent.encode(json_data)
         back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):
@@ -603,9 +604,11 @@ class MerchantApi(BaseMiner):
                 response = requests.post(config.merchant_url, **request)
                 status = response.status_code
 
-                if status == 200:
-                    response_json = security_agent.decode(response.headers,
-                                                          response.text)
+                if status in [200, 202]:
+                    inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                                config.security_credentials)
+                    response_json = inbound_security_agent.decode(response.headers,
+                                                                  response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(

@@ -10,7 +10,7 @@ class OAuth(BaseSecurity):
 
     def encode(self, json_data):
         try:
-            credentials = self.credentials['outbound'][0]['value']
+            credentials = self.credentials['outbound']['credentials'][0]['value']
             url = credentials['url']
             resp = requests.post(url=url, data=credentials['payload'])
             response_json = resp.json()
