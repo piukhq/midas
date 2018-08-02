@@ -6,7 +6,7 @@ from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
 from app.tasks.resend import ReTryTaskStore
 import arrow
-import random
+import json
 import requests
 
 
@@ -175,6 +175,7 @@ class HarveyNichols(ApiMiner):
                     "url": self.CONSENTS_URL,
                     "customer_number": self.customer_number,
                     "consents": credentials['consents'],
+                    "confimred": 0,
                     "retries": 10,
                     "state": "Consents",
                     "errors": []
@@ -189,8 +190,18 @@ class HarveyNichols(ApiMiner):
 
 
 def try_harvey_nic_optins(optin_data):
-    """This function sends the Harvey Nichols Soap Posts - sending optins and if successful an audit message.
-    Note if the response needs to be recorded send from this routine.
+    """This function sends the Harvey Nichols - changed rest interface to draft "spec" sent by email:
+
+    curl -k -H "Accept: application/json" -X POST -d '{"enactor_id":"123456789",
+     "email_optin":true|false, "push_optin":true|false}' https://$endpoint/preferences/create
+
+    i.e. the json post '{"enactor_id":"123456789", "email_optin":true|false, "push_optin":true|false}
+
+    Note the consent slug must be call email_optin and push_optin
+
+    If successful assume response 200 to 204 is received then for each consent id put consent_confirmed to
+    Hermes
+
     The routine should manage state of process so that only when complete of fatal error will it return true
     It is therefore possible to continue retries if an internal log status message fails
     :param optin_data:
@@ -198,32 +209,40 @@ def try_harvey_nic_optins(optin_data):
                 continue_status: True to terminate any retries, False to continue to rety
                 response_list:  list of logged errors (successful one will not be wriiten to redis)
     """
-    sm = HNOptInsSoapMessage(optin_data["customer_number"])
+
     try:
+        hn_post_message = {"enactor_id": optin_data["customer_number"]}
+        hn_headers = {"Content-Type": "application/json; charset=utf-8"}
+        confirm_ids = []
+
         for consent in optin_data["consents"]:
-            sm.add_consent(consent['slug'], consent['value'], consent['created_on'])
+            hn_post_message[consent['slug']] = consent['value']
+            confirm_ids.append(consent['id'])
 
         if optin_data["state"] == "Consents":
-            # send Soap message
-            resp = requests.post(optin_data["url"], data=sm.optin_soap_message, timeout=10,
-                                 headers=sm.optin_headers)
-            if resp.status_code > 299:
+
+            resp = requests.post(optin_data["url"], data=json.dumps(hn_post_message), timeout=10,
+                                 headers=hn_headers)
+            if resp.status_code not in (200, 201, 202, 204):
                 return False, f"{optin_data['state']}: Error Code {resp.status_code}"
             else:
-                optin_data["state"] = "Notes"
+                optin_data["state"] = "Confirm"
 
-        # send Soap Audit Note
-        # @todo check soap response and raise error - requires HN information
+        if optin_data["state"] == "Confirm":
+            for user_consent_id in confirm_ids:
+                resp = requests.put(f'{HERMES_URL}/schemes/userconsent/confirmed/{user_consent_id}', timeout=10)
+                if resp.status_code == 200:
+                    optin_data['confimed'] += 1
+                else:
+                    break
 
-        resp = requests.post(optin_data["url"], data=sm.audit_note, timeout=10,
-                             headers=sm.audit_note_headers)
-        # @todo check soap response and raise error - requires HN information
+            if optin_data['confimed'] == len(optin_data["consents"]):
+                optin_data["state"] = "done"
+                return True, "done"
+            else:
+                return False, f"{optin_data['state']}: Error Code {resp.status_code}"
 
-        if resp.status_code > 299:
-            return False, f"{optin_data['state']}:Error Code {resp.status_code}"     # this will retry the notes upto 10 attempts combined
-        else:
-            optin_data["state"] = "done"
-        return True, optin_data["state"]
+        return False, "Internal Error"
     except AttributeError as e:
         # If data is invalid or missing parameters no point in retrying so abort
         return True, f"{optin_data['state']}: Attribute error {str(e)}"
@@ -231,122 +250,3 @@ def try_harvey_nic_optins(optin_data):
         return False, f"{optin_data['state']}: IO error {str(e)}"
 
 
-class HNOptInsSoapMessage:
-
-    def __init__(self, customer_id, base_headers=None):
-        if base_headers is None:
-            self.headers = {"Connection": "Keep-Alive", "Content-Type": "text/xml; charset=utf-8"}
-        else:
-            self.headers = base_headers
-        self.sep = ""
-        self.preferences = ''
-        self.customer_id = customer_id
-        random.seed()
-        # todo verify leading 0s are required and if this is sufficiently random for HN application
-        self.note_id = f"{random.randint(0, 999999999999):0>12}"
-        self.notes = "Preference changes: "
-        self.proforma = {}
-        self.push_created = ''
-        self.email_created = ''
-
-    def add_consent(self, slug, value, created):
-        consent_value = self.set_value(value)       # condition logic value to string equivalent or None
-        date_created = self.format_date(created)    #
-        if consent_value:
-            if slug == "EMAIL":
-                self.proforma["EMAIL"] = (
-                    ("EMAIL_OPTIN", consent_value, f"EMAIL_OPTIN set to {consent_value}"),
-                    ("EMAIL_OPTIN_DATETIME", date_created, f"EMAIL_OPTIN_DATETIME set to {date_created}"),
-                    ("EMAIL_OPTIN_SOURCE", "BINK_APP", "EMAIL_OPTIN_SOURCE set to BINK_APP")
-                )
-                self.email_created = date_created
-            elif slug == "PUSH":
-                self.proforma["PUSH"] = (
-                    ("PUSH_OPTIN", consent_value, f"PUSH_OPTIN set to {consent_value}"),
-                    ("PUSH_OPTIN_DATETIME", date_created, f"PUSH_OPTIN_DATETIME set to {date_created}"),
-                    ("PUSH_OPTIN_SOURCE", "BINK_APP", "PUSH_OPTIN_SOURCE set to BINK_APP")
-                )
-                self.push_created = date_created
-
-    @staticmethod
-    def format_date(email_created_ext):
-        arrow_date = arrow.get(email_created_ext)
-        return arrow_date.format('YYYY-MM-DDTHH:mm:ss')
-
-    @staticmethod
-    def set_value(optin_value):
-        if optin_value is None:
-            return None
-        if optin_value:
-            return "true"
-        else:
-            return "false"
-
-    def process_preference(self, optin_type, created):
-        if optin_type in self.proforma:
-            for optin_item in self.proforma[optin_type]:
-                self.notes = f'{self.notes}{self.sep}{optin_item[2]}'
-                self.sep = " | "
-                self.preferences = f'{self.preferences}' \
-                                   f'{self.preference_template(optin_type, optin_item[0], optin_item[1], created)}'
-
-    def preference_template(self, optin_type, optin, value, created):
-        return f"""<item key="{optin}">
-    <retail:customerPreference>
-        <retail:optionPathId>{optin_type}:{optin}</retail:optionPathId>
-        <retail:created>{created}</retail:created>
-        <retail:optionSetId type="customerPreferenceOptionSet" optionSetId="GDPR_CONSENT">
-            <retail:groupId groupHierarchyId="All" groupTypeId="region">All</retail:groupId>
-        </retail:optionSetId>           
-        <retail:customerId>{self.customer_id}</retail:customerId>
-        <retail:preferenceId>{self.customer_id}GDPR{optin_type}:{optin}</retail:preferenceId>
-        <retail:value id="{optin_type}:{optin}">{value}</retail:value>    
-    </retail:customerPreference>
-</item>
-"""
-
-    @property
-    def optin_headers(self):
-        self.headers['SOAPAction'] = "urn:saveCustomerPreferenceMap"
-        return self.headers
-
-    @property
-    def optin_soap_message(self):
-        # process in correct order adding to messages
-        self.process_preference("EMAIL",  self.email_created)
-        self.process_preference("PUSH", self.push_created)
-
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
-    <SOAP-ENV:Body>
-        <retail:saveCustomerPreferenceMap xmlns:retail="http://www.enactor.com/retail">
-            <retail:userId>ADMIN</retail:userId>
-            <retail:customerPreferenceMap>
-            {self.preferences}
-            </retail:customerPreferenceMap>
-        </retail:saveCustomerPreferenceMap>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>"""
-
-    @property
-    def audit_note_headers(self):
-        self.headers['SOAPAction'] = "urn:saveCustomerNote"
-        return self.headers
-
-    @property
-    def audit_note(self):
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://service.crm.enactor.com">
-    <SOAP-ENV:Body>
-        <crm:saveCustomerNote xmlns:crm="http://www.enactor.com/crm" xmlns:core="http://www.enactor.com/core"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:retail="http://www.enactor.com/retail">
-            <retail:customerNote>
-                <retail:userId>ADMIN</retail:userId>
-                <retail:customerId>{self.customer_id}</retail:customerId>
-                <retail:isPrivate>false</retail:isPrivate>
-                <retail:noteId>{self.note_id}</retail:noteId>
-                <retail:notes>{self.notes}</retail:notes>
-            </retail:customerNote>
-        </crm:saveCustomerNote>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>"""
