@@ -1,6 +1,5 @@
 import os
 import logging
-import graypy
 from app import AgentException
 from environment import env_var, read_env
 
@@ -9,14 +8,11 @@ read_env()
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8000')
 
-# logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
-
-GRAYLOG_HOST = env_var('GRAYLOG_HOST')
-if GRAYLOG_HOST:
-    handler = graypy.GELFHandler(GRAYLOG_HOST, 12201)
-    logger.addHandler(handler)
 
 SLACK_API_KEY = 'xoxp-10814716850-12751177555-33955253125-1750700274'
 JUNIT_XML_FILENAME = 'test_results.xml'
