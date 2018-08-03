@@ -52,13 +52,12 @@ class ReTryTaskStore:
                 func = getattr(module, data["_function"])
                 done, message = func(data)
                 if not done:
-                    data[self.retry_results].append(message)
+                    if self.retry_results in data:
+                        data[self.retry_results].append(message)
+                if data[self.retry_name] > 0:
                     self.save_to_redis(data)
 
         except IOError as e:
-            try:
+            if self.retry_results in data:
                 data[self.retry_results].append(str(e))
-            except AttributeError:
-                pass
             self.save_to_redis(data)
-

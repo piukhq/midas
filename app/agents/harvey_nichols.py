@@ -4,10 +4,9 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
-from app.tasks.resend import ReTryTaskStore
+from app.tasks.rest_consents import send_consents
 import arrow
 import json
-import requests
 
 
 class HarveyNichols(ApiMiner):
@@ -15,8 +14,7 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
 
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
-    CONSENTS_URL ='http://10.215.110.101:8090/' \
-                  'axis2/services/CRMCustomerDataService.CRMCustomerDataServiceHttpSoap11Endpoint/'
+    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'
 
     def login(self, credentials):
         self.credentials = credentials
@@ -170,83 +168,37 @@ class HarveyNichols(ApiMiner):
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
-                self.identifier = {self.identifier_type: json_result['customerNumber']}
-                optin_data = {
-                    "url": self.CONSENTS_URL,
-                    "customer_number": self.customer_number,
-                    "consents": credentials['consents'],
-                    "confimred": 0,
-                    "retries": 10,
-                    "state": "Consents",
-                    "errors": []
-                }
-                sent, message = try_harvey_nic_optins(optin_data)
-                if not sent:
-                    optin_data["errors"].append(message)
-                    task = ReTryTaskStore()
-                    task.set_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
+                self.identifier = {self.identifier_type: self.customer_number}
+                # sends the Harvey Nichols consents which has been changed from Soap to a rest message
+                # IMPORTANT:
+                #  The consent slugs must be set to email_optin and push_optin in consent definitions
+                #
+                # draft "spec" sent by email:
+                # curl - k - H "Accept: application/json" - X POST - d '{"enactor_id":"123456789",
+                # "email_optin": true | false, "push_optin": true | false}' https://$endpoint/preferences/create
+                # i.e.the json post '{"enactor_id":"123456789", "email_optin":true|false, "push_optin":true|false}
+
+                hn_post_message = {"enactor_id": self.customer_number}
+                confirm_dic = {}
+
+                for consent in credentials['consents']:
+                    hn_post_message[consent['slug']] = consent['value']
+                    confirm_dic[consent['id']] = 10     # retries per confirm to hermes put if 0 will not confirm!
+
+                headers = {"Content-Type": "application/json; charset=utf-8",
+                           "Accept": "application/json",
+                           "Auth-key": "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"
+                           }
+                send_consents(self.CONSENTS_URL,
+                              headers,
+                              json.dumps(hn_post_message),
+                              confirm_dic,
+                              log_errors=True,
+                              identifier=self.customer_number,
+                              verify_decode=lambda response_data: json.loads(response_data),
+                              verify=lambda data: ('', True) if data['code'] == 200 and data['response'] == 'success'
+                              else (data['response'], False)
+                              )
+
         else:
             self.handle_errors(json_result['outcome'])
-
-
-def try_harvey_nic_optins(optin_data):
-    """This function sends the Harvey Nichols - changed rest interface to draft "spec" sent by email:
-
-    curl -k -H "Accept: application/json" -X POST -d '{"enactor_id":"123456789",
-     "email_optin":true|false, "push_optin":true|false}' https://$endpoint/preferences/create
-
-    i.e. the json post '{"enactor_id":"123456789", "email_optin":true|false, "push_optin":true|false}
-
-    Note the consent slug must be call email_optin and push_optin
-
-    If successful assume response 200 to 204 is received then for each consent id put consent_confirmed to
-    Hermes
-
-    The routine should manage state of process so that only when complete of fatal error will it return true
-    It is therefore possible to continue retries if an internal log status message fails
-    :param optin_data:
-    :return:  Tuple:
-                continue_status: True to terminate any retries, False to continue to rety
-                response_list:  list of logged errors (successful one will not be wriiten to redis)
-    """
-
-    try:
-        hn_post_message = {"enactor_id": optin_data["customer_number"]}
-        hn_headers = {"Content-Type": "application/json; charset=utf-8"}
-        confirm_ids = []
-
-        for consent in optin_data["consents"]:
-            hn_post_message[consent['slug']] = consent['value']
-            confirm_ids.append(consent['id'])
-
-        if optin_data["state"] == "Consents":
-
-            resp = requests.post(optin_data["url"], data=json.dumps(hn_post_message), timeout=10,
-                                 headers=hn_headers)
-            if resp.status_code not in (200, 201, 202, 204):
-                return False, f"{optin_data['state']}: Error Code {resp.status_code}"
-            else:
-                optin_data["state"] = "Confirm"
-
-        if optin_data["state"] == "Confirm":
-            for user_consent_id in confirm_ids:
-                resp = requests.put(f'{HERMES_URL}/schemes/userconsent/confirmed/{user_consent_id}', timeout=10)
-                if resp.status_code == 200:
-                    optin_data['confimed'] += 1
-                else:
-                    break
-
-            if optin_data['confimed'] == len(optin_data["consents"]):
-                optin_data["state"] = "done"
-                return True, "done"
-            else:
-                return False, f"{optin_data['state']}: Error Code {resp.status_code}"
-
-        return False, "Internal Error"
-    except AttributeError as e:
-        # If data is invalid or missing parameters no point in retrying so abort
-        return True, f"{optin_data['state']}: Attribute error {str(e)}"
-    except IOError as e:
-        return False, f"{optin_data['state']}: IO error {str(e)}"
-
-

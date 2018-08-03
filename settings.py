@@ -4,6 +4,8 @@ import graypy
 from app import AgentException
 from environment import env_var, read_env
 
+
+os.chdir(os.path.dirname(__file__))
 read_env()
 
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
@@ -40,7 +42,7 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
     'db': REDIS_DB
 })
 
-RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
+RETRY_PERIOD = env_var('RETRY_PERIOD', '')
 REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
