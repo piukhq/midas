@@ -1,5 +1,7 @@
 from .resend import ReTryTaskStore
 from settings import HERMES_URL
+import importlib
+
 import requests
 
 
@@ -19,9 +21,6 @@ def send_consents(url, headers, message, confirm_dic, retries=10, state='Consent
 
     if verify:
         consents_data['verify'] = verify
-
-    if verify_decode:
-        consents_data['verify_decode'] = verify_decode
 
     sent, message = try_consents(consents_data)
     if not sent:
@@ -54,11 +53,9 @@ def try_consents(consents_data):
                               f"{consents_data['state']}: Error Code {resp.status_code}"
             else:
                 if consents_data.get('verify'):
-                    response_data = resp.text
-                    print(response_data)
-                    if consents_data.get('verify_decode'):
-                        response_data = consents_data['verify_decode'](response_data)
-                    ok, message = consents_data['verify'](response_data)
+                    module = importlib.import_module(consents_data['verify'])
+                    func = getattr(module, consents_data.get('verify_function','verify'))
+                    ok, message = func(resp)
                     if not ok:
                         return False, f"{consents_data.get('identifier','')} " \
                                       f"{consents_data['state']}: Error Found {message}"

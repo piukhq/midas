@@ -22,7 +22,6 @@ def mocked_requests_post(*args, **kwargs):
         return MockResponse(None, 400)
 
 
-
 def mocked_requests_put(*args, **kwargs):
     class MockResponse:
         def __init__(self, json_data, status_code):
@@ -51,8 +50,7 @@ def mock_harvey_nick_post(*args, **kwargs):
     return MockResponse({'CustomerSignOnResult': {'outcome': 'Success',
                                                   'customerNumber': '2601507998647',
                                                   'token':'1234'
-                                                  } }, 200)
-
+                                                  }}, 200)
 
 
 class TestUserTokenStore(unittest.TestCase):
@@ -71,7 +69,6 @@ class TestUserTokenStore(unittest.TestCase):
     @mock.patch('app.tasks.rest_consents.requests.put', side_effect=mocked_requests_put)
     def test_1(self, mock_put, mock_post):
 
-        task = ReTryTaskStore()
         consents = [
                 {"id": 1, "slug": "optin_1", "value": True, "created_on": "2018-05-11 12:42"},
                 {"id": 2, "slug": "optin_2", "value": False, "created_on": "2018-05-11 12:44"},
@@ -86,7 +83,6 @@ class TestUserTokenStore(unittest.TestCase):
             confirm_dic[consent['id']] = 10  # retries per confirm to hermes put if 0 will not confirm!
 
         headers = {"Content-Type": "application/json; charset=utf-8"}
-        len_before = task.length
         send_consents("http://localhost:5000",
                       headers,
                       json.dumps(hn_post_message),
@@ -104,12 +100,9 @@ class TestUserTokenStore(unittest.TestCase):
             mock.call('http://127.0.0.1:8000/schemes/userconsent/confirmed/1', timeout=10),
             mock_put.call_args_list)
 
-        # self.assertEqual(mock_post.call_args_list[0].)
-        len_after = task.length
-        # self.assertEqual(len_after, len_before+1)
-
+    @mock.patch('app.tasks.rest_consents.requests.post', side_effect=mocked_requests_post)
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_HarveyNick_login(self, login):
+    def test_HarveyNick_mock_login(self, mock_login, mock_post):
         user_info = {
             'scheme_account_id': 123,
             'status': 'pending'
@@ -126,27 +119,3 @@ class TestUserTokenStore(unittest.TestCase):
 
         }
         hn._login(credentials)
-
-
-    def xtest_3(self):
-        optin_data = {
-            "url": "http://localhost:5000",
-            "customer_number": "33333333",
-            "consents": [
-                {"slug": "optin_1", "value": True, "created_on": "2018-05-11 12:42"},
-                {"slug": "optin_2", "value": False, "created_on": "2018-05-11 12:44"},
-
-            ],
-            "retries": 10,
-            "state": "Consents",
-            "errors": []
-        }
-        task = ReTryTaskStore()
-        len_before = task.length
-        task.set_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
-        optin_data["customer_number"] = "444444444"
-        task.set_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
-        optin_data["customer_number"] = "555555555"
-        task.set_task("app.agents.harvey_nichols", "try_harvey_nic_optins", optin_data)
-        len_after = task.length
-        self.assertEqual(len_after, len_before + 3)

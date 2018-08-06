@@ -195,10 +195,15 @@ class HarveyNichols(ApiMiner):
                               confirm_dic,
                               log_errors=True,
                               identifier=self.customer_number,
-                              verify_decode=lambda response_data: json.loads(response_data),
-                              verify=lambda data: ('', True) if data['code'] == 200 and data['response'] == 'success'
-                              else (data['response'], False)
+                              verify="app.agents.harvey_nichols",   # name of mondule containing verify function
                               )
 
         else:
             self.handle_errors(json_result['outcome'])
+
+
+def verify(resp):
+    response_data = json.loads(resp.text)
+    if response_data.get("response") == "success" and response_data.get("code") == 200:
+        return True, ""
+    return False, f'harvery nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'
