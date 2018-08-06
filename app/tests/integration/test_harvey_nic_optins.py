@@ -1,5 +1,4 @@
 from app.tasks.rest_consents import send_consents
-from app.tasks.resend import ReTryTaskStore
 from app.agents.harvey_nichols import HarveyNichols
 from unittest import mock
 import unittest
@@ -15,7 +14,6 @@ def mocked_requests_post(*args, **kwargs):
         def json(self):
             return self.json_data
 
-    print(kwargs['data'])
     if args[0] == 'http://localhost:5000':
         return MockResponse(None, 200)
     else:
@@ -49,7 +47,7 @@ def mock_harvey_nick_post(*args, **kwargs):
     print(args)
     return MockResponse({'CustomerSignOnResult': {'outcome': 'Success',
                                                   'customerNumber': '2601507998647',
-                                                  'token':'1234'
+                                                  'token': '1234'
                                                   }}, 200)
 
 
@@ -100,9 +98,10 @@ class TestUserTokenStore(unittest.TestCase):
             mock.call('http://127.0.0.1:8000/schemes/userconsent/confirmed/1', timeout=10),
             mock_put.call_args_list)
 
+    @mock.patch('app.tasks.rest_consents.requests.put', side_effect=mocked_requests_post)
     @mock.patch('app.tasks.rest_consents.requests.post', side_effect=mocked_requests_post)
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_HarveyNick_mock_login(self, mock_login, mock_post):
+    def test_HarveyNick_mock_login(self, mock_login, mock_post, mock_put):
         user_info = {
             'scheme_account_id': 123,
             'status': 'pending'
