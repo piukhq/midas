@@ -271,7 +271,9 @@ class TestResources(TestCase):
         data = {
             "scheme_account_id": 2,
             "user_id": 4,
-            "credentials": credentials
+            "credentials": credentials,
+            'status': 0,
+            'journey_type': 0
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
