@@ -39,6 +39,7 @@ class SchemeAccountStatus:
 
 
 class JourneyTypes(Enum):
+    JOIN = 0
     LINK = 1
 
 

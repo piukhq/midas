@@ -5,7 +5,7 @@ from app.agents.exceptions import AgentError
 from app.configuration import Configuration
 from app.encryption import hash_ids
 from app.resources import get_agent_class, create_response
-from app.utils import SchemeAccountStatus
+from app.utils import SchemeAccountStatus, JourneyTypes
 from app.security.utils import authorise
 
 
@@ -16,7 +16,8 @@ class JoinCallback(Resource):
         user_info = {
             'credentials': None,
             'status': SchemeAccountStatus.PENDING,
-            'scheme_account_id': hash_ids.decode(data['record_uid'])[0]
+            'scheme_account_id': hash_ids.decode(data['record_uid'])[0],
+            'journey_type': JourneyTypes.JOIN.value
         }
         try:
             agent_class = get_agent_class(scheme_slug)

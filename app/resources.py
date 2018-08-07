@@ -182,11 +182,15 @@ def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
 class Register(Resource):
 
     def post(self, scheme_slug):
-        scheme_account_id = int(request.get_json()['scheme_account_id'])
+        data = request.get_json()
+        scheme_account_id = int(data['scheme_account_id'])
+        journey_type = data['journey_type']
+        status = int(data['status'])
         user_info = {
             'user_id': int(request.get_json()['user_id']),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': SchemeAccountStatus.PENDING,    # May be better to receive this information from hermes.
+            'status': status,
+            'journey_type': int(journey_type),
             'scheme_account_id': scheme_account_id,
         }
         tid = request.headers.get('transaction')

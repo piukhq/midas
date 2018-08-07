@@ -12,7 +12,7 @@ from app import create_app
 from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
-from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError
+from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.security.oauth import OAuth
@@ -110,7 +110,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
                                                                           mock_logger):
-        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
         self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
@@ -125,7 +125,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
-        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
 
@@ -134,7 +134,7 @@ class TestMerchantApi(FlaskTestCase):
                                         'update')
 
         self.assertTrue(mock_logger.info.called)
-        self.assertEqual({"errors": [], 'json': 'test'}, resp)
+        self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
@@ -250,7 +250,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_process_join.return_value = ''
         self.m.record_uid = self.m.scheme_id
 
-        resp = self.m._inbound_handler(json.loads(self.json_data), '', self.config.handler_type)
+        resp = self.m._inbound_handler(json.loads(self.json_data), '')
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual(resp, '')
@@ -260,18 +260,25 @@ class TestMerchantApi(FlaskTestCase):
     def test_async_inbound_logs_errors(self, mock_process_join, mock_logger):
         mock_process_join.return_value = ''
         self.m.record_uid = self.m.scheme_id
+        self.m.config = self.config
         data = json.loads(self.json_data)
-        data['errors'] = ['some error']
-        data['code'] = 'some error code'
+        data['error_codes'] = [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
 
-        self.m._inbound_handler(data, '', self.config.handler_type)
+        self.m._inbound_handler(data, '')
 
         self.assertTrue(mock_logger.error.called)
 
     def test_process_join_handles_errors(self):
         self.m.record_uid = self.m.scheme_id
-        self.m.result = {'errors': ['some error'],
-                         'code': 'GENERAL_ERROR'}
+        self.m.result = {
+            "error_codes": [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
+        }
 
         with self.assertRaises(AgentError) as e:
             self.m.process_join_response()
@@ -280,7 +287,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234'}
+        mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234'}
 
         self.m.login({'card_number': '1234'})
 
@@ -288,7 +295,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
+        mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
         self.m.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
         converted_identifier_type = self.m.merchant_identifier_mapping['merchant_scheme_id2']
 
@@ -299,7 +306,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
-        mock_outbound_handler.return_value = {"errors": []}
+        mock_outbound_handler.return_value = {"error_codes": []}
 
         self.m.register({})
 
@@ -308,15 +315,23 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_handles_error_payload(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": ['Account does not exist'],
-                                              "code": "NO_SUCH_RECORD"}
+        mock_outbound_handler.return_value = {
+            "error_codes": [{
+                "code": NO_SUCH_RECORD,
+                "description": errors[NO_SUCH_RECORD]['message']
+            }]
+        }
 
         with self.assertRaises(LoginError) as e:
             self.m.login({})
         self.assertEqual(e.exception.name, "Account does not exist")
 
-        mock_outbound_handler.return_value = {"errors": ['Message was not sent'],
-                                              "code": "NOT_SENT"}
+        mock_outbound_handler.return_value = {
+            "error_codes": [{
+                "code": NOT_SENT,
+                "description": errors[NOT_SENT]['message']
+            }]
+        }
 
         with self.assertRaises(LoginError) as e:
             self.m.login({})
@@ -325,10 +340,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {
-            "errors": [
-                "some unknown error"
-            ],
-            "code": "GENERAL_ERROR"
+            "error_codes": [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
         }
 
         with self.assertRaises(LoginError) as e:

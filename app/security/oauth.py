@@ -23,7 +23,7 @@ class OAuth(BaseSecurity):
             }
         except requests.RequestException as e:
             raise AgentError(SERVICE_CONNECTION_ERROR) from e
-        except KeyError as e:
+        except (KeyError, IndexError) as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
         return request_data
