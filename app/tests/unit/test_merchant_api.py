@@ -219,6 +219,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
     def test_async_inbound_success(self, mock_process_join, mock_logger):
         mock_process_join.return_value = ''
+        self.m.config = self.config
         self.m.record_uid = self.m.scheme_id
 
         resp = self.m._inbound_handler(json.loads(self.json_data), '')
