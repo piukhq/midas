@@ -434,9 +434,9 @@ class MerchantApi(BaseMiner):
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
-        error = self.result.get('errors')
+        error = self._check_for_error_response(self.result)
         if error:
-            self._handle_errors(self.result['code'])
+            self._handle_errors(error[0]['code'])
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -464,7 +464,7 @@ class MerchantApi(BaseMiner):
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
             # check for error response
-            error = self.result.get('error_codes')
+            error = self._check_for_error_response(self.result)
             if error:
                 self._handle_errors(error[0]['code'])
 
@@ -480,9 +480,9 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         # check for error response
-        error = self.result.get('errors')
+        error = self._check_for_error_response(self.result)
         if error:
-            self._handle_errors(self.result['code'])
+            self._handle_errors(error[0]['code'])
 
         identifier = self._get_identifiers(self.result)
         update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
@@ -497,7 +497,7 @@ class MerchantApi(BaseMiner):
         handles response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
-        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: dict of response data
         """
         self.message_uid = str(uuid1())
@@ -531,7 +531,7 @@ class MerchantApi(BaseMiner):
             temp_data,
             self.message_uid,
             scheme_slug,
-            handler_type,
+            self.config.handler_type,
             self.config.integration_service,
             "OUTBOUND"
         )
@@ -546,7 +546,7 @@ class MerchantApi(BaseMiner):
 
             logging_info['direction'] = "INBOUND"
             logging_info['json'] = response_data
-            if response_data.get('errors'):
+            if self._check_for_error_response(response_data):
                 logging_info['contains_errors'] = True
                 logger.error(json.dumps(logging_info))
             else:
@@ -554,13 +554,12 @@ class MerchantApi(BaseMiner):
 
         return response_data
 
-    def _inbound_handler(self, data, scheme_slug, handler_type):
+    def _inbound_handler(self, data, scheme_slug):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
         :param data: dict of payload
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
-        :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
         self.result = data
@@ -569,12 +568,12 @@ class MerchantApi(BaseMiner):
             data,
             self.result.get('message_uid'),
             scheme_slug,
-            handler_type,
+            self.config.handler_type,
             'ASYNC',
             'INBOUND'
         )
 
-        if self.result.get('errors'):
+        if self._check_for_error_response(self.result):
             logging_info['contains_errors'] = True
             logger.error(json.dumps(logging_info))
         else:
@@ -704,3 +703,7 @@ class MerchantApi(BaseMiner):
                 data[value] = data.pop(key)
 
         return json.dumps(data)
+
+    @staticmethod
+    def _check_for_error_response(response):
+        return response.get('error_codes')
