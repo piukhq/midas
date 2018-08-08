@@ -106,7 +106,6 @@ class Configuration:
         except TypeError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
-
     @staticmethod
     def get_security_credentials(key_items):
         """

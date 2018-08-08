@@ -26,21 +26,6 @@ mock_config = MagicMock()
 mock_config.scheme_slug = 'id'
 mock_config.merchant_url = 'stuff'
 mock_config.integration_service = 'SYNC'
-mock_config.security_credentials = {
-    'outbound': {
-        'service': 0,
-        'credentials': [
-            {'storage_key': '', 'value': PUBLIC_KEY, 'credential_type': 'bink_public_key'}
-        ]
-    },
-    'inbound': {
-        'service': 0,
-        'credentials': [
-            {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'},
-            {'storage_key': '', 'value': PUBLIC_KEY, 'credential_type': 'merchant_public_key'}
-        ]
-    }
-}
 mock_config.handler_type = 'UPDATE'
 mock_config.retry_limit = 2
 mock_config.callback_url = ''
@@ -60,8 +45,6 @@ class TestMerchantApi(FlaskTestCase):
                  'user_id': 1,
                  'journey_type': JourneyTypes.LINK.value}
 
-    m = MerchantApi(1, user_info)
-
     json_data = json_data
 
     signature = (b'BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T'
@@ -71,10 +54,27 @@ class TestMerchantApi(FlaskTestCase):
                  b'401duxapoRkQUpUIgayoz4b6uVlm4TbiS+vFmULVcLZ0rvhLoC2l0S1c'
                  b'27Ti+F4QntxmTOfcxw6SB+V0PEr8gIk59lHSKqKiDcGRjnOIES084DKeMyuMUQ==').decode('utf8')
 
-    config = mock_config
-
     def create_app(self):
         return create_app(self, )
+
+    def setUp(self):
+        mock_config.security_credentials = {
+            'outbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'}
+                ]
+            },
+            'inbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'},
+                    {'storage_key': '', 'value': PUBLIC_KEY, 'credential_type': 'merchant_public_key'}
+                ]
+            }
+        }
+        self.config = mock_config
+        self.m = MerchantApi(1, self.user_info)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
@@ -271,7 +271,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
         mock_outbound_handler.return_value = {"errors": []}
-
+        self.m.config = self.config
         self.m.register({})
 
         self.assertTrue(mock_outbound_handler.called)
@@ -301,6 +301,7 @@ class TestMerchantApi(FlaskTestCase):
             ],
             "code": "GENERAL_ERROR"
         }
+        self.m.config = self.config
 
         with self.assertRaises(LoginError) as e:
             self.m.register({})
@@ -320,14 +321,10 @@ class TestMerchantApi(FlaskTestCase):
             'retry_limit': 0,
             'log_level': 2,
             'country': 'GB',
-            'security_credentials': mock_config.security_credentials
+            'security_credentials': self.config.security_credentials
         }
 
-        mock_get_security_creds.return_value = {
-            'credential_type': 'public_key',
-            'storage_key': '123456',
-            'value': 'asdfghjkl'
-        }
+        mock_get_security_creds.return_value = self.config.security_credentials
 
         expected = {
             'handler_type': (1, 'JOIN'),
@@ -368,7 +365,7 @@ class TestMerchantApi(FlaskTestCase):
         timestamp = 1523356514
         json_with_timestamp = '{}{}'.format(json_data, timestamp)
         mock_add_timestamp.return_value = json_with_timestamp, timestamp
-        rsa = RSA([{'type': 'bink_private_key', 'value': PRIVATE_KEY}])
+        rsa = RSA(self.config.security_credentials)
         expected_result = {
             'json': json.loads(json_data),
             'headers': {'Authorization': 'Signature {}'.format(self.signature),
@@ -387,7 +384,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_validate_time.return_value = 'Signature {}'.format(self.signature)
 
-        rsa = RSA(mock_config.security_credentials)
+        rsa = RSA(self.config.security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 1523356514
@@ -400,7 +397,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_failed_verification(self, mock_time):
         mock_time.return_value = 1523356514
-        rsa = RSA(mock_config.security_credentials)
+        rsa = RSA(self.config.security_credentials)
         request = requests.Request()
         request.json = json.loads(self.json_data)
         request.headers = {
@@ -418,7 +415,7 @@ class TestMerchantApi(FlaskTestCase):
     def test_rsa_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
         mock_time.return_value = 9876543210
 
-        rsa = RSA(mock_config.security_credentials)
+        rsa = RSA(self.config.security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 12345
@@ -433,7 +430,15 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
     def test_rsa_security_raises_exception_when_public_key_is_not_in_credentials(self, mock_validate_timestamp):
-        rsa = RSA(mock_config.security_credentials)
+        security_credentials = {
+            'outbound': {},
+            'inbound': {
+                'service': 0,
+                'credentials': [{'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'}]
+            }
+        }
+
+        rsa = RSA(security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 12345
@@ -450,7 +455,7 @@ class TestMerchantApi(FlaskTestCase):
         request_payload = OrderedDict([('message_uid', '123-123-123-123'),
                                        ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')])
 
-        rsa = RSA(mock_config.security_credentials)
+        rsa = RSA(self.config.security_credentials)
         headers = {
             'X-REQ-TIMESTAMP': 12345
         }
@@ -519,10 +524,8 @@ class TestMerchantApi(FlaskTestCase):
             'retry_limit': 0,
             'log_level': 2,
             'country': 'GB',
-            'security_credentials': [
-                {'type': 'public_key',
-                 'storage_key': '123456'}
-            ]}
+            'security_credentials': self.config.security_credentials
+        }
 
         mock_vault_client.return_value = None
 
