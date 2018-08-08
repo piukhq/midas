@@ -1,5 +1,6 @@
 import functools
 import json
+from datetime import datetime
 
 import requests
 from flask import make_response, request
@@ -11,13 +12,13 @@ from werkzeug.exceptions import NotFound
 
 import settings
 from cron_test_results import resolve_issue, get_formatted_message, handle_helios_request, test_single_agent
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 from app import retry, publish
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor
-from app.utils import resolve_agent, raise_intercom_event, get_headers, SchemeAccountStatus
+from app.utils import resolve_agent, raise_intercom_event, get_headers, SchemeAccountStatus, log_task
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -72,10 +73,12 @@ class Balance(Resource):
     )
     def get(self, scheme_slug):
         status = request.args.get('status')
+        journey_type = request.args.get('journey_type')
         user_info = {
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
+            'journey_type': int(journey_type) if journey_type else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -179,14 +182,22 @@ def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
 class Register(Resource):
 
     def post(self, scheme_slug):
+        data = request.get_json()
+        scheme_account_id = int(data['scheme_account_id'])
+        journey_type = data['journey_type']
+        status = int(data['status'])
         user_info = {
             'user_id': int(request.get_json()['user_id']),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': SchemeAccountStatus.PENDING,    # May be better to receive this information from hermes.
-            'scheme_account_id': int(request.get_json()['scheme_account_id']),
+            'status': status,
+            'journey_type': int(journey_type),
+            'scheme_account_id': scheme_account_id,
         }
         tid = request.headers.get('transaction')
 
+        logger.debug(
+            "{0} - creating registration task for scheme account: {1}".format(datetime.now(), scheme_account_id)
+        )
         thread_pool_executor.submit(registration, scheme_slug, user_info, tid)
 
         return create_response({"message": "success"})
@@ -392,6 +403,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
     }
 
 
+@log_task
 def registration(scheme_slug, user_info, tid):
     intercom_data = {
         'user_id': user_info['user_id'],

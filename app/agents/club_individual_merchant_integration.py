@@ -35,7 +35,7 @@ class ClubIndividual(MerchantApi):
             'points': Decimal(row['balance_value']),
         }
 
-    def get_bink_merchant_ids(self, credentials):
+    def get_merchant_ids(self, credentials):
         merchant_ids = {
             'merchant_scheme_id1': credentials['email'],
             'merchant_scheme_id2': credentials.get('merchant_identifier')

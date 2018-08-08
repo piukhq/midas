@@ -34,7 +34,7 @@ from app.publish import thread_pool_executor
 from app.resources import update_pending_join_account
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
-from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
 from settings import logger, BACK_OFF_COOLDOWN
 
 
@@ -390,6 +390,16 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
+    credential_mapping = {
+        'date_of_birth': 'dob',
+        'phone': 'phone1',
+        'phone_2': 'phone2'
+    }
+    identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+    # used to map merchant identifiers to scheme credential types
+    merchant_identifier_mapping = {
+        'merchant_scheme_id2': 'merchant_identifier',
+    }
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         self.retry_count = retry_count
@@ -397,11 +407,6 @@ class MerchantApi(BaseMiner):
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
-        self.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
-        # used to map merchant identifiers to scheme credential types
-        self.merchant_identifier_mapping = {
-            'merchant_scheme_id2': 'merchant_identifier'
-        }
 
         self.record_uid = None
         self.result = None
@@ -422,16 +427,16 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        account_link = self.user_info['status'] == SchemeAccountStatus.WALLET_ONLY
+        account_link = self.user_info['journey_type'] == JourneyTypes.LINK.value
 
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
-        error = self.result.get('errors')
+        error = self._check_for_error_response(self.result)
         if error:
-            self._handle_errors(self.result['code'])
+            self._handle_errors(error[0]['code'])
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -458,6 +463,11 @@ class MerchantApi(BaseMiner):
 
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
+            # check for error response
+            error = self._check_for_error_response(self.result)
+            if error:
+                self._handle_errors(error[0]['code'])
+
             # Async joins will return empty 200 responses so there is nothing to process.
             if self.config.integration_service == 'SYNC':
                 self.process_join_response()
@@ -470,9 +480,9 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         # check for error response
-        error = self.result.get('errors')
+        error = self._check_for_error_response(self.result)
         if error:
-            self._handle_errors(self.result['code'])
+            self._handle_errors(error[0]['code'])
 
         identifier = self._get_identifiers(self.result)
         update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
@@ -487,18 +497,27 @@ class MerchantApi(BaseMiner):
         handles response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
-        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: dict of response data
         """
-        message_uid = str(uuid1())
+        self.message_uid = str(uuid1())
         if not self.config:
             self.config = Configuration(scheme_slug, handler_type)
 
         logger.setLevel(self.config.log_level)
 
-        data['message_uid'] = message_uid
+        if handler_type == Configuration.JOIN_HANDLER:
+            data['country'] = self.config.country
+
+        data['message_uid'] = self.message_uid
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
+
+        if data.get('consents'):
+            data.update({
+                consent['slug']: consent['value']
+                for consent in data.pop('consents')
+            })
 
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
@@ -510,9 +529,9 @@ class MerchantApi(BaseMiner):
 
         logging_info = self._create_log_message(
             temp_data,
-            message_uid,
+            self.message_uid,
             scheme_slug,
-            handler_type,
+            self.config.handler_type,
             self.config.integration_service,
             "OUTBOUND"
         )
@@ -527,7 +546,7 @@ class MerchantApi(BaseMiner):
 
             logging_info['direction'] = "INBOUND"
             logging_info['json'] = response_data
-            if response_data.get('errors'):
+            if self._check_for_error_response(response_data):
                 logging_info['contains_errors'] = True
                 logger.error(json.dumps(logging_info))
             else:
@@ -535,13 +554,12 @@ class MerchantApi(BaseMiner):
 
         return response_data
 
-    def _inbound_handler(self, data, scheme_slug, handler_type):
+    def _inbound_handler(self, data, scheme_slug):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
         :param data: dict of payload
         :param scheme_slug: Bink's unique identifier for a merchant (slug)
-        :param handler_type: type of handler (String). e.g 'join'
         :return: dict of response data
         """
         self.result = data
@@ -550,12 +568,12 @@ class MerchantApi(BaseMiner):
             data,
             self.result.get('message_uid'),
             scheme_slug,
-            handler_type,
+            self.config.handler_type,
             'ASYNC',
             'INBOUND'
         )
 
-        if self.result.get('errors'):
+        if self._check_for_error_response(self.result):
             logging_info['contains_errors'] = True
             logger.error(json.dumps(logging_info))
         else:
@@ -571,21 +589,25 @@ class MerchantApi(BaseMiner):
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
-        security_agent = get_security_agent(config.security_service, config.security_credentials)
-        request = security_agent.encode(json_data)
+        json_data = self.map_credentials_to_request(json_data)
+        outbound_security_agent = get_security_agent(config.security_credentials['outbound']['service'],
+                                                     config.security_credentials)
+        request = outbound_security_agent.encode(json_data)
         back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):
             if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
-                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 break
             else:
                 response = requests.post(config.merchant_url, **request)
                 status = response.status_code
 
-                if status == 200:
-                    response_json = security_agent.decode(response.headers,
-                                                          response.text)
+                if status in [200, 202]:
+                    inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                                config.security_credentials)
+                    response_json = inbound_security_agent.decode(response.headers,
+                                                                  response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
@@ -600,9 +622,9 @@ class MerchantApi(BaseMiner):
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                    response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 else:
-                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                    response_json = create_error_response(UNKNOWN,
                                                           errors[UNKNOWN]['name'] + ' with status code {}'
                                                           .format(status))
 
@@ -667,3 +689,21 @@ class MerchantApi(BaseMiner):
                 converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
                 _identifier[converted_credential_type] = value
         return _identifier
+
+    def map_credentials_to_request(self, data):
+        """
+        Converts credential keys to correct JSON keys in merchant request.
+        Agents will override the credential_mapping class attribute to define the changes.
+        :param data: JSON object of credentials being sent to merchant.
+        :return: JSON object of credentials with keys converted into the JSON keys to be sent to a merchant.
+        """
+        data = json.loads(data)
+        for key, value in self.credential_mapping.items():
+            if key in data:
+                data[value] = data.pop(key)
+
+        return json.dumps(data)
+
+    @staticmethod
+    def _check_for_error_response(response):
+        return response.get('error_codes')

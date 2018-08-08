@@ -18,6 +18,9 @@ def create_app(config_name="settings"):
     from app.urls import api
     app = Flask('core')
     app.config.from_object(config_name)
+    app.config['SENTRY_CONFIG'] = {
+        'ignore_exceptions': [AgentException, UnknownException],
+    }
     if settings.SENTRY_DSN:
         sentry.init_app(
             app,

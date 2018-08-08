@@ -4,13 +4,15 @@ import re
 import time
 import socket
 from decimal import Decimal
+from datetime import datetime
+from enum import Enum
 
 import lxml.html
 import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY
+from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
 
@@ -34,6 +36,11 @@ class SchemeAccountStatus:
     PASSWORD_EXPIRED = 533
     JOIN = 900
     NO_SUCH_RECORD = 444
+
+
+class JourneyTypes(Enum):
+    JOIN = 0
+    LINK = 1
 
 
 def extract_decimal(s):
@@ -128,8 +135,12 @@ class IntercomException(Exception):
 
 def create_error_response(error_code, error_description):
     response_json = json.dumps({
-        'errors': [error_description],
-        'code': error_code
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
     })
     return response_json
 
@@ -141,3 +152,36 @@ def get_headers(tid):
                'Authorization': 'token ' + SERVICE_API_KEY}
 
     return headers
+
+
+def log_task(func):
+    def logged_func(*args, **kwargs):
+        try:
+            scheme_account_message = ' for scheme account: {}'.format(args[1]['scheme_account_id'])
+        except KeyError:
+            scheme_account_message = ''
+
+        try:
+            logger.debug('{0} - starting {1} task{2}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message
+            ))
+            result = func(*args, **kwargs)
+            logger.debug('{0} - finished {1} task{2}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message
+            ))
+        except Exception as e:
+            logger.debug('{0} - error with {1} task{2}. error: {3}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message,
+                repr(e)
+            ))
+            raise
+
+        return result
+
+    return logged_func
