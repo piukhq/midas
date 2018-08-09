@@ -649,7 +649,7 @@ class MerchantApi(BaseMiner):
         self.record_uid = hash_ids.encode(self.scheme_id)
 
         # asynchronously call handler
-        thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug, handler_type)
+        thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug)
 
     # agents will override this if unique values are needed
     def get_merchant_ids(self, credentials):

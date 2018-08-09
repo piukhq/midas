@@ -363,6 +363,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         'credentials': str,
         'status': str,
         'scheme_account_id': int
+        'journey_type': int
     }
     :param scheme_slug: String of merchant identifier e.g 'harvey-nichols'
     :param from_register: Boolean of whether the login call is from the registration process.
