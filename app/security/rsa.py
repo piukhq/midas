@@ -20,7 +20,7 @@ class RSA(BaseSecurity):
         """
         json_data_with_timestamp, timestamp = self._add_timestamp(json_data)
 
-        key = CRYPTO_RSA.importKey(self._get_key('bink_private_key'))
+        key = CRYPTO_RSA.importKey(self._get_key('bink_private_key', self.credentials['outbound']['credentials']))
         digest = SHA256.new(json_data_with_timestamp.encode('utf8'))
         signer = pkcs1_15.new(key)
         signature = base64.b64encode(signer.sign(digest)).decode('utf8')
@@ -61,7 +61,8 @@ class RSA(BaseSecurity):
 
         json_data_with_timestamp = '{}{}'.format(json_data, timestamp)
         try:
-            key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key'))
+            key = CRYPTO_RSA.importKey(self._get_key('merchant_public_key',
+                                                     self.credentials['inbound']['credentials']))
         except KeyError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
