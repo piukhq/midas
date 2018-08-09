@@ -63,6 +63,7 @@ class BaseMiner(object):
     ]
     identifier_type = None
     identifier = None
+    expecting_callback = False
     async = False
 
     def register(self, credentials):
@@ -508,6 +509,8 @@ class MerchantApi(BaseMiner):
 
         if handler_type == Configuration.JOIN_HANDLER:
             data['country'] = self.config.country
+            if self.config.integration_service == 'ASYNC':
+                self.expecting_callback = True
 
         data['message_uid'] = self.message_uid
         data['record_uid'] = self.record_uid

@@ -24,11 +24,6 @@ from app.utils import JourneyTypes
 mock_config = MagicMock()
 mock_config.scheme_slug = 'id'
 mock_config.merchant_url = 'stuff'
-mock_config.integration_service = 'SYNC'
-mock_config.security_credentials = {
-    'outbound': {'service': 0, 'credentials': [{'storage_key': '', 'value': '', 'credential_type': 'bink_public_key'}]},
-    'inbound': {'service': 0, 'credentials': [{'storage_key': '', 'value': '', 'credential_type': 'bink_private_key'}]}
-}
 mock_config.handler_type = 'UPDATE'
 mock_config.retry_limit = 2
 mock_config.callback_url = ''
@@ -105,6 +100,26 @@ class TestMerchantApi(FlaskTestCase):
     def create_app(self):
         return create_app(self, )
 
+    def setUp(self):
+        mock_config.integration_service = 'SYNC'
+        mock_config.security_credentials = {
+            'outbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'}
+                ]
+            },
+            'inbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'},
+                    {'storage_key': '', 'value': PUBLIC_KEY, 'credential_type': 'merchant_public_key'}
+                ]
+            }
+        }
+        self.config = mock_config
+        self.m = MerchantApi(1, self.user_info)
+
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
@@ -135,6 +150,33 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        self.config.integration_service = 'ASYNC'
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertTrue(self.m.expecting_callback)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertFalse(self.m.expecting_callback)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
