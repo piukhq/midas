@@ -58,6 +58,7 @@ class TestMerchantApi(FlaskTestCase):
         return create_app(self, )
 
     def setUp(self):
+        mock_config.integration_service = 'SYNC'
         mock_config.security_credentials = {
             'outbound': {
                 'service': 0,
@@ -106,6 +107,33 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        self.config.integration_service = 'ASYNC'
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertTrue(self.m.expecting_callback)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertFalse(self.m.expecting_callback)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
