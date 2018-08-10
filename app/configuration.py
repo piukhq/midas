@@ -98,13 +98,11 @@ class Configuration:
         self.country = self.data['country']
 
         self.security_credentials = self.data['security_credentials']
+        inbound_data = self.security_credentials['inbound']['credentials']
+        outbound_data = self.security_credentials['outbound']['credentials']
         try:
-            self.security_credentials['inbound']['credentials'] = self.get_security_credentials(
-                self.data['security_credentials']['inbound']['credentials']
-            )
-            self.security_credentials['outbound']['credentials'] = self.get_security_credentials(
-                self.data['security_credentials']['outbound']['credentials']
-            )
+            self.security_credentials['inbound']['credentials'] = self.get_security_credentials(inbound_data)
+            self.security_credentials['outbound']['credentials'] = self.get_security_credentials(outbound_data)
         except TypeError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
@@ -119,7 +117,7 @@ class Configuration:
         try:
             for key_item in key_items:
                 value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data']
-                key_item['value'] = value
+                key_item.update(value)
         except TypeError as e:
             raise TypeError('Could not locate security credentials in vault.') from e
 
