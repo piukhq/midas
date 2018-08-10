@@ -4,17 +4,21 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
-from app.tasks.rest_consents import send_consents
+from app.tasks.resend_consents import send_consents
 import arrow
 import json
 
 
 class HarveyNichols(ApiMiner):
 
+    # Agent settings
+    BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
+    CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"   # Authorisation key for Harvey Nichols consents
+    AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
+    HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
     token_store = UserTokenStore(REDIS_URL)
 
-    BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
-    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'
 
     def login(self, credentials):
         self.credentials = credentials
@@ -179,30 +183,35 @@ class HarveyNichols(ApiMiner):
                 # i.e.the json post '{"enactor_id":"123456789", "email_optin":true|false, "push_optin":true|false}
 
                 hn_post_message = {"enactor_id": self.customer_number}
-                confirm_dic = {}
+                confirm_retries = {}    # While hold the retry count down for each consent confirmation retried
 
                 for consent in credentials['consents']:
                     hn_post_message[consent['slug']] = consent['value']
-                    confirm_dic[consent['id']] = 10     # retries per confirm to hermes put if 0 will not confirm!
+                    confirm_retries[consent['id']] = self.HERMES_CONFIRMATION_TRIES
 
                 headers = {"Content-Type": "application/json; charset=utf-8",
                            "Accept": "application/json",
-                           "Auth-key": "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"
+                           "Auth-key": self.CONSENTS_AUTH_KEY
                            }
-                send_consents(self.CONSENTS_URL,
-                              headers,
-                              json.dumps(hn_post_message),
-                              confirm_dic,
-                              log_errors=True,
-                              identifier=self.customer_number,
-                              verify="app.agents.harvey_nichols",   # name of mondule containing verify function
-                              )
+
+                send_consents({
+                    "url": self.CONSENTS_URL,  # set to scheme url for the agent to accept consents
+                    "headers": headers,        # headers used for agent consent call
+                    "message": json.dumps(hn_post_message),  # set to message body encoded as required
+                    "agent_tries": self.AGENT_TRIES,        # max number of attempts to send consents to agent
+                    "confirm_tries": confirm_retries,     # retries for each consent confirmation sent to hermes
+                    'id': self.customer_number,     # used for identification in error messages
+                    "callback": "app.agents.harvey_nichols" # If present identifies the module containing the
+                                                            # function "agent_consent_response"
+                                                            # callback_function can be set to change default function
+                                                            # name.  Without this the HTML repsonse status code is used
+                })
 
         else:
             self.handle_errors(json_result['outcome'])
 
 
-def verify(resp):
+def agent_consent_response(resp):
     response_data = json.loads(resp.text)
     if response_data.get("response") == "success" and response_data.get("code") == 200:
         return True, ""
