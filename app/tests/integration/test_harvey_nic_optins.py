@@ -127,7 +127,7 @@ class TestUserTokenStore(unittest.TestCase):
         # self.assertEqual('http://127.0.0.1:8000/schemes/userconsent/2', mock_put.call_args_list[1][0][0])
 
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_HarveyNick_mock_login_real(self,mock_login):
+    def test_HarveyNick_mock_login_real(self, mock_login):
         user_info = {
             'scheme_account_id': 3,
             'status': 'pending'

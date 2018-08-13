@@ -31,7 +31,6 @@ def create_app(config_name="settings"):
     api.init_app(app)
     redis.init_app(app)
 
-
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):
         error = error.args[0]
