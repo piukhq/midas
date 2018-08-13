@@ -10,7 +10,6 @@ import json
 
 
 class HarveyNichols(ApiMiner):
-
     # Agent settings
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
     CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
@@ -18,7 +17,6 @@ class HarveyNichols(ApiMiner):
     AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
     token_store = UserTokenStore(REDIS_URL)
-
 
     def login(self, credentials):
         self.credentials = credentials
@@ -201,7 +199,7 @@ class HarveyNichols(ApiMiner):
                     "agent_tries": self.AGENT_TRIES,        # max number of attempts to send consents to agent
                     "confirm_tries": confirm_retries,     # retries for each consent confirmation sent to hermes
                     'id': self.customer_number,     # used for identification in error messages
-                    "callback": "app.agents.harvey_nichols" # If present identifies the module containing the
+                    "callback": "app.agents.harvey_nichols"   # If present identifies the module containing the
                                                             # function "agent_consent_response"
                                                             # callback_function can be set to change default function
                                                             # name.  Without this the HTML repsonse status code is used

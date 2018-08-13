@@ -21,18 +21,21 @@ class MockResponse:
 def mocked_requests_post_400(*args, **kwargs):
     return MockResponse(None, 400)
 
+
 def mocked_requests_post_200(*args, **kwargs):
     return MockResponse(None, 200)
+
 
 def mocked_requests_put_400(*args, **kwargs):
     return MockResponse(None, 400)
 
+
 def mocked_requests_put_200_fail(*args, **kwargs):
-    return MockResponse({ "response": "failure", "code": 404 }, 200)
+    return MockResponse({"response": "failure", "code": 404}, 200)
 
 
 def mocked_requests_put_200_ok(*args, **kwargs):
-    return MockResponse({ "response": "success", "code": 200 }, 200)
+    return MockResponse({"response": "success", "code": 200}, 200)
 
 
 def mock_harvey_nick_post(*args, **kwargs):
@@ -123,17 +126,18 @@ class TestUserTokenStore(unittest.TestCase):
         # self.assertEqual('http://127.0.0.1:8000/schemes/userconsent/1', mock_put.call_args_list[0][0][0])
         # self.assertEqual('http://127.0.0.1:8000/schemes/userconsent/2', mock_put.call_args_list[1][0][0])
 
-
-    def test_HarveyNick_mock_login_real(self):
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
+    def test_HarveyNick_mock_login_real(self,mock_login):
         user_info = {
             'scheme_account_id': 3,
             'status': 'pending'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
-        hn.scheme_id = 123
+        hn.scheme_id = 1
         credentials = {
             'email': 'mmarsh@bink.com',
             'password': 'SDxyh!wed12X',
+            'card_number': '2601507998647',
             'consents': [
                 {"id": 6, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
                 {"id": 7, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},

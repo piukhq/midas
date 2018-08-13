@@ -94,8 +94,8 @@ def try_hermes_confirm(consents_data):
     message_prefix = f"{consents_data.get('id','')} sending to hermes: "
     for user_consent_id, retry_confirm in consents_data['confirm_tries'].items():
         if retry_confirm > 0:
-            resp = requests.put(f'{HERMES_URL}/schemes/userconsent/{user_consent_id}', timeout=10,
-                                data=json.dumps({"status":consents_data["status"]}, cls=JsonEncoder),
+            resp = requests.put(f'{HERMES_URL}/schemes/user_consent/{user_consent_id}', timeout=10,
+                                data=json.dumps({"status": consents_data["status"]}, cls=JsonEncoder),
                                 headers=get_headers(0))
             if resp.status_code == 200:
                 consents_data['confirm_tries'][user_consent_id] = 0  # no more tries for this message
