@@ -400,7 +400,8 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
             error = ACCOUNT_ALREADY_EXISTS
 
     return {
-        'error': error,
+        'agent': agent_instance,
+        'error': error
     }
 
 
@@ -421,7 +422,7 @@ def registration(scheme_slug, user_info, tid):
     register_result = agent_register(agent_class, user_info, intercom_data, tid,
                                      scheme_slug=scheme_slug)
     try:
-        if agent_class.expecting_callback:
+        if register_result['agent'].expecting_callback:
             return True
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug,
                                      from_register=True)
