@@ -79,7 +79,7 @@ def try_agent_send(consents_data):
         consents_data["status"] = ConsentStatus.FAILED
         message = f"{message_prefix}Error Code {resp.status_code}"
 
-    if consents_data["status"] == ConsentStatus.FAILED and consents_data["retries"] == 1:
+    if consents_data["status"] == ConsentStatus.FAILED and consents_data["retries"] == 0:
         done = True
 
     if done:
