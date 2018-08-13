@@ -15,6 +15,7 @@ from unittest import mock, TestCase
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
+from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
@@ -116,6 +117,7 @@ class TestMerchantApi(FlaskTestCase):
         self.config.integration_service = 'ASYNC'
         mock_configuration.return_value = self.config
         mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        mock_configuration.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
         self.m.record_uid = '123'
 
         self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
@@ -134,6 +136,26 @@ class TestMerchantApi(FlaskTestCase):
         self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
 
         self.assertFalse(self.m.expecting_callback)
+
+    @mock.patch.object(MerchantApi, 'attempt_register')
+    @mock.patch('app.resources.update_pending_join_account', autospec=True)
+    def test_attempt_register_returns_agent_instance(self, mock_update_pending_join_account, mock_register):
+        mock_register.return_value = {'message': 'success'}
+        self.config.integration_service = 'ASYNC'
+        user_info = {
+            'metadata': {},
+            'scheme_slug': 'test slug',
+            'user_id': 'test user id',
+            'credentials': {},
+            'scheme_account_id': 2,
+        }
+
+        register_data = agent_register(MerchantApi, user_info, {}, 1)
+        agent_instance = register_data['agent']
+
+        self.assertTrue(hasattr(agent_instance, 'expecting_callback'))
+        self.assertTrue(mock_register.called)
+        self.assertFalse(mock_update_pending_join_account.called)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)

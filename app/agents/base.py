@@ -509,7 +509,8 @@ class MerchantApi(BaseMiner):
 
         if handler_type == Configuration.JOIN_HANDLER:
             data['country'] = self.config.country
-            if self.config.integration_service == 'ASYNC':
+            async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+            if self.config.integration_service == async_service_identifier:
                 self.expecting_callback = True
 
         data['message_uid'] = self.message_uid
