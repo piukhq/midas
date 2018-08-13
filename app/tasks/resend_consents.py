@@ -1,5 +1,5 @@
 from .resend import ReTryTaskStore
-from settings import HERMES_URL
+from settings import HERMES_URL, logger
 from app.utils import get_headers
 import importlib
 import requests
@@ -27,7 +27,7 @@ def send_consents(consents_data):
     done, message = try_consents(consents_data)
 
     if not done:
-        consents_data["errors"] = [message]
+        logger.error(message)
         task = ReTryTaskStore()
         task.set_task("app.tasks.resend_consents", "try_consents", consents_data)
 

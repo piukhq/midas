@@ -123,29 +123,21 @@ class TestUserTokenStore(unittest.TestCase):
         # self.assertEqual('http://127.0.0.1:8000/schemes/userconsent/1', mock_put.call_args_list[0][0][0])
         # self.assertEqual('http://127.0.0.1:8000/schemes/userconsent/2', mock_put.call_args_list[1][0][0])
 
-    @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_200_ok)
-    @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_200)
-    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_HarveyNick_mock_login_ok(self, mock_login, mock_post, mock_put):
+
+    def test_HarveyNick_mock_login_real(self):
         user_info = {
-            'scheme_account_id': 123,
+            'scheme_account_id': 3,
             'status': 'pending'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.scheme_id = 123
         credentials = {
-            'email': 'mytest@localhost.com',
-            'password': '12345',
+            'email': 'mmarsh@bink.com',
+            'password': 'SDxyh!wed12X',
             'consents': [
-                {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
+                {"id": 6, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
+                {"id": 7, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
             ]
 
         }
         hn._login(credentials)
-        self.assertEqual('https://admin.uat.harveynichols.com/preferences/create', mock_post.call_args_list[0][0][0])
-
-        self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
-                         mock_post.call_args_list[0][1]["data"])
-
-        print(mock_put.call_args_list)
