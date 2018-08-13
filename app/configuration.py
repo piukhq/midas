@@ -116,8 +116,12 @@ class Configuration:
         client = hvac.Client(token=VAULT_TOKEN, url=VAULT_URL)
         try:
             for key_item in key_items:
-                value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data']
-                key_item.update(value)
+                stored_dict = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data']
+
+                # Stores the value mapped to the 'value' key of the stored data.
+                # If this doesn't exist, i.e for compound keys, the full mapping is stored as the value.
+                value = stored_dict.get('value')
+                key_item.update(value=value or stored_dict)
         except TypeError as e:
             raise TypeError('Could not locate security credentials in vault.') from e
 
