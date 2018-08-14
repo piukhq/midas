@@ -105,9 +105,9 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
                          mock_post.call_args_list[0][1]["data"])
 
-        self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
+        self.assertIn('/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
         self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
-        self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
+        self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
 
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_200_ok)
@@ -138,9 +138,9 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
                          mock_post.call_args_list[0][1]["data"])
 
-        self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
+        self.assertIn('/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
-        self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
+        self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
 
     @mock.patch('app.tasks.resend_consents.ReTryTaskStore', side_effect=MockedReTryTaskStore)
@@ -194,9 +194,9 @@ class TestUserConsents(unittest.TestCase):
             saved_consents_data["retries"] -= 1
             try_consents(saved_consents_data)
 
-            self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
+            self.assertIn('/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
             self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
-            self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
+            self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
             self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
 
     @mock.patch('app.tasks.resend_consents.ReTryTaskStore', side_effect=MockedReTryTaskStore)
@@ -248,7 +248,7 @@ class TestUserConsents(unittest.TestCase):
             saved_consents_data["retries"] -= 1
             try_consents(saved_consents_data)
 
-            self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
+            self.assertIn('/schemes/user_consent/1', mock_put.call_args_list[0][0][0])
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
-            self.assertEqual('http://127.0.0.1:8000/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
+            self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
