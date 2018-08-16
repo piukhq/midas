@@ -22,7 +22,6 @@ from app.security.rsa import RSA
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 from app.utils import JourneyTypes
 
-
 mock_config = MagicMock()
 mock_config.scheme_slug = 'id'
 mock_config.merchant_url = 'stuff'
@@ -313,6 +312,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.login({'card_number': '1234'})
 
+        self.m.login({})
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
