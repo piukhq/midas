@@ -171,15 +171,9 @@ class HarveyNichols(ApiMiner):
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: self.customer_number}
-                # sends the Harvey Nichols consents which has been changed from Soap to a rest message
-                # IMPORTANT:
-                #  The consent slugs must be set to email_optin and push_optin in consent definitions
-                #
-                # draft "spec" sent by email:
-                # curl - k - H "Accept: application/json" - X POST - d '{"enactor_id":"123456789",
-                # "email_optin": true | false, "push_optin": true | false}' https://$endpoint/preferences/create
-                # i.e.the json post '{"enactor_id":"123456789", "email_optin":true|false, "push_optin":true|false}
 
+                # Use consents retry mechanism as explained in
+                # https://books.bink.com/books/backend-development/page/retry-tasks
                 hn_post_message = {"enactor_id": self.customer_number}
                 confirm_retries = {}    # While hold the retry count down for each consent confirmation retried
 
