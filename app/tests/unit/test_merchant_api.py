@@ -314,7 +314,6 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.login({})
         self.assertTrue(mock_outbound_handler.called)
-        self.assertEqual(self.m.identifier, {'card_number': '1234', converted_identifier_type: 'abc'})
 
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
