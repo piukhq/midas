@@ -25,11 +25,11 @@ sudo docker-compose run --service-ports redis
   - String Value, IP or FQDN of REDIS
 - `REDIS_PORT`
   - String Value, Port for REDIS
-- `REDIS_PASS`
+- `REDIS_PASSWORD`
   - String Value, Password for REDIS
 - `HADES_URL`
   - String Value, URL for Hades
 - `HERMES_URL`
   - String Value, URL for Hermes
-- `MIDAS_SENTRY_DSN`
+- `SENTRY_DSN`
   - String Value, Sentry DNS for Midas

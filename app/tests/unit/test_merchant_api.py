@@ -12,10 +12,29 @@ from app import create_app
 from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
-from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError
+from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
+from app.resources import agent_register
+from app.security.oauth import OAuth
+from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
+from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
+from app.utils import JourneyTypes
+
+mock_config = MagicMock()
+mock_config.scheme_slug = 'id'
+mock_config.merchant_url = 'stuff'
+mock_config.integration_service = 'SYNC'
+mock_config.handler_type = 'UPDATE'
+mock_config.retry_limit = 2
+mock_config.callback_url = ''
+mock_config.log_level = 'DEBUG'
+mock_config.country = 'GB'
+
+json_data = json.dumps({'message_uid': '123-123-123-123',
+                        'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',  # hash for a scheme account id of 1
+                        'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -23,12 +42,10 @@ class TestMerchantApi(FlaskTestCase):
 
     user_info = {'scheme_account_id': 1,
                  'status': '',
-                 'user_id': 1}
+                 'user_id': 1,
+                 'journey_type': JourneyTypes.LINK.value}
 
-    m = MerchantApi(1, user_info)
-    json_data = json.dumps({'message_uid': '123-123-123-123',
-                            'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',    # hash for a scheme account id of 1
-                            'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
+    json_data = json_data
 
     signature = (b'BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T'
                  b'a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb'
@@ -37,70 +54,40 @@ class TestMerchantApi(FlaskTestCase):
                  b'401duxapoRkQUpUIgayoz4b6uVlm4TbiS+vFmULVcLZ0rvhLoC2l0S1c'
                  b'27Ti+F4QntxmTOfcxw6SB+V0PEr8gIk59lHSKqKiDcGRjnOIES084DKeMyuMUQ==').decode('utf8')
 
-    test_private_key = (
-        '-----BEGIN RSA PRIVATE KEY-----\n'
-        'MIIEpAIBAAKCAQEAsw2VXAHRqPaCDVYI6Lug3Uq9Quik7m3sI8BkzqdCkBmakPZ5\n'
-        'cssbc4EsxETTA9V0V1KDMUy6vGUSaN8pbg4MPDZOzUlJyOcBAhaKWpUH4Bw0OlBt\n'
-        'KPVewN51n8NZHvwqh39f5rwVNVB5T2haTOsuG0Q7roH5TPYs75F87bELwRLCnWyX\n'
-        'o69f6o6fH7N+M2CN11S1UKT7ZkqaL2fm3LWuf8GWAkOrvrZp6js3kKCCuztI+JxP\n'
-        '93Aa3411aVH1jt0Wgyex+ekdAO2ykGq2tbs9vGi//6ZweZey+B1+2LrCum1+Wula\n'
-        'f1lGLNF5Bo6fHuXXw63fhx54PQe8pMWc5LW93wIDAQABAoIBAQCEdnQc0SuueE/W\n'
-        'VePZaZWkoPpLWZlK2v9ro5XwXEUeHhL/U5idmC0C0nmv6crCd1POljiAbGdpoMxx\n'
-        '0UbxKGtc0ECUFrgDbQKN7OcGBGMDJVpuGbnoJz6mKO2T+A0ioyNDgrQMGvEFtDdK\n'
-        'y8SiSwqdGWmdvIIWsbiks1lc7zHm7yAUWSp/XYgsw73+xsU+3wRlrEGsUoiTlb5J\n'
-        'ZAGXBd95Gix7FQeX04WDP47xtdaydz2G/dhqsN8w78peMDPMNd/LPKMpAHYCT/5b\n'
-        'wri0nfzVjNMHULCZU4KoopO8De0M1aik5GwWOdnFx6z/VkW/drXltfc9MKOJKXP7\n'
-        'WI5wSCHhAoGBAOmt8z7y5RYuhIum8+e1hsQPb0ah55xcGSK8Vb066xx1XFxlgWB+\n'
-        'Xiv+Ga7nQvJm3johLPuIFp0eQKrJ3a+KH+L6biM20S7K5hfxi3qdrHOBd8qKoRWS\n'
-        'cbR1V40TYxXTvWYYUa2jnKPsB0msm+3l0jwNLZhygbhwDtw1cNhed2ebAoGBAMQn\n'
-        '4UPHU1HE7nUI09eY11eUURuB69TRIoZNO3VVII83RHro7qHyKWk0W2RevjrE8ir2\n'
-        'S4ivFYQU5lca6QmcsPj7iGtFbeVImuTWwDTaahCFcfV/pV0L6xxU/7TowKivABHe\n'
-        'SUVwZJU+sPPcSSHZRa1uP7/6XD5oZEnysm1Vx6ENAoGBAKQiw/XWRKVE/WLeXPnH\n'
-        'Hqb+NGoHdRj1883bPdoR1W0C3mIkBjER8fGypLWeyP5c1QE9pkvzNfccdc3Axw7y\n'
-        '1RzoTI49hcb5S49L4W257JShPtQsdaMiXu2jcmCsWm/Nb36T3GM7xd25/xB3xnre\n'
-        'b8Iwe3NWEtnLFBUHEIFaMUK7AoGAHoqHDGKQmn6rEhXZxgvKG5zANCQ6b9xQH9EO\n'
-        'nOowM5xLUUfLP/PQdszsHeiSfdwESKQohpOcKgCHDLDn79MxytJ/HxSkU7rGQzMc\n'
-        'oh4PvZrJb4v8V0xvwu2JEsXamWkF/cI6blFdl883BgEacea+bo5n5qA4lI70bn8X\n'
-        'QObGOlECgYAURWOAKLd7RzgNrBorqof4ZZxdNXgOGq9jb4FE+bWI48EvTVGBmt7u\n'
-        '9pHA57UX0Nf1UQ/i3dKAvm5GICDUuWHvUnnb3m+pbx0w91YSXR9t8TVNdJ2dMhNu\n'
-        'ZSEUFQWbkQLUGtorzjqGssXHxKVa+9riPpztJNDl+8oHhu28wu4WyQ==\n'
-        '-----END RSA PRIVATE KEY-----\n'
-    )
-
-    test_public_key = (
-        '-----BEGIN RSA PUBLIC KEY-----\n'
-        'MIIBCgKCAQEAsw2VXAHRqPaCDVYI6Lug3Uq9Quik7m3sI8BkzqdCkBmakPZ5cssb\n'
-        'c4EsxETTA9V0V1KDMUy6vGUSaN8pbg4MPDZOzUlJyOcBAhaKWpUH4Bw0OlBtKPVe\n'
-        'wN51n8NZHvwqh39f5rwVNVB5T2haTOsuG0Q7roH5TPYs75F87bELwRLCnWyXo69f\n'
-        '6o6fH7N+M2CN11S1UKT7ZkqaL2fm3LWuf8GWAkOrvrZp6js3kKCCuztI+JxP93Aa\n'
-        '3411aVH1jt0Wgyex+ekdAO2ykGq2tbs9vGi//6ZweZey+B1+2LrCum1+Wulaf1lG\n'
-        'LNF5Bo6fHuXXw63fhx54PQe8pMWc5LW93wIDAQAB\n'
-        '-----END RSA PUBLIC KEY-----\n'
-    )
-
-    config = MagicMock()
-    config.scheme_slug = 'id'
-    config.merchant_url = 'stuff'
-    config.integration_service = 'SYNC'
-    config.security_service = 'RSA'
-    config.security_credentials = [{'type': '', 'storage_key': ''}]
-    config.handler_type = 'UPDATE'
-    config.retry_limit = 2
-    config.callback_url = ''
-    config.log_level = 'DEBUG'
-
     def create_app(self):
         return create_app(self, )
+
+    def setUp(self):
+        mock_config.integration_service = 'SYNC'
+        mock_config.security_credentials = {
+            'outbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'}
+                ]
+            },
+            'inbound': {
+                'service': 0,
+                'credentials': [
+                    {'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'},
+                    {'storage_key': '', 'value': PUBLIC_KEY, 'credential_type': 'merchant_public_key'}
+                ]
+            }
+        }
+        self.config = mock_config
+        self.m = MerchantApi(1, self.user_info)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
                                                                           mock_logger):
-        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
-        self.m._outbound_handler({'card_number': '123'}, 'fake-merchant-id', 'update')
+        self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+                                 'fake-merchant-id',
+                                 'update')
 
         self.assertTrue(mock_logger.info.called)
         self.assertIn('merchant_scheme_id1', mock_sync_outbound.call_args[0][0])
@@ -110,14 +97,64 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
     def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
-        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
         self.m.record_uid = '123'
 
-        resp = self.m._outbound_handler({}, 'fake-merchant-id', 'update')
+        resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+                                        'fake-merchant-id',
+                                        'update')
 
         self.assertTrue(mock_logger.info.called)
-        self.assertEqual({"errors": [], 'json': 'test'}, resp)
+        self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        self.config.integration_service = 'ASYNC'
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        mock_configuration.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertTrue(self.m.expecting_callback)
+
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
+        mock_configuration.return_value = self.config
+        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        self.m.record_uid = '123'
+
+        self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
+
+        self.assertFalse(self.m.expecting_callback)
+
+    @mock.patch.object(MerchantApi, 'attempt_register')
+    @mock.patch('app.resources.update_pending_join_account', autospec=True)
+    def test_attempt_register_returns_agent_instance(self, mock_update_pending_join_account, mock_register):
+        mock_register.return_value = {'message': 'success'}
+        self.config.integration_service = 'ASYNC'
+        user_info = {
+            'metadata': {},
+            'scheme_slug': 'test slug',
+            'user_id': 'test user id',
+            'credentials': {},
+            'scheme_account_id': 2,
+        }
+
+        register_data = agent_register(MerchantApi, user_info, {}, 1)
+        agent_instance = register_data['agent']
+
+        self.assertTrue(hasattr(agent_instance, 'expecting_callback'))
+        self.assertTrue(mock_register.called)
+        self.assertFalse(mock_update_pending_join_account.called)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
@@ -164,14 +201,11 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off,  mock_encode,
-                                                                  mock_decode):
+    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off,  mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
 
         response = requests.Response()
         response.status_code = 503
@@ -180,8 +214,10 @@ class TestMerchantApi(FlaskTestCase):
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {
-            "errors": [errors[NOT_SENT]['message']],
-            "code": errors[NOT_SENT]['code']
+            "error_codes": [{
+                "code": NOT_SENT,
+                "description": errors[NOT_SENT]['message']
+            }]
         }
 
         resp = self.m._sync_outbound(self.json_data, self.config)
@@ -189,13 +225,11 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode, mock_decode):
+    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
 
         response = requests.Response()
         response.status_code = 500
@@ -203,23 +237,27 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_backoff.return_value.is_on_cooldown.return_value = False
 
-        expected_resp = {"errors": [errors[UNKNOWN]['name'] + " with status code {}".format(response.status_code)],
-                         "code": errors[UNKNOWN]['code']}
+        expected_resp = {
+            "error_codes": [{
+                "code": UNKNOWN,
+                "description": errors[UNKNOWN]['name'] + " with status code {}".format(response.status_code)
+            }]
+        }
+
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
 
-    @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_does_not_send_when_on_cooldown(self, mock_request, mock_back_off, mock_encode, mock_decode):
+    def test_sync_outbound_does_not_send_when_on_cooldown(self, mock_request, mock_back_off, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
-        mock_decode.return_value = json.dumps(self.json_data)
         mock_back_off.return_value.is_on_cooldown.return_value = True
-        expected_resp = {"errors": [errors[NOT_SENT]['message']],
-                         "code": errors[NOT_SENT]['code']}
+
+        expected_resp = {"error_codes": [{"code": NOT_SENT, "description": errors[NOT_SENT]['message']}]}
+
         resp = self.m._sync_outbound(self.json_data, self.config)
 
         self.assertEqual(json.dumps(expected_resp), resp)
@@ -230,9 +268,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
     def test_async_inbound_success(self, mock_process_join, mock_logger):
         mock_process_join.return_value = ''
+        self.m.config = self.config
         self.m.record_uid = self.m.scheme_id
 
-        resp = self.m._inbound_handler(json.loads(self.json_data), '', self.config.handler_type)
+        resp = self.m._inbound_handler(json.loads(self.json_data), '')
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual(resp, '')
@@ -242,18 +281,25 @@ class TestMerchantApi(FlaskTestCase):
     def test_async_inbound_logs_errors(self, mock_process_join, mock_logger):
         mock_process_join.return_value = ''
         self.m.record_uid = self.m.scheme_id
+        self.m.config = self.config
         data = json.loads(self.json_data)
-        data['errors'] = ['some error']
-        data['code'] = 'some error code'
+        data['error_codes'] = [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
 
-        self.m._inbound_handler(data, '', self.config.handler_type)
+        self.m._inbound_handler(data, '')
 
         self.assertTrue(mock_logger.error.called)
 
     def test_process_join_handles_errors(self):
         self.m.record_uid = self.m.scheme_id
-        self.m.result = {'errors': ['some error'],
-                         'code': 'GENERAL_ERROR'}
+        self.m.result = {
+            "error_codes": [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
+        }
 
         with self.assertRaises(AgentError) as e:
             self.m.process_join_response()
@@ -262,15 +308,16 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234'}
+        mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234'}
 
         self.m.login({'card_number': '1234'})
 
+        self.m.login({})
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
+        mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
         self.m.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
         converted_identifier_type = self.m.merchant_identifier_mapping['merchant_scheme_id2']
 
@@ -281,8 +328,8 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
-        mock_outbound_handler.return_value = {"errors": []}
-
+        mock_outbound_handler.return_value = {"error_codes": []}
+        self.m.config = self.config
         self.m.register({})
 
         self.assertTrue(mock_outbound_handler.called)
@@ -290,15 +337,23 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_handles_error_payload(self, mock_outbound_handler):
-        mock_outbound_handler.return_value = {"errors": ['Account does not exist'],
-                                              "code": "NO_SUCH_RECORD"}
+        mock_outbound_handler.return_value = {
+            "error_codes": [{
+                "code": NO_SUCH_RECORD,
+                "description": errors[NO_SUCH_RECORD]['message']
+            }]
+        }
 
         with self.assertRaises(LoginError) as e:
             self.m.login({})
         self.assertEqual(e.exception.name, "Account does not exist")
 
-        mock_outbound_handler.return_value = {"errors": ['Message was not sent'],
-                                              "code": "NOT_SENT"}
+        mock_outbound_handler.return_value = {
+            "error_codes": [{
+                "code": NOT_SENT,
+                "description": errors[NOT_SENT]['message']
+            }]
+        }
 
         with self.assertRaises(LoginError) as e:
             self.m.login({})
@@ -307,17 +362,18 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {
-            "errors": [
-                "some unknown error"
-            ],
-            "code": "GENERAL_ERROR"
+            "error_codes": [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
         }
+        self.m.config = self.config
 
         with self.assertRaises(LoginError) as e:
             self.m.register({})
         self.assertEqual(e.exception.name, 'An unknown error has occurred')
 
-    @mock.patch('app.configuration.get_security_credentials')
+    @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
     def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
         mock_request.return_value.status_code = 200
@@ -328,25 +384,20 @@ class TestMerchantApi(FlaskTestCase):
             'handler_type': 1,
             'integration_service': 1,
             'callback_url': None,
-            'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
-            'security_credentials': [
-                {'type': 'public_key',
-                 'storage_key': '123456'}
-            ]}
-
-        mock_get_security_creds.return_value = {
-            'type': 'public_key',
-            'storage_key': '123456',
-            'value': 'asdfghjkl'
+            'country': 'GB',
+            'security_credentials': self.config.security_credentials
         }
+
+        mock_get_security_creds.return_value = self.config.security_credentials
 
         expected = {
             'handler_type': (1, 'JOIN'),
             'integration_service': 'ASYNC',
-            'security_service': 'RSA',
             'log_level': 'WARNING',
+            'country': 'GB',
+            'retry_limit': 0
         }
 
         c = Configuration('fake-merchant', Configuration.JOIN_HANDLER)
@@ -355,6 +406,24 @@ class TestMerchantApi(FlaskTestCase):
         for item in expected.items():
             self.assertIn(item, config_items)
 
+    def test_open_auth_encode(self):
+        json_data = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
+                                            ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')]))
+
+        expected_result = {'json': json.loads(json_data)}
+        open_auth = OpenAuth([])
+        request_params = open_auth.encode(json_data)
+
+        self.assertDictEqual(request_params, expected_result)
+
+    def test_open_auth_decode(self):
+        request_payload = OrderedDict([('message_uid', '123-123-123-123'),
+                                       ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')])
+        open_auth = OpenAuth([])
+        request_json = open_auth.decode({}, json.dumps(request_payload))
+
+        self.assertEqual(request_json, json.dumps(request_payload))
+
     @mock.patch.object(RSA, '_add_timestamp')
     def test_rsa_security_encode(self, mock_add_timestamp):
         json_data = json.dumps(OrderedDict([('message_uid', '123-123-123-123'),
@@ -362,7 +431,7 @@ class TestMerchantApi(FlaskTestCase):
         timestamp = 1523356514
         json_with_timestamp = '{}{}'.format(json_data, timestamp)
         mock_add_timestamp.return_value = json_with_timestamp, timestamp
-        rsa = RSA([{'type': 'bink_private_key', 'value': self.test_private_key}])
+        rsa = RSA(self.config.security_credentials)
         expected_result = {
             'json': json.loads(json_data),
             'headers': {'Authorization': 'Signature {}'.format(self.signature),
@@ -372,7 +441,6 @@ class TestMerchantApi(FlaskTestCase):
         request_params = rsa.encode(json_data)
 
         self.assertTrue(mock_add_timestamp.called)
-        self.maxDiff = None
         self.assertDictEqual(request_params, expected_result)
 
     @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
@@ -382,7 +450,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_validate_time.return_value = 'Signature {}'.format(self.signature)
 
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        rsa = RSA(self.config.security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 1523356514
@@ -395,7 +463,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.security.base.time.time', autospec=True)
     def test_rsa_security_decode_raises_exception_on_failed_verification(self, mock_time):
         mock_time.return_value = 1523356514
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        rsa = RSA(self.config.security_credentials)
         request = requests.Request()
         request.json = json.loads(self.json_data)
         request.headers = {
@@ -413,7 +481,7 @@ class TestMerchantApi(FlaskTestCase):
     def test_rsa_security_raises_exception_on_expired_timestamp(self, mock_time, mock_import_key, mock_verify):
         mock_time.return_value = 9876543210
 
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        rsa = RSA(self.config.security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 12345
@@ -428,7 +496,15 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(RSA, '_validate_timestamp', autospec=True)
     def test_rsa_security_raises_exception_when_public_key_is_not_in_credentials(self, mock_validate_timestamp):
-        rsa = RSA([{'type': 'not_public_key', 'value': self.test_public_key}])
+        security_credentials = {
+            'outbound': {},
+            'inbound': {
+                'service': 0,
+                'credentials': [{'storage_key': '', 'value': PRIVATE_KEY, 'credential_type': 'bink_private_key'}]
+            }
+        }
+
+        rsa = RSA(security_credentials)
         headers = {
             "Authorization": "Signature {}".format(self.signature),
             'X-REQ-TIMESTAMP': 12345
@@ -445,7 +521,7 @@ class TestMerchantApi(FlaskTestCase):
         request_payload = OrderedDict([('message_uid', '123-123-123-123'),
                                        ('record_uid', '0XzkL39J4q2VolejRejNmGQBW71gPv58')])
 
-        rsa = RSA([{'type': 'merchant_public_key', 'value': self.test_public_key}])
+        rsa = RSA(self.config.security_credentials)
         headers = {
             'X-REQ-TIMESTAMP': 12345
         }
@@ -482,6 +558,16 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_authorise_returns_error_on_unknown_exception(self, mock_config):
+        headers = {'Authorization': 'bad signature', 'X-REQ-TIMESTAMP': 156789765}
+
+        mock_config.side_effect = Exception
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertEqual(response.status_code, 520)
+
     @mock.patch('requests.get', autospec=True)
     def test_config_service_raises_exception_on_fail(self, mock_request):
         # Should error on any status code other than 200 i.e if helios is down or no config found etc.
@@ -501,13 +587,11 @@ class TestMerchantApi(FlaskTestCase):
             'handler_type': 1,
             'integration_service': 1,
             'callback_url': None,
-            'security_service': 0,
             'retry_limit': 0,
             'log_level': 2,
-            'security_credentials': [
-                {'type': 'public_key',
-                 'storage_key': '123456'}
-            ]}
+            'country': 'GB',
+            'security_credentials': self.config.security_credentials
+        }
 
         mock_vault_client.return_value = None
 
@@ -569,6 +653,15 @@ class TestMerchantApi(FlaskTestCase):
         merchant_ids = self.m.get_merchant_ids({})
         self.assertIn('merchant_scheme_id1', merchant_ids)
 
+    def test_credential_mapping(self):
+        self.m.credential_mapping = {'barcode': 'customer_number', 'date_of_birth': 'dob'}
+        json_credentials = json.dumps({'barcode': '12345', 'date_of_birth': '01/01/2001'})
+
+        mapped_credentials = self.m.map_credentials_to_request(json_credentials)
+        expected_credentials = json.dumps({'customer_number': '12345', 'dob': '01/01/2001'})
+
+        self.assertEqual(mapped_credentials, expected_credentials)
+
 
 @mock.patch('redis.StrictRedis.get')
 @mock.patch('redis.StrictRedis.set')
@@ -605,3 +698,103 @@ class TestBackOffService(TestCase):
         resp = self.back_off.is_on_cooldown('merchant-id', 'update')
 
         self.assertTrue(resp)
+
+
+class TestOAuth(TestCase):
+
+    def setUp(self):
+        self.config = mock_config
+        self.json_data = json_data
+        self.token_response = {
+            'token_type': 'Bearer',
+            'ext_expires_in': '',
+            'expires_in': '',
+            'not_before': '',
+            'expires_on': '',
+            'resource': '',
+            'access_token': 'some_token'
+        }
+
+        self.auth_creds = self.config.security_credentials
+        self.auth_creds['outbound']['credentials'] = [{
+            "storage_key": "",
+            "value": {
+                "payload": {
+                    "client_id": "",
+                    "client_secret": "",
+                    "resource": "",
+                    "grant_type": ""},
+                "url": "",
+                "prefix": "Bearer"
+            },
+            "credential_type": "compound_key",
+            "service": 2
+        }]
+
+    @mock.patch('requests.post')
+    def test_oauth_encode_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = self.token_response
+        mock_request.return_value = mock_response
+
+        expected_request = {
+            'headers': {'Authorization': 'Bearer some_token'},
+            'json': {
+                'message_uid': '123-123-123-123',
+                'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',
+                'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'
+            }
+        }
+
+        auth = OAuth(self.auth_creds)
+
+        request = auth.encode(self.json_data)
+
+        self.assertTrue(mock_request.called)
+        self.assertEqual(request, expected_request)
+
+    @mock.patch('requests.post')
+    def test_oath_encode_raises_error_on_connection_error(self, mock_request):
+        mock_request.side_effect = requests.ConnectionError
+        auth = OAuth(self.auth_creds)
+
+        with self.assertRaises(AgentError) as e:
+            auth.encode(self.json_data)
+
+        self.assertEqual(e.exception.name, 'Service connection error')
+
+    @mock.patch('requests.post')
+    def test_oauth_encode_raises_error_on_incorrect_credential_setup(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = self.token_response
+        mock_request.return_value = mock_response
+
+        missing_creds = self.auth_creds
+
+        required_keys = ["payload", "url", "prefix"]
+
+        keys_dict = {
+            "payload": {
+                "client_id": "",
+                "client_secret": "",
+                "resource": "",
+                "grant_type": ""
+            },
+            "url": "",
+            "prefix": "Bearer"
+        }
+
+        # ensures function raises error if any required keys are missing from the data stored in the vault
+        for required_key in required_keys:
+            value = keys_dict.copy()
+            value.pop(required_key)
+            missing_creds['outbound']['credentials'] = [{
+                "value": value,
+            }]
+
+            auth = OAuth(self.auth_creds)
+
+            with self.assertRaises(AgentError) as e:
+                auth.encode(self.json_data)
+
+            self.assertEqual(e.exception.name, 'Configuration error')

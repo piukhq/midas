@@ -271,7 +271,9 @@ class TestResources(TestCase):
         data = {
             "scheme_account_id": 2,
             "user_id": 4,
-            "credentials": credentials
+            "credentials": credentials,
+            'status': 0,
+            'journey_type': 0
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
@@ -339,7 +341,10 @@ class TestResources(TestCase):
     def test_registration(self, mock_update_pending_join_account, mock_agent_login, mock_agent_register,
                           mock_publish_transaction, mock_publish_status, mock_publish_balance):
         scheme_slug = "harvey-nichols"
-
+        mock_agent_register.return_value = {
+            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None}),
+            'error': None
+        }
         user_info = {
             'credentials': encrypt(scheme_slug),
             'user_id': 4,
@@ -363,12 +368,12 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_registration_already_exists_fail(self, mock_agent_login, mock_agent_register,
                                               mock_update_pending_join_account):
-
-        mock_agent_register.return_value = {'instance': HarveyNichols, 'error': ACCOUNT_ALREADY_EXISTS}
+        mock_agent_register.return_value = {
+            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None}),
+            'error': ACCOUNT_ALREADY_EXISTS
+        }
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
-
         scheme_slug = "harvey-nichols"
-
         user_info = {
             'credentials': encrypt(scheme_slug),
             'user_id': 4,
