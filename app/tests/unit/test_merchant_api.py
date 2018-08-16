@@ -22,6 +22,15 @@ from app.security.rsa import RSA
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 from app.utils import JourneyTypes
 
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.agents.base.Configuration')
+    @mock.patch.object(MerchantApi, '_sync_outbound')
+    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
+                                                                          mock_logger):
+        mock_sync_outbound.return_value = json.dumps({"errors": [], 'json': 'test'})
+        mock_config.return_value = self.config
+        self.m.record_uid = '123'
+        self.m._outbound_handler({'card_number': '123'}, 'fake-merchant-id', 'update')
 
 mock_config = MagicMock()
 mock_config.scheme_slug = 'id'
@@ -313,8 +322,11 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.login({'card_number': '1234'})
 
+        self.m.login({})
         self.assertTrue(mock_outbound_handler.called)
+        self.assertEqual(self.m.identifier, {'card_number': '1234', converted_identifier_type: 'abc'})
 
+    @mock.patch.object(MerchantApi, 'process_join_response')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
