@@ -36,7 +36,7 @@ class Tesco(RoboBrowserMiner):
         self._check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(self.browser.select('td.ddl-no-wrap')[0].text)
+        points = extract_decimal(self.browser.select('td.ddl-no-wrap')[1].text)
         value = self.calculate_point_value(points)
         balance = Decimal(self.get_vouchers_value())
 
