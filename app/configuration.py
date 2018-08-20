@@ -2,7 +2,7 @@ import hvac
 import requests
 
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
-from settings import HELIOS_URL, SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL
+from settings import SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL, CONFIG_SERVICE_URL
 
 
 class Configuration:
@@ -15,7 +15,6 @@ class Configuration:
     - merchant_url: url of merchant endpoint.
     - callback_url: Endpoint url for merchant to call for response (Async processes only)
     - integration_service: sync or async process.
-    - security_service: type of security to use e.g RSA.
     - security_credentials: credentials required for dealing with security e.g public/private keys.
     - retry_limit: number of times to retry on failed request.
     - log_level: level of logging to record e.g DEBUG for all, WARNING for warning logs and above.
@@ -40,10 +39,12 @@ class Configuration:
 
     RSA_SECURITY = 0
     OPEN_AUTH_SECURITY = 1
+    OAUTH_SECURITY = 2
 
     SECURITY_TYPE_CHOICES = (
         (RSA_SECURITY, "RSA"),
-        (OPEN_AUTH_SECURITY, "Open Auth (No Authentication)")
+        (OPEN_AUTH_SECURITY, "Open Auth (No Authentication)"),
+        (OAUTH_SECURITY, "OAuth"),
     )
 
     DEBUG_LOG_LEVEL = 0
@@ -79,7 +80,7 @@ class Configuration:
         headers = {"Authorization": 'Token ' + SERVICE_API_KEY}
 
         try:
-            resp = requests.get(HELIOS_URL + '/configuration', params=params, headers=headers)
+            resp = requests.get(CONFIG_SERVICE_URL + '/configuration', params=params, headers=headers)
         except requests.RequestException as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
@@ -91,14 +92,17 @@ class Configuration:
     def _process_config_data(self):
         self.merchant_url = self.data['merchant_url']
         self.integration_service = self.INTEGRATION_CHOICES[self.data['integration_service']][1].upper()
-        self.security_service = self.SECURITY_TYPE_CHOICES[self.data['security_service']]
         self.retry_limit = self.data['retry_limit']
         self.log_level = self.LOG_LEVEL_CHOICES[self.data['log_level']][1].upper()
         self.callback_url = self.data['callback_url']
         self.country = self.data['country']
 
+        self.security_credentials = self.data['security_credentials']
+        inbound_data = self.security_credentials['inbound']['credentials']
+        outbound_data = self.security_credentials['outbound']['credentials']
         try:
-            self.security_credentials = self.get_security_credentials(self.data['security_credentials'])
+            self.security_credentials['inbound']['credentials'] = self.get_security_credentials(inbound_data)
+            self.security_credentials['outbound']['credentials'] = self.get_security_credentials(outbound_data)
         except TypeError as e:
             raise AgentError(CONFIGURATION_ERROR) from e
 
@@ -110,11 +114,14 @@ class Configuration:
         :return: key_items: returns same list of dict with added 'value' keys containing actual credential values.
         """
         client = hvac.Client(token=VAULT_TOKEN, url=VAULT_URL)
-
         try:
             for key_item in key_items:
-                value = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data'][key_item['type']]
-                key_item['value'] = value
+                stored_dict = client.read('secret/data/{}'.format(key_item['storage_key']))['data']['data']
+
+                # Stores the value mapped to the 'value' key of the stored data.
+                # If this doesn't exist, i.e for compound keys, the full mapping is stored as the value.
+                value = stored_dict.get('value')
+                key_item.update(value=value or stored_dict)
         except TypeError as e:
             raise TypeError('Could not locate security credentials in vault.') from e
 

@@ -4,6 +4,7 @@ import re
 import time
 import socket
 from decimal import Decimal
+from enum import Enum
 
 import lxml.html
 import requests
@@ -34,6 +35,11 @@ class SchemeAccountStatus:
     PASSWORD_EXPIRED = 533
     JOIN = 900
     NO_SUCH_RECORD = 444
+
+
+class JourneyTypes(Enum):
+    JOIN = 0
+    LINK = 1
 
 
 def extract_decimal(s):
@@ -128,8 +134,12 @@ class IntercomException(Exception):
 
 def create_error_response(error_code, error_description):
     response_json = json.dumps({
-        'errors': [error_description],
-        'code': error_code
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
     })
     return response_json
 

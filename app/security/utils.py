@@ -43,14 +43,15 @@ def authorise(handler_type):
         def wrapper(*args, **kwargs):
             try:
                 config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
-                security_agent = get_security_agent(config.security_service[0], config.security_credentials)
+                security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                    config.security_credentials)
 
                 decoded_data = json.loads(security_agent.decode(request.headers,
                                                                 request.get_data().decode('utf8')))
             except AgentError as e:
                 raise AgentException(e)
             except Exception as e:
-                raise AgentException(UNKNOWN) from e
+                raise AgentException(AgentError(UNKNOWN)) from e
 
             return fn(data=decoded_data, config=config, *args, **kwargs)
         return wrapper

@@ -72,10 +72,12 @@ class Balance(Resource):
     )
     def get(self, scheme_slug):
         status = request.args.get('status')
+        journey_type = request.args.get('journey_type')
         user_info = {
             'user_id': int(request.args['user_id']),
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
+            'journey_type': int(journey_type) if journey_type else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
         tid = request.headers.get('transaction')
@@ -179,11 +181,15 @@ def publish_transactions(agent_instance, scheme_account_id, user_id, tid):
 class Register(Resource):
 
     def post(self, scheme_slug):
-        scheme_account_id = int(request.get_json()['scheme_account_id'])
+        data = request.get_json()
+        scheme_account_id = int(data['scheme_account_id'])
+        journey_type = data['journey_type']
+        status = int(data['status'])
         user_info = {
             'user_id': int(request.get_json()['user_id']),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': SchemeAccountStatus.PENDING,    # May be better to receive this information from hermes.
+            'status': status,
+            'journey_type': int(journey_type),
             'scheme_account_id': scheme_account_id,
         }
         tid = request.headers.get('transaction')
@@ -356,6 +362,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         'credentials': str,
         'status': str,
         'scheme_account_id': int
+        'journey_type': int
     }
     :param scheme_slug: String of merchant identifier e.g 'harvey-nichols'
     :param from_register: Boolean of whether the login call is from the registration process.
@@ -392,7 +399,8 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
             error = ACCOUNT_ALREADY_EXISTS
 
     return {
-        'error': error,
+        'agent': agent_instance,
+        'error': error
     }
 
 
@@ -413,6 +421,8 @@ def registration(scheme_slug, user_info, tid):
     register_result = agent_register(agent_class, user_info, intercom_data, tid,
                                      scheme_slug=scheme_slug)
     try:
+        if register_result['agent'].expecting_callback:
+            return True
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug,
                                      from_register=True)
         if agent_instance.identifier:
@@ -442,10 +452,14 @@ def get_hades_balance(scheme_account_id):
     resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
                         headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    if resp:
-        return resp.json()
-
-    return resp
+    try:
+        resp_json = resp.json()
+    except (AttributeError, TypeError) as e:
+        raise UnknownException(e)
+    else:
+        if resp_json:
+            return resp_json
+        raise UnknownException('Empty response getting previous balance')
 
 
 def update_pending_join_account(scheme_account_id, message, tid, identifier=None, intercom_data=None):
