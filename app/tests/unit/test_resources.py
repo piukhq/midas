@@ -7,7 +7,7 @@ from unittest.mock import mock_open
 
 from flask.ext.testing import TestCase
 
-from app import create_app, AgentException
+from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.avios import Avios
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
@@ -549,7 +549,9 @@ class TestResources(TestCase):
     @mock.patch('requests.get', auto_spec=False)
     def test_get_hades_balance_error(self, mock_requests):
         mock_requests.return_value = None
-        self.assertEqual(get_hades_balance(1), None)
+        with self.assertRaises(UnknownException):
+            self.assertEqual(get_hades_balance(1), None)
+
         self.assertTrue(mock_requests.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
