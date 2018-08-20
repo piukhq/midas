@@ -33,10 +33,10 @@ sudo docker-compose run --service-ports redis
   - String Value, URL for Hermes
 - `SENTRY_DSN`
   - String Value, Sentry DNS for Midas
- - `RETRY_PERIOD` 
-    - String Value, Number of seconds to retry consents send (should be about '1800')
+- `RETRY_PERIOD`
+  - String Value, Number of seconds to retry consents send (should be about '1800')
 - `REDIS_CELERY_DB`
-    - String Value, To allow the use of a different database for Celery
+  - String Value, To allow the use of a different database for Celery
     
 
 ### Use consents retry mechanism as explained in 
