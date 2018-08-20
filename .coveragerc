@@ -2,6 +2,7 @@
 omit = *migrations*
        *tests*
        app/agents*
+       app/tasks/resend.py
 
 branch = True
 

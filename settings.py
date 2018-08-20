@@ -3,6 +3,8 @@ import logging
 from app import AgentException
 from environment import env_var, read_env
 
+
+os.chdir(os.path.dirname(__file__))
 read_env()
 
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
@@ -35,6 +37,23 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
     'port': REDIS_PORT,
     'db': REDIS_DB
 })
+
+RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
+REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_TASK_SERIALIZER = 'json'
+CELERYBEAT_SCHEDULE = {
+    'retry_tasks': {
+        'task': 'app.tasks.resend.retry_tasks',
+        'schedule': int(RETRY_PERIOD),
+        'args': ()
+    }
+}
+CELERY_IMPORTS = [
+    'app.tasks.resend'
+]
+
 
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 HERMES_URL = env_var('HERMES_URL', 'http://local.hermes.chingrewards.com:8000')
