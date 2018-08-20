@@ -453,10 +453,14 @@ def get_hades_balance(scheme_account_id):
     resp = requests.get(HADES_URL + '/balances/scheme_account/' + str(scheme_account_id),
                         headers={'Authorization': 'Token ' + SERVICE_API_KEY})
 
-    if resp:
-        return resp.json()
-
-    return resp
+    try:
+        resp_json = resp.json()
+    except (AttributeError, TypeError) as e:
+        raise UnknownException(e)
+    else:
+        if resp_json:
+            return resp_json
+        raise UnknownException('Empty response getting previous balance')
 
 
 def update_pending_join_account(scheme_account_id, message, tid, identifier=None, intercom_data=None):
