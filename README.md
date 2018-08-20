@@ -39,11 +39,11 @@ sudo docker-compose run --service-ports redis
     - String Value, To allow the use of a different database for Celery
     
 
- ### Use consents retry mechanism as explained in 
+### Use consents retry mechanism as explained in 
                 
 https://books.bink.com/books/backend-development/page/retry-tasks
                 
- ### Celery help:
+### Celery help:
  
 https://books.bink.com/books/backend-development/page/celery-and-celery-beat-overview
  
