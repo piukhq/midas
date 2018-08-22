@@ -37,7 +37,8 @@ class TestResources(TestCase):
     TESTING = True
     user_info = {
         'user_id': 1,
-        'credentials': {'credentials': 'test'},
+        'credentials': {'credentials': 'test',
+                        'email': 'test@email.com'},
         'status': SchemeAccountStatus.WALLET_ONLY,
         'scheme_account_id': 123,
         'pending': True
@@ -346,7 +347,10 @@ class TestResources(TestCase):
             'error': None
         }
         user_info = {
-            'credentials': encrypt(scheme_slug),
+            'credentials': {
+                'scheme_slug': encrypt(scheme_slug),
+                'email': 'test@email.com'
+            },
             'user_id': 4,
             'scheme_account_id': 2,
             'status': ''
@@ -375,7 +379,10 @@ class TestResources(TestCase):
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
         scheme_slug = "harvey-nichols"
         user_info = {
-            'credentials': encrypt(scheme_slug),
+            'credentials': {
+                'scheme_slug': encrypt(scheme_slug),
+                'email': 'test@email.com'
+            },
             'user_id': 4,
             'scheme_account_id': 2,
             'status': ''
@@ -684,7 +691,10 @@ class TestResources(TestCase):
     @mock.patch('app.resources.requests.delete')
     @mock.patch('app.resources.raise_intercom_event')
     def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete, mock_requests_post):
-        intercom_data = {'user_id': 'userid12345', 'metadata': {'scheme': 'scheme_slug'}}
+        intercom_data = {'user_id': 'userid12345',
+                         'user_email': 'test@email.com',
+                         'metadata':
+                             {'scheme': 'scheme_slug'}}
         with self.assertRaises(AgentException):
             update_pending_link_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
 
@@ -712,7 +722,10 @@ class TestResources(TestCase):
     def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post,
                                                mock_intercom_call):
 
-        intercom_data = {'user_id': 'userid12345', 'metadata': {'scheme': 'scheme_slug'}}
+        intercom_data = {'user_id': 'userid12345',
+                         'user_email': 'test@email.com',
+                         'metadata':
+                             {'scheme': 'scheme_slug'}}
         with self.assertRaises(AgentException):
             update_pending_join_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
 
