@@ -1,24 +1,18 @@
 import importlib
 import json
 import re
-import time
 import socket
 from decimal import Decimal
 from datetime import datetime
 from enum import Enum
 
 import lxml.html
-import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import MNEMOSYNE_URL, SERVICE_API_KEY, logger
+from settings import SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
-
-
-class MnemosyneException(Exception):
-    pass
 
 
 class SchemeAccountStatus:
@@ -102,44 +96,6 @@ def minify_number(n):
             break
 
     return '{0}{1}'.format(total, units[count - 1])
-
-
-def raise_intercom_event(event_name, user_id, user_email, metadata):
-    destination = '{}/service'.format(MNEMOSYNE_URL)
-    headers = {
-        'content-type': 'application/json',
-        'Authorization': 'Token {}'.format(SERVICE_API_KEY)
-    }
-    payload = {
-        'service': 'midas',
-        'user': {
-            'e': user_email,
-            'id': user_id
-        },
-        "events": [
-            {
-                "time": int(time.time()),
-                "type": 6,
-                "id": event_name,
-                "intercom": 1,
-                "data": {
-                    "metadata": metadata
-                }
-            }
-        ]
-    }
-
-    body_data = json.dumps(payload)
-
-    try:
-        mnemosyne_request = requests.post(destination, data=body_data, headers=headers)
-    except Exception:
-        raise MnemosyneException
-
-    if mnemosyne_request.status_code != 200:
-        raise MnemosyneException
-
-    return mnemosyne_request
 
 
 def create_error_response(error_code, error_description):

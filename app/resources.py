@@ -14,11 +14,12 @@ import settings
 from cron_test_results import resolve_issue, get_formatted_message, handle_helios_request, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 from app import retry, publish
+from app.analytics import raise_event
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor
-from app.utils import resolve_agent, raise_intercom_event, get_headers, SchemeAccountStatus, log_task
+from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -482,7 +483,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
                     data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
-    raise_intercom_event('join-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
+    raise_event('join-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
 
     raise AgentException(message)
 
@@ -498,6 +499,6 @@ def update_pending_link_account(scheme_account_id, message, tid, intercom_data=N
                     data=json.dumps(question_data), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
-    raise_intercom_event('async-link-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
+    raise_event('async-link-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
 
     raise AgentException(message)

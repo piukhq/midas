@@ -689,7 +689,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.requests.post')
     @mock.patch('app.resources.requests.delete')
-    @mock.patch('app.resources.raise_intercom_event')
+    @mock.patch('app.resources.raise_event')
     def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete, mock_requests_post):
         intercom_data = {'user_id': 'userid12345',
                          'user_email': 'test@email.com',
@@ -702,7 +702,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
 
-    @mock.patch('app.resources.raise_intercom_event')
+    @mock.patch('app.resources.raise_event')
     @mock.patch('app.resources.requests.post')
     @mock.patch('app.resources.requests.put')
     @mock.patch('app.resources.requests.delete')
@@ -715,7 +715,7 @@ class TestResources(TestCase):
         self.assertFalse(mock_requests_post.called)
         self.assertFalse(mock_intercom_call.called)
 
-    @mock.patch('app.resources.raise_intercom_event')
+    @mock.patch('app.resources.raise_event')
     @mock.patch('app.resources.requests.post')
     @mock.patch('app.resources.requests.put')
     @mock.patch('app.resources.requests.delete')
