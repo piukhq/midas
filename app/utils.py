@@ -1,18 +1,16 @@
 import importlib
 import json
 import re
-import time
 import socket
 from decimal import Decimal
 from datetime import datetime
 from enum import Enum
 
 import lxml.html
-import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY, logger
+from settings import SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
 
@@ -98,39 +96,6 @@ def minify_number(n):
             break
 
     return '{0}{1}'.format(total, units[count - 1])
-
-
-def raise_intercom_event(event_name, user_id, metadata):
-    headers = {
-        'Authorization': 'Bearer {0}'.format(INTERCOM_TOKEN),
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        'user_id': user_id,
-        'event_name': event_name,
-        'created_at': int(time.time()),
-        'metadata': metadata
-    }
-
-    response = requests.post(
-        '{host}/{path}'.format(host=INTERCOM_HOST, path=INTERCOM_EVENTS_PATH),
-        headers=headers,
-        data=json.dumps(payload)
-    )
-
-    try:
-        if response.status_code != 202:
-            raise IntercomException('Error with {} intercom event: {}'.format(event_name, response.text))
-
-    except IntercomException:
-        pass
-
-    return response
-
-
-class IntercomException(Exception):
-    pass
 
 
 def create_error_response(error_code, error_description):
