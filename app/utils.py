@@ -104,7 +104,7 @@ def minify_number(n):
     return '{0}{1}'.format(total, units[count - 1])
 
 
-def raise_intercom_event(event_name, user_id, metadata):
+def raise_intercom_event(event_name, user_id, user_email, metadata):
     destination = '{}/service'.format(MNEMOSYNE_URL)
     headers = {
         'content-type': 'application/json',
@@ -113,15 +113,15 @@ def raise_intercom_event(event_name, user_id, metadata):
     payload = {
         'service': 'midas',
         'user': {
-            'e': "user email",
+            'e': user_email,
             'id': user_id
         },
         "events": [
             {
                 "time": int(time.time()),
-                "type": 5,
+                "type": 6,
                 "id": event_name,
-                "intercom": 5,
+                "intercom": 1,
                 "data": {
                     "metadata": metadata
                 }

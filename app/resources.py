@@ -162,6 +162,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         if user_info.get('pending'):
             intercom_data = {
                 'user_id': user_info['user_id'],
+                'user_email': user_info['credentials']['email'],
                 'metadata': {'scheme': scheme_slug},
             }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
@@ -409,6 +410,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
 def registration(scheme_slug, user_info, tid):
     intercom_data = {
         'user_id': user_info['user_id'],
+        'user_email': user_info['credentials']['email'],
         'metadata': {'scheme': scheme_slug},
     }
 
@@ -480,7 +482,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
                     data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
-    raise_intercom_event('join-failed-event', intercom_data['user_id'], metadata)
+    raise_intercom_event('join-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
 
     raise AgentException(message)
 
@@ -496,6 +498,6 @@ def update_pending_link_account(scheme_account_id, message, tid, intercom_data=N
                     data=json.dumps(question_data), headers=get_headers(tid))
 
     metadata = intercom_data['metadata']
-    raise_intercom_event('async-link-failed-event', intercom_data['user_id'], metadata)
+    raise_intercom_event('async-link-failed-event', intercom_data['user_id'], intercom_data['user_email'], metadata)
 
     raise AgentException(message)
