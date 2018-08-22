@@ -12,9 +12,13 @@ import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY, logger
+from settings import MNEMOSYNE_URL, SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
+
+
+class MnemosyneException(Exception):
+    pass
 
 
 class SchemeAccountStatus:
@@ -101,36 +105,41 @@ def minify_number(n):
 
 
 def raise_intercom_event(event_name, user_id, metadata):
+    destination = '{}/service'.format(MNEMOSYNE_URL)
     headers = {
-        'Authorization': 'Bearer {0}'.format(INTERCOM_TOKEN),
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'content-type': 'application/json',
+        'Authorization': 'Token {}'.format(SERVICE_API_KEY)
     }
     payload = {
-        'user_id': user_id,
-        'event_name': event_name,
-        'created_at': int(time.time()),
-        'metadata': metadata
+        'service': 'midas',
+        'user': {
+            'e': "user email",
+            'id': user_id
+        },
+        "events": [
+            {
+                "time": int(time.time()),
+                "type": 5,
+                "id": event_name,
+                "intercom": 5,
+                "data": {
+                    "metadata": metadata
+                }
+            }
+        ]
     }
 
-    response = requests.post(
-        '{host}/{path}'.format(host=INTERCOM_HOST, path=INTERCOM_EVENTS_PATH),
-        headers=headers,
-        data=json.dumps(payload)
-    )
+    body_data = json.dumps(payload)
 
     try:
-        if response.status_code != 202:
-            raise IntercomException('Error with {} intercom event: {}'.format(event_name, response.text))
+        mnemosyne_request = requests.post(destination, data=body_data, headers=headers)
+    except Exception:
+        raise MnemosyneException
 
-    except IntercomException:
-        pass
+    if mnemosyne_request.status_code != 200:
+        raise MnemosyneException
 
-    return response
-
-
-class IntercomException(Exception):
-    pass
+    return mnemosyne_request
 
 
 def create_error_response(error_code, error_description):
