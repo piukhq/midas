@@ -44,7 +44,6 @@ def try_consents(consents_data):
                 continue_status: True to terminate any retries, False to continue to rety
                 response_list:  list of logged errors (successful one will not be wriiten to redis)
     """
-
     try:
         if consents_data['state'] == ConsentSendState.SEND_TO_AGENT:
             done, message = try_agent_send(consents_data)
@@ -109,3 +108,12 @@ def try_hermes_confirm(consents_data):
         return True, "done"
     else:
         return False, f"{message_prefix} Hermes confirm errors  {''.join(send_errors)}"
+
+
+def send_consent_status(consents_data):
+    done, message = try_hermes_confirm(consents_data)
+
+    if not done:
+        logger.error(message)
+        task = ReTryTaskStore()
+        task.set_task("app.tasks.resend_consents", "try_hermes_confirm", consents_data)
