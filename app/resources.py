@@ -105,7 +105,7 @@ class Balance(Resource):
     def handle_async_balance(agent_class, scheme_slug, user_info, tid):
         scheme_account_id = user_info['scheme_account_id']
         if user_info['status'] == SchemeAccountStatus.WALLET_ONLY:
-            prev_balance = publish.zero_balance(scheme_account_id, tid)
+            prev_balance = publish.zero_balance(scheme_account_id, tid, user_info['user_set'])
             publish.status(scheme_account_id, 0, tid)
         else:
             prev_balance = get_hades_balance(scheme_account_id)
@@ -166,7 +166,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     except (AgentException, UnknownException) as e:
         if user_info.get('pending'):
             intercom_data = {
-                'user_id': user_info['user_id'],
+                'user_set': user_info['user_set'],
                 'metadata': {'scheme': scheme_slug},
             }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))

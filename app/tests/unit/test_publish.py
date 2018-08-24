@@ -21,7 +21,7 @@ class TestRetry(unittest.TestCase):
         }
         item = balance(b, 5, 8, '123-12')
         self.assertEqual(item, {
-            'user_id': 8,
+            'user_set': 8,
             'value': Decimal('9.44'),
             'scheme_account_id': 5,
             'points': Decimal('51251285'),
@@ -49,7 +49,7 @@ class TestRetry(unittest.TestCase):
     def test_zero_balance(self, mock_post):
         item = zero_balance(5, 8, '123-12')
         self.assertEqual(item, {
-            'user_id': 8,
+            'user_set': 8,
             'value': Decimal('0'),
             'scheme_account_id': 5,
             'points': Decimal('0'),
