@@ -11,7 +11,7 @@ class EventRaiseError(Exception):
 
 
 def raise_event(event_name, user_id, user_email, metadata):
-    destination = '{}/service'.format(MNEMOSYNE_URL)
+    destination = '{}/analytics/service'.format(MNEMOSYNE_URL)
     headers = {
         'content-type': 'application/json',
         'Authorization': 'Token {}'.format(SERVICE_API_KEY)
