@@ -741,9 +741,12 @@ class MerchantApi(BaseMiner):
 
         :param consents_data: dict.
         {
-            'id': int. UserConsent id
+            'id': int. UserConsent id.
+            'slug': string. Consent slug.
+            'value': bool. User's consent decision.
+            'created_on': string. Datetime string of when the UserConsent instance was created.
         }
-        :param status: int. Usually of type ConsentStatus.
+        :param status: int. Should be of type ConsentStatus.
         :return: None
         """
         confirm_tries = {}
@@ -756,20 +759,3 @@ class MerchantApi(BaseMiner):
         }
 
         send_consent_status(retry_data)
-
-
-# def confirm_consents(consents):
-#     def decorator(func):
-#         def wrapper(*args, **kwargs):
-#             consent_status = ConsentStatus.PENDING
-#             try:
-#                 func(*args, *kwargs)
-#                 consent_status = ConsentStatus.SUCCESS
-#             except (AgentException, LoginError, AgentError):
-#                 consent_status = ConsentStatus.FAILED
-#                 raise
-#             finally:
-#                 MerchantApi.consent_confirmation(consents, consent_status)
-#
-#             return wrapper
-#         return decorator
