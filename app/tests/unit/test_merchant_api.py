@@ -137,7 +137,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertFalse(self.m.expecting_callback)
 
     @mock.patch.object(MerchantApi, 'attempt_register')
-    @mock.patch('app.resources.update_pending_join_account', autospec=True)
+    @mock.patch('app.scheme_account.update_pending_join_account', autospec=True)
     def test_attempt_register_returns_agent_instance(self, mock_update_pending_join_account, mock_register):
         mock_register.return_value = {'message': 'success'}
         self.config.integration_service = 'ASYNC'
@@ -619,6 +619,82 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
+
+    @mock.patch('app.resources_callbacks.retry', autospec=True)
+    @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_join_callback_raises_error_with_bad_record_uid(self, mock_config, mock_decode, mock_thread, mock_retry):
+        mock_config.return_value = self.config
+        json_data_with_bad_record_uid = json.dumps({'message_uid': '123-123-123-123',
+                                                    'record_uid': 'a',
+                                                    'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
+        mock_decode.return_value = json_data_with_bad_record_uid
+
+        headers = {
+            "Authorization": "Signature {}".format(self.signature),
+        }
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertFalse(mock_thread.called)
+        self.assertFalse(mock_retry.get_key.called)
+
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json, {'code': 520, 'message': 'record_uid not valid', 'name': 'Unknown Error'})
+
+    @mock.patch('app.resources_callbacks.sentry')
+    @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
+    @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
+    @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_join_callback_specific_error(self, mock_config, mock_decode, mock_thread, mock_retry, mock_update_join,
+                                          mock_sentry):
+        mock_retry.side_effect = AgentError(NO_SUCH_RECORD)
+        mock_config.return_value = self.config
+        mock_decode.return_value = json_data
+
+        headers = {"Authorization": "Signature {}".format(self.signature)}
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertFalse(mock_thread.called)
+        self.assertTrue(mock_retry.called)
+        self.assertTrue(mock_update_join.called)
+        self.assertTrue(mock_sentry.captureException.called)
+
+        self.assertEqual(response.status_code, errors[NO_SUCH_RECORD]['code'])
+        self.assertEqual(response.json, errors[NO_SUCH_RECORD])
+
+    @mock.patch('app.resources_callbacks.sentry')
+    @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
+    @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
+    @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_thread, mock_retry, mock_update_join,
+                                         mock_sentry):
+        mock_retry.side_effect = RuntimeError('test exception')
+        mock_config.return_value = self.config
+        mock_decode.return_value = json_data
+
+        headers = {"Authorization": "Signature {}".format(self.signature)}
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertFalse(mock_thread.called)
+        self.assertTrue(mock_retry.called)
+        self.assertTrue(mock_update_join.called)
+
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json, {'code': 520, 'message': 'test exception', 'name': 'Unknown Error'})
 
     def test_merchant_scheme_id_conversion(self):
         self.m.identifier_type = ['merchant_scheme_id2', 'barcode']

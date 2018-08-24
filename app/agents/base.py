@@ -31,11 +31,11 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
-from app.resources import update_pending_join_account
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
+from app.scheme_account import update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
 
 
