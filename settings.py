@@ -1,22 +1,20 @@
 import os
 import logging
-import graypy
 from app import AgentException
 from environment import env_var, read_env
 
+
+os.chdir(os.path.dirname(__file__))
 read_env()
 
 DEV_HOST = env_var('DEV_HOST', '0.0.0.0')
 DEV_PORT = env_var('DEV_PORT', '8000')
 
-# logging.basicConfig(filename='merchant_api.log', level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
 logger = logging.getLogger('midas_logger')
 logger.setLevel(logging.DEBUG)
-
-GRAYLOG_HOST = env_var('GRAYLOG_HOST')
-if GRAYLOG_HOST:
-    handler = graypy.GELFHandler(GRAYLOG_HOST, 12201)
-    logger.addHandler(handler)
 
 SLACK_API_KEY = 'xoxp-10814716850-12751177555-33955253125-1750700274'
 JUNIT_XML_FILENAME = 'test_results.xml'
@@ -40,16 +38,32 @@ REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
     'db': REDIS_DB
 })
 
-HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
+RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
+REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
+CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_TASK_SERIALIZER = 'json'
+CELERYBEAT_SCHEDULE = {
+    'retry_tasks': {
+        'task': 'app.tasks.resend.retry_tasks',
+        'schedule': int(RETRY_PERIOD),
+        'args': ()
+    }
+}
+CELERY_IMPORTS = [
+    'app.tasks.resend'
+]
 
+HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 HERMES_URL = env_var('HERMES_URL', 'http://local.hermes.chingrewards.com:8000')
 HELIOS_URL = env_var('HELIOS_URL', 'https://api.bink-dev.xyz/dashboard')
 HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92ac-6e05e0916e82')
+CONFIG_SERVICE_URL = env_var('CONFIG_SERVICE_URL', '')
+MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
 SENTRY_DSN = env_var('SENTRY_DSN')
-
 RAVEN_IGNORE_EXCEPTIONS = [AgentException]
 
 PROPAGATE_EXCEPTIONS = True
@@ -61,11 +75,6 @@ INFLUX_PASSWORD = env_var('INFLUX_PASSWORD', 'root')
 INFLUX_DATABASE = env_var('INFLUX_DATABASE', 'test_results')
 
 MAX_VALUE_LABEL_LENGTH = 11
-
-# INTERCOM_TOKEN default value is for testing
-INTERCOM_TOKEN = env_var('INTERCOM_TOKEN', 'dG9rOmE4MGYzNDRjX2U5YzhfNGQ1N184MTA0X2E4YTgwNDQ2ZGY1YzoxOjA=')
-INTERCOM_HOST = 'https://api.intercom.io'
-INTERCOM_EVENTS_PATH = 'events'
 
 HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
 

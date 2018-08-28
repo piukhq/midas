@@ -1,7 +1,15 @@
 import unittest
 from decimal import Decimal
 from unittest.mock import patch
-from app.publish import transactions, balance, zero_balance
+from app.publish import transactions, balance, zero_balance, create_balance_object, PENDING_BALANCE
+
+expected_balance = {
+    'scheme_account_id': 1,
+    'user_id': 2,
+    'points_label': '1',
+    'points': Decimal(1.1),
+    'value': Decimal(2.2),
+}
 
 
 class TestRetry(unittest.TestCase):
@@ -58,3 +66,32 @@ class TestRetry(unittest.TestCase):
             'reward_tier': 0
         })
         self.assertTrue(mock_post.called)
+
+    def test_create_balance_object(self):
+        agent_balance = {
+            'points': Decimal(1.1),
+            'value': Decimal(2.2),
+            'value_label': 'points',
+            'reward_tier': 5
+        }
+        b = create_balance_object(agent_balance, 1, 2)
+
+        expected_balance['value_label'] = 'points'
+        expected_balance['reward_tier'] = 5
+        self.assertEqual(b, expected_balance)
+
+    def test_create_balance_object_without_reward_tier(self):
+        b = create_balance_object(PENDING_BALANCE, 1, 2)
+
+        self.assertEqual(b['reward_tier'], 0)
+
+    def test_create_balance_object_with_max_label(self):
+        agent_balance = {
+            'points': Decimal(1.1),
+            'value': Decimal(2.2),
+            'value_label': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'reward_tier': 5
+        }
+        b = create_balance_object(agent_balance, 1, 2)
+
+        self.assertEqual(b['value_label'], 'Reward')
