@@ -12,24 +12,17 @@ from werkzeug.exceptions import NotFound
 
 import settings
 from app import publish, retry
+from app.agents.base import MerchantApi
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
                                    SYSTEM_ACTION_REQUIRED, errors)
-from cron_test_results import resolve_issue, get_formatted_message, handle_helios_request, test_single_agent
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
-from app import retry, publish
-from app.agents.base import MerchantApi
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
-from app.publish import thread_pool_executor
-from app.utils import SchemeAccountStatus, get_headers, raise_intercom_event, resolve_agent
-from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY
-from app.publish import thread_pool_executor, create_balance_object, PENDING_BALANCE
+from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
+from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent
+from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
+from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 
 scheme_account_id_doc = {
     "name": "scheme_account_id",
@@ -142,7 +135,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         if issubclass(agent_class, MerchantApi) and user_info['status'] == SchemeAccountStatus.PENDING:
             user_info['pending'] = True
             status = SchemeAccountStatus.PENDING
-            balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
+            balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
         else:
             agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 

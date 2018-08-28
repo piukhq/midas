@@ -1,24 +1,19 @@
 import json
-from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
-
 
 from requests_futures.sessions import FuturesSession
 
 from app.encoding import JsonEncoder
 from app.utils import get_headers, minify_number
 from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH, logger
-from app.encoding import JsonEncoder
-from app.utils import get_headers, minify_number
-from settings import HADES_URL, HERMES_URL, logger, MAX_VALUE_LABEL_LENGTH
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=6)
 PENDING_BALANCE = {
-        'points': Decimal(0),
-        'value': Decimal(0),
-        'value_label': 'Pending',
-    }
+    'points': Decimal(0),
+    'value': Decimal(0),
+    'value_label': 'Pending',
+}
 
 
 def log_errors(session, resp):
@@ -49,7 +44,7 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
 
 
 def balance(balance_item, scheme_account_id, user_set, tid):
-    balance_item = create_balance_object(balance_item, scheme_account_id, user_id)
+    balance_item = create_balance_object(balance_item, scheme_account_id, user_set)
 
     post("{}/balance".format(HADES_URL), balance_item, tid)
     return balance_item
@@ -65,7 +60,7 @@ def zero_balance(scheme_account_id, user_id, tid):
     return balance(PENDING_BALANCE, scheme_account_id, user_id, tid)
 
 
-def create_balance_object(balance_item, scheme_account_id, user_id):
+def create_balance_object(balance_item, scheme_account_id, user_set):
     balance_item['scheme_account_id'] = scheme_account_id
     balance_item['user_set'] = user_set
     balance_item['points_label'] = minify_number(balance_item['points'])

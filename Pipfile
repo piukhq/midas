@@ -64,6 +64,7 @@ PyExecJS = "==1.1.0"
 Werkzeug = "*"
 SQLAlchemy = "==1.2.2"
 graypy = "*"
+celery = "==4.2.0"
 
 [dev-packages]
 "flake8" = "*"

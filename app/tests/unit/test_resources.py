@@ -636,7 +636,7 @@ class TestResources(TestCase):
             'points_label': '0',
             'reward_tier': 0,
             'scheme_account_id': 123,
-            'user_id': 1,
+            'user_set': 1,
             'value': Decimal(0),
             'value_label': 'Pending'
         }

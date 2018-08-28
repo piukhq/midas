@@ -5,7 +5,7 @@ from app.publish import transactions, balance, zero_balance, create_balance_obje
 
 expected_balance = {
     'scheme_account_id': 1,
-    'user_id': 2,
+    'user_set': 2,
     'points_label': '1',
     'points': Decimal(1.1),
     'value': Decimal(2.2),
