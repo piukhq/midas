@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
+from unittest import mock
 from urllib.parse import urlsplit
 from uuid import uuid1
 from random import randint
@@ -403,12 +404,13 @@ class MerchantApi(BaseMiner):
         'merchant_scheme_id2': 'merchant_identifier',
     }
 
-    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
         self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
+        self.consents_data = consents_data
 
         self.record_uid = None
         self.result = None
@@ -458,7 +460,8 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        consents = self.user_info['credentials']['consents'].copy()
+        consents_data = self.user_info['credentials'].get('consents')
+        self.consents_data = consents_data.copy() if consents_data else None
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
@@ -471,18 +474,20 @@ class MerchantApi(BaseMiner):
             if self.config.integration_service == 'SYNC':
                 self.process_join_response()
 
-            consent_status = ConsentStatus.PENDING
-            try:
-                # check for error response
-                error = self._check_for_error_response(self.result)
-                if error:
-                    self._handle_errors(error[0]['code'])
+            # Processing immediate response from async requests
+            else:
+                consent_status = ConsentStatus.PENDING
+                try:
+                    # check for error response
+                    error = self._check_for_error_response(self.result)
+                    if error:
+                        self._handle_errors(error[0]['code'])
 
-            except (AgentException, LoginError, AgentError):
-                consent_status = ConsentStatus.FAILED
-                raise
-            finally:
-                self.consent_confirmation(consents, consent_status)
+                except (AgentException, LoginError, AgentError):
+                    consent_status = ConsentStatus.FAILED
+                    raise
+                finally:
+                    self.consent_confirmation(self.consents_data, consent_status)
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self):
@@ -492,7 +497,6 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         consent_status = ConsentStatus.PENDING
-        consents = self.user_info['credentials']['consents'].copy()
         try:
             # check for error response
             error = self._check_for_error_response(self.result)
@@ -509,7 +513,7 @@ class MerchantApi(BaseMiner):
             consent_status = ConsentStatus.FAILED
             raise
         finally:
-            self.consent_confirmation(consents, consent_status)
+            self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.result['message_uid'])
@@ -539,11 +543,7 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
 
-        if data.get('consents'):
-            data.update({
-                consent['slug']: consent['value']
-                for consent in data.pop('consents')
-            })
+        self._filter_consents(data, handler_type)
 
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
@@ -739,13 +739,14 @@ class MerchantApi(BaseMiner):
         """
         Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
 
-        :param consents_data: dict.
-        {
-            'id': int. UserConsent id.
+        :param consents_data: list of dicts.
+        [{
+            'id': int. UserConsent id. (Required)
             'slug': string. Consent slug.
-            'value': bool. User's consent decision.
+            'value': bool. User's consent decision. (Required)
             'created_on': string. Datetime string of when the UserConsent instance was created.
-        }
+            'journey': int. Usually of JourneyTypes IntEnum.
+        }]
         :param status: int. Should be of type ConsentStatus.
         :return: None
         """
@@ -759,3 +760,35 @@ class MerchantApi(BaseMiner):
         }
 
         send_consent_status(retry_data)
+
+    @staticmethod
+    def _filter_consents(data, handler_type):
+        """
+        Filters consents depending on handler/journey type and adds to request data in the correct format.
+        :param data: dict. contains credentials including consents if available.
+        {
+            'email': '',
+            'password: '',
+            'consents': [{'id': 1, 'value': True, 'slug': 'consent', 'journey': 1, 'created_on': ''}]
+            ...
+        }
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
+        :return: None
+        """
+        try:
+            consents = data.pop('consents')
+        except KeyError:
+            return
+
+        # JourneyTypes are used across projects whereas handler types only exist in midas. Since they differ,
+        # a mapping is required.
+        journey_types = {
+            Configuration.JOIN_HANDLER: JourneyTypes.JOIN,
+            Configuration.VALIDATE_HANDLER: JourneyTypes.LINK
+        }
+
+        journey = journey_types[handler_type]
+
+        for consent in consents:
+            if consent['journey'] == journey:
+                data.update({consent['slug']: consent['value']})
