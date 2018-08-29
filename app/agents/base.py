@@ -6,7 +6,6 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
-from unittest import mock
 from urllib.parse import urlsplit
 from uuid import uuid1
 from random import randint
