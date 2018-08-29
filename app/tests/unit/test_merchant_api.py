@@ -745,10 +745,6 @@ class TestMerchantApi(FlaskTestCase):
                           'message': 'There was in issue connecting to an external service.',
                           'name': 'Service connection error'})
 
-
-    def test_collect_credentials_success(self):
-        pass
-
     def test_merchant_scheme_id_conversion(self):
         self.m.identifier_type = ['merchant_scheme_id2', 'barcode']
         data = {
@@ -871,7 +867,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_request.called)
         self.assertFalse(mock_error_logger.called)
-        mock_request.assert_called_with('http://127.0.0.1:8000/schemes/user_consent/2',
+        mock_request.assert_called_with(ANY,
                                         data=json.dumps({"status": ConsentStatus.SUCCESS}),
                                         headers=ANY,
                                         timeout=ANY)
