@@ -6,10 +6,10 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 from app import retry, AgentException, UnknownException, sentry
-from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR, RegistrationError
+from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR, RegistrationError, UNKNOWN
 from app.configuration import Configuration
 from app.encryption import hash_ids
-from app.resources import get_agent_class, create_response
+from app.resources import get_agent_class, create_response, decrypt_credentials
 from app.scheme_account import update_pending_join_account
 from app.utils import SchemeAccountStatus, JourneyTypes
 from app.security.utils import authorise
@@ -27,15 +27,15 @@ class JoinCallback(Resource):
                 raise ValueError('The record_uid provided is not valid')
 
             user_info = {
-                'credentials': self._collect_credentials(scheme_account_id),
+                'credentials': self._collect_credentials(scheme_account_id[0]),
                 'status': SchemeAccountStatus.PENDING,
                 'scheme_account_id': scheme_account_id[0],
                 'journey_type': JourneyTypes.JOIN.value
             }
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, AttributeError) as e:
             sentry.captureException(e)
             raise UnknownException(e) from e
-        except requests.ConnectionError as e:
+        except (requests.ConnectionError, AgentError) as e:
             sentry.captureException(e)
             raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
 
@@ -61,8 +61,13 @@ class JoinCallback(Resource):
     @staticmethod
     def _collect_credentials(scheme_account_id):
         session = requests_retry_session()
-        credentials = session.get('{0}/schemes/accounts/{1}/credentials'.format(HERMES_URL, scheme_account_id),
-                                  headers={'Authorization': f'Token {SERVICE_API_KEY}'})
+        response = session.get('{0}/schemes/accounts/{1}/credentials'.format(HERMES_URL, scheme_account_id),
+                               headers={'Authorization': f'Token {SERVICE_API_KEY}'})
+
+        if not response.ok:
+            raise AgentError(UNKNOWN)
+
+        credentials = decrypt_credentials(response.json()['credentials'])
 
         return credentials
 

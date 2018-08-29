@@ -7,6 +7,7 @@ from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask.ext.testing import TestCase as FlaskTestCase
 from hvac import Client
+from requests import Response
 
 from app import create_app
 from app.agents.base import MerchantApi
@@ -730,8 +731,12 @@ class TestMerchantApi(FlaskTestCase):
                                                                                 mock_session_get, mock_sentry):
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
-        mock_session_get.side_effect = requests.ConnectionError
 
+        mock_response = Response()
+        mock_response.status_code = 404
+
+        # Bad response test
+        mock_session_get.return_value = mock_response
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
         response = self.client.post('/join/merchant/test-iceland', headers=headers)
@@ -739,6 +744,16 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
         self.assertTrue(mock_sentry.captureException.called)
+        self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(response.json,
+                         {'code': 537,
+                          'message': 'There was in issue connecting to an external service.',
+                          'name': 'Service connection error'})
+
+        # Connection error test
+        mock_session_get.side_effect = requests.ConnectionError
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
         self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
         self.assertEqual(response.json,
                          {'code': 537,
@@ -871,6 +886,30 @@ class TestMerchantApi(FlaskTestCase):
                                         data=json.dumps({"status": ConsentStatus.SUCCESS}),
                                         headers=ANY,
                                         timeout=ANY)
+
+    # @mock.patch('app.resources_callbacks.retry', autospec=True)
+    # @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    # @mock.patch.object(RSA, 'decode', autospec=True)
+    # @mock.patch('app.security.utils.configuration.Configuration')
+    # def test_integration_hermes_consent_changes(self, mock_config, mock_decode, mock_thread, mock_retry):
+    #     mock_config.return_value = self.config
+    #     data = json.loads(self.json_data)
+    #     data['record_uid'] = '8GDRX5dprJMEnmvxbPNy1oLwZl0jzPKq'
+    #     mock_decode.return_value = json.dumps(data)
+    #
+    #     headers = {
+    #         "Authorization": "Signature {}".format(self.signature),
+    #     }
+    #
+    #     response = self.client.post('/join/merchant/test-iceland', headers=headers)
+    #
+    #     self.assertTrue(mock_config.called)
+    #     self.assertTrue(mock_decode.called)
+    #     self.assertTrue(mock_thread.called)
+    #     self.assertTrue(mock_retry.get_key.called)
+    #
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertEqual(response.json, {'success': True})
 
 
 @mock.patch('redis.StrictRedis.get')
