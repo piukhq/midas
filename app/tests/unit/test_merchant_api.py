@@ -93,7 +93,7 @@ class TestMerchantApi(FlaskTestCase):
         self.m.record_uid = '123'
         self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in',
                                                                       'value': True,
-                                                                      'journey': JourneyTypes.JOIN}]},
+                                                                      'journey_type': JourneyTypes.JOIN}]},
                                  'fake-merchant-id',
                                  Configuration.JOIN_HANDLER)
 
@@ -112,7 +112,7 @@ class TestMerchantApi(FlaskTestCase):
 
         resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in',
                                                        'value': True,
-                                                       'journey': JourneyTypes.LINK}]},
+                                                       'journey_type': JourneyTypes.LINK}]},
                                         'fake-merchant-id',
                                         Configuration.VALIDATE_HANDLER)
 
@@ -809,8 +809,8 @@ class TestMerchantApi(FlaskTestCase):
     def test_consents_confirmation_is_called_on_sync_register(self, mock_consent_confirmation, mock_outbound_handler,
                                                               mock_update_pending_join_account, mock_publish):
         # Confirmation is setting calling the endpoint to update UserConsent status to either SUCCESS or FAILURE
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
@@ -828,8 +828,8 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_consents_confirmed_as_pending_on_async_register(self, mock_consent_confirmation, mock_outbound_handler):
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
@@ -845,8 +845,8 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_consents_confirmed_on_failed_async_register(self, mock_consent_confirmation, mock_outbound_handler):
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
@@ -869,13 +869,13 @@ class TestMerchantApi(FlaskTestCase):
             'slug': 'consent-slug1',
             'value': True,
             'created_on': '',
-            'journey': 1
+            'journey_type': 1
         }, {
             'id': 2,
             'slug': 'consent-slug2',
             'value': False,
             'created_on': '',
-            'journey': 1
+            'journey_type': 1
         }]
 
         self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)

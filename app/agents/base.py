@@ -744,7 +744,7 @@ class MerchantApi(BaseMiner):
             'slug': string. Consent slug.
             'value': bool. User's consent decision. (Required)
             'created_on': string. Datetime string of when the UserConsent instance was created.
-            'journey': int. Usually of JourneyTypes IntEnum.
+            'journey_type': int. Usually of JourneyTypes IntEnum.
         }]
         :param status: int. Should be of type ConsentStatus.
         :return: None
@@ -768,7 +768,7 @@ class MerchantApi(BaseMiner):
         {
             'email': '',
             'password: '',
-            'consents': [{'id': 1, 'value': True, 'slug': 'consent', 'journey': 1, 'created_on': ''}]
+            'consents': [{'id': 1, 'value': True, 'slug': 'consent', 'journey_type': 1, 'created_on': ''}]
             ...
         }
         :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
@@ -789,5 +789,5 @@ class MerchantApi(BaseMiner):
         journey = journey_types[handler_type]
 
         for consent in consents:
-            if consent['journey'] == journey:
+            if consent['journey_type'] == journey:
                 data.update({consent['slug']: consent['value']})
