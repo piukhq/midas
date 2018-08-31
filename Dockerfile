@@ -15,7 +15,6 @@ RUN apt update && apt -y install curl bzip2 ca-certificates xvfb && \
     mkdir -p /root/.ssh && mv /app/deploy_key /root/.ssh/id_rsa && \
     chmod 0600 /root/.ssh/id_rsa && \
     ssh-keyscan git.bink.com > /root/.ssh/known_hosts && \
-    pip install uwsgi && pip install -r /app/requirements.txt && \
+    pip install pipenv uwsgi && pipenv install --system --deploy && \
     pip install pytest pytest-xdist && \
     apt -y remove bzip2 curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp* /root/.ssh
-

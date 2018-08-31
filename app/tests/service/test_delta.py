@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.delta import Delta
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestDelta(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = Delta(1, 1)
+        cls.m = Delta(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['delta-skymiles'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestDelta(unittest.TestCase):
 
 class TestDeltaFail(unittest.TestCase):
     def test_login_bad_username(self):
-        m = Delta(1, 1)
+        m = Delta(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',
@@ -36,7 +36,7 @@ class TestDeltaFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
-        m = Delta(1, 1)
+        m = Delta(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS['delta-skymiles'].copy()
         credentials['password'] = '32132132'
 

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.odeon import Odeon
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestOdeon(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.o = Odeon(1, 1)
+        cls.o = Odeon(*AGENT_CLASS_ARGUMENTS)
         cls.o.attempt_login(CREDENTIALS['odeon'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestOdeon(unittest.TestCase):
 class TestOdeonFail(unittest.TestCase):
 
     def test_login_fail(self):
-        o = Odeon(1, 1)
+        o = Odeon(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             o.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

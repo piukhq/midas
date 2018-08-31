@@ -1,7 +1,7 @@
 import unittest
 from app.agents.coffee_one import CoffeeOne
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestCoffeeOne(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = CoffeeOne(1, 1)
+        cls.h = CoffeeOne(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['coffee-one'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestCoffeeOne(unittest.TestCase):
 class TestCoffeeOneFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = CoffeeOne(1, 1)
+        h = CoffeeOne(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             "card_number": '0000000000',
             "pin": "000000"

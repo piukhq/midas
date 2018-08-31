@@ -7,10 +7,11 @@ from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
 from urllib.parse import urlsplit
-from uuid import uuid4
+from uuid import uuid1
 from random import randint
 
 import requests
+import arrow
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ReadTimeout, Timeout
@@ -20,16 +21,21 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
-from app import utils
+from app import publish
+from app.back_off_service import BackOffService
+from app.configuration import Configuration
+from app.constants import ENCRYPTED_CREDENTIALS
+from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
-from app.security import get_security_agent
+from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
-from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response
-from settings import logger
+from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
+from app.scheme_account import update_pending_join_account
+from settings import logger, BACK_OFF_COOLDOWN
 
 
 class SSLAdapter(HTTPAdapter):
@@ -57,6 +63,7 @@ class BaseMiner(object):
     ]
     identifier_type = None
     identifier = None
+    expecting_callback = False
     async = False
 
     def register(self, credentials):
@@ -151,10 +158,10 @@ class RoboBrowserMiner(BaseMiner):
     # ALERT: When changing this, check other agents with their own __init__ method
     ################################################################################
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
-        self.scheme_id = scheme_id
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.proxy = False
 
@@ -254,10 +261,10 @@ class RoboBrowserMiner(BaseMiner):
 # Based on requests library
 class ApiMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
-        self.scheme_id = scheme_id
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -296,13 +303,13 @@ class ApiMiner(BaseMiner):
 # Based on Selenium library and headless Firefox
 class SeleniumMiner(BaseMiner):
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None):
         self.storage = self.get_pid_store()
         self.check_browser_availability()
         self.delay = 15
-        self.scheme_id = scheme_id
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.account_status = user_info['status']
         self.headers = {}
         self.retry_count = retry_count
         self.setup_browser(self.storage)
@@ -381,15 +388,33 @@ class SeleniumMiner(BaseMiner):
 
 
 class MerchantApi(BaseMiner):
+    """
+    Base class for merchant API integrations.
+    """
+    credential_mapping = {
+        'date_of_birth': 'dob',
+        'phone': 'phone1',
+        'phone_2': 'phone2'
+    }
+    identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+    # used to map merchant identifiers to scheme credential types
+    merchant_identifier_mapping = {
+        'merchant_scheme_id2': 'merchant_identifier',
+    }
 
-    def __init__(self, retry_count, scheme_id, scheme_slug=None, account_status=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         self.retry_count = retry_count
-        self.scheme_id = scheme_id
+        self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
-        self.account_status = account_status
+        self.user_info = user_info
+        self.config = config
 
-        # { error we raise: error we receive in merchant payload}
+        self.record_uid = None
+        self.result = None
+
+        # { error we raise: error we receive in merchant payload }
         self.errors = {
+            NOT_SENT: ['NOT_SENT'],
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
@@ -403,159 +428,286 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        handler_type = 'validate' if self.account_status == 'WALLET_ONLY' else 'update'
+        account_link = self.user_info['journey_type'] == JourneyTypes.LINK.value
+
+        self.record_uid = hash_ids.encode(self.scheme_id)
+        handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
-        error = self.result['error_codes']
+        error = self._check_for_error_response(self.result)
         if error:
-            self.handle_errors(error[0]['description'])
+            self._handle_errors(error[0]['code'])
+
+        # For adding the scheme account credential answer to db after first successful login or if they change.
+        identifiers = self._get_identifiers(self.result)
+        self.identifier = {}
+        try:
+            for key, value in identifiers.items():
+                if credentials[key] != value:
+                    self.identifier[key] = value
+        except KeyError:
+            self.identifier = identifiers
 
     def register(self, data, inbound=False):
         """
         Calls handler, passing in 'join' as the handler_type.
-        :param data: user account credentials to register for merchant scheme or merchant response for outbound
-                     or inbound processes respectively.
+        :param data: user account credentials to register for merchant scheme or validated merchant response data
+        for outbound or inbound processes respectively.
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
         if inbound:
-            self._async_inbound(data, self.scheme_slug, handler_type='join')
+            self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
-            self.result = self._outbound_handler(data, self.scheme_slug, handler_type='join')
+            self.record_uid = data['record_uid'] = hash_ids.encode(self.scheme_id)
 
-            error = self.result['error_codes']
+            self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
+
+            # check for error response
+            error = self._check_for_error_response(self.result)
             if error:
-                self.handle_errors(error[0]['description'])
+                self._handle_errors(error[0]['code'])
+
+            # Async joins will return empty 200 responses so there is nothing to process.
+            if self.config.integration_service == 'SYNC':
+                self.process_join_response()
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
-    def process_join_response(self, response):
+    def process_join_response(self):
         """
-        Processes a merchant's response to a join request.
-        :param response: JSON data of a merchant's response
+        Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
+        identifiers/scheme credential answers to database.
         :return: None
         """
         # check for error response
+        error = self._check_for_error_response(self.result)
+        if error:
+            self._handle_errors(error[0]['code'])
 
-        # link account (get balance and transactions)
+        identifier = self._get_identifiers(self.result)
+        update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
+                                    identifier=identifier)
 
-        raise NotImplementedError()
+        status = SchemeAccountStatus.ACTIVE
+        publish.status(self.scheme_id, status, self.result['message_uid'])
 
-    def _outbound_handler(self, data, merchant_id, handler_type):
+    def _outbound_handler(self, data, scheme_slug, handler_type):
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and
         handles response. Configuration service is called to retrieve merchant config.
         :param data: python object data to be built into the JSON object.
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
-        :param handler_type: type of handler to retrieve correct config e.g update, validate, join
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: dict of response data
         """
-        message_uid = str(uuid4())
+        self.message_uid = str(uuid1())
+        if not self.config:
+            self.config = Configuration(scheme_slug, handler_type)
 
-        config = utils.get_config(merchant_id, handler_type)
+        logger.setLevel(self.config.log_level)
 
-        data['message_uid'] = message_uid
-        data['callback_url'] = config.get('callback_url')
+        if handler_type == Configuration.JOIN_HANDLER:
+            data['country'] = self.config.country
+            async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+            if self.config.integration_service == async_service_identifier:
+                self.expecting_callback = True
+
+        data['message_uid'] = self.message_uid
+        data['record_uid'] = self.record_uid
+        data['callback_url'] = self.config.callback_url
+
+        if data.get('consents'):
+            data.update({
+                consent['slug']: consent['value']
+                for consent in data.pop('consents')
+            })
+
+        merchant_scheme_ids = self.get_merchant_ids(data)
+        data.update(merchant_scheme_ids)
 
         payload = json.dumps(data)
 
-        # log payload
-        # TODO: logging setup for _outbound_handler
-        logger.info("TODO: logging setup for _outbound_handler")
+        # data without encrypted credentials for logging only
+        temp_data = {k: v for k, v in data.items() if k not in ENCRYPTED_CREDENTIALS}
 
-        response_data = self._sync_outbound(payload, config)
+        logging_info = self._create_log_message(
+            temp_data,
+            self.message_uid,
+            scheme_slug,
+            self.config.handler_type,
+            self.config.integration_service,
+            "OUTBOUND"
+        )
 
-        if response_data and config['log_level']:
-            # log json_data
-            # TODO: logging setup for _outbound_handler
-            logger.info("TODO: logging setup for _outbound_handler")
+        logger.info(json.dumps(logging_info))
 
-        return json.loads(response_data)
+        response_json = self._sync_outbound(payload, self.config)
 
-    def _inbound_handler(self, json_data, merchant_id):
+        response_data = {}
+        if response_json:
+            response_data = json.loads(response_json)
+
+            logging_info['direction'] = "INBOUND"
+            logging_info['json'] = response_data
+            if self._check_for_error_response(response_data):
+                logging_info['contains_errors'] = True
+                logger.error(json.dumps(logging_info))
+            else:
+                logger.info(json.dumps(logging_info))
+
+        return response_data
+
+    def _inbound_handler(self, data, scheme_slug):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
-        :param json_data: JSON payload
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param data: dict of payload
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
         :return: dict of response data
         """
-        # log json_data
-        # TODO: logging setup for _outbound_handler
-        logger.info("TODO: logging setup for _inbound_handler {}".format(merchant_id))
+        self.result = data
 
-        return self.process_join_response(json.loads(json_data))
+        logging_info = self._create_log_message(
+            data,
+            self.result.get('message_uid'),
+            scheme_slug,
+            self.config.handler_type,
+            'ASYNC',
+            'INBOUND'
+        )
 
-    def _sync_outbound(self, data, config):
+        if self._check_for_error_response(self.result):
+            logging_info['contains_errors'] = True
+            logger.error(json.dumps(logging_info))
+        else:
+            logger.info(json.dumps(logging_info))
+
+        return self.process_join_response()
+
+    def _sync_outbound(self, json_data, config):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
         Calls are made to security and back off services pre-request.
-        :param data: JSON string of payload to send to merchant
+        :param json_data: JSON string of payload to send to merchant
         :param config: dict of merchant configuration settings
         :return: Response payload
         """
+        json_data = self.map_credentials_to_request(json_data)
+        outbound_security_agent = get_security_agent(config.security_credentials['outbound']['service'],
+                                                     config.security_credentials)
+        request = outbound_security_agent.encode(json_data)
+        back_off_service = BackOffService()
 
-        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
-        request = security_agent.encode(data)
-
-        for retry_count in range(1 + config['retry_limit']):
-            if BackOffService.is_on_cooldown(config['merchant_id'], config['handler_type']):
-                response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+        for retry_count in range(1 + config.retry_limit):
+            if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
+                response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 break
             else:
-                response = requests.post(config['merchant_url'], **request)
+                response = requests.post(config.merchant_url, **request)
                 status = response.status_code
 
-                if status == 200:
-                    response_json = response.content
-                    # Check if request was redirected
-                    # TODO: logging for redirects
+                if status in [200, 202]:
+                    inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                                config.security_credentials)
+                    response_json = inbound_security_agent.decode(response.headers,
+                                                                  response.text)
+                    # Log if request was redirected
                     if response.history:
-                        logger.warning("TODO: logging setup for redirect in _sync_outbound")
+                        logging_info = self._create_log_message(
+                            response_json,
+                            json.loads(json_data)['message_uid'],
+                            config.scheme_slug,
+                            config.handler_type,
+                            config.integration_service,
+                            "OUTBOUND"
+                        )
+                        logger.warning(json.dumps(logging_info))
                     break
 
                 elif status in [503, 504, 408]:
-                    response_json = create_error_response(errors[NOT_SENT]['code'], errors[NOT_SENT]['name'])
+                    response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 else:
-                    response_json = create_error_response(errors[UNKNOWN]['code'],
+                    response_json = create_error_response(UNKNOWN,
                                                           errors[UNKNOWN]['name'] + ' with status code {}'
                                                           .format(status))
 
-                if retry_count == config['retry_limit']:
-                    BackOffService.activate_cooldown(config['merchant_id'], config['handler_type'], 100)
+                if retry_count == config.retry_limit:
+                    back_off_service.activate_cooldown(config.scheme_slug, config.handler_type, BACK_OFF_COOLDOWN)
 
         return response_json
 
-    def _async_inbound(self, data, merchant_id, handler_type):
+    def _async_inbound(self, data, scheme_slug, handler_type):
         """
-        Asynchronous inbound service that will decode json based on configuration per merchant and return
+        Asynchronous inbound service that will set logging level based on configuration per merchant and return
         a success response asynchronously before calling the inbound handler service.
-        :param data: Request JSON from merchant
-        :param merchant_id: Bink's unique identifier for a merchant (slug)
+        :param data: dict of validated merchant response data.
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: None
         """
-        config = utils.get_config(merchant_id, handler_type)
+        if not self.config:
+            self.config = Configuration(scheme_slug, handler_type)
+        logger.setLevel(self.config.log_level)
 
-        security_agent = get_security_agent(config['security_service'], config['security_credentials'])
-        decoded_data = security_agent.decode(data)
+        self.record_uid = hash_ids.encode(self.scheme_id)
 
         # asynchronously call handler
-        thread_pool_executor.submit(self._inbound_handler, decoded_data, self.scheme_slug, handler_type)
+        thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug)
 
-    def handle_errors(self, response, exception_type=LoginError):
+    # agents will override this if unique values are needed
+    def get_merchant_ids(self, credentials):
+        merchant_ids = {
+            'merchant_scheme_id1': hash_ids.encode(self.user_info['user_id']),
+            'merchant_scheme_id2': credentials.get('merchant_identifier'),
+        }
+
+        return merchant_ids
+
+    def _handle_errors(self, response, exception_type=LoginError):
         for key, values in self.errors.items():
             if response in values:
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
+    def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
+                            contains_errors=False):
+        return {
+            "json": json_msg,
+            "message_uid": msg_uid,
+            "record_uid": self.record_uid,
+            "merchant_id": scheme_slug,
+            "handler_type": handler_type,
+            "integration_service": integration_service,
+            "direction": direction,
+            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "contains_errors": contains_errors
+        }
 
-class BackOffService:
-    # TODO: Remove when implementing the back off service
-    @classmethod
-    def is_on_cooldown(cls, merchant_id, handler_type):
-        print('cooldown checked for {}/{}'.format(merchant_id, handler_type))
-        return False
+    def _get_identifiers(self, data):
+        """Checks if data contains any identifiers (i.e barcode, card_number) and returns a dict with their values."""
+        _identifier = {}
+        for identifier in self.identifier_type:
+            value = data.get(identifier)
+            if value:
+                converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
+                _identifier[converted_credential_type] = value
+        return _identifier
 
-    @classmethod
-    def activate_cooldown(cls, merchant_id, handler_type, time):
-        print('activated cooldown for {}/{} of {} seconds'.format(merchant_id, handler_type, time))
+    def map_credentials_to_request(self, data):
+        """
+        Converts credential keys to correct JSON keys in merchant request.
+        Agents will override the credential_mapping class attribute to define the changes.
+        :param data: JSON object of credentials being sent to merchant.
+        :return: JSON object of credentials with keys converted into the JSON keys to be sent to a merchant.
+        """
+        data = json.loads(data)
+        for key, value in self.credential_mapping.items():
+            if key in data:
+                data[value] = data.pop(key)
+
+        return json.dumps(data)
+
+    @staticmethod
+    def _check_for_error_response(response):
+        return response.get('error_codes')

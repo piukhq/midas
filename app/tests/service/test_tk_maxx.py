@@ -3,14 +3,14 @@ import unittest
 from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.tk_maxx import TKMaxx
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestTKMaxx(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = TKMaxx(1, 1)
+        cls.h = TKMaxx(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['tkmaxx'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestTKMaxx(unittest.TestCase):
 class TestTKMaxxFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = TKMaxx(1, 1)
+        h = TKMaxx(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

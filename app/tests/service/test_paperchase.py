@@ -2,14 +2,14 @@ import unittest
 from app.agents.paperchase import Paperchase
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestPaperchase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Paperchase(1, 1)
+        cls.b = Paperchase(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS['treat-me'])
 
     def test_login(self):
@@ -23,7 +23,7 @@ class TestPaperchase(unittest.TestCase):
 class TestPaperchaseFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = Paperchase(1, 1)
+        b = Paperchase(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

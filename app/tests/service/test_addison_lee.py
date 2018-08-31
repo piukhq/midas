@@ -1,7 +1,7 @@
 import unittest
 from app.agents.addison_lee import AddisonLee
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestAddisonLee(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = AddisonLee(1, 1)
+        cls.h = AddisonLee(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['addison-lee'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestAddisonLee(unittest.TestCase):
 class TestAddisonLeeFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = AddisonLee(1, 1)
+        h = AddisonLee(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.hyatt import Hyatt
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestHyatt(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Hyatt(1, 1)
+        cls.m = Hyatt(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['gold-passport'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestHyatt(unittest.TestCase):
 class TestHyattFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Hyatt(1, 1)
+        m = Hyatt(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '000000000F',
             'last_name': 'wrong',

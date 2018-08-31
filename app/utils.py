@@ -1,18 +1,44 @@
 import importlib
 import json
 import re
-import time
 import socket
 from decimal import Decimal
+from datetime import datetime
+from enum import Enum
 
 import lxml.html
-import requests
 from Crypto import Random
 
 from app.active import AGENTS
-from settings import INTERCOM_EVENTS_PATH, INTERCOM_HOST, INTERCOM_TOKEN, SERVICE_API_KEY
+from settings import SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
+
+
+class SchemeAccountStatus:
+    PENDING = 0
+    ACTIVE = 1
+    INVALID_CREDENTIALS = 403
+    INVALID_MFA = 432
+    END_SITE_DOWN = 530
+    IP_BLOCKED = 531
+    TRIPPED_CAPTCHA = 532
+    INCOMPLETE = 5
+    LOCKED_BY_ENDSITE = 434
+    RETRY_LIMIT_REACHED = 429
+    RESOURCE_LIMIT_REACHED = 503
+    UNKNOWN_ERROR = 520
+    MIDAS_UNREACHABLE = 9
+    AGENT_NOT_FOUND = 404
+    WALLET_ONLY = 10
+    PASSWORD_EXPIRED = 533
+    JOIN = 900
+    NO_SUCH_RECORD = 444
+
+
+class JourneyTypes(Enum):
+    JOIN = 0
+    LINK = 1
 
 
 def extract_decimal(s):
@@ -72,67 +98,15 @@ def minify_number(n):
     return '{0}{1}'.format(total, units[count - 1])
 
 
-def raise_intercom_event(event_name, user_id, metadata):
-    headers = {
-        'Authorization': 'Bearer {0}'.format(INTERCOM_TOKEN),
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        'user_id': user_id,
-        'event_name': event_name,
-        'created_at': int(time.time()),
-        'metadata': metadata
-    }
-
-    response = requests.post(
-        '{host}/{path}'.format(host=INTERCOM_HOST, path=INTERCOM_EVENTS_PATH),
-        headers=headers,
-        data=json.dumps(payload)
-    )
-
-    try:
-        if response.status_code != 202:
-            raise IntercomException('Error with {} intercom event: {}'.format(event_name, response.text))
-
-    except IntercomException:
-        pass
-
-    return response
-
-
-class IntercomException(Exception):
-    pass
-
-
-def get_config(merchant_id, handler_type):
-    """
-    TODO: get config from helios database
-    :param merchant_id:
-    :param handler_type:
-    :return:
-    """
-    config = {
-        'log_level': 'DEBUG',
-        'merchant_id': 'fake-merchant',
-        'merchant_url': 'http://127.0.0.1:8002/dashboard/update/',
-        'security_service': 'RSA',
-        'security_credentials': 'creds',
-        'handler_type': 'join',
-        'retry_limit': 2,
-    }
-    if not config:
-        raise Exception('No configuration file found for {}/{}'.format(merchant_id, handler_type))
-    return config
-
-
 def create_error_response(error_code, error_description):
-    response_json = json.dumps(
-        {'error_codes': [
-            {'code': error_code,
-             'description': error_description}
-        ]}
-    )
+    response_json = json.dumps({
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
+    })
     return response_json
 
 
@@ -143,3 +117,36 @@ def get_headers(tid):
                'Authorization': 'token ' + SERVICE_API_KEY}
 
     return headers
+
+
+def log_task(func):
+    def logged_func(*args, **kwargs):
+        try:
+            scheme_account_message = ' for scheme account: {}'.format(args[1]['scheme_account_id'])
+        except KeyError:
+            scheme_account_message = ''
+
+        try:
+            logger.debug('{0} - starting {1} task{2}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message
+            ))
+            result = func(*args, **kwargs)
+            logger.debug('{0} - finished {1} task{2}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message
+            ))
+        except Exception as e:
+            logger.debug('{0} - error with {1} task{2}. error: {3}'.format(
+                datetime.now(),
+                func.__name__,
+                scheme_account_message,
+                repr(e)
+            ))
+            raise
+
+        return result
+
+    return logged_func

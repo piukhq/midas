@@ -24,8 +24,14 @@ NO_SUCH_RECORD = "NO_SUCH_RECORD"
 ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS"
 NOT_SENT = "NOT_SENT"
 RESOURCE_LIMIT_REACHED = "RESOURCE_LIMIT_REACHED"
+VALIDATION = "VALIDATION"
+CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
+SERVICE_CONNECTION_ERROR = "SERVER_CONNECTION_ERROR"
 
 errors = {
+    VALIDATION: {"code": 401,
+                 "message": "Validation of the request has failed.",
+                 "name": "Failed validation"},
     STATUS_LOGIN_FAILED: {"code": 403,
                           "message": "We could not update your account because your username and/or password were "
                                      "reported to be incorrect. Please re-verify your username and password.",
@@ -83,15 +89,22 @@ errors = {
                                        "confirmation steps shown, then try again.",
                             "name": "Confirmation required"},
     NOT_SENT: {"code": 535,
-               "message": "message was not sent",
-               "name": "message was not sent"},
+               "message": "Message was not sent",
+               "name": "Message was not sent"},
+    CONFIGURATION_ERROR: {"code": 536,
+                          "message": "There is an error with the configuration or it was not possible to retrieve.",
+                          "name": "Configuration error"},
+    SERVICE_CONNECTION_ERROR: {"code": 537,
+                               "message": "There was in issue connecting to an external service.",
+                               "name": "Service connection error"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
 }
 
 SYSTEM_ACTION_REQUIRED = [
-    END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED
+    END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED,
+    CONFIGURATION_ERROR, NOT_SENT
 ]
 
 

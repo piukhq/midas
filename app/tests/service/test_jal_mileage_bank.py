@@ -1,7 +1,7 @@
 import unittest
 from app.agents.jal_mileage_bank import JalMileageBank
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestJalMileageBank(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = JalMileageBank(1, 1)
+        cls.h = JalMileageBank(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['jal-mileage-bank'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestJalMileageBank(unittest.TestCase):
 class TestJalMileageBankFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = JalMileageBank(1, 1)
+        h = JalMileageBank(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '000000000',
             'pin': '000000'

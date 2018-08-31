@@ -8,7 +8,7 @@ from app.agents.base import MerchantApi
 class MerchantAPIGeneric(MerchantApi):
     def balance(self):
         return {
-            "points": Decimal(self.result['balance']['value']),
+            "points": Decimal(self.result['balance']),
             "value": Decimal(0),
             "value_label": '',
         }

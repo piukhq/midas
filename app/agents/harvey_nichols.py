@@ -4,14 +4,19 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
+from app.tasks.resend_consents import send_consents
 import arrow
+import json
 
 
 class HarveyNichols(ApiMiner):
-
-    token_store = UserTokenStore(REDIS_URL)
-
+    # Agent settings
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
+    CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"   # Authorisation key for Harvey Nichols consents
+    AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
+    HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
+    token_store = UserTokenStore(REDIS_URL)
 
     def login(self, credentials):
         self.credentials = credentials
@@ -161,11 +166,45 @@ class HarveyNichols(ApiMiner):
         if json_result['outcome'] == 'Success':
             self.customer_number = json_result['customerNumber']
             self.token = json_result['token']
-            self.token_store.set(self.scheme_id, self.token)
+            self.token_store.set('user-token-store:{}'.format(self.scheme_id), self.token)
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
-                self.identifier = {self.identifier_type: json_result['customerNumber']}
+                self.identifier = {self.identifier_type: self.customer_number}
+
+                # Use consents retry mechanism as explained in
+                # https://books.bink.com/books/backend-development/page/retry-tasks
+                hn_post_message = {"enactor_id": self.customer_number}
+                confirm_retries = {}    # While hold the retry count down for each consent confirmation retried
+
+                for consent in credentials['consents']:
+                    hn_post_message[consent['slug']] = consent['value']
+                    confirm_retries[consent['id']] = self.HERMES_CONFIRMATION_TRIES
+
+                headers = {"Content-Type": "application/json; charset=utf-8",
+                           "Accept": "application/json",
+                           "Auth-key": self.CONSENTS_AUTH_KEY
+                           }
+
+                send_consents({
+                    "url": self.CONSENTS_URL,  # set to scheme url for the agent to accept consents
+                    "headers": headers,        # headers used for agent consent call
+                    "message": json.dumps(hn_post_message),  # set to message body encoded as required
+                    "agent_tries": self.AGENT_TRIES,        # max number of attempts to send consents to agent
+                    "confirm_tries": confirm_retries,     # retries for each consent confirmation sent to hermes
+                    'id': self.customer_number,     # used for identification in error messages
+                    "callback": "app.agents.harvey_nichols"   # If present identifies the module containing the
+                                                            # function "agent_consent_response"
+                                                            # callback_function can be set to change default function
+                                                            # name.  Without this the HTML repsonse status code is used
+                })
 
         else:
             self.handle_errors(json_result['outcome'])
+
+
+def agent_consent_response(resp):
+    response_data = json.loads(resp.text)
+    if response_data.get("response") == "success" and response_data.get("code") == 200:
+        return True, ""
+    return False, f'harvery nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'
