@@ -5,7 +5,7 @@ from decimal import Decimal
 from unittest import mock
 from unittest.mock import mock_open
 
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 
 from app import create_app, AgentException, UnknownException
 from app import publish
