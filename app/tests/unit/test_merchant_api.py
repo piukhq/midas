@@ -1,36 +1,39 @@
 import json
 from collections import OrderedDict
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
 from hvac import Client
+from requests import Response
 
 from app import create_app
 from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
-from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD
+from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
+    SERVICE_CONNECTION_ERROR
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
+from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 from app.utils import JourneyTypes
 
-mock_config = MagicMock()
-mock_config.scheme_slug = 'id'
-mock_config.merchant_url = 'stuff'
-mock_config.integration_service = 'SYNC'
-mock_config.handler_type = 'UPDATE'
-mock_config.retry_limit = 2
-mock_config.callback_url = ''
-mock_config.log_level = 'DEBUG'
-mock_config.country = 'GB'
+mock_configuration = MagicMock()
+mock_configuration.scheme_slug = 'id'
+mock_configuration.merchant_url = 'stuff'
+mock_configuration.integration_service = 'SYNC'
+mock_configuration.handler_type = 'UPDATE'
+mock_configuration.retry_limit = 2
+mock_configuration.callback_url = ''
+mock_configuration.log_level = 'DEBUG'
+mock_configuration.country = 'GB'
 
 json_data = json.dumps({'message_uid': '123-123-123-123',
                         'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',  # hash for a scheme account id of 1
@@ -43,7 +46,8 @@ class TestMerchantApi(FlaskTestCase):
     user_info = {'scheme_account_id': 1,
                  'status': '',
                  'user_id': 1,
-                 'journey_type': JourneyTypes.LINK.value}
+                 'journey_type': JourneyTypes.LINK.value,
+                 'credentials': {}}
 
     json_data = json_data
 
@@ -58,8 +62,8 @@ class TestMerchantApi(FlaskTestCase):
         return create_app(self, )
 
     def setUp(self):
-        mock_config.integration_service = 'SYNC'
-        mock_config.security_credentials = {
+        mock_configuration.integration_service = 'SYNC'
+        mock_configuration.security_credentials = {
             'outbound': {
                 'service': 0,
                 'credentials': [
@@ -74,7 +78,7 @@ class TestMerchantApi(FlaskTestCase):
                 ]
             }
         }
-        self.config = mock_config
+        self.config = mock_configuration
         self.m = MerchantApi(1, self.user_info)
 
     @mock.patch('app.agents.base.logger', autospec=True)
@@ -84,10 +88,14 @@ class TestMerchantApi(FlaskTestCase):
                                                                           mock_logger):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
+        mock_config.JOIN_HANDLER = Configuration.JOIN_HANDLER
+
         self.m.record_uid = '123'
-        self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+        self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in',
+                                                                      'value': True,
+                                                                      'journey_type': JourneyTypes.JOIN}]},
                                  'fake-merchant-id',
-                                 'update')
+                                 Configuration.JOIN_HANDLER)
 
         self.assertTrue(mock_logger.info.called)
         self.assertIn('merchant_scheme_id1', mock_sync_outbound.call_args[0][0])
@@ -99,11 +107,14 @@ class TestMerchantApi(FlaskTestCase):
     def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
+        mock_config.VALIDATE_HANDLER = Configuration.VALIDATE_HANDLER
         self.m.record_uid = '123'
 
-        resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in', 'value': True}]},
+        resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in',
+                                                       'value': True,
+                                                       'journey_type': JourneyTypes.LINK}]},
                                         'fake-merchant-id',
-                                        'update')
+                                        Configuration.VALIDATE_HANDLER)
 
         self.assertTrue(mock_logger.info.called)
         self.assertEqual({"error_codes": [], 'json': 'test'}, resp)
@@ -111,12 +122,12 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         self.config.integration_service = 'ASYNC'
-        mock_configuration.return_value = self.config
-        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
-        mock_configuration.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
+        mock_config.return_value = self.config
+        mock_config.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        mock_config.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
         self.m.record_uid = '123'
 
         self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
@@ -126,10 +137,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_configuration, mock_logger):
+    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_config, mock_logger):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
-        mock_configuration.return_value = self.config
-        mock_configuration.JOIN_HANDLER = Configuration.JOIN_HANDLER
+        mock_config.return_value = self.config
+        mock_config.JOIN_HANDLER = Configuration.JOIN_HANDLER
         self.m.record_uid = '123'
 
         self.m._outbound_handler({'consents': []}, 'fake-merchant-id', Configuration.JOIN_HANDLER)
@@ -292,7 +303,8 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.error.called)
 
-    def test_process_join_handles_errors(self):
+    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    def test_process_join_handles_errors(self, mock_consent_confirmation):
         self.m.record_uid = self.m.scheme_id
         self.m.result = {
             "error_codes": [{
@@ -305,6 +317,7 @@ class TestMerchantApi(FlaskTestCase):
             self.m.process_join_response()
 
         self.assertEqual(e.exception.name, "An unknown error has occurred")
+        self.assertTrue(mock_consent_confirmation.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
@@ -359,8 +372,9 @@ class TestMerchantApi(FlaskTestCase):
             self.m.login({})
         self.assertEqual(e.exception.name, "Message was not sent")
 
+    @mock.patch.object(MerchantApi, 'consent_confirmation')
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_register_handles_error_payload(self, mock_outbound_handler):
+    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
         mock_outbound_handler.return_value = {
             "error_codes": [{
                 "code": "GENERAL_ERROR",
@@ -372,6 +386,7 @@ class TestMerchantApi(FlaskTestCase):
         with self.assertRaises(LoginError) as e:
             self.m.register({})
         self.assertEqual(e.exception.name, 'An unknown error has occurred')
+        self.assertTrue(mock_consent_confirmation.called)
 
     @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
@@ -598,11 +613,13 @@ class TestMerchantApi(FlaskTestCase):
         with self.assertRaises(AgentError):
             Configuration('', 1)
 
+    @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
-    def test_async_join_callback_returns_success(self, mock_config, mock_decode, mock_thread, mock_retry):
+    def test_async_join_callback_returns_success(self, mock_config, mock_decode, mock_thread, mock_retry,
+                                                 mock_collect_credentials):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
@@ -616,15 +633,18 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_decode.called)
         self.assertTrue(mock_thread.called)
         self.assertTrue(mock_retry.get_key.called)
+        self.assertTrue(mock_collect_credentials.called)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
 
+    @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
-    def test_join_callback_raises_error_with_bad_record_uid(self, mock_config, mock_decode, mock_thread, mock_retry):
+    def test_join_callback_raises_error_with_bad_record_uid(self, mock_config, mock_decode, mock_thread,
+                                                            mock_retry, mock_sentry):
         mock_config.return_value = self.config
         json_data_with_bad_record_uid = json.dumps({'message_uid': '123-123-123-123',
                                                     'record_uid': 'a',
@@ -641,10 +661,13 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_decode.called)
         self.assertFalse(mock_thread.called)
         self.assertFalse(mock_retry.get_key.called)
+        self.assertFalse(mock_sentry.called)
 
         self.assertEqual(response.status_code, 520)
-        self.assertEqual(response.json, {'code': 520, 'message': 'record_uid not valid', 'name': 'Unknown Error'})
+        self.assertEqual(response.json, {'code': 520, 'message': 'The record_uid provided is not valid',
+                                         'name': 'Unknown Error'})
 
+    @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
     @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
     @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
@@ -652,7 +675,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
     def test_join_callback_specific_error(self, mock_config, mock_decode, mock_thread, mock_retry, mock_update_join,
-                                          mock_sentry):
+                                          mock_sentry, mock_collect_credentials):
         mock_retry.side_effect = AgentError(NO_SUCH_RECORD)
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
@@ -667,18 +690,20 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_retry.called)
         self.assertTrue(mock_update_join.called)
         self.assertTrue(mock_sentry.captureException.called)
+        self.assertTrue(mock_collect_credentials.called)
 
         self.assertEqual(response.status_code, errors[NO_SUCH_RECORD]['code'])
         self.assertEqual(response.json, errors[NO_SUCH_RECORD])
 
+    @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
     @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
     @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
-    def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_thread, mock_retry, mock_update_join,
-                                         mock_sentry):
+    def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_thread, mock_retry,
+                                         mock_update_join, mock_sentry, mock_credentials):
         mock_retry.side_effect = RuntimeError('test exception')
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
@@ -692,9 +717,48 @@ class TestMerchantApi(FlaskTestCase):
         self.assertFalse(mock_thread.called)
         self.assertTrue(mock_retry.called)
         self.assertTrue(mock_update_join.called)
+        self.assertTrue(mock_sentry.captureException.called)
+        self.assertTrue(mock_credentials.called)
 
         self.assertEqual(response.status_code, 520)
         self.assertEqual(response.json, {'code': 520, 'message': 'test exception', 'name': 'Unknown Error'})
+
+    @mock.patch('app.resources_callbacks.sentry')
+    @mock.patch('requests.sessions.Session.get')
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch('app.security.utils.configuration.Configuration')
+    def test_join_callback_raises_custom_exception_if_collect_credentials_fails(self, mock_config, mock_decode,
+                                                                                mock_session_get, mock_sentry):
+        mock_config.return_value = self.config
+        mock_decode.return_value = json_data
+
+        mock_response = Response()
+        mock_response.status_code = 404
+
+        # Bad response test
+        mock_session_get.return_value = mock_response
+        headers = {"Authorization": "Signature {}".format(self.signature)}
+
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_decode.called)
+        self.assertTrue(mock_sentry.captureException.called)
+        self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(response.json,
+                         {'code': 537,
+                          'message': 'There was in issue connecting to an external service.',
+                          'name': 'Service connection error'})
+
+        # Connection error test
+        mock_session_get.side_effect = requests.ConnectionError
+        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+
+        self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(response.json,
+                         {'code': 537,
+                          'message': 'There was in issue connecting to an external service.',
+                          'name': 'Service connection error'})
 
     def test_merchant_scheme_id_conversion(self):
         self.m.identifier_type = ['merchant_scheme_id2', 'barcode']
@@ -738,6 +802,115 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(mapped_credentials, expected_credentials)
 
+    @mock.patch('app.agents.base.publish.status')
+    @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    def test_consents_confirmation_is_called_on_sync_register(self, mock_consent_confirmation, mock_outbound_handler,
+                                                              mock_update_pending_join_account, mock_publish):
+        # Confirmation is setting calling the endpoint to update UserConsent status to either SUCCESS or FAILURE
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        self.m.user_info.update(credentials=credentials)
+
+        message_uid = ''
+        mock_outbound_handler.return_value = {'message_uid': message_uid}
+        self.m.config = self.config
+
+        self.m.register(credentials)
+
+        mock_consent_confirmation.assert_called_with(credentials['consents'], ConsentStatus.SUCCESS)
+
+        self.assertTrue(mock_outbound_handler.called)
+        self.assertTrue(mock_update_pending_join_account.called)
+        self.assertTrue(mock_publish.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    def test_consents_confirmed_as_pending_on_async_register(self, mock_consent_confirmation, mock_outbound_handler):
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        self.m.user_info.update(credentials=credentials)
+
+        message_uid = ''
+        mock_outbound_handler.return_value = {'message_uid': message_uid}
+        self.m.config = self.config
+        self.m.config.integration_service = 'ASYNC'
+
+        self.m.register(credentials)
+
+        mock_consent_confirmation.assert_called_with(credentials['consents'], ConsentStatus.PENDING)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    def test_consents_confirmed_on_failed_async_register(self, mock_consent_confirmation, mock_outbound_handler):
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
+                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        self.m.user_info.update(credentials=credentials)
+
+        message_uid = ''
+        mock_outbound_handler.return_value = {'error_codes': [{'code': 'GENERAL_ERROR'}], 'message_uid': message_uid}
+        self.m.config = self.config
+        self.m.config.integration_service = 'ASYNC'
+
+        with self.assertRaises(LoginError):
+            self.m.register(credentials)
+
+        mock_consent_confirmation.assert_called_with(credentials['consents'], ConsentStatus.FAILED)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch('app.tasks.resend_consents.logger.error')
+    @mock.patch('app.tasks.resend_consents.requests.put')
+    def test_consents_confirmation_sends_updated_user_consents(self, mock_request, mock_error_logger):
+        mock_request.return_value.status_code = 200
+        consents_data = [{
+            'id': 1,
+            'slug': 'consent-slug1',
+            'value': True,
+            'created_on': '',
+            'journey_type': 1
+        }, {
+            'id': 2,
+            'slug': 'consent-slug2',
+            'value': False,
+            'created_on': '',
+            'journey_type': 1
+        }]
+
+        self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
+
+        self.assertTrue(mock_request.called)
+        self.assertFalse(mock_error_logger.called)
+        mock_request.assert_called_with(ANY,
+                                        data=json.dumps({"status": ConsentStatus.SUCCESS}),
+                                        headers=ANY,
+                                        timeout=ANY)
+
+    # @mock.patch('app.resources_callbacks.retry', autospec=True)
+    # @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
+    # @mock.patch.object(RSA, 'decode', autospec=True)
+    # @mock.patch('app.security.utils.configuration.Configuration')
+    # def test_integration_hermes_consent_changes(self, mock_config, mock_decode, mock_thread, mock_retry):
+    #     mock_config.return_value = self.config
+    #     data = json.loads(self.json_data)
+    #     data['record_uid'] = '8GDRX5dprJMEnmvxbPNy1oLwZl0jzPKq'
+    #     mock_decode.return_value = json.dumps(data)
+    #
+    #     headers = {
+    #         "Authorization": "Signature {}".format(self.signature),
+    #     }
+    #
+    #     response = self.client.post('/join/merchant/test-iceland', headers=headers)
+    #
+    #     self.assertTrue(mock_config.called)
+    #     self.assertTrue(mock_decode.called)
+    #     self.assertTrue(mock_thread.called)
+    #     self.assertTrue(mock_retry.get_key.called)
+    #
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertEqual(response.json, {'success': True})
+
 
 @mock.patch('redis.StrictRedis.get')
 @mock.patch('redis.StrictRedis.set')
@@ -779,7 +952,7 @@ class TestBackOffService(TestCase):
 class TestOAuth(TestCase):
 
     def setUp(self):
-        self.config = mock_config
+        self.config = mock_configuration
         self.json_data = json_data
         self.token_response = {
             'token_type': 'Bearer',
