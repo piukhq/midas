@@ -32,6 +32,19 @@ build-develop:
   only:
     - develop
 
+build-ubiquity:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build --pull -t "$CI_REGISTRY/midas:ubiquity" .
+    - docker push "$CI_REGISTRY/midas:ubiquity"
+  only:
+    - feature/ubiquity
+
 build-master:
   stage: build
   image: docker:latest
@@ -54,6 +67,16 @@ deploy-dev:
     - kubectl delete po $(kubectl get po --no-headers=true -l run=midas -o custom-columns=:metadata.name)
   only:
     - develop
+
+deploy-ubiquity:
+  stage: deploy
+  image: binkops.azurecr.io/kubedeployer:latest
+  environment: dev
+  script:
+    - kubectl config use-context dev
+    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas -o custom-columns=:metadata.name -n ukbanking) -n ukbanking
+  only:
+    - feature/ubiquity
 
 deploy-staging:
   stage: deploy
