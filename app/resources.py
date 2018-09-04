@@ -453,7 +453,7 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        publish.status(user_info['scheme_account_id'], status, tid)
+        publish.status(user_info['scheme_account_id'], status, tid, journey='join')
         return True
 
 

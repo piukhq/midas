@@ -515,7 +515,7 @@ class MerchantApi(BaseMiner):
             self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.result['message_uid'])
+        publish.status(self.scheme_id, status, self.result['message_uid'], journey='join')
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """
