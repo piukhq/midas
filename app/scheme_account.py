@@ -56,7 +56,6 @@ def update_pending_link_account(scheme_account_id, message, tid, intercom_data=N
 
 
 def remove_pending_consents(consent_ids, headers):
-    data = {'status': ConsentStatus.FAILED}
+    data = json.dumps({'status': ConsentStatus.FAILED}, cls=JsonEncoder)
     for consent_id in consent_ids:
-        requests.put('{}/schemes/user_consent/{}'.format(HERMES_URL, consent_id),
-                     data=json.dumps(data, cls=JsonEncoder), headers=headers)
+        requests.put('{}/schemes/user_consent/{}'.format(HERMES_URL, consent_id), data=data, headers=headers)
