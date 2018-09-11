@@ -34,13 +34,14 @@ class TestMerchantAPIGenericValidate(unittest.TestCase):
 
 
 class TestMerchantAPIGenericFail(unittest.TestCase):
+    # merchant api framework doesnt have an invalid credentials error code so it raises an unknown exception
     def test_login_fail(self):
         i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='iceland-bonus-card')
         credentials = CREDENTIALS['iceland-bonus-card']
         credentials['last_name'] = 'midastest'
         with self.assertRaises(LoginError) as e:
             i.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
+        self.assertEqual(e.exception.name, 'An unknown error has occurred')
 
 
 if __name__ == '__main__':
