@@ -774,11 +774,6 @@ class MerchantApi(BaseMiner):
         :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: None
         """
-        try:
-            consents = data.pop('consents')
-        except KeyError:
-            return
-
         # JourneyTypes are used across projects whereas handler types only exist in midas. Since they differ,
         # a mapping is required.
         journey_types = {
@@ -786,7 +781,11 @@ class MerchantApi(BaseMiner):
             Configuration.VALIDATE_HANDLER: JourneyTypes.LINK
         }
 
-        journey = journey_types[handler_type]
+        try:
+            consents = data.pop('consents')
+            journey = journey_types[handler_type]
+        except KeyError:
+            return
 
         for consent in consents:
             if consent['journey_type'] == journey:
