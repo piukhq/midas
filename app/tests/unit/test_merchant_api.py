@@ -569,7 +569,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_config.return_value = self.config
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, 401)
 
@@ -579,7 +579,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_config.side_effect = Exception
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, 520)
 
@@ -627,7 +627,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -655,7 +655,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -682,7 +682,7 @@ class TestMerchantApi(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -710,7 +710,7 @@ class TestMerchantApi(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -739,7 +739,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_session_get.return_value = mock_response
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -752,7 +752,7 @@ class TestMerchantApi(FlaskTestCase):
 
         # Connection error test
         mock_session_get.side_effect = requests.ConnectionError
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
         self.assertEqual(response.json,
