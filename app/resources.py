@@ -404,7 +404,10 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
         error = e.args[0]
 
         if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data)
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
+            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data,
+                                        consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,
@@ -439,8 +442,10 @@ def registration(scheme_slug, user_info, tid):
                                         identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
             update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid,
-                                        intercom_data=intercom_data)
+                                        intercom_data=intercom_data, consent_ids=consent_ids)
         else:
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True
@@ -453,7 +458,7 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        publish.status(user_info['scheme_account_id'], status, tid)
+        publish.status(user_info['scheme_account_id'], status, tid, journey='join')
         return True
 
 
