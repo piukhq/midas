@@ -1,48 +1,45 @@
 import unittest
 from app.agents.exceptions import LoginError
-from app.agents.iceland import Iceland
+from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 
 class TestIceland(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
-        cls.m = Iceland(*AGENT_CLASS_ARGUMENTS)
-        cls.m.attempt_login(CREDENTIALS['iceland-bonus-card'])
+        cls.i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS, scheme_slug='iceland-bonus-card')
+        cls.i.attempt_login(CREDENTIALS['iceland-bonus-card'])
 
-    def test_login(self):
-        self.assertTrue(self.m.is_login_successful)
+    def test_fetch_balance(self):
+        balance = self.i.balance()
+        schemas.balance(balance)
 
     def test_transactions(self):
-        transactions = self.m.transactions()
+        transactions = self.i.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
-    def test_balance(self):
-        balance = self.m.balance()
+
+class TestMerchantAPIGenericValidate(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='iceland-bonus-card')
+        cls.i.attempt_login(CREDENTIALS['iceland-bonus-card'])
+
+    def test_validate(self):
+        balance = self.i.balance()
         schemas.balance(balance)
 
 
-class TestIcelandFail(unittest.TestCase):
-    def test_login_bad_card_number(self):
-        m = Iceland(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '00000000000',
-            'password': 't7Ixmj424Q'
-        }
+class TestMerchantAPIGenericFail(unittest.TestCase):
+    def test_login_fail(self):
+        i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='iceland-bonus-card')
+        credentials = CREDENTIALS['iceland-bonus-card']
+        credentials['last_name'] = 'midastest'
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
-
-    def test_login_bad_password(self):
-        m = Iceland(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '30403486285',
-            'password': '0000'
-        }
-        with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
+            i.attempt_login(credentials)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
