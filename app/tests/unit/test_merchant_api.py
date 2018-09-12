@@ -569,7 +569,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_config.return_value = self.config
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, 401)
 
@@ -579,7 +579,7 @@ class TestMerchantApi(FlaskTestCase):
 
         mock_config.side_effect = Exception
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, 520)
 
@@ -627,7 +627,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -655,7 +655,7 @@ class TestMerchantApi(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -682,7 +682,7 @@ class TestMerchantApi(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -710,7 +710,7 @@ class TestMerchantApi(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -739,7 +739,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_session_get.return_value = mock_response
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -752,7 +752,7 @@ class TestMerchantApi(FlaskTestCase):
 
         # Connection error test
         mock_session_get.side_effect = requests.ConnectionError
-        response = self.client.post('/join/merchant/test-iceland', headers=headers)
+        response = self.client.post('/join/merchant/iceland-bonus-card', headers=headers)
 
         self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
         self.assertEqual(response.json,
@@ -887,29 +887,19 @@ class TestMerchantApi(FlaskTestCase):
                                         headers=ANY,
                                         timeout=ANY)
 
-    # @mock.patch('app.resources_callbacks.retry', autospec=True)
-    # @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
-    # @mock.patch.object(RSA, 'decode', autospec=True)
-    # @mock.patch('app.security.utils.configuration.Configuration')
-    # def test_integration_hermes_consent_changes(self, mock_config, mock_decode, mock_thread, mock_retry):
-    #     mock_config.return_value = self.config
-    #     data = json.loads(self.json_data)
-    #     data['record_uid'] = '8GDRX5dprJMEnmvxbPNy1oLwZl0jzPKq'
-    #     mock_decode.return_value = json.dumps(data)
-    #
-    #     headers = {
-    #         "Authorization": "Signature {}".format(self.signature),
-    #     }
-    #
-    #     response = self.client.post('/join/merchant/test-iceland', headers=headers)
-    #
-    #     self.assertTrue(mock_config.called)
-    #     self.assertTrue(mock_decode.called)
-    #     self.assertTrue(mock_thread.called)
-    #     self.assertTrue(mock_retry.get_key.called)
-    #
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(response.json, {'success': True})
+    def test_filter_consents_returns_none_on_empty_consents(self):
+        data = {}
+
+        for handler_type in Configuration.HANDLER_TYPE_CHOICES:
+            result = self.m._filter_consents(data, handler_type[0])
+
+            self.assertIsNone(result)
+
+        data = {'consents': []}
+        for handler_type in Configuration.HANDLER_TYPE_CHOICES:
+            result = self.m._filter_consents(data, handler_type[0])
+
+            self.assertIsNone(result)
 
 
 @mock.patch('redis.StrictRedis.get')
