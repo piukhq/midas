@@ -7,7 +7,7 @@ from app.analytics import raise_event
 from app.encoding import JsonEncoder
 from app.tasks.resend_consents import ConsentStatus
 from app.utils import get_headers, SchemeAccountStatus
-from settings import HERMES_URL
+from settings import HERMES_URL, logger
 
 
 def update_pending_join_account(scheme_account_id, message, tid, identifier=None, intercom_data=None,
@@ -19,6 +19,7 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
                      data=json.dumps(identifier, cls=JsonEncoder), headers=headers)
         return
 
+    logger.debug('join error {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
     data = {'status': SchemeAccountStatus.JOIN}
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
