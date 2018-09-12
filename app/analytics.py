@@ -1,5 +1,5 @@
 from requests.exceptions import RequestException
-from settings import MNEMOSYNE_URL, SERVICE_API_KEY
+from settings import MNEMOSYNE_URL, SERVICE_API_KEY, logger
 
 import json
 import requests
@@ -40,11 +40,15 @@ def raise_event(event_name, user_id, user_email, metadata):
     try:
         response = requests.post(destination, data=body_data, headers=headers)
     except RequestException as ex:
+        error_message = 'analytics request error: {}, event_name: {}'
+        logger.debug(error_message.format(repr(ex), event_name))
         raise EventRaiseError from ex
 
     try:
         response.raise_for_status()
     except RequestException as ex:
+        error_message = 'analytics status error: {}, error status code: {}, event_name: {}'
+        logger.debug(error_message.format(repr(ex), response.status_code, event_name))
         raise EventRaiseError from ex
 
     return response
