@@ -461,6 +461,7 @@ class MerchantApi(BaseMiner):
         """
         consents_data = self.user_info['credentials'].get('consents')
         self.consents_data = consents_data.copy() if consents_data else None
+        logger.debug('registration consents: {}. scheme slug: {}'.format(consents_data, self.scheme_slug))
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
