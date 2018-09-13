@@ -17,6 +17,7 @@ from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentEr
     SERVICE_CONNECTION_ERROR
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
+from app.exceptions import AgentException
 from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
@@ -178,8 +179,7 @@ class TestMerchantApi(FlaskTestCase):
         response = MagicMock()
         response.json.return_value = json.loads(self.json_data)
         response.content = self.json_data
-        response.headers = {'Authorization': 'Signature {}'.format(self.signature),
-                            }
+        response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
         response.status_code = 200
         response.history = None
 
@@ -303,21 +303,25 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.error.called)
 
+    @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, 'consent_confirmation')
-    def test_process_join_handles_errors(self, mock_consent_confirmation):
+    def test_process_join_handles_errors(self, mock_consent_confirmation, mock_update):
+        mock_update.side_effect = AgentException('An unknown error has occurred')
         self.m.record_uid = self.m.scheme_id
         self.m.result = {
+            "message_uid": "test_message_uid",
             "error_codes": [{
                 "code": "GENERAL_ERROR",
                 "description": 'An unknown error has occurred'
             }]
         }
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(AgentException) as e:
             self.m.process_join_response()
 
-        self.assertEqual(e.exception.name, "An unknown error has occurred")
+        self.assertEqual(str(e.exception), "An unknown error has occurred")
         self.assertTrue(mock_consent_confirmation.called)
+        self.assertTrue(mock_update.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
@@ -372,21 +376,25 @@ class TestMerchantApi(FlaskTestCase):
             self.m.login({})
         self.assertEqual(e.exception.name, "Message was not sent")
 
+    @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
+    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation, mock_update):
         mock_outbound_handler.return_value = {
+            "message_uid": "test_message_uid",
             "error_codes": [{
                 "code": "GENERAL_ERROR",
-                "description": 'An unknown error has occurred'
+                "description": "An unknown error has occurred",
             }]
         }
+        mock_update.side_effect = AgentException('An unknown error has occurred')
         self.m.config = self.config
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(AgentException) as e:
             self.m.register({})
-        self.assertEqual(e.exception.name, 'An unknown error has occurred')
+        self.assertEqual(str(e.exception), 'An unknown error has occurred')
         self.assertTrue(mock_consent_confirmation.called)
+        self.assertTrue(mock_update.called)
 
     @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)

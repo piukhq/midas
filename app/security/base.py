@@ -6,7 +6,7 @@ from app.agents.exceptions import AgentError, VALIDATION
 class BaseSecurity:
     time_limit = 120
 
-    def __init__(self, credentials):
+    def __init__(self, credentials=None):
         """
         :param credentials: list if dicts e.g
         [{'type': 'bink_private_key', 'storage_key': 'vaultkey', 'value': 'keyvalue'}]
