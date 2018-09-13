@@ -630,10 +630,13 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status in [200, 202]:
-                    inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
-                                                                config.security_credentials)
-                    response_json = inbound_security_agent.decode(response.headers,
-                                                                  response.text)
+                    if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+                        inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+                    else:
+                        inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                                    config.security_credentials)
+
+                    response_json = inbound_security_agent.decode(response.headers, response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
