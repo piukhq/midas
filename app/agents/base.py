@@ -509,9 +509,9 @@ class MerchantApi(BaseMiner):
                                         identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
-        except (AgentException, LoginError, AgentError):
+        except (AgentException, LoginError, AgentError) as e:
             consent_status = ConsentStatus.FAILED
-            raise
+            update_pending_join_account(self.user_info['scheme_account_id'], e, self.result['message_uid'])
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
@@ -630,7 +630,7 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status in [200, 202]:
-                    if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+                    if config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
                         inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
                     else:
                         inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
