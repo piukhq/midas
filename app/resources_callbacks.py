@@ -33,10 +33,10 @@ class JoinCallback(Resource):
                 'journey_type': JourneyTypes.JOIN.value
             }
         except (KeyError, ValueError, AttributeError) as e:
-            sentry.captureException(e)
+            sentry.captureException()
             raise UnknownException(e) from e
         except (requests.ConnectionError, AgentError) as e:
-            sentry.captureException(e)
+            sentry.captureException()
             raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
 
         try:
@@ -49,11 +49,11 @@ class JoinCallback(Resource):
             agent_instance.register(data, inbound=True)
         except AgentError as e:
             update_pending_join_account(user_info['scheme_account_id'], str(e), message_uid, raise_exception=False)
-            sentry.captureException(e)
+            sentry.captureException()
             raise AgentException(e)
         except Exception as e:
             update_pending_join_account(user_info['scheme_account_id'], str(e), message_uid, raise_exception=False)
-            sentry.captureException(e)
+            sentry.captureException()
             raise UnknownException(e)
 
         return create_response({'success': True})
