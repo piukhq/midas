@@ -25,7 +25,7 @@ def raise_event(event_name, user_id, user_email, metadata):
         "events": [
             {
                 "time": int(time.time()),
-                "type": 6,
+                "type": "6",
                 "id": event_name,
                 "intercom": 1,
                 "data": {
