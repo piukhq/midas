@@ -574,7 +574,7 @@ class MerchantApi(BaseMiner):
             logging_info['json'] = response_data
             if self._check_for_error_response(response_data):
                 logging_info['contains_errors'] = True
-                logger.error(json.dumps(logging_info))
+                logger.warning(json.dumps(logging_info))
             else:
                 logger.info(json.dumps(logging_info))
 
@@ -601,7 +601,7 @@ class MerchantApi(BaseMiner):
 
         if self._check_for_error_response(self.result):
             logging_info['contains_errors'] = True
-            logger.error(json.dumps(logging_info))
+            logger.warning(json.dumps(logging_info))
         else:
             logger.info(json.dumps(logging_info))
 

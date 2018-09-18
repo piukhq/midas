@@ -301,7 +301,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m._inbound_handler(data, '')
 
-        self.assertTrue(mock_logger.error.called)
+        self.assertTrue(mock_logger.warning.called)
 
     @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, 'consent_confirmation')
