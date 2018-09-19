@@ -392,6 +392,7 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
+    retry_limit = 20
     credential_mapping = {
         'date_of_birth': 'dob',
         'phone': 'phone1',
