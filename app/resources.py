@@ -20,7 +20,7 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor, create_balance_object, PENDING_BALANCE
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
+from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task, JourneyTypes
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -121,24 +121,9 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
 
-    status = SchemeAccountStatus.ACTIVE
+    status = SchemeAccountStatus.UNKNOWN_ERROR
     try:
-        # Pending scheme account using the merchant api framework expects a callback so should not call balance.
-        if issubclass(agent_class, MerchantApi) and user_info['status'] == SchemeAccountStatus.PENDING:
-            user_info['pending'] = True
-            status = SchemeAccountStatus.PENDING
-            balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
-        else:
-            agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
-
-            # Send identifier (e.g membership id) to hermes if it's not already stored.
-            if agent_instance.identifier:
-                update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
-
-            balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
-            # Asynchronously get the transactions for the a user
-            threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
-                                                       user_info['user_id'], tid))
+        balance, status = request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads)
         return balance
     except (LoginError, AgentError) as e:
         status = e.code
@@ -156,6 +141,34 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
 
         [thread.result() for thread in threads]
+
+
+def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
+
+    # Pending scheme account using the merchant api framework expects a callback so should not call balance.
+    is_merchant_api_agent = issubclass(agent_class, MerchantApi)
+    if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
+        user_info['pending'] = True
+        status = SchemeAccountStatus.PENDING
+        balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
+    else:
+        if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
+            user_info['journey_type'] = JourneyTypes.LINK.value
+
+        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
+
+        # Send identifier (e.g membership id) to hermes if it's not already stored.
+        if agent_instance.identifier:
+            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+
+        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_id'], tid)
+
+        # Asynchronously get the transactions for the a user
+        threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
+                                                   user_info['user_id'], tid))
+        status = SchemeAccountStatus.ACTIVE
+
+    return balance, status
 
 
 def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
