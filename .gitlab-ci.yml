@@ -6,8 +6,8 @@ stages:
 tests:
   stage: tests
   script:
-    - pip3 install -r requirements.txt
-    - py.test app/tests/unit --cov=app
+    - pipenv install --dev --system --deploy
+    - pytest app/tests/unit --cov=app
 
 complexity:
   stage: tests
@@ -51,7 +51,8 @@ deploy-dev:
   environment: dev
   script:
     - kubectl config use-context dev
-    - kubectl delete po $(kubectl get po --no-headers=true -l run=midas -o custom-columns=:metadata.name)
+    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas -o custom-columns=:metadata.name)
+    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas-celery -o custom-columns=:metadata.name)
   only:
     - develop
 
