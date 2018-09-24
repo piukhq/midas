@@ -16,7 +16,7 @@ class Nectar(RoboBrowserMiner):
         else:
             username = credentials['card_number'][-11:]
 
-        login_form = self.browser.get_form(id='loginform')
+        login_form = self.browser.get_form(id='signinform')
         login_form['username'].value = username
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
