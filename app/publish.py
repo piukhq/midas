@@ -38,7 +38,7 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
         return None
     for transaction_item in transactions_items:
         transaction_item['scheme_account_id'] = scheme_account_id
-        transaction_item['user_id'] = user_set
+        transaction_item['user_set'] = user_set
     post("{}/transactions".format(HADES_URL), transactions_items, tid)
     return transactions_items
 
