@@ -461,7 +461,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         consents_data = self.user_info['credentials'].get('consents')
-        self.consents_data = consents_data.copy() if consents_data else None
+        self.consents_data = consents_data.copy() if consents_data else []
         logger.debug('registration consents: {}. scheme slug: {}'.format(consents_data, self.scheme_slug))
 
         if inbound:

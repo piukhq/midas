@@ -895,6 +895,17 @@ class TestMerchantApi(FlaskTestCase):
                                         headers=ANY,
                                         timeout=ANY)
 
+    @mock.patch('app.tasks.resend_consents.logger.error')
+    @mock.patch('app.tasks.resend_consents.requests.put')
+    def test_consents_confirmation_works_with_empty_consents(self, mock_request, mock_error_logger):
+        mock_request.return_value.status_code = 200
+        consents_data = []
+
+        self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
+
+        self.assertFalse(mock_request.called)
+        self.assertFalse(mock_error_logger.called)
+
     def test_filter_consents_returns_none_on_empty_consents(self):
         data = {}
 
