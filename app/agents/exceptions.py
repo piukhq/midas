@@ -27,6 +27,7 @@ RESOURCE_LIMIT_REACHED = "RESOURCE_LIMIT_REACHED"
 VALIDATION = "VALIDATION"
 CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
 SERVICE_CONNECTION_ERROR = "SERVICE_CONNECTION_ERROR"
+PRE_REGISTERED_CARD = "PRE_REGISTERED_CARD"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -36,6 +37,11 @@ errors = {
                           "message": "We could not update your account because your username and/or password were "
                                      "reported to be incorrect. Please re-verify your username and password.",
                           "name": 'Invalid credentials'},
+    PRE_REGISTERED_CARD: {"code": 406,
+                          "message": "We could not link your account because this card does not exist yet in this "
+                                     "loyalty scheme. Please join this loyalty scheme with those credentials and try "
+                                     "again.",
+                          "name": 'Pre-registered card'},
     INVALID_MFA_INFO: {"code": 432,
                        "message": "We're sorry, the authentication information you  provided is incorrect. "
                                   "Please try again.",

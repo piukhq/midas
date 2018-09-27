@@ -28,7 +28,7 @@ from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -421,6 +421,7 @@ class MerchantApi(BaseMiner):
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
             UNKNOWN: ['GENERAL_ERROR']
         }
 
@@ -440,6 +441,8 @@ class MerchantApi(BaseMiner):
 
         error = self._check_for_error_response(self.result)
         if error:
+            if self.scheme_slug == 'iceland-bonus-card' and account_link:
+                self._handle_iceland_errors()
             self._handle_errors(error[0]['code'])
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
@@ -695,6 +698,9 @@ class MerchantApi(BaseMiner):
             if response in values:
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
+
+    def _handle_iceland_errors(self):
+        raise AgentError(PRE_REGISTERED_CARD)
 
     def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
                             contains_errors=False):
