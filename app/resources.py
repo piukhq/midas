@@ -1,6 +1,5 @@
 import functools
 import json
-from datetime import datetime
 
 import requests
 from flask import make_response, request
@@ -216,7 +215,7 @@ class Register(Resource):
         tid = request.headers.get('transaction')
 
         logger.debug(
-            "{0} - creating registration task for scheme account: {1}".format(datetime.now(), scheme_account_id)
+            "creating registration task for scheme account: {}".format(scheme_account_id)
         )
         thread_pool_executor.submit(registration, scheme_slug, user_info, tid)
 

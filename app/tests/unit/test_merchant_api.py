@@ -333,6 +333,38 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_link_fail_raises_specific_exception(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'GENERAL_ERROR',
+                'description': 'An unknown error has occurred'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.name, 'Pre-registered card')
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_not_iceland_link_fail_doesnt_raises_specific_exception(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'GENERAL_ERROR',
+                'description': 'An unknown error has occurred'
+            }]
+        }
+        self.m.scheme_slug = 'not-iceland'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.name, 'An unknown error has occurred')
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_sets_identifier_on_first_login(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {"error_codes": [], 'card_number': '1234', 'merchant_scheme_id2': 'abc'}
         self.m.identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
@@ -894,6 +926,17 @@ class TestMerchantApi(FlaskTestCase):
                                         data=json.dumps({"status": ConsentStatus.SUCCESS}),
                                         headers=ANY,
                                         timeout=ANY)
+
+    @mock.patch('app.tasks.resend_consents.logger.error')
+    @mock.patch('app.tasks.resend_consents.requests.put')
+    def test_consents_confirmation_works_with_empty_consents(self, mock_request, mock_error_logger):
+        mock_request.return_value.status_code = 200
+        consents_data = []
+
+        self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
+
+        self.assertFalse(mock_request.called)
+        self.assertFalse(mock_error_logger.called)
 
     def test_filter_consents_returns_none_on_empty_consents(self):
         data = {}

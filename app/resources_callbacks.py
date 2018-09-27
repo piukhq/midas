@@ -64,8 +64,10 @@ class JoinCallback(Resource):
         response = session.get('{0}/schemes/accounts/{1}/credentials'.format(HERMES_URL, scheme_account_id),
                                headers={'Authorization': f'Token {SERVICE_API_KEY}'})
 
-        if not response.ok:
-            raise AgentError(UNKNOWN)
+        try:
+            response.raise_for_status()
+        except Exception as ex:
+            raise AgentError(UNKNOWN) from ex
 
         credentials = decrypt_credentials(response.json()['credentials'])
 
