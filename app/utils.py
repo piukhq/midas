@@ -3,7 +3,7 @@ import json
 import re
 import socket
 from decimal import Decimal
-from enum import Enum
+from enum import IntEnum
 
 import lxml.html
 from Crypto import Random
@@ -35,7 +35,7 @@ class SchemeAccountStatus:
     NO_SUCH_RECORD = 444
 
 
-class JourneyTypes(Enum):
+class JourneyTypes(IntEnum):
     JOIN = 0
     LINK = 1
 

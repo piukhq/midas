@@ -83,9 +83,9 @@ class TestMerchantApi(FlaskTestCase):
         self.m = MerchantApi(1, self.user_info)
 
     @mock.patch('app.agents.base.logger', autospec=True)
-    @mock.patch('app.agents.base.Configuration')
     @mock.patch.object(MerchantApi, '_sync_outbound')
-    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_sync_outbound, mock_config,
+    @mock.patch('app.agents.base.Configuration')
+    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_config, mock_sync_outbound,
                                                                           mock_logger):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], 'json': 'test'})
         mock_config.return_value = self.config
@@ -94,7 +94,7 @@ class TestMerchantApi(FlaskTestCase):
         self.m.record_uid = '123'
         self.m._outbound_handler({'card_number': '123', 'consents': [{'slug': 'third_party_opt_in',
                                                                       'value': True,
-                                                                      'journey_type': JourneyTypes.JOIN}]},
+                                                                      'journey_type': JourneyTypes.JOIN.value}]},
                                  'fake-merchant-id',
                                  Configuration.JOIN_HANDLER)
 
@@ -113,7 +113,7 @@ class TestMerchantApi(FlaskTestCase):
 
         resp = self.m._outbound_handler({'consents': [{'slug': 'third_party_opt_in',
                                                        'value': True,
-                                                       'journey_type': JourneyTypes.LINK}]},
+                                                       'journey_type': JourneyTypes.LINK.value}]},
                                         'fake-merchant-id',
                                         Configuration.VALIDATE_HANDLER)
 
@@ -849,8 +849,10 @@ class TestMerchantApi(FlaskTestCase):
     def test_consents_confirmation_is_called_on_sync_register(self, mock_consent_confirmation, mock_outbound_handler,
                                                               mock_update_pending_join_account, mock_publish):
         # Confirmation is setting calling the endpoint to update UserConsent status to either SUCCESS or FAILURE
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True,
+                                     'journey_type': JourneyTypes.JOIN.value},
+                                    {'id': 2, 'slug': 'consent2', 'value': False,
+                                     'journey_type': JourneyTypes.JOIN.value}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
@@ -868,8 +870,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_consents_confirmed_as_pending_on_async_register(self, mock_consent_confirmation, mock_outbound_handler):
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True,
+                                     'journey_type': JourneyTypes.JOIN.value},
+                                    {'id': 2, 'slug': 'consent2', 'value': False,
+                                     'journey_type': JourneyTypes.JOIN.value}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
@@ -885,8 +889,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, '_outbound_handler')
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_consents_confirmed_on_failed_async_register(self, mock_consent_confirmation, mock_outbound_handler):
-        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True, 'journey_type': JourneyTypes.JOIN},
-                                    {'id': 2, 'slug': 'consent2', 'value': False, 'journey_type': JourneyTypes.JOIN}]}
+        credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True,
+                                     'journey_type': JourneyTypes.JOIN.value},
+                                    {'id': 2, 'slug': 'consent2', 'value': False,
+                                     'journey_type': JourneyTypes.JOIN.value}]}
         self.m.user_info.update(credentials=credentials)
 
         message_uid = ''
