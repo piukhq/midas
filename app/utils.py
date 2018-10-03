@@ -3,7 +3,7 @@ import json
 import re
 import socket
 from decimal import Decimal
-from enum import Enum, IntEnum
+from enum import IntEnum
 
 import lxml.html
 from Crypto import Random
