@@ -1,10 +1,13 @@
+import time
+from decimal import Decimal
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, CONFIRMATION_REQUIRED
 from app.utils import extract_decimal
-from decimal import Decimal
 
 
 class Maximiles(RoboBrowserMiner):
+    async = True
     point_conversion_rate = Decimal('0.0009')
 
     def login(self, credentials):
@@ -42,6 +45,7 @@ class Maximiles(RoboBrowserMiner):
         self.check_error('/my-account/login', ((selector, STATUS_LOGIN_FAILED, 'Invalid Username/password'),))
 
     def balance(self):
+        time.sleep(60)
         points = extract_decimal(self.browser.select('#global #main #colLeft h1 strong')[0].text)
         value = self.calculate_point_value(points)
 
