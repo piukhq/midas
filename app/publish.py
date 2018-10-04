@@ -8,12 +8,13 @@ from app.encoding import JsonEncoder
 from app.utils import get_headers, minify_number
 from settings import HADES_URL, HERMES_URL, logger, MAX_VALUE_LABEL_LENGTH
 
-thread_pool_executor = ThreadPoolExecutor(max_workers=6)
+thread_pool_executor = ThreadPoolExecutor(max_workers=3)
+
 PENDING_BALANCE = {
-        'points': Decimal(0),
-        'value': Decimal(0),
-        'value_label': 'Pending',
-    }
+    'points': Decimal(0),
+    'value': Decimal(0),
+    'value_label': 'Pending',
+}
 
 
 def log_errors(session, resp):
@@ -50,8 +51,11 @@ def balance(balance_item, scheme_account_id, user_id, tid):
     return balance_item
 
 
-def status(scheme_account_id, status, tid):
-    data = {"status": status}
+def status(scheme_account_id, status, tid, journey=None):
+    data = {
+        "status": status,
+        "journey": journey
+    }
     post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
     return status
 

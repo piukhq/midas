@@ -1,6 +1,5 @@
 import functools
 import json
-from datetime import datetime
 
 import requests
 from flask import make_response, request
@@ -20,7 +19,7 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor, create_balance_object, PENDING_BALANCE
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
+from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task, JourneyTypes
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -121,24 +120,9 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
 
-    status = SchemeAccountStatus.ACTIVE
+    status = SchemeAccountStatus.UNKNOWN_ERROR
     try:
-        # Pending scheme account using the merchant api framework expects a callback so should not call balance.
-        if issubclass(agent_class, MerchantApi) and user_info['status'] == SchemeAccountStatus.PENDING:
-            user_info['pending'] = True
-            status = SchemeAccountStatus.PENDING
-            balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
-        else:
-            agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
-
-            # Send identifier (e.g membership id) to hermes if it's not already stored.
-            if agent_instance.identifier:
-                update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
-
-            balance = publish.balance(agent_instance.balance(), scheme_account_id,  user_info['user_id'], tid)
-            # Asynchronously get the transactions for the a user
-            threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
-                                                       user_info['user_id'], tid))
+        balance, status = request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads)
         return balance
     except (LoginError, AgentError) as e:
         status = e.code
@@ -156,6 +140,34 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
 
         [thread.result() for thread in threads]
+
+
+def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
+
+    # Pending scheme account using the merchant api framework expects a callback so should not call balance.
+    is_merchant_api_agent = issubclass(agent_class, MerchantApi)
+    if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
+        user_info['pending'] = True
+        status = SchemeAccountStatus.PENDING
+        balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
+    else:
+        if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
+            user_info['journey_type'] = JourneyTypes.LINK.value
+
+        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
+
+        # Send identifier (e.g membership id) to hermes if it's not already stored.
+        if agent_instance.identifier:
+            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+
+        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_id'], tid)
+
+        # Asynchronously get the transactions for the a user
+        threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
+                                                   user_info['user_id'], tid))
+        status = SchemeAccountStatus.ACTIVE
+
+    return balance, status
 
 
 def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
@@ -203,7 +215,7 @@ class Register(Resource):
         tid = request.headers.get('transaction')
 
         logger.debug(
-            "{0} - creating registration task for scheme account: {1}".format(datetime.now(), scheme_account_id)
+            "creating registration task for scheme account: {}".format(scheme_account_id)
         )
         thread_pool_executor.submit(registration, scheme_slug, user_info, tid)
 
@@ -404,7 +416,10 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
         error = e.args[0]
 
         if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
-            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data)
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
+            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data,
+                                        consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,
@@ -439,8 +454,10 @@ def registration(scheme_slug, user_info, tid):
                                         identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
             update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid,
-                                        intercom_data=intercom_data)
+                                        intercom_data=intercom_data, consent_ids=consent_ids)
         else:
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True
@@ -453,7 +470,7 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        publish.status(user_info['scheme_account_id'], status, tid)
+        publish.status(user_info['scheme_account_id'], status, tid, journey='join')
         return True
 
 
