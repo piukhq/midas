@@ -51,7 +51,7 @@ users = {
         'len_transactions': 6,
         'credentials': {
             'email': 'sixdigitpoints@testbink.com',
-            'password': 'Password01',
+            'password': 'pa$$w&rd01!*',
             'last_name': 'million',
             'postcode': 'mp6 0bb'
         },
@@ -189,7 +189,7 @@ class TestAgentCI(ApiMiner):
 
         return {
             'points': self.user_info['points'],
-            'value': value,
+            'value': self.user_info['points'],
             'value_label': '£{}'.format(value)
         }
 
