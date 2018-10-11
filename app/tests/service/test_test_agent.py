@@ -11,7 +11,7 @@ class TestCI(unittest.TestCase):
     def setUpClass(cls):
         cls.b = TestAgentCI(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '666666',
+            'card_number': '66666666',
             'email': 'six@testbink.com'
         }
         cls.b.attempt_login(credentials)
@@ -20,12 +20,10 @@ class TestCI(unittest.TestCase):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
-        print(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        print(balance)
 
 
 class TestCIFail(unittest.TestCase):
@@ -47,9 +45,9 @@ class TestHN(unittest.TestCase):
     def setUpClass(cls):
         cls.b = TestAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '123456',
+            'card_number': '1020304056666',
             'email': 'sixdigitpoints@testbink.com',
-            'password': 'Password01'
+            'password': 'pa$$w&rd01!'
         }
         cls.b.attempt_login(credentials)
 
@@ -57,12 +55,10 @@ class TestHN(unittest.TestCase):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
-        print(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        print(balance)
 
 
 class TestHNFail(unittest.TestCase):
@@ -85,8 +81,8 @@ class TestIce(unittest.TestCase):
     def setUpClass(cls):
         cls.b = TestAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '234567',
-            'last_name': 'Smith',
+            'card_number': '1020304050607087777',
+            'last_name': 'seven-digits, smith\'s',
             'postcode': 'mp7 1bb'
         }
         cls.b.attempt_login(credentials)
@@ -95,12 +91,10 @@ class TestIce(unittest.TestCase):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
-        print(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        print(balance)
 
 
 class TestIceFail(unittest.TestCase):
