@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal
 
 import arrow
 
@@ -15,7 +15,7 @@ users = {
             'last_name': 'zero',
             'postcode': 'rg0 0aa'
         },
-        'points': Decimal(0)
+        'points': Decimal('0')
     },
     '111111': {
         'len_transactions': 1,
@@ -25,7 +25,7 @@ users = {
             'last_name': 'one',
             'postcode': 'rg1 1aa'
         },
-        'points': Decimal(20)
+        'points': Decimal('20.10')
     },
     '555555': {
         'len_transactions': 5,
@@ -35,7 +35,7 @@ users = {
             'last_name': 'five',
             'postcode': 'rg5 5aa'
         },
-        'points': Decimal(380)
+        'points': Decimal('380.01')
     },
     '666666': {
         'len_transactions': 6,
@@ -45,7 +45,7 @@ users = {
             'last_name': 'six',
             'postcode': 'rg6 6aa'
         },
-        'points': Decimal(1480)
+        'points': Decimal('1480')
     },
     '123456': {
         'len_transactions': 6,
@@ -55,7 +55,7 @@ users = {
             'last_name': 'million',
             'postcode': 'mp6 0bb'
         },
-        'points': Decimal(123456)
+        'points': Decimal('123456')
     },
     '234567': {
         'len_transactions': 6,
@@ -74,12 +74,12 @@ transactions = [
     {
         "date": arrow.get('01/07/2018 14:24:15', 'DD/MM/YYYY HH:mm:ss'),
         "description": 'Test transaction: 1 item',
-        "points": Decimal('20'),
+        "points": Decimal('20.71'),
     },
     {
         "date": arrow.get('02/08/2018 12:11:30', 'DD/MM/YYYY HH:mm:ss'),
         "description": 'Test transaction: 3 items',
-        "points": Decimal('100'),
+        "points": Decimal('100.01'),
     },
     {
         "date": arrow.get('03/09/2018 22:05:45', 'DD/MM/YYYY HH:mm:ss'),
@@ -183,7 +183,7 @@ class TestAgentIce(ApiMiner):
 
     def balance(self):
         points = self.user_info['points']
-        value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+        value = self.calculate_point_value(points)
 
         return {
             'points': self.user_info['points'],
@@ -226,7 +226,7 @@ class TestAgentCI(ApiMiner):
 
     def balance(self):
         points = self.user_info['points']
-        value = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
+        value = self.calculate_point_value(points)
 
         return {
             'points': self.user_info['points'],
