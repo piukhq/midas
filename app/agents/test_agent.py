@@ -114,26 +114,29 @@ def get_user(card_number):
 class TestAgentHN(ApiMiner):
 
     def login(self, credentials):
-        card_number = credentials.get('card_number') or credentials.get('barcode')
+        for user, info in users.items():
+            check_email = info['credentials']['email']
+            check_password = info['credentials']['password']
+            if credentials['email'] == check_email and credentials['password'] == check_password:
+                self.user_info = info
+                self.customer_number = user
+                break
+
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
         card_number_mapping = {
-            '0000000000000': '000000',
-            '1111111111111': '111111',
-            '5555555555555': '555555',
-            '6666666666666': '666666',
-            '1020304056666': '123456',
-            '1020304057777': '234567',
+            '000000': '0000000000000',
+            '111111': '1111111111111',
+            '555555': '5555555555555',
+            '666666': '6666666666666',
+            '123456': '1020304056666',
+            '234567': '1020304057777',
         }
-        try:
-            card_number = card_number_mapping[card_number]
-        except (KeyError, TypeError):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        self.customer_number = card_number_mapping[self.customer_number]
 
-        self.user_info = get_user(card_number)
-        login_credentials = (credentials['email'].lower(), credentials['password'])
-        auth_check = (self.user_info['credentials']['email'], self.user_info['credentials']['password'])
-
-        if login_credentials != auth_check:
-            raise LoginError(STATUS_LOGIN_FAILED)
+        if credentials.get('card_number') != self.customer_number:
+            self.identifier = {'card_number': self.customer_number}
 
         return
 
