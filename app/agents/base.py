@@ -134,7 +134,7 @@ class BaseMiner(object):
         return questions
 
     def attempt_login(self, credentials):
-        if self.retry_count >= self.retry_limit:
+        if self.retry_limit and self.retry_count >= self.retry_limit:
             raise RetryLimitError(RETRY_LIMIT_REACHED)
 
         try:

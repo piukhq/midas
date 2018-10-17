@@ -112,6 +112,7 @@ def get_user(card_number):
 
 
 class TestAgentHN(ApiMiner):
+    retry_limit = None
 
     def login(self, credentials):
         card_number = credentials.get('card_number') or credentials.get('barcode')
@@ -155,6 +156,7 @@ class TestAgentHN(ApiMiner):
 
 
 class TestAgentIce(ApiMiner):
+    retry_limit = None
     point_conversion_rate = Decimal('1')
 
     def login(self, credentials):
@@ -201,6 +203,7 @@ class TestAgentIce(ApiMiner):
 
 
 class TestAgentCI(ApiMiner):
+    retry_limit = None
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
