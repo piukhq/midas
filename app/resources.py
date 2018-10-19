@@ -160,7 +160,7 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
     if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
         user_info['pending'] = True
         status = SchemeAccountStatus.PENDING
-        balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
+        balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
     else:
         if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
             user_info['journey_type'] = JourneyTypes.LINK.value
@@ -171,11 +171,11 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         if agent_instance.identifier:
             update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
 
-        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_id'], tid)
+        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_set'], tid)
 
         # Asynchronously get the transactions for the a user
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
-                                                   user_info['user_id'], tid))
+                                                   user_info['user_set'], tid))
         status = SchemeAccountStatus.ACTIVE
 
     return balance, status

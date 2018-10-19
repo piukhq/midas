@@ -2,9 +2,8 @@ from decimal import Decimal
 
 import arrow
 
-from app.agents.base import ApiMiner
+from app.agents.base import ApiMiner, MerchantApi
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
-
 
 users = {
     '000000': {
@@ -68,7 +67,6 @@ users = {
         'points': Decimal(1234567)
     },
 }
-
 
 transactions = [
     {
@@ -155,7 +153,7 @@ class TestAgentHN(ApiMiner):
         return transactions[:max_transactions]
 
 
-class TestAgentIce(ApiMiner):
+class TestAgentIce(MerchantApi):
     retry_limit = None
     point_conversion_rate = Decimal('1')
 
