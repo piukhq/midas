@@ -5,7 +5,7 @@ from decimal import Decimal
 from unittest import mock
 from unittest.mock import mock_open
 
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 
 from app import create_app, AgentException, UnknownException
 from app import publish
@@ -311,7 +311,14 @@ class TestResources(TestCase):
             'metadata': {},
             'scheme_slug': 'test slug',
             'user_id': 'test user id',
-            'credentials': {},
+            'credentials': {
+                'consents': [
+                    {
+                        'id': 1,
+                        'value': True
+                    }
+                ]
+            },
             'scheme_account_id': 2,
             'status': SchemeAccountStatus.PENDING
         }
@@ -321,13 +328,15 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_register.called)
         self.assertTrue(mock_update_pending_join_account.called)
+        consent_data_sent = list(mock_update_pending_join_account.call_args[1]['consent_ids'])
+        self.assertTrue(consent_data_sent, [1])
 
     @mock.patch.object(HarveyNichols, 'register')
     @mock.patch('app.resources.update_pending_join_account', autospec=False)
     def test_agent_register_fail_account_exists(self, mock_update_pending_join_account, mock_register):
         mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
         user_info = {
-            'credentials': '',
+            'credentials': {},
             'scheme_account_id': 2,
             'status': ''
         }
@@ -344,7 +353,7 @@ class TestResources(TestCase):
         mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
         mock_update_pending_join_account.side_effect = AgentException(ACCOUNT_ALREADY_EXISTS)
         user_info = {
-            'credentials': '',
+            'credentials': {},
             'scheme_account_id': 2,
             'status': ''
         }

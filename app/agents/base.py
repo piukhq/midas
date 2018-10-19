@@ -28,14 +28,15 @@ from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
+from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
 from app.scheme_account import update_pending_join_account
-from settings import logger, BACK_OFF_COOLDOWN
+from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
 
 
 class SSLAdapter(HTTPAdapter):
@@ -391,6 +392,7 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
+    retry_limit = 5
     credential_mapping = {
         'date_of_birth': 'dob',
         'phone': 'phone1',
@@ -402,12 +404,13 @@ class MerchantApi(BaseMiner):
         'merchant_scheme_id2': 'merchant_identifier',
     }
 
-    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
         self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
+        self.consents_data = consents_data
 
         self.record_uid = None
         self.result = None
@@ -418,6 +421,7 @@ class MerchantApi(BaseMiner):
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
             UNKNOWN: ['GENERAL_ERROR']
         }
 
@@ -437,6 +441,8 @@ class MerchantApi(BaseMiner):
 
         error = self._check_for_error_response(self.result)
         if error:
+            if self.scheme_slug == 'iceland-bonus-card' and account_link:
+                self._handle_iceland_errors()
             self._handle_errors(error[0]['code'])
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
@@ -457,6 +463,10 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
+        consents_data = self.user_info['credentials'].get('consents')
+        self.consents_data = consents_data.copy() if consents_data else []
+        logger.debug('registration consents: {}. scheme slug: {}'.format(consents_data, self.scheme_slug))
+
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
@@ -464,14 +474,24 @@ class MerchantApi(BaseMiner):
 
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
-            # check for error response
-            error = self._check_for_error_response(self.result)
-            if error:
-                self._handle_errors(error[0]['code'])
-
             # Async joins will return empty 200 responses so there is nothing to process.
             if self.config.integration_service == 'SYNC':
                 self.process_join_response()
+
+            # Processing immediate response from async requests
+            else:
+                consent_status = ConsentStatus.PENDING
+                try:
+                    # check for error response
+                    error = self._check_for_error_response(self.result)
+                    if error:
+                        self._handle_errors(error[0]['code'])
+
+                except (AgentException, LoginError, AgentError):
+                    consent_status = ConsentStatus.FAILED
+                    raise
+                finally:
+                    self.consent_confirmation(self.consents_data, consent_status)
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self):
@@ -480,17 +500,27 @@ class MerchantApi(BaseMiner):
         identifiers/scheme credential answers to database.
         :return: None
         """
-        # check for error response
-        error = self._check_for_error_response(self.result)
-        if error:
-            self._handle_errors(error[0]['code'])
+        consent_status = ConsentStatus.PENDING
+        try:
+            # check for error response
+            error = self._check_for_error_response(self.result)
+            if error:
+                # TODO: convert to RegistrationError instead of default LoginError for _handle_errors
+                self._handle_errors(error[0]['code'])
 
-        identifier = self._get_identifiers(self.result)
-        update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
-                                    identifier=identifier)
+            identifier = self._get_identifiers(self.result)
+            update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
+                                        identifier=identifier)
+
+            consent_status = ConsentStatus.SUCCESS
+        except (AgentException, LoginError, AgentError) as e:
+            consent_status = ConsentStatus.FAILED
+            update_pending_join_account(self.user_info['scheme_account_id'], e, self.result['message_uid'])
+        finally:
+            self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.result['message_uid'])
+        publish.status(self.scheme_id, status, self.result['message_uid'], journey='join')
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """
@@ -517,11 +547,7 @@ class MerchantApi(BaseMiner):
         data['record_uid'] = self.record_uid
         data['callback_url'] = self.config.callback_url
 
-        if data.get('consents'):
-            data.update({
-                consent['slug']: consent['value']
-                for consent in data.pop('consents')
-            })
+        self._filter_consents(data, handler_type)
 
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
@@ -552,7 +578,7 @@ class MerchantApi(BaseMiner):
             logging_info['json'] = response_data
             if self._check_for_error_response(response_data):
                 logging_info['contains_errors'] = True
-                logger.error(json.dumps(logging_info))
+                logger.warning(json.dumps(logging_info))
             else:
                 logger.info(json.dumps(logging_info))
 
@@ -579,7 +605,7 @@ class MerchantApi(BaseMiner):
 
         if self._check_for_error_response(self.result):
             logging_info['contains_errors'] = True
-            logger.error(json.dumps(logging_info))
+            logger.warning(json.dumps(logging_info))
         else:
             logger.info(json.dumps(logging_info))
 
@@ -608,10 +634,13 @@ class MerchantApi(BaseMiner):
                 status = response.status_code
 
                 if status in [200, 202]:
-                    inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
-                                                                config.security_credentials)
-                    response_json = inbound_security_agent.decode(response.headers,
-                                                                  response.text)
+                    if config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+                        inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+                    else:
+                        inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
+                                                                    config.security_credentials)
+
+                    response_json = inbound_security_agent.decode(response.headers, response.text)
                     # Log if request was redirected
                     if response.history:
                         logging_info = self._create_log_message(
@@ -670,6 +699,9 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
+    def _handle_iceland_errors(self):
+        raise AgentError(PRE_REGISTERED_CARD)
+
     def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
                             contains_errors=False):
         return {
@@ -711,3 +743,61 @@ class MerchantApi(BaseMiner):
     @staticmethod
     def _check_for_error_response(response):
         return response.get('error_codes')
+
+    @staticmethod
+    def consent_confirmation(consents_data, status):
+        """
+        Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
+
+        :param consents_data: list of dicts.
+        [{
+            'id': int. UserConsent id. (Required)
+            'slug': string. Consent slug.
+            'value': bool. User's consent decision. (Required)
+            'created_on': string. Datetime string of when the UserConsent instance was created.
+            'journey_type': int. Usually of JourneyTypes IntEnum.
+        }]
+        :param status: int. Should be of type ConsentStatus.
+        :return: None
+        """
+        confirm_tries = {}
+        for consent in consents_data:
+            confirm_tries[consent['id']] = HERMES_CONFIRMATION_TRIES
+
+        retry_data = {
+            "confirm_tries": confirm_tries,
+            "status": status
+        }
+
+        send_consent_status(retry_data)
+
+    @staticmethod
+    def _filter_consents(data, handler_type):
+        """
+        Filters consents depending on handler/journey type and adds to request data in the correct format.
+        :param data: dict. contains credentials including consents if available.
+        {
+            'email': '',
+            'password: '',
+            'consents': [{'id': 1, 'value': True, 'slug': 'consent', 'journey_type': 1, 'created_on': ''}]
+            ...
+        }
+        :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
+        :return: None
+        """
+        # JourneyTypes are used across projects whereas handler types only exist in midas. Since they differ,
+        # a mapping is required.
+        journey_types = {
+            Configuration.JOIN_HANDLER: JourneyTypes.JOIN,
+            Configuration.VALIDATE_HANDLER: JourneyTypes.LINK
+        }
+
+        try:
+            consents = data.pop('consents')
+            journey = journey_types[handler_type]
+        except KeyError:
+            return
+
+        for consent in consents:
+            if consent['journey_type'] == journey:
+                data.update({consent['slug']: consent['value']})

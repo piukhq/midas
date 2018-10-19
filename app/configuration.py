@@ -2,7 +2,7 @@ import hvac
 import requests
 
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
-from settings import SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL, CONFIG_SERVICE_URL
+from settings import SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL, CONFIG_SERVICE_URL, logger
 
 
 class Configuration:
@@ -71,6 +71,7 @@ class Configuration:
 
         self.data = self._get_config_data()
         self._process_config_data()
+        logger.debug('retrieved configuration for {}. scheme slug: {}'.format(self.handler_type, self.scheme_slug))
 
     def _get_config_data(self):
         params = {

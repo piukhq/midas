@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from flask.ext.script import Manager, Shell, Server
+from flask_script import Manager, Shell, Server
 from app import create_app
 import settings
 

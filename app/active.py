@@ -25,7 +25,7 @@ AGENTS = {
     # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
     # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
     # ----------- sandbox testing start -------------- #
-    # 'iceland-bonus-card': 'iceland.Iceland',
+    # 'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
     'iceland-bonus-card': 'test_agent.TestAgentIce',
     # 'club-individual': 'club_individual.ClubIndividual',
     'club-individual': 'test_agent.TestAgentCI',
@@ -87,7 +87,6 @@ AGENTS = {
     'love-your-body': 'the_body_shop.TheBodyShop',
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
-    'test-iceland': 'merchant_api_generic.MerchantAPIGeneric',
     'pure-hmv': 'hmv.HMV',
     'victoria': 'victoria.Victoria',
     'star-rewards': 'star_rewards.StarRewards',

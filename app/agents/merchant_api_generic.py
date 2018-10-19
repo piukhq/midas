@@ -3,14 +3,16 @@ from decimal import Decimal
 import arrow
 
 from app.agents.base import MerchantApi
+from app.utils import TWO_PLACES
 
 
 class MerchantAPIGeneric(MerchantApi):
     def balance(self):
+        value = Decimal(self.result['balance']).quantize(TWO_PLACES)
         return {
-            "points": Decimal(self.result['balance']),
-            "value": Decimal(0),
-            "value_label": '',
+            "points": value,
+            "value": value,
+            "value_label": '£{}'.format(value),
         }
 
     def scrape_transactions(self):
