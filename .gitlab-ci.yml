@@ -50,9 +50,8 @@ deploy-dev:
   image: binkops.azurecr.io/kubedeployer:latest
   environment: dev
   script:
-    - kubectl config use-context dev
-    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas -o custom-columns=:metadata.name)
-    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas-celery -o custom-columns=:metadata.name)
+    - kubectl delete po -n=dev -l=project=midas
+    - kubectl delete po -n=dev -l=project=midas-celery
   only:
     - develop
 
@@ -61,8 +60,7 @@ deploy-staging:
   image: binkops.azurecr.io/kubedeployer:latest
   environment: staging
   script:
-    - kubectl config use-context staging
-    - kubectl set image deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
+    - kubectl set image -n=staging deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
   only:
     - tags
 
@@ -71,8 +69,7 @@ deploy-prod:
   image: binkops.azurecr.io/kubedeployer:latest
   environment: prod
   script:
-    - kubectl config use-context prod
-    - kubectl set image deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
+    - kubectl set image -n=production deployment/midas midas=olympus.azurecr.io/midas:$CI_COMMIT_TAG
   when: manual
   only:
     - tags
