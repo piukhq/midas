@@ -18,7 +18,7 @@ class TestHarrods(unittest.TestCase):
     def test_balance(self):
         b = self.h.balance()
         schemas.balance(b)
-        self.assertRegex(b['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(b['value_label'], r'^£\d*\.\d\d$')
 
     def test_transactions(self):
         t = self.h.transactions()

@@ -23,7 +23,7 @@ class TestBeefeater(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ discount voucher[s]?$|^$')
+        self.assertRegex(balance['value_label'], r'^\d+ discount voucher[s]?$|^$')
 
 
 class TestBeefeaterFail(unittest.TestCase):
