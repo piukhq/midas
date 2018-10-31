@@ -3,8 +3,8 @@ import json
 
 import requests
 from flask import make_response, request
-from flask_restful.utils.cors import crossdomain
 from flask_restful import Resource, abort
+from flask_restful.utils.cors import crossdomain
 from flask_restful_swagger import swagger
 from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
@@ -12,19 +12,16 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
-                                   SYSTEM_ACTION_REQUIRED, errors)
+from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
+                                   ACCOUNT_ALREADY_EXISTS)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent
+from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task, JourneyTypes
 from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task, JourneyTypes
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
 
 scheme_account_id_doc = {
     "name": "scheme_account_id",
@@ -154,7 +151,6 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
-
     # Pending scheme account using the merchant api framework expects a callback so should not call balance.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
     if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
