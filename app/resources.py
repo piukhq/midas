@@ -91,7 +91,7 @@ class Balance(Resource):
             thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], 10, tid)
             abort(e.code, message=e.data['message'])
 
-        if agent_class.async:
+        if agent_class.is_async:
             return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
 
         balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)

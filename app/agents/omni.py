@@ -28,7 +28,7 @@ class Omni(RoboBrowserMiner):
         self.check_if_logged_in()
 
     def balance(self):
-        re_id = re.compile('\s*data: ?{ ?.?NameID.?: ?.?([0-9]+).? ?},')
+        re_id = re.compile(r'\s*data: ?{ ?.?NameID.?: ?.?([0-9]+).? ?},')
         target = self.browser.select('div.col-xs-12 > script')[0].text
         user_id = re_id.findall(target)[0]
 

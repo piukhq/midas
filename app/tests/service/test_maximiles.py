@@ -23,7 +23,7 @@ class TestMaximiles(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(balance['value_label'], r'^£\d*\.\d\d$')
 
 
 class TestMaximilesFail(unittest.TestCase):
