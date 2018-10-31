@@ -9,7 +9,7 @@ import re
 class Tesco(RoboBrowserMiner):
     is_login_successful = False
     point_conversion_rate = Decimal('0.01')
-    transaction_id_regex = re.compile('\d{3}$')
+    transaction_id_regex = re.compile(r'\d{3}$')
 
     def _check_if_logged_in(self):
         current_url = self.browser.url

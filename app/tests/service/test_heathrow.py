@@ -23,7 +23,7 @@ class TestHeathrow(unittest.TestCase):
     def test_balance(self):
         balance = self.h.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ £5 vouchers?$|^$')
+        self.assertRegex(balance['value_label'], r'^\d+ £5 vouchers?$|^$')
 
 
 class TestHeathrowFail(unittest.TestCase):
