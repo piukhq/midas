@@ -16,7 +16,7 @@ class TestStarbucks(unittest.TestCase):
         balance = self.s.balance()
         schemas.balance(balance)
         self.assertTrue(balance['points'] >= 0 and balance['points'] <= 15)
-        self.assertRegex(balance['value_label'], '^\d+/15 coffees$')
+        self.assertRegex(balance['value_label'], r'^\d+/15 coffees$')
 
 
 class TestStarbucksFail(unittest.TestCase):

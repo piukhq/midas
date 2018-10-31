@@ -22,7 +22,7 @@ class TestMandCo(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ £5 reward voucher[s]?$|^$')
+        self.assertRegex(balance['value_label'], r'^\d+ £5 reward voucher[s]?$|^$')
 
 
 class TestMandCoFail(unittest.TestCase):

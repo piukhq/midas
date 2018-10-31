@@ -23,7 +23,7 @@ class TestStarwood(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '(^$)|(^\$\d+ amazon gift card$)')
+        self.assertRegex(balance['value_label'], r'(^$)|(^\$\d+ amazon gift card$)')
 
 
 class TestStarwoodFail(unittest.TestCase):
