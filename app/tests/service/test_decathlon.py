@@ -18,7 +18,7 @@ class TestDecathlon(unittest.TestCase):
     def test_balance(self):
         balance = self.d.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ £5 vouchers?$|^$')
+        self.assertRegex(balance['value_label'], r'^\d+ £5 vouchers?$|^$')
 
     def test_transactions(self):
         transactions = self.d.transactions()
