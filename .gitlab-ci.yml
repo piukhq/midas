@@ -32,7 +32,7 @@ build-develop:
   only:
     - develop
 
-build-ubiquity:
+build-internal-sandbox:
   stage: build
   image: docker:latest
   services:
@@ -43,7 +43,7 @@ build-ubiquity:
     - docker build --pull -t "$CI_REGISTRY/midas:ubiquity" .
     - docker push "$CI_REGISTRY/midas:ubiquity"
   only:
-    - feature/ubiquity
+    - banking-api-merge
 
 build-master:
   stage: build
@@ -68,15 +68,14 @@ deploy-dev:
   only:
     - develop
 
-deploy-ubiquity:
+deploy-internal-sandbox:
   stage: deploy
   image: binkops.azurecr.io/kubedeployer:latest
   environment: dev
   script:
-    - kubectl config use-context dev
-    - kubectl delete po $(kubectl get po --no-headers=true -l project=midas -o custom-columns=:metadata.name -n ukbanking) -n ukbanking
+    - kubectl delete po -n=ubiquity -l=project=midas
   only:
-    - feature/ubiquity
+    - banking-api-merge
 
 deploy-staging:
   stage: deploy
