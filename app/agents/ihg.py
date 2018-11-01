@@ -12,7 +12,7 @@ from app.utils import extract_decimal
 
 class Ihg(SeleniumMiner):
     is_login_successful = None
-    async = True
+    is_async = True
 
     def check_for_popup_window(self):
         self.browser.implicitly_wait(2)

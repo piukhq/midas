@@ -19,7 +19,7 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import thread_pool_executor, create_balance_object, PENDING_BALANCE
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task, JourneyTypes
+from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
 from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
                                    ACCOUNT_ALREADY_EXISTS)
 
@@ -91,7 +91,7 @@ class Balance(Resource):
             thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], 10, tid)
             abort(e.code, message=e.data['message'])
 
-        if agent_class.async:
+        if agent_class.is_async:
             return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
 
         balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
@@ -151,8 +151,10 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         status = SchemeAccountStatus.PENDING
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_id'])
     else:
-        if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
-            user_info['journey_type'] = JourneyTypes.LINK.value
+        # cl @ 2018-11-01: temporarily disabled to prevent calling iceland's link endpoint until they have fixed
+        #                : the 15,000 linked accounts problem in their system.
+        # if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
+        #     user_info['journey_type'] = JourneyTypes.LINK.value
 
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
