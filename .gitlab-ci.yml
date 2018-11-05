@@ -40,8 +40,8 @@ build-internal-sandbox:
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - docker build --pull -t "$CI_REGISTRY/midas:ubiquity" .
-    - docker push "$CI_REGISTRY/midas:ubiquity"
+    - docker build --pull -t "$CI_REGISTRY/midas:merge" .
+    - docker push "$CI_REGISTRY/midas:merge"
   only:
     - banking-api-merge
 
