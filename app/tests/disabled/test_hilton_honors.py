@@ -3,7 +3,7 @@ import unittest
 from app.agents.hilton_honors import Hilton
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestHilton(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestHilton(unittest.TestCase):
 
 class TestHiltonFail(unittest.TestCase):
     def test_failed_login(self):
-        miner = Hilton(1, 1)
+        miner = Hilton(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '999999999',
             'password': 'bad'

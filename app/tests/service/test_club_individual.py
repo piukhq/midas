@@ -2,20 +2,17 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.club_individual import ClubIndividual
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 
 class TestClubIndividual(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = ClubIndividual(1, 1)
-        cls.e.attempt_login(CREDENTIALS['club_individual'])
+        cls.e = ClubIndividual(*AGENT_CLASS_ARGUMENTS, scheme_slug='club-individual')
+        cls.e.attempt_login(CREDENTIALS['club-individual'])
 
-    def test_login(self):
-        self.assertTrue(self.e.is_login_successful)
-
-    def test_balance(self):
+    def test_fetch_balance(self):
         balance = self.e.balance()
         schemas.balance(balance)
 
@@ -25,10 +22,21 @@ class TestClubIndividual(unittest.TestCase):
         schemas.transactions(transactions)
 
 
+class TestClubIndividualValidate(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.e = ClubIndividual(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='club-individual')
+        cls.e.attempt_login(CREDENTIALS['club-individual'])
+
+    def test_validate(self):
+        balance = self.e.balance()
+        schemas.balance(balance)
+
+
 class TestClubIndividualFail(unittest.TestCase):
 
     def test_login_fail(self):
-        eu = ClubIndividual(1, 1)
+        eu = ClubIndividual(*AGENT_CLASS_ARGUMENTS, scheme_slug='club-individual')
         credentials = {
             'card_number': '0000000',
         }

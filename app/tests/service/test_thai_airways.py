@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.thai_airways import ThaiAirways
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestThaiAirways(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = ThaiAirways(1, 1)
+        cls.m = ThaiAirways(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['royal-orchid-plus'])
 
     def test_login(self):
@@ -17,7 +17,7 @@ class TestThaiAirways(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.m.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
@@ -28,7 +28,7 @@ class TestThaiAirways(unittest.TestCase):
 class TestThaiAirwaysFail(unittest.TestCase):
 
     def test_login_bad_username(self):
-        m = ThaiAirways(1, 1)
+        m = ThaiAirways(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',
@@ -38,7 +38,7 @@ class TestThaiAirwaysFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
-        m = ThaiAirways(1, 1)
+        m = ThaiAirways(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS['royal-orchid-plus'].copy()
         credentials['password'] = '32132132'
 

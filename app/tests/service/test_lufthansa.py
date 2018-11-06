@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.lufthansa import Lufthansa
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestLufthansa(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Lufthansa(1, 1)
-        cls.m.attempt_login(CREDENTIALS['lufthansa'])
+        cls.m = Lufthansa(*AGENT_CLASS_ARGUMENTS)
+        cls.m.attempt_login(CREDENTIALS['miles-and-more'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -28,7 +28,7 @@ class TestLufthansa(unittest.TestCase):
 class TestLufthansaFail(unittest.TestCase):
 
     def test_login_bad_pin(self):
-        m = Lufthansa(1, 1)
+        m = Lufthansa(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '992000656640646',
             'pin': '552960',
@@ -38,7 +38,7 @@ class TestLufthansaFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_card_number(self):
-        m = Lufthansa(1, 1)
+        m = Lufthansa(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '9920006566406460',
             'pin': '55296',

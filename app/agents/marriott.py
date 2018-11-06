@@ -6,16 +6,15 @@ from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 
 
 class Marriott(SeleniumMiner):
+    is_async = True
     points = None
     is_login_successful = False
-    async = True
 
     def _check_if_logged_in(self):
-        self.browser.implicitly_wait(5)
         if self.browser.find_elements_by_class_name('t-error-msg'):
             raise LoginError(STATUS_LOGIN_FAILED)
-        self.browser.implicitly_wait(15)
 
+        self.find_captcha()
         self.is_login_successful = True
 
     def login(self, credentials):

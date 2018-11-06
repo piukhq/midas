@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.gourmet_burger_kitchen import GourmetBurgerKitchen
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestGourmetBurgerKitchen(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = GourmetBurgerKitchen(1, 1)
+        cls.m = GourmetBurgerKitchen(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['gbk-rewards'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestGourmetBurgerKitchen(unittest.TestCase):
 class TestGourmetBurgerKitchenFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = GourmetBurgerKitchen(1, 1)
+        m = GourmetBurgerKitchen(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'email': 'bad@bad.com',
             'pin': '0000',
