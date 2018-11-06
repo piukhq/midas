@@ -2,13 +2,13 @@ import unittest
 from app.agents.boots import Boots
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestBoots(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Boots(1, 1)
+        cls.b = Boots(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["advantage-card"])
 
     def test_login(self):
@@ -17,7 +17,7 @@ class TestBoots(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(balance['value_label'], r'^£\d*\.\d\d$')
 
     def test_transactions(self):
         transactions = self.b.transactions()
@@ -28,7 +28,7 @@ class TestBoots(unittest.TestCase):
 class TestBootsFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
-        b = Boots(1, 1)
+        b = Boots(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")

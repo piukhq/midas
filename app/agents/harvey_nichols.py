@@ -3,21 +3,28 @@ from app.agents.exceptions import RegistrationError, STATUS_REGISTRATION_FAILED,
     STATUS_LOGIN_FAILED, NO_SUCH_RECORD
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import USER_TOKEN_REDIS_URL
+from settings import REDIS_URL
+from app.tasks.resend_consents import send_consents
+import arrow
+import json
 
 
 class HarveyNichols(ApiMiner):
-
-    token_store = UserTokenStore(USER_TOKEN_REDIS_URL)
-
+    # Agent settings
     BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
+    CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"   # Authorisation key for Harvey Nichols consents
+    AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
+    HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
+    token_store = UserTokenStore(REDIS_URL)
 
     def login(self, credentials):
+        self.credentials = credentials
         self.identifier_type = 'card_number'
         self.errors = {
-            NO_SUCH_RECORD: 'NoSuchRecord',
+            NO_SUCH_RECORD: ['NoSuchRecord'],
             STATUS_LOGIN_FAILED: ['Invalid', 'AuthFailed'],
-            UNKNOWN: 'Fail'
+            UNKNOWN: ['Fail']
         }
 
         # get token from redis if we have one, otherwise login to get one
@@ -27,15 +34,6 @@ class HarveyNichols(ApiMiner):
         except (KeyError, self.token_store.NoSuchToken):
             self._login(credentials)
 
-        self.result = self.call_balance_url()
-
-        if self.result['outcome'] == 'InvalidToken':
-            self._login(credentials)
-            self.result = self.call_balance_url()
-
-        if self.result['outcome'] != 'Success':
-            self.handle_errors(self.result['outcome'])
-
     def call_balance_url(self):
         url = self.BASE_URL + '/GetProfile'
         data = {
@@ -44,31 +42,81 @@ class HarveyNichols(ApiMiner):
                 'customerNumber': self.customer_number,
             }
         }
-        self.balance_response = self.make_request(url, method='post', timeout=10, json=data)
-        return self.balance_response.json()['CustomerLoyaltyProfileResult']
+        balance_response = self.make_request(url, method='post', timeout=10, json=data)
+        return balance_response.json()['CustomerLoyaltyProfileResult']
 
     def balance(self):
+        result = self.call_balance_url()
+
+        if result['outcome'] == 'InvalidToken':
+            self._login(self.credentials)
+            result = self.call_balance_url()
+
+        if result['outcome'] != 'Success':
+            self.handle_errors(result['outcome'])
+
         tiers_list = {
             'SILVER': 0,
             'GOLD': 1,
             'PLATINUM': 2,
             'BLACK': 3
         }
-        tier = tiers_list[self.result['loyaltyTierId']]
+        tier = tiers_list[result['loyaltyTierId']]
 
         return {
-            'points': Decimal(self.result['pointsBalance']),
+            'points': Decimal(result['pointsBalance']),
             'value': Decimal('0'),
             'value_label': '',
             'reward_tier': tier
         }
 
+    def call_transaction_url(self):
+        url = self.BASE_URL + '/ListTransactions'
+        from_date = arrow.get('2001/01/01').format('YYYY-MM-DDTHH:mm:ssZ')
+        to_date = arrow.utcnow().format('YYYY-MM-DDTHH:mm:ssZ')
+        data = {
+            "CustomerListTransactionsRequest": {
+                'token': self.token,
+                'customerNumber': self.customer_number,
+                "fromDate": from_date,
+                "toDate": to_date,
+                "pageOffset": 0,
+                "pageSize": 20,
+                "maxHits": 10
+            }
+        }
+
+        transaction_response = self.make_request(url, method='post', timeout=10, json=data)
+        return transaction_response.json()['CustomerListTransactionsResponse']
+
     @staticmethod
     def parse_transaction(row):
-        return row
+        if type(row['value']) == int:
+            money_value = '£{:.2f}'.format(Decimal(row['value'] / 100))
+        else:
+            money_value = ''
+
+        return {
+            "date": arrow.get(row['date']),
+            "description": row['type'] + ': ' + row['locationName'] + ' ' + money_value,
+            "points": Decimal(row['pointsValue']),
+        }
 
     def scrape_transactions(self):
-        return []
+        result = self.call_transaction_url()
+
+        if result['outcome'] == 'InvalidToken':
+            self._login(self.credentials)
+            result = self.call_transaction_url()
+
+        if result['outcome'] != 'Success':
+            self.handle_errors(result['outcome'])
+
+        transactions = [transaction['CustomerTransaction'] for transaction in result['transactions']]
+        transaction_types = ['Sale']
+        sorted_transactions = [transaction for transaction in transactions if transaction['type'] in transaction_types]
+
+        return sorted_transactions
 
     def register(self, credentials):
         self.errors = {
@@ -85,10 +133,11 @@ class HarveyNichols(ApiMiner):
                 'title': credentials['title'],
                 'forename': credentials['first_name'],
                 'surname': credentials['last_name'],
-                'phone': credentials['phone'],
-                'applicationId': 'CX_MOB'
+                'applicationId': 'BINK_APP'
             }
         }
+        if credentials.get('phone'):
+            data['CustomerSignUpRequest']['phone'] = credentials['phone']
 
         self.register_response = self.make_request(url, method='post', timeout=10, json=data)
         message = self.register_response.json()['CustomerSignUpResult']['outcome']
@@ -107,7 +156,7 @@ class HarveyNichols(ApiMiner):
             "CustomerSignOnRequest": {
                 'username': credentials['email'],
                 'password': credentials['password'],
-                'applicationId': "CX_MOB"
+                'applicationId': "BINK_APP"
             }
         }
 
@@ -117,11 +166,48 @@ class HarveyNichols(ApiMiner):
         if json_result['outcome'] == 'Success':
             self.customer_number = json_result['customerNumber']
             self.token = json_result['token']
-            self.token_store.set(self.scheme_id, self.token)
+            self.token_store.set('user-token-store:{}'.format(self.scheme_id), self.token)
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
-                self.identifier = json_result['customerNumber']
+                self.identifier = {self.identifier_type: self.customer_number}
+
+                if not credentials.get('consents'):
+                    return
+
+                # Use consents retry mechanism as explained in
+                # https://books.bink.com/books/backend-development/page/retry-tasks
+                hn_post_message = {"enactor_id": self.customer_number}
+                confirm_retries = {}    # While hold the retry count down for each consent confirmation retried
+
+                for consent in credentials['consents']:
+                    hn_post_message[consent['slug']] = consent['value']
+                    confirm_retries[consent['id']] = self.HERMES_CONFIRMATION_TRIES
+
+                headers = {"Content-Type": "application/json; charset=utf-8",
+                           "Accept": "application/json",
+                           "Auth-key": self.CONSENTS_AUTH_KEY
+                           }
+
+                send_consents({
+                    "url": self.CONSENTS_URL,  # set to scheme url for the agent to accept consents
+                    "headers": headers,        # headers used for agent consent call
+                    "message": json.dumps(hn_post_message),  # set to message body encoded as required
+                    "agent_tries": self.AGENT_TRIES,        # max number of attempts to send consents to agent
+                    "confirm_tries": confirm_retries,     # retries for each consent confirmation sent to hermes
+                    'id': self.customer_number,     # used for identification in error messages
+                    "callback": "app.agents.harvey_nichols"   # If present identifies the module containing the
+                                                            # function "agent_consent_response"
+                                                            # callback_function can be set to change default function
+                                                            # name.  Without this the HTML repsonse status code is used
+                })
 
         else:
             self.handle_errors(json_result['outcome'])
+
+
+def agent_consent_response(resp):
+    response_data = json.loads(resp.text)
+    if response_data.get("response") == "success" and response_data.get("code") == 200:
+        return True, ""
+    return False, f'harvery nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'

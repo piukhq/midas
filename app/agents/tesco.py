@@ -9,7 +9,7 @@ import re
 class Tesco(RoboBrowserMiner):
     is_login_successful = False
     point_conversion_rate = Decimal('0.01')
-    transaction_id_regex = re.compile('\d{3}$')
+    transaction_id_regex = re.compile(r'\d{3}$')
 
     def _check_if_logged_in(self):
         current_url = self.browser.url
@@ -36,7 +36,7 @@ class Tesco(RoboBrowserMiner):
         self._check_if_logged_in()
 
     def balance(self):
-        points = extract_decimal(self.browser.select('td.ddl-no-wrap')[0].text)
+        points = extract_decimal(self.browser.select('td.ddl-no-wrap')[1].text)
         value = self.calculate_point_value(points)
         balance = Decimal(self.get_vouchers_value())
 

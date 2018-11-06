@@ -1,14 +1,14 @@
 import unittest
 from app.agents.avios import Avios
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
 class TestAvios(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Avios(1, 1)
+        cls.b = Avios(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["avios"])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestAvios(unittest.TestCase):
 class TestAviosFail(unittest.TestCase):
     def test_login_bad_number(self):
         credentials = CREDENTIALS["bad"]
-        b = Avios(1, 1)
+        b = Avios(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")

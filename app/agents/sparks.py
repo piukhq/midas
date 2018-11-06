@@ -9,12 +9,10 @@ class Sparks(RoboBrowserMiner):
     auth_token = ''
 
     def _check_if_logged_in(self):
-        cookies = [item[0] for item in
-                   self.browser.session.cookies.items()]
+        cookies = self.browser.session.cookies
 
-        if 'MS_USER_COOKIE' in cookies:
-            self.is_login_successful = True
-
+        if cookies.get('IS_LOYALTY_USER_COOKIE'):
+                self.is_login_successful = True
         else:
             raise LoginError(STATUS_LOGIN_FAILED)
 

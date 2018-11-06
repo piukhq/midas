@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.tabletable import Tabletable
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestTabletable(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.t = Tabletable(1, 1)
-        cls.t.attempt_login(CREDENTIALS['tabletable'])
+        cls.t = Tabletable(*AGENT_CLASS_ARGUMENTS)
+        cls.t.attempt_login(CREDENTIALS['tasty-rewards'])
 
     def test_login(self):
         self.assertEqual(self.t.browser.response.status_code, 200)
@@ -28,7 +28,7 @@ class TestTabletable(unittest.TestCase):
 class TestTabletableFail(unittest.TestCase):
 
     def test_login_fail(self):
-        t = Tabletable(1, 1)
+        t = Tabletable(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             t.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

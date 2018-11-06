@@ -1,15 +1,16 @@
 import unittest
+
+from app.agents import schemas
 from app.agents.exceptions import LoginError
 from app.agents.quidco import Quidco
-from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestQuidco(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.q = Quidco(1, 1)
+        cls.q = Quidco(*AGENT_CLASS_ARGUMENTS)
         cls.q.attempt_login(CREDENTIALS['quidco'])
 
     def test_login(self):
@@ -28,7 +29,7 @@ class TestQuidco(unittest.TestCase):
 class TestQuidcoFail(unittest.TestCase):
 
     def test_login_fail(self):
-        q = Quidco(1, 1)
+        q = Quidco(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',

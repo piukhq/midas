@@ -3,14 +3,14 @@ import unittest
 from app.agents.cooperative import Cooperative
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestCooperative(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Cooperative(1, 1)
-        cls.b.attempt_login(CREDENTIALS["cooperative"])
+        cls.b = Cooperative(*AGENT_CLASS_ARGUMENTS)
+        cls.b.attempt_login(CREDENTIALS["the-co-operative-membership"])
 
     def test_login(self):
         self.assertEqual(self.b.browser.response.status_code, 200)
@@ -27,7 +27,7 @@ class TestCooperative(unittest.TestCase):
 
 class TestCooperativeFail(unittest.TestCase):
     def test_failed_login(self):
-        b = Cooperative(1, 1)
+        b = Cooperative(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, "Invalid credentials")

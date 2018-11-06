@@ -1,11 +1,43 @@
 import importlib
-import lxml.html
+import json
 import re
-from Crypto import Random
+import socket
 from decimal import Decimal
+from enum import IntEnum
+
+import lxml.html
+from Crypto import Random
+
 from app.active import AGENTS
+from settings import SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
+
+
+class SchemeAccountStatus:
+    PENDING = 0
+    ACTIVE = 1
+    INVALID_CREDENTIALS = 403
+    INVALID_MFA = 432
+    END_SITE_DOWN = 530
+    IP_BLOCKED = 531
+    TRIPPED_CAPTCHA = 532
+    INCOMPLETE = 5
+    LOCKED_BY_ENDSITE = 434
+    RETRY_LIMIT_REACHED = 429
+    RESOURCE_LIMIT_REACHED = 503
+    UNKNOWN_ERROR = 520
+    MIDAS_UNREACHABLE = 9
+    AGENT_NOT_FOUND = 404
+    WALLET_ONLY = 10
+    PASSWORD_EXPIRED = 533
+    JOIN = 900
+    NO_SUCH_RECORD = 444
+
+
+class JourneyTypes(IntEnum):
+    JOIN = 0
+    LINK = 1
 
 
 def extract_decimal(s):
@@ -63,3 +95,54 @@ def minify_number(n):
             break
 
     return '{0}{1}'.format(total, units[count - 1])
+
+
+def create_error_response(error_code, error_description):
+    response_json = json.dumps({
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
+    })
+    return response_json
+
+
+def get_headers(tid):
+    headers = {'Content-type': 'application/json',
+               'transaction': tid,
+               'User-agent': 'Midas on {0}'.format(socket.gethostname()),
+               'Authorization': 'token ' + SERVICE_API_KEY}
+
+    return headers
+
+
+def log_task(func):
+    def logged_func(*args, **kwargs):
+        try:
+            scheme_account_message = ' for scheme account: {}'.format(args[1]['scheme_account_id'])
+        except KeyError:
+            scheme_account_message = ''
+
+        try:
+            logger.debug('starting {0} task{1}'.format(
+                func.__name__,
+                scheme_account_message
+            ))
+            result = func(*args, **kwargs)
+            logger.debug('finished {0} task{1}'.format(
+                func.__name__,
+                scheme_account_message
+            ))
+        except Exception as e:
+            logger.debug('error with {0} task{1}. error: {2}'.format(
+                func.__name__,
+                scheme_account_message,
+                repr(e)
+            ))
+            raise
+
+        return result
+
+    return logged_func

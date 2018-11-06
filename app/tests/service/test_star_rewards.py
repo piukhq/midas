@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.star_rewards import StarRewards
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestStarRewards(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.s = StarRewards(1, 1)
-        cls.s.attempt_login(CREDENTIALS['star_rewards'])
+        cls.s = StarRewards(*AGENT_CLASS_ARGUMENTS)
+        cls.s.attempt_login(CREDENTIALS['star-rewards'])
 
     def test_login(self):
         self.assertEqual(self.s.browser.response.status_code, 200)
@@ -28,7 +28,7 @@ class TestStarRewards(unittest.TestCase):
 class TestStarRewardsFail(unittest.TestCase):
 
     def test_login_fail(self):
-        s = StarRewards(1, 1)
+        s = StarRewards(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             "card_number": "7000000000000000001",
             'password': '234234',

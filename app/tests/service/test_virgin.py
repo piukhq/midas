@@ -2,18 +2,18 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.virgin import Virgin
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestVirgin(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Virgin(1, 1)
-        cls.m.attempt_login(CREDENTIALS['virgin'])
+        cls.m = Virgin(*AGENT_CLASS_ARGUMENTS)
+        cls.m.attempt_login(CREDENTIALS['virgin-flyingclub'])
 
     def test_login(self):
-        self.assertEqual(self.m.browser.response.status_code, 200)
+        self.assertTrue(self.m.is_login_successful)
 
     def test_transactions(self):
         transactions = self.m.transactions()
@@ -28,7 +28,7 @@ class TestVirgin(unittest.TestCase):
 class TestVirginFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = Virgin(1, 1)
+        m = Virgin(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '1000000000',
             'password': '321321321',

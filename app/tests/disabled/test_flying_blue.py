@@ -2,13 +2,13 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.flying_blue import FlyingBlue
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestFlyingBlue(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = FlyingBlue(1, 1)
+        cls.m = FlyingBlue(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['klm-flying-blue'])
 
     def test_login(self):
@@ -26,7 +26,7 @@ class TestFlyingBlue(unittest.TestCase):
 
 class TestFlyingBlueFail(unittest.TestCase):
     def test_login_bad_username(self):
-        m = FlyingBlue(1, 1)
+        m = FlyingBlue(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '0000000000',
             'pin': '0000',
@@ -36,7 +36,7 @@ class TestFlyingBlueFail(unittest.TestCase):
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
     def test_login_bad_password(self):
-        m = FlyingBlue(1, 1)
+        m = FlyingBlue(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS['klm-flying-blue'].copy()
         credentials['pin'] = '0000'
 

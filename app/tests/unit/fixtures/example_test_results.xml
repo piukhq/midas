@@ -2,7 +2,7 @@
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Boots(1, 1)
+        cls.b = Boots(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
 
 app/tests/service/test_boots.py:13: 
@@ -35,7 +35,7 @@ app/agents/base.py:132: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Boots(1, 1)
+        cls.b = Boots(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
 
 app/tests/service/test_boots.py:13: 
@@ -68,7 +68,7 @@ app/agents/base.py:132: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.b = Boots(1, 1)
+        cls.b = Boots(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.b.attempt_login(CREDENTIALS[&quot;advantage-card&quot;])
 
 app/tests/service/test_boots.py:13: 
@@ -101,7 +101,7 @@ app/agents/base.py:132: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.w = FoylesBookstore(1, 1)
+        cls.w = FoylesBookstore(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
 
 app/tests/service/test_foyles_bookstore.py:12: 
@@ -133,7 +133,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.w = FoylesBookstore(1, 1)
+        cls.w = FoylesBookstore(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
 
 app/tests/service/test_foyles_bookstore.py:12: 
@@ -227,7 +227,7 @@ app/agents/base.py:74: AgentError</failure></testcase><testcase classname="app.t
 
     @classmethod
     def setUpClass(cls):
-        cls.w = FoylesBookstore(1, 1)
+        cls.w = FoylesBookstore(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.w.attempt_login(CREDENTIALS[&apos;foyalty&apos;])
 
 app/tests/service/test_foyles_bookstore.py:12: 
@@ -289,7 +289,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.n = Nandos(1, 1)
+        cls.n = Nandos(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
 
 app/tests/service/test_nandos.py:12: 
@@ -321,7 +321,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.n = Nandos(1, 1)
+        cls.n = Nandos(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
 
 app/tests/service/test_nandos.py:12: 
@@ -353,7 +353,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.n = Nandos(1, 1)
+        cls.n = Nandos(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.n.attempt_login(CREDENTIALS[&apos;nandos&apos;])
 
 app/tests/service/test_nandos.py:12: 
@@ -384,7 +384,7 @@ E               app.agents.exceptions.LoginError: Tripped captcha: The agent has
 app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.tests.service.test_nandos.TestNandosFail" name="test_login_fail" time="0.5983672142028809"><failure message="self = &lt;app.tests.service.test_nandos.TestNandosFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        n = Nandos(1, 1)
+        n = Nandos(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             n.attempt_login(CREDENTIALS[&apos;bad&apos;])
 &gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
@@ -395,7 +395,7 @@ E       + Invalid credentials
 app/tests/service/test_nandos.py:33: AssertionError">self = &lt;app.tests.service.test_nandos.TestNandosFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        n = Nandos(1, 1)
+        n = Nandos(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             n.attempt_login(CREDENTIALS[&apos;bad&apos;])
 &gt;       self.assertEqual(e.exception.name, &apos;Invalid credentials&apos;)
@@ -407,7 +407,7 @@ app/tests/service/test_nandos.py:33: AssertionError</failure></testcase><testcas
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Starwood(1, 1)
+        cls.m = Starwood(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
 
 app/tests/service/test_starwood.py:12: 
@@ -439,7 +439,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Starwood(1, 1)
+        cls.m = Starwood(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
 
 app/tests/service/test_starwood.py:12: 
@@ -471,7 +471,7 @@ app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.te
 
     @classmethod
     def setUpClass(cls):
-        cls.m = Starwood(1, 1)
+        cls.m = Starwood(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.m.attempt_login(CREDENTIALS[&apos;starwood-preferred-guest&apos;])
 
 app/tests/service/test_starwood.py:12: 
@@ -502,7 +502,7 @@ E               app.agents.exceptions.LoginError: Account locked on end site: We
 app/agents/base.py:131: LoginError</error></testcase><testcase classname="app.tests.service.test_malaysia_airlines.TestMalaysiaAirlines" name="test_transactions" time="30.5432710647583"/><testcase classname="app.tests.service.test_starwood.TestStarwoodFail" name="test_login_bad_mfa" time="0.9082019329071045"><failure message="self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_bad_mfa&gt;
 
     def test_login_bad_mfa(self):
-        m = Starwood(1, 1)
+        m = Starwood(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS[&apos;starwood-preferred-guest&apos;].copy()
         credentials[&apos;favourite_place&apos;] = &apos;totally incorrect&apos;
         with self.assertRaises(LoginError) as e:
@@ -515,7 +515,7 @@ E       + Invalid mfa
 app/tests/service/test_starwood.py:45: AssertionError">self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_bad_mfa&gt;
 
     def test_login_bad_mfa(self):
-        m = Starwood(1, 1)
+        m = Starwood(*AGENT_CLASS_ARGUMENTS)
         credentials = CREDENTIALS[&apos;starwood-preferred-guest&apos;].copy()
         credentials[&apos;favourite_place&apos;] = &apos;totally incorrect&apos;
         with self.assertRaises(LoginError) as e:
@@ -528,7 +528,7 @@ E       + Invalid mfa
 app/tests/service/test_starwood.py:45: AssertionError</failure></testcase><testcase classname="app.tests.service.test_starwood.TestStarwoodFail" name="test_login_fail" time="0.9437527656555176"><failure message="self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        m = Starwood(1, 1)
+        m = Starwood(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;321321321&apos;,
             &apos;password&apos;: &apos;321321321&apos;,
@@ -543,7 +543,7 @@ E       + Invalid credentials
 app/tests/service/test_starwood.py:37: AssertionError">self = &lt;app.tests.service.test_starwood.TestStarwoodFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        m = Starwood(1, 1)
+        m = Starwood(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;321321321&apos;,
             &apos;password&apos;: &apos;321321321&apos;,
@@ -558,7 +558,7 @@ E       + Invalid credentials
 app/tests/service/test_starwood.py:37: AssertionError</failure></testcase><testcase classname="app.tests.service.test_shell.TestShell" name="test_balance" time="0.054175615310668945"/><testcase classname="app.tests.service.test_shell.TestShell" name="test_login" time="0.00013518333435058594"/><testcase classname="app.tests.service.test_shell.TestShell" name="test_transactions" time="0.0030562877655029297"/><testcase classname="app.tests.service.test_shell.TestShellFail" name="test_login_fail" time="1.3242690563201904"/><testcase classname="app.tests.service.test_superdrug.TestSuperDrug" name="test_balance" time="0.11388087272644043"/><testcase classname="app.tests.service.test_superdrug.TestSuperDrug" name="test_login" time="0.0003159046173095703"/><testcase classname="app.tests.service.test_malaysia_airlines.TestMalaysiaAirlinesFail" name="test_login_fail" time="6.0004189014434814"/><testcase classname="app.tests.service.test_space_nk.TestSpaceNK" name="test_balance" time="0.0007658004760742188"/><testcase classname="app.tests.service.test_mandco.TestMandCo" name="test_balance" time="0.0033533573150634766"/><testcase classname="app.tests.service.test_mandco.TestMandCo" name="test_login" time="0.00011801719665527344"/><testcase classname="app.tests.service.test_mandco.TestMandCo" name="test_transactions" time="0.0003609657287597656"/><testcase classname="app.tests.service.test_tabletable.TestTabletable" name="test_login" time="0.0001952648162841797"/><testcase classname="app.tests.service.test_mandco.TestMandCoFail" name="test_login_bad_credentials" time="0.7983825206756592"/><testcase classname="app.tests.service.test_tabletable.TestTabletable" name="test_transactions" time="1.017132043838501"/><testcase classname="app.tests.service.test_tabletable.TestTabletableFail" name="test_login_fail" time="0.7067523002624512"/><testcase classname="app.tests.service.test_superdrug.TestSuperDrug" name="test_transactions" time="0.0005810260772705078"/><testcase classname="app.tests.service.test_maximiles.TestMaximiles" name="test_balance" time="0.012607812881469727"/><testcase classname="app.tests.service.test_maximiles.TestMaximiles" name="test_login" time="0.0001232624053955078"/><testcase classname="app.tests.service.test_maximiles.TestMaximiles" name="test_transactions" time="0.0004215240478515625"/><testcase classname="app.tests.service.test_superdrug.TestSuperDrugFail" name="test_login_fail" time="0.5952069759368896"/><testcase classname="app.tests.service.test_maximiles.TestMaximilesFail" name="test_login_fail" time="0.7108674049377441"/><testcase classname="app.tests.service.test_tesco.TestTesco" name="test_balance" time="0.020966529846191406"/><testcase classname="app.tests.service.test_tesco.TestTesco" name="test_login" time="0.00015997886657714844"/><testcase classname="app.tests.service.test_tabletable.TestTabletable" name="test_balance" time="0.013723134994506836"/><testcase classname="app.tests.service.test_tesco.TestTescoFail" name="test_login_fail" time="0.37758708000183105"/><testcase classname="app.tests.service.test_tesco.TestTescoFail" name="test_login_mfa_fail" time="1.4461345672607422"/><testcase classname="app.tests.service.test_tesco.TestTesco" name="test_transactions" time="0.3376190662384033"/><testcase classname="app.tests.service.test_tesco.TestTescoUtil" name="test_get_card_number" time="0.0005173683166503906"/><testcase classname="app.tests.service.test_thai_airways.TestThaiAirways" name="test_balance" time="0.018794536590576172"/><testcase classname="app.tests.service.test_thai_airways.TestThaiAirways" name="test_login" time="0.00016260147094726562"/><testcase classname="app.tests.service.test_the_perfume_shop.TestThePerfumeShop" name="test_login" time="0.00019812583923339844"/><testcase classname="app.tests.service.test_the_perfume_shop.TestThePerfumeShop" name="test_transactions" time="0.00066375732421875"/><testcase classname="app.tests.service.test_thai_airways.TestThaiAirways" name="test_transactions" time="0.0009906291961669922"/><testcase classname="app.tests.service.test_thai_airways.TestThaiAirwaysFail" name="test_login_bad_username" time="1.7460663318634033"><failure message="self = &lt;app.tests.service.test_thai_airways.TestThaiAirwaysFail testMethod=test_login_bad_username&gt;
 
     def test_login_bad_username(self):
-        m = ThaiAirways(1, 1)
+        m = ThaiAirways(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;321321321&apos;,
             &apos;password&apos;: &apos;321321321&apos;,
@@ -600,7 +600,7 @@ E           app.agents.exceptions.AgentError: End site down: The scheme end site
 app/agents/base.py:83: AgentError">self = &lt;app.tests.service.test_thai_airways.TestThaiAirwaysFail testMethod=test_login_bad_username&gt;
 
     def test_login_bad_username(self):
-        m = ThaiAirways(1, 1)
+        m = ThaiAirways(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;321321321&apos;,
             &apos;password&apos;: &apos;321321321&apos;,
@@ -643,7 +643,7 @@ app/agents/base.py:83: AgentError</failure></testcase><testcase classname="app.t
 
     @classmethod
     def setUpClass(cls):
-        cls.s = Starbucks(1, 1)
+        cls.s = Starbucks(*AGENT_CLASS_ARGUMENTS)
 &gt;       cls.s.attempt_login(CREDENTIALS[&apos;starbucks&apos;])
 
 app/tests/service/test_starbucks.py:12: 
@@ -701,7 +701,7 @@ E               selenium.common.exceptions.WebDriverException: Message: Can not 
 ../lib/python3.4/site-packages/selenium/webdriver/chrome/service.py:88: WebDriverException</error></testcase><testcase classname="app.tests.service.test_waterstones.TestWaterstonesFail" name="test_login_fail" time="0.4809150695800781"/><testcase classname="app.tests.service.test_waterstones.TestWaterstones" name="test_login" time="0.00032591819763183594"/><testcase classname="app.tests.service.test_waterstones.TestWaterstones" name="test_transactions" time="0.20121550559997559"/><testcase classname="app.tests.service.test_starbucks.TestStarbucksFail" name="test_login_fail" time="30.256720542907715"><failure message="self = &lt;app.tests.service.test_starbucks.TestStarbucksFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        s = Starbucks(1, 1)
+        s = Starbucks(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;bad@bad.com&apos;,
             &apos;password&apos;: &apos;321321321321&apos;,
@@ -762,7 +762,7 @@ E               selenium.common.exceptions.WebDriverException: Message: Can not 
 ../lib/python3.4/site-packages/selenium/webdriver/chrome/service.py:88: WebDriverException">self = &lt;app.tests.service.test_starbucks.TestStarbucksFail testMethod=test_login_fail&gt;
 
     def test_login_fail(self):
-        s = Starbucks(1, 1)
+        s = Starbucks(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             &apos;username&apos;: &apos;bad@bad.com&apos;,
             &apos;password&apos;: &apos;321321321321&apos;,

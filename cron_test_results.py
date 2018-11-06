@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
-'''
+"""
 This script is to run as a cron to provide the junit xml for the apollo service to view
-'''
+"""
 
-import sys
 import os
-from os.path import join
-import requests
-import subprocess
-import xmltodict
-from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, HEARTBEAT_URL,\
-    INFLUX_HOST, INFLUX_PORT, INFLUX_USER, INFLUX_PASSWORD, INFLUX_DATABASE
-from slacker import Slacker
-from influxdb import InfluxDBClient
-from app.active import AGENTS
 import re
+import subprocess
+import sys
+from os.path import join
+
+import requests
+import xmltodict
+from influxdb import InfluxDBClient
+from slacker import Slacker
+
+from app.active import AGENTS
+from settings import SLACK_API_KEY, HELIOS_URL, JUNIT_XML_FILENAME, INFLUX_HOST, INFLUX_PORT, INFLUX_USER, \
+    INFLUX_PASSWORD, INFLUX_DATABASE, HEARTBEAT_URL
 
 test_path = 'app/tests/service/'
 parallel_processes = 4
@@ -28,7 +30,7 @@ PROBLEMATICAL_THRESHOLD = 6
 # these are ordered from most to least helpful. if the most helpful one fails, the next is tried, and so on.
 error_cause_regexes = [
     re.compile(r'^E.*?app\.agents\.exceptions\.(.*?)$', re.MULTILINE),
-    re.compile(r'^E\s*\-\s*(.*)$', re.MULTILINE),
+    re.compile(r'^E\s*-\s*(.*)$', re.MULTILINE),
     re.compile(r'^E\s*(.*)$', re.MULTILINE),
 ]
 
@@ -174,15 +176,15 @@ def get_error_cause(error_text):
 def get_problematic_agents(test_results):
     parsed_results = parse_test_results(test_results)
 
-    agents = []
+    agent_list = []
     for class_name, result in parsed_results.items():
         if result['count'] > 0:
-            agents.append({
+            agent_list.append({
                 'classname': class_name,
                 'name': class_name.replace('test_', '', 1).replace('_', ' '),
                 'cause': result['cause']
             })
-    return agents
+    return agent_list
 
 
 def parse_test_results(test_results):
@@ -229,7 +231,7 @@ def run_agent_tests():
 
 
 def get_formatted_message(xml_file_path):
-    with open(xml_file_path) as f:
+    with open(xml_file_path, encoding='utf-8') as f:
         test_results = xmltodict.parse(f.read())
 
     bad_agents = get_problematic_agents(test_results)
@@ -237,20 +239,35 @@ def get_formatted_message(xml_file_path):
     return message
 
 
-def send_to_helios(data):
-    response = None
+def send_to_helios(data, running_tests=False):
+    data['running_tests'] = running_tests
     try:
-        response = requests.post(HELIOS_URL + '/data_point', json=data)
-    except requests.exceptions.RequestException as e:
-        print(e)
-    return response
+        requests.post(HELIOS_URL + '/data_point/', json=data)
+    except requests.exceptions.RequestException:
+        pass
 
 
 def get_agent_list():
-    return list(set([item.split('.')[0].replace('_', ' ') for item in AGENTS.values()]))
+    agents_for_helios = dict()
+    for slug, raw_name in AGENTS.items():
+        name = raw_name.split('.')[0].replace('_', ' ')
+        if not agents_for_helios.get(name):
+            agents_for_helios[name] = slug if name != 'my360' else name
+
+    return agents_for_helios
+
+
+def handle_helios_request():
+    send_to_helios({}, running_tests=True)
+    run_agent_tests()
+    error_msg = get_formatted_message(JUNIT_XML_FILENAME)
+    agent_list = get_agent_list()
+    helios_data = dict(agents=agent_list, errors=error_msg)
+    send_to_helios(helios_data)
 
 
 if __name__ == '__main__':
+    send_to_helios({}, running_tests=True)
     run_agent_tests()
     # Alert our heart beat service that we are in fact running
     requests.get(HEARTBEAT_URL)
