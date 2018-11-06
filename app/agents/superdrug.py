@@ -17,7 +17,9 @@ class Superdrug(RoboBrowserMiner):
         headers = {'Referer': 'https://www.superdrug.com/login'}
         self.browser.submit_form(signup_form, headers=headers)
 
-        errors = (("#globalMessages > div > div > p", STATUS_LOGIN_FAILED, "Your username or password was incorrect"), )
+        errors = (
+            ("#globalMessages > .information_message", STATUS_LOGIN_FAILED, "Your username or password was incorrect"),
+        )
         self.check_error("loginError=true", errors, url_part="query")
 
     def balance(self):

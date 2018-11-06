@@ -15,12 +15,15 @@ AGENTS = {
     # 'mymail': 'mymail.MyMail',                             # Captcha.
     # 'starwood-preferred-guest': 'starwood.Starwood',       # Captcha.
     # 'hilton-hhonors': 'hilton_honors.Hilton',              # Captcha.
+    # 'play-points': 'play_points.PlayPoints',               # Captcha.
     # 'shell-drivers-club': 'shell.Shell',                   # Shell have IP blocked us.
-    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several mesaures to stop scraping.
+    # 'papa-johns': 'papa_johns.PapaJohns',                  # Papa johns have IP blocked us on production
+    # 'mystarbucks-rewards': 'starbucks.Starbucks',          # Starbucks have added several measures to stop scraping.
     # 'aerclub': 'aerclub.AerClub',                          # Staging/prod can't handle requests[security]==2.18.4.
     # 'rewards4fishing': 'rewards4fishing.Rewards4Fishing',  # Scheme is being/has been shut down.
     # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
     # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
+    # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -30,23 +33,27 @@ AGENTS = {
     'my-esprit': 'esprit.Esprit',
     'eurostar-plus-points': 'eurostar.Eurostar',
     'heathrow-rewards': 'heathrow.Heathrow',
+    'vibe-club': 'vibe_club.VibeClub',
     'hertz': 'hertz.Hertz',
     'maximiles': 'maximiles.Maximiles',
     'match-more': 'morrisons.Morrisons',
     'nectar': 'nectar.Nectar',
     'quidco': 'quidco.Quidco',
+    'coffee-one': 'coffee_one.CoffeeOne',
     'health-beautycard': 'superdrug.Superdrug',
     'tasty-rewards': 'tabletable.Tabletable',
+    'esquires-coffee': 'esquires_coffee.EsquiresCoffee',
     'tesco-clubcard': 'tesco.Tesco',
     'tesco-clubcard1': 'tesco.Tesco',
-    'toysrus': 'toysrus.Toysrus',
     'the-waterstones-card': 'waterstones.Waterstones',
     'beefeater-grill-reward-club': 'beefeater.Beefeater',
     'harrods-rewards': 'harrods.Harrods',
     'trueblue': 'jetblue.JetBlue',
+    'addison-lee': 'addison_lee.AddisonLee',
     'frequent-flyer': 'qantas.Qantas',
     'the-perfume-shop': 'the_perfume_shop.ThePerfumeShop',
     'space-nk': 'space_nk.SpaceNK',
+    'jal-mileage-bank': 'jal_mileage_bank.JalMileageBank',
     'miles-and-more': 'lufthansa.Lufthansa',
     'avis': 'avis.Avis',
     'm-co-loyalty-card': 'mandco.MandCo',
@@ -59,9 +66,7 @@ AGENTS = {
     'together-rewards-card': 'the_works.TheWorks',
     'enrich': 'malaysia_airlines.MalaysiaAirlines',
     'royal-orchid-plus': 'thai_airways.ThaiAirways',
-    'iberia-plus': 'iberia_plus.IberiaPlus',
     'big-rewards': 'air_asia.AirAsia',
-    'play-points': 'play_points.PlayPoints',
     'foyalty': 'foyles_bookstore.FoylesBookstore',
     'treat-me': 'paperchase.Paperchase',
     'priority-guest-rewards': 'priority_guest_rewards.PriorityGuestRewards',
@@ -71,20 +76,22 @@ AGENTS = {
     'clubcarlson': 'carlson.Carlson',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
-    'papa-johns': 'papa_johns.PapaJohns',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',
     'recognition-reward-card': 'house_of_fraser.HouseOfFraser',
     'gbk-rewards': 'gourmet_burger_kitchen.GourmetBurgerKitchen',
     'pure-hmv': 'hmv.HMV',
+    'victoria': 'victoria.Victoria',
     'star-rewards': 'star_rewards.StarRewards',
-    'iceland-bonus-card': 'iceland.Iceland',
+    'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
     'tkmaxx': 'tk_maxx.TKMaxx',
+    'macdonald-hotels': 'the_club.TheClub',
     'marriott-rewards-card': 'marriott.Marriott',
     'club-individual': 'club_individual.ClubIndividual',
-    'harvey-nichols': 'harvey_nichols.HarveyNichols',
+    'test-club-individual': 'club_individual_merchant_integration.ClubIndividual',
+    'showcase': 'showcase.Showcase',
     'krisflyer': 'krisflyer.Krisflyer',
     'stansted-farm': 'my360.My360',
     'the-courtyard': 'my360.My360',

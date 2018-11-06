@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.house_of_fraser import HouseOfFraser
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestHouseOfFraser(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = HouseOfFraser(1, 1)
+        cls.m = HouseOfFraser(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['recognition-reward-card'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestHouseOfFraser(unittest.TestCase):
 class TestHouseOfFraserFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = HouseOfFraser(1, 1)
+        m = HouseOfFraser(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

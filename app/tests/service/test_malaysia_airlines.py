@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.malaysia_airlines import MalaysiaAirlines
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMalaysiaAirlines(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = MalaysiaAirlines(1, 1)
-        cls.m.attempt_login(CREDENTIALS['malaysia_airlines'])
+        cls.m = MalaysiaAirlines(*AGENT_CLASS_ARGUMENTS)
+        cls.m.attempt_login(CREDENTIALS['enrich'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -28,7 +28,7 @@ class TestMalaysiaAirlines(unittest.TestCase):
 class TestMalaysiaAirlinesFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = MalaysiaAirlines(1, 1)
+        m = MalaysiaAirlines(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': 'MH000000000',
             'password': '321321321',

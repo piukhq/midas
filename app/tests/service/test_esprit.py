@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.esprit import Esprit
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestEsprit(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.e = Esprit(1, 1)
-        cls.e.attempt_login(CREDENTIALS['esprit'])
+        cls.e = Esprit(*AGENT_CLASS_ARGUMENTS)
+        cls.e.attempt_login(CREDENTIALS['my-esprit'])
 
     def test_login(self):
         self.assertEqual(self.e.browser.response.status_code, 200)
@@ -23,13 +23,13 @@ class TestEsprit(unittest.TestCase):
     def test_balance(self):
         balance = self.e.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(balance['value_label'], r'^£\d*\.\d\d$')
 
 
 class TestEspritFail(unittest.TestCase):
 
     def test_login_fail(self):
-        es = Esprit(1, 1)
+        es = Esprit(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',

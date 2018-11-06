@@ -2,15 +2,15 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.the_perfume_shop import ThePerfumeShop
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestThePerfumeShop(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = ThePerfumeShop(1, 1)
-        cls.m.attempt_login(CREDENTIALS['the_perfume_shop'])
+        cls.m = ThePerfumeShop(*AGENT_CLASS_ARGUMENTS)
+        cls.m.attempt_login(CREDENTIALS['the-perfume-shop'])
 
     def test_login(self):
         self.assertEqual(self.m.browser.response.status_code, 200)
@@ -28,7 +28,7 @@ class TestThePerfumeShop(unittest.TestCase):
 class TestThePerfumeShopFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = ThePerfumeShop(1, 1)
+        m = ThePerfumeShop(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

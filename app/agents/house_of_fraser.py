@@ -57,6 +57,7 @@ class HouseOfFraser(SeleniumMiner):
             'balance': extract_decimal(self.balance_value)
         }
 
+    @staticmethod
     def parse_transaction(row):
         return row
 

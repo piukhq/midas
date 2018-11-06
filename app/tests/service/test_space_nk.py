@@ -2,22 +2,22 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.space_nk import SpaceNK
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestSpaceNK(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = SpaceNK(1, 1)
-        cls.m.attempt_login(CREDENTIALS['space_nk'])
+        cls.m = SpaceNK(*AGENT_CLASS_ARGUMENTS)
+        cls.m.attempt_login(CREDENTIALS['space-nk'])
 
     def test_login(self):
-        self.assertTrue(self.m.is_login_successful)
+        self.assertEqual(self.m.browser.response.status_code, 200)
 
     def test_transactions(self):
         transactions = self.m.transactions()
-        self.assertIsNotNone(transactions)
+        self.assertTrue(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
@@ -28,10 +28,9 @@ class TestSpaceNK(unittest.TestCase):
 class TestSpaceNKFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = SpaceNK(1, 1)
-        credentials = CREDENTIALS['bad']
+        m = SpaceNK(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
-            m.attempt_login(credentials)
+            m.attempt_login({'barcode': '99999999999999999999'})
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
 
