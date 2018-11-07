@@ -172,6 +172,9 @@ class HarveyNichols(ApiMiner):
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: self.customer_number}
 
+                if not credentials.get('consents'):
+                    return
+
                 # Use consents retry mechanism as explained in
                 # https://books.bink.com/books/backend-development/page/retry-tasks
                 hn_post_message = {"enactor_id": self.customer_number}
