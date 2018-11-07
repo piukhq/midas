@@ -45,7 +45,6 @@ class TestHN(unittest.TestCase):
     def setUpClass(cls):
         cls.b = TestAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '1020304056666',
             'email': 'sixdigitpoints@testbink.com',
             'password': 'pa$$w&rd01!'
         }
@@ -59,6 +58,7 @@ class TestHN(unittest.TestCase):
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
+        self.assertTrue(self.b.identifier)
 
 
 class TestHNFail(unittest.TestCase):
@@ -67,7 +67,7 @@ class TestHNFail(unittest.TestCase):
         b = TestAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '000001',
-            'email': 'zero@testbink.com',
+            'email': 'notzero@testbink.com',
             'password': 'Password01'
         }
         with self.assertRaises(LoginError) as e:
