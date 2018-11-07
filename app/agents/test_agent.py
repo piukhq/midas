@@ -170,9 +170,9 @@ users = {
     '900011': {
         'len_transactions': 6,
         'credentials': {
-            'email': 'perfuser06@testbink.com',
-            'password': 'Password06',
-            'last_name': 'perfuser06',
+            'email': 'perfuser11@testbink.com',
+            'password': 'Password11',
+            'last_name': 'perfuser11',
             'postcode': 'mp7 1bb'
         },
         'points': Decimal('1234567')
@@ -180,9 +180,9 @@ users = {
     '900012': {
         'len_transactions': 0,
         'credentials': {
-            'email': 'perfuser06@testbink.com',
-            'password': 'Password06',
-            'last_name': 'perfuser06',
+            'email': 'perfuser12@testbink.com',
+            'password': 'Password12',
+            'last_name': 'perfuser12',
             'postcode': 'rg0 0aa'
         },
         'points': Decimal('0')
@@ -190,9 +190,9 @@ users = {
     '900013': {
         'len_transactions': 1,
         'credentials': {
-            'email': 'perfuser06@testbink.com',
-            'password': 'Password06',
-            'last_name': 'perfuser06',
+            'email': 'perfuser13@testbink.com',
+            'password': 'Password13',
+            'last_name': 'perfuser13',
             'postcode': 'rg1 1aa'
         },
         'points': Decimal('20.10')
