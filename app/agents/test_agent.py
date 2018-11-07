@@ -66,6 +66,178 @@ users = {
         },
         'points': Decimal(1234567)
     },
+    # NEW FIXTURES
+    '900001': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'perfuser01@testbink.com',
+            'password': 'Password01',
+            'last_name': 'perfuser01',
+            'postcode': 'rg0 0aa'
+        },
+        'points': Decimal('0')
+    },
+    '900002': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser02@testbink.com',
+            'password': 'Password02',
+            'last_name': 'perfuser02',
+            'postcode': 'rg5 5aa'
+        },
+        'points': Decimal('380.01')
+    },
+    '900003': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser03@testbink.com',
+            'password': 'Password03',
+            'last_name': 'perfuser03',
+            'postcode': 'mp6 0bb'
+        },
+        'points': Decimal('123456')
+    },
+    '900004': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser04@testbink.com',
+            'password': 'Password04',
+            'last_name': 'perfuser04',
+            'postcode': 'mp7 1bb'
+        },
+        'points': Decimal('1234567')
+    },
+    '900005': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'perfuser05@testbink.com',
+            'password': 'Password05',
+            'last_name': 'perfuser05',
+            'postcode': 'rg0 0aa'
+        },
+        'points': Decimal('0')
+    },
+    '900006': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'perfuser06@testbink.com',
+            'password': 'Password06',
+            'last_name': 'perfuser06',
+            'postcode': 'rg1 1aa'
+        },
+        'points': Decimal('20.10')
+    },
+    '900007': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser07@testbink.com',
+            'password': 'Password07',
+            'last_name': 'perfuser07',
+            'postcode': 'rg5 5aa'
+        },
+        'points': Decimal('380.01')
+    },
+    '900008': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'perfuser08@testbink.com',
+            'password': 'Password08',
+            'last_name': 'perfuser08',
+            'postcode': 'rg0 0aa'
+        },
+        'points': Decimal('0')
+    },
+    '900009': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser09@testbink.com',
+            'password': 'Password09',
+            'last_name': 'perfuser09',
+            'postcode': 'rg5 5aa'
+        },
+        'points': Decimal('380.01')
+    },
+    '900010': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'perfuser10@testbink.com',
+            'password': 'Password10',
+            'last_name': 'perfuser10',
+            'postcode': 'mp6 0bb'
+        },
+        'points': Decimal('20.10')
+    },
+    '900011': {
+        'len_transactions': 6,
+        'credentials': {
+            'email': 'perfuser06@testbink.com',
+            'password': 'Password06',
+            'last_name': 'perfuser06',
+            'postcode': 'mp7 1bb'
+        },
+        'points': Decimal('1234567')
+    },
+    '900012': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'perfuser06@testbink.com',
+            'password': 'Password06',
+            'last_name': 'perfuser06',
+            'postcode': 'rg0 0aa'
+        },
+        'points': Decimal('0')
+    },
+    '900013': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'perfuser06@testbink.com',
+            'password': 'Password06',
+            'last_name': 'perfuser06',
+            'postcode': 'rg1 1aa'
+        },
+        'points': Decimal('20.10')
+    },
+    '900014': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser14@testbink.com',
+            'password': 'Password14',
+            'last_name': 'perfuser14',
+            'postcode': 'rg5 5aa'
+        },
+        'points': Decimal('380.01')
+    },
+    '900015': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'perfuser15@testbink.com',
+            'password': 'Password15',
+            'last_name': 'perfuser15',
+            'postcode': 'rg0 0aa'
+        },
+        'points': Decimal('0')
+    },
+    '900016': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'perfuser16@testbink.com',
+            'password': 'Password16',
+            'last_name': 'perfuser16',
+            'postcode': 'rg5 5aa'
+        },
+        'points': Decimal('380.01')
+    },
+    '900017': {
+        'len_transactions': 6,
+        'credentials': {
+            'email': 'perfuser17@testbink.com',
+            'password': 'Password17',
+            'last_name': 'perfuser17',
+            'postcode': 'rg1 1aa'
+        },
+        'points': Decimal('123456')
+    },
+
 }
 
 transactions = [
@@ -131,6 +303,25 @@ class TestAgentHN(ApiMiner):
             '666666': '6666666666666',
             '123456': '1020304056666',
             '234567': '1020304057777',
+            # New fixtures
+            '900001': '9000000000001',
+            '900002': '9000000000002',
+            '900003': '9000000000003',
+            '900004': '9000000000004',
+            '900005': '9000000000005',
+            '900006': '9000000000006',
+            '900007': '9000000000007',
+            '900008': '9000000000008',
+            '900009': '9000000000009',
+            '900010': '9000000000010',
+            '900011': '9000000000011',
+            '900012': '9000000000012',
+            '900013': '9000000000013',
+            '900014': '9000000000014',
+            '900015': '9000000000015',
+            '900016': '9000000000016',
+            '900017': '9000000000017',
+
         }
         self.customer_number = card_number_mapping[self.customer_number]
 
@@ -169,6 +360,24 @@ class TestAgentIce(MerchantApi):
             '6666666666666666666': '666666',
             '1020304050607086666': '123456',
             '1020304050607087777': '234567',
+            # New fixtures
+            '9000000000000000001': '900001',
+            '9000000000000000002': '900002',
+            '9000000000000000003': '900003',
+            '9000000000000000004': '900004',
+            '9000000000000000005': '900005',
+            '9000000000000000006': '900006',
+            '9000000000000000007': '900007',
+            '9000000000000000008': '900008',
+            '9000000000000000009': '900009',
+            '9000000000000000010': '900010',
+            '9000000000000000011': '900011',
+            '9000000000000000012': '900012',
+            '9000000000000000013': '900013',
+            '9000000000000000014': '900014',
+            '9000000000000000015': '900015',
+            '9000000000000000016': '900016',
+            '9000000000000000017': '900017',
         }
         try:
             card_number = card_number_mapping[card_number]
@@ -216,6 +425,25 @@ class TestAgentCI(ApiMiner):
             '66666666': '666666',
             '1026666': '123456',
             '1027777': '234567',
+            # New fixtures
+            '00009001': '900001',
+            '00009002': '900002',
+            '00009003': '900003',
+            '00009004': '900004',
+            '00009005': '900005',
+            '00009006': '900006',
+            '00009007': '900007',
+            '00009008': '900008',
+            '00009009': '900009',
+            '00009010': '900010',
+            '00009011': '900011',
+            '00009012': '900012',
+            '00009013': '900013',
+            '00009014': '900014',
+            '00009015': '900015',
+            '00009016': '900016',
+            '00009017': '900017',
+
         }
         try:
             card_number = card_number_mapping[card_number]
