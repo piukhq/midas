@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.rewards4racing import Rewards4Racing
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestRewards4Racing(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.r = Rewards4Racing(1, 1)
+        cls.r = Rewards4Racing(*AGENT_CLASS_ARGUMENTS)
         cls.r.attempt_login(CREDENTIALS['rewards4racing'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestRewards4Racing(unittest.TestCase):
 class TestRewards4RacingFail(unittest.TestCase):
 
     def test_login_fail(self):
-        r = Rewards4Racing(1, 1)
+        r = Rewards4Racing(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             r.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

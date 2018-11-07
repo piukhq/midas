@@ -15,8 +15,11 @@ class TestBase(TestCase):
             "description": "Clothes purchase",
             "points": 44
         }]
+        user_info = {'scheme_account_id': 2,
+                     'status': ''}
+
         mocked_parse_transaction.return_value = transactions
-        m = RoboBrowserMiner(1, 2)
+        m = RoboBrowserMiner(1, user_info)
         transaction = m.hash_transactions(transactions)
 
         self.assertEqual(transaction[0]["hash"], "a0c99f1ec24421acb6b12ec82cc07792")
@@ -32,21 +35,28 @@ class TestBase(TestCase):
             "points": 44
         }]
 
-        m = RoboBrowserMiner(1, 1)
+        user_info = {'scheme_account_id': 1,
+                     'status': ''}
+
+        m = RoboBrowserMiner(1, user_info)
         transactions = m.hash_transactions(transactions)
 
         hashes = [t['hash'] for t in transactions]
         self.assertEqual(len(hashes), len(set(hashes)))
 
     def test_attempt_login_exception(self):
-        m = RoboBrowserMiner(3, 2)
+        user_info = {'scheme_account_id': 2,
+                     'status': ''}
+        m = RoboBrowserMiner(3, user_info)
         with self.assertRaises(RetryLimitError) as e:
             m.attempt_login(credentials={})
         self.assertEqual(e.exception.name, "Retry limit reached")
 
     @mock.patch.object(RoboBrowserMiner, 'login')
     def test_attempt_login(self, mocked_login):
-        m = RoboBrowserMiner(1, 2)
+        user_info = {'scheme_account_id': 2,
+                     'status': ''}
+        m = RoboBrowserMiner(1, user_info)
 
         m.attempt_login(credentials={})
         self.assertTrue(mocked_login.called)
@@ -71,18 +81,26 @@ class TestBase(TestCase):
                                          (("", "INVALID_MFA_INFO", "The details"), ))
 
     def test_default_point_conversion(self):
-        m = RoboBrowserMiner(1, 1)
+        user_info = {'scheme_account_id': 1,
+                     'status': ''}
+        m = RoboBrowserMiner(1, user_info)
         value = m.calculate_point_value(Decimal('100'))
         self.assertEqual(Decimal('0'), value)
 
     def test_point_conversion(self):
-        m = RoboBrowserMiner(1, 1)
+        user_info = {'scheme_account_id': 1,
+                     'status': ''}
+
+        m = RoboBrowserMiner(1, user_info)
         m.point_conversion_rate = Decimal('0.5')
         value = m.calculate_point_value(Decimal('25'))
         self.assertEqual(Decimal('12.50'), value)
 
     def test_format_plural_label(self):
-        m = RoboBrowserMiner(1, 1)
+        user_info = {'scheme_account_id': 1,
+                     'status': ''}
+
+        m = RoboBrowserMiner(1, user_info)
         self.assertEqual('0 votes', m.format_label(0, 'vote', include_zero_items=True))
         self.assertEqual('1 vote', m.format_label(1, 'vote'))
         self.assertEqual('2 votes', m.format_label(2, 'vote'))
@@ -99,7 +117,9 @@ class TestBase(TestCase):
 
     @mock.patch.object(Avios, 'open_url')
     def test_agent_login_missing_credentials(self, mock_open_url):
-        m = Avios(1, 2)
+        user_info = {'scheme_account_id': 2,
+                     'status': ''}
+        m = Avios(1, user_info)
         m.browser = mock.MagicMock()
 
         with self.assertRaises(Exception) as e:
@@ -108,7 +128,9 @@ class TestBase(TestCase):
 
     @mock.patch.object(ApiMiner, 'register')
     def test_attempt_register(self, mocked_register):
-        m = ApiMiner(0, 194)
+        user_info = {'scheme_account_id': 194,
+                     'status': ''}
+        m = ApiMiner(0, user_info)
 
         m.attempt_register(credentials={})
         self.assertTrue(mocked_register.called)
@@ -121,7 +143,10 @@ class TestOpenURL(TestCase):
         m_cls = RoboBrowserMiner
         m_cls.proxy = False
 
-        m = m_cls(1, 2)
+        user_info = {'scheme_account_id': 2,
+                     'status': ''}
+
+        m = m_cls(1, user_info)
         m.proxy = False
         with self.assertRaises(AgentError):
             m.open_url("http://foo-api.com/")

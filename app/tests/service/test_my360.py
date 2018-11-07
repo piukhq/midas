@@ -2,7 +2,7 @@ import unittest
 
 from app.agents.my360 import My360
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.my360endpoints import SCHEME_API_DICTIONARY
 from app.agents import schemas
 
@@ -11,7 +11,7 @@ class StandardLoginTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, '')
+        cls.m = My360(*AGENT_CLASS_ARGUMENTS)
 
     def setUp(self):
         self.m.scheme_slug = self.SCHEME_NAME
@@ -37,7 +37,7 @@ class StandardLoginFailTestsMixin(object):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = My360(1, 1, '')
+        cls.m = My360(*AGENT_CLASS_ARGUMENTS)
 
     def setUp(self):
         self.m.scheme_slug = self.SCHEME_NAME

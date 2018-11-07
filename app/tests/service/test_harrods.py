@@ -1,7 +1,7 @@
 import unittest
 from app.agents.harrods import Harrods
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestHarrods(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = Harrods(1, 1)
+        cls.h = Harrods(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['harrods-rewards'])
 
     def test_login(self):
@@ -18,7 +18,7 @@ class TestHarrods(unittest.TestCase):
     def test_balance(self):
         b = self.h.balance()
         schemas.balance(b)
-        self.assertRegex(b['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(b['value_label'], r'^£\d*\.\d\d$')
 
     def test_transactions(self):
         t = self.h.transactions()
@@ -29,7 +29,7 @@ class TestHarrods(unittest.TestCase):
 class TestHarrodsFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = Harrods(1, 1)
+        h = Harrods(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             h.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

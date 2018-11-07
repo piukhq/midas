@@ -3,13 +3,13 @@ import unittest
 from app.agents.marriott import Marriott
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMarriott(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.b = Marriott(1, 1)
+        cls.b = Marriott(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS["marriott-rewards-card"])
 
     def test_login(self):
@@ -27,7 +27,7 @@ class TestMarriott(unittest.TestCase):
 
 class TestMarriottFail(unittest.TestCase):
     def test_failed_login(self):
-        b = Marriott(1, 1)
+        b = Marriott(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             b.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, "Invalid credentials")

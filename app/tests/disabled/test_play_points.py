@@ -1,7 +1,7 @@
 import unittest
 from app.agents.play_points import PlayPoints
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 from app.agents import schemas
 
 
@@ -9,7 +9,7 @@ class TestPlayPoints(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.h = PlayPoints(1, 1)
+        cls.h = PlayPoints(*AGENT_CLASS_ARGUMENTS)
         cls.h.attempt_login(CREDENTIALS['play-points'])
 
     def test_login(self):
@@ -28,7 +28,7 @@ class TestPlayPoints(unittest.TestCase):
 class TestPlayPointsFail(unittest.TestCase):
 
     def test_bad_login(self):
-        h = PlayPoints(1, 1)
+        h = PlayPoints(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             "username": "bad",
             "password": "0000"

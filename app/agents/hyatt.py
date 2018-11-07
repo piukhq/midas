@@ -51,7 +51,7 @@ class Hyatt(RoboBrowserMiner):
             raise AgentModifiedError('End-site has been modified')
 
         data_table = str(points_table[1]).replace('\n', '')
-        expr = '<dt>Current\sPoints:</dt><dd>(\d+)</dd>'
+        expr = r'<dt>Current\sPoints:</dt><dd>(\d+)</dd>'
         searched = re.search(expr, data_table, re.IGNORECASE)
 
         if len(searched.groups()) != 1:

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.holland_and_barrett import HollandAndBarrett
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestHollandAndBarrett(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = HollandAndBarrett(1, 1)
+        cls.m = HollandAndBarrett(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['rewards-for-life'])
 
     def test_login(self):
@@ -18,13 +18,13 @@ class TestHollandAndBarrett(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^£\d*\.\d\d$')
+        self.assertRegex(balance['value_label'], r'^£\d*\.\d\d$')
 
 
 class TestHollandAndBarrettFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = HollandAndBarrett(1, 1)
+        m = HollandAndBarrett(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

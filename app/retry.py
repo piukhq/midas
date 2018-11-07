@@ -1,7 +1,7 @@
 """
 Handle our persistence of the retry counts
 """
-from flask.ext.redis import FlaskRedis
+from flask_redis import FlaskRedis
 
 redis = FlaskRedis()
 

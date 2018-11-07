@@ -46,7 +46,7 @@ class Avios(ApiMiner):
                 self.response.status_code,
                 error_code))
 
-            errors = ['ACCOUNT_NOT_FOUND', 'CUSTOMER_DETAILS_INVALID', 'REQUEST_INVALID']
+            errors = ['ACCOUNT_NOT_FOUND', 'CUSTOMER_DETAILS_INVALID', 'REQUEST_INVALID', 'INVALID_MEMBER']
             if error_code in errors:
                 raise LoginError(STATUS_LOGIN_FAILED)
 

@@ -2,14 +2,14 @@ import unittest
 from app.agents.exceptions import LoginError
 from app.agents.mymail import MyMail
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMyMail(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.m = MyMail(1, 1)
+        cls.m = MyMail(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS['mymail'])
 
     def test_login(self):
@@ -29,7 +29,7 @@ class TestMyMail(unittest.TestCase):
 class TestMyMailFail(unittest.TestCase):
 
     def test_login_fail(self):
-        m = MyMail(1, 1)
+        m = MyMail(*AGENT_CLASS_ARGUMENTS)
         with self.assertRaises(LoginError) as e:
             m.attempt_login(CREDENTIALS['bad'])
         self.assertEqual(e.exception.name, 'Invalid credentials')

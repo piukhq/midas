@@ -2,13 +2,13 @@ import unittest
 from app.agents.mandco import MandCo
 from app.agents import schemas
 from app.agents.exceptions import LoginError
-from app.tests.service.logins import CREDENTIALS
+from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
 
 
 class TestMandCo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = MandCo(1, 1)
+        cls.m = MandCo(*AGENT_CLASS_ARGUMENTS)
         cls.m.attempt_login(CREDENTIALS["m-co-loyalty-card"])
 
     def test_login(self):
@@ -22,12 +22,12 @@ class TestMandCo(unittest.TestCase):
     def test_balance(self):
         balance = self.m.balance()
         schemas.balance(balance)
-        self.assertRegex(balance['value_label'], '^\d+ £5 reward voucher[s]?$|^$')
+        self.assertRegex(balance['value_label'], r'^\d+ £5 reward voucher[s]?$|^$')
 
 
 class TestMandCoFail(unittest.TestCase):
     def test_login_bad_credentials(self):
-        m = MandCo(1, 1)
+        m = MandCo(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'username': '321321321',
             'password': '321321321',

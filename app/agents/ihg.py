@@ -12,7 +12,7 @@ from app.utils import extract_decimal
 
 class Ihg(SeleniumMiner):
     is_login_successful = None
-    async = True
+    is_async = True
 
     def check_for_popup_window(self):
         self.browser.implicitly_wait(2)
@@ -73,9 +73,8 @@ class Ihg(SeleniumMiner):
         self.browser.find_element_by_css_selector(
             "form[name='tpiSignIn'] input[maxlength='75']").send_keys(credentials['username'])
         self.browser.find_element_by_css_selector(
-            "[name='tpiSignIn'] input[type='password'][autocomplete='off']").send_keys(credentials['pin'])
-        self.browser.find_element_by_css_selector(
-            "input[name='lastName']").send_keys(credentials['last_name'])
+            "form[name='tpiSignIn'] input[maxlength='4']").send_keys(credentials['pin'])
+        self.browser.find_element_by_css_selector("input[name='lastName']").send_keys(credentials['last_name'])
         self.browser.find_element_by_class_name("cta-1").click()
         sleep(3)
         self.check_for_error_msg()
