@@ -32,12 +32,16 @@ build-develop:
   only:
     - develop
 
-deploy-internal-sandbox:
-  stage: deploy
-  image: binkops.azurecr.io/kubedeployer:latest
-  environment: dev
+build-internal-sandbox:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - kubectl delete po -n=ubiquity -l=project=hades
+    - docker build --pull -t "$CI_REGISTRY/midas:merge" .
+    - docker push "$CI_REGISTRY/midas:merge"
   only:
     - banking-api-merge
 
