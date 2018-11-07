@@ -12,14 +12,14 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.exceptions import (LoginError, AgentError, errors, RetryLimitError, SYSTEM_ACTION_REQUIRED,
-                                   ACCOUNT_ALREADY_EXISTS)
+from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
+                                   SYSTEM_ACTION_REQUIRED, errors)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import resolve_agent, get_headers, SchemeAccountStatus, log_task
+from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent
 from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 
@@ -53,6 +53,7 @@ def validate_parameters(method):
     """
     Checks swaggers defined parameters exist in query string
     """
+
     @functools.wraps(method)
     def f(*args, **kwargs):
         for parameter in method.__swagger_attr['parameters']:
@@ -62,6 +63,7 @@ def validate_parameters(method):
                 abort(400, message="Missing required query parameter '{0}'".format(parameter["name"]))
 
         return method(*args, **kwargs)
+
     return f
 
 
@@ -149,7 +151,6 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
-
     # Pending scheme account using the merchant api framework expects a callback so should not call balance.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
     if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
