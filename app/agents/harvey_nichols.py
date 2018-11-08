@@ -92,13 +92,14 @@ class HarveyNichols(ApiMiner):
     @staticmethod
     def parse_transaction(row):
         if type(row['value']) == int:
-            money_value = '£{:.2f}'.format(Decimal(row['value'] / 100))
+            money_value = abs(row['value'])
+            formatted_money_value = ' £{:.2f}'.format(Decimal(money_value / 100))
         else:
-            money_value = ''
+            formatted_money_value = ''
 
         return {
             "date": arrow.get(row['date']),
-            "description": row['type'] + ': ' + row['locationName'] + ' ' + money_value,
+            "description": '{}: {}{}'.format(row['type'], row['locationName'], formatted_money_value),
             "points": Decimal(row['pointsValue']),
         }
 
@@ -113,7 +114,7 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(result['outcome'])
 
         transactions = [transaction['CustomerTransaction'] for transaction in result['transactions']]
-        transaction_types = ['Sale']
+        transaction_types = ['Sale', 'Refund']
         sorted_transactions = [transaction for transaction in transactions if transaction['type'] in transaction_types]
 
         return sorted_transactions
@@ -175,6 +176,7 @@ class HarveyNichols(ApiMiner):
                 if not credentials.get('consents'):
                     return
 
+                self.create_journey = 'join'
                 # Use consents retry mechanism as explained in
                 # https://books.bink.com/books/backend-development/page/retry-tasks
                 hn_post_message = {"enactor_id": self.customer_number}
