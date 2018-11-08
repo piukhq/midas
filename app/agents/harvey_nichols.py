@@ -176,6 +176,7 @@ class HarveyNichols(ApiMiner):
                 if not credentials.get('consents'):
                     return
 
+                self.create_journey = 'join'
                 # Use consents retry mechanism as explained in
                 # https://books.bink.com/books/backend-development/page/retry-tasks
                 hn_post_message = {"enactor_id": self.customer_number}
