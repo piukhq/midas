@@ -5,7 +5,7 @@ from app.publish import transactions, balance, zero_balance, create_balance_obje
 
 expected_balance = {
     'scheme_account_id': 1,
-    'user_id': 2,
+    'user_set': 2,
     'points_label': '1',
     'points': Decimal(1.1),
     'value': Decimal(2.2),
@@ -16,7 +16,7 @@ class TestRetry(unittest.TestCase):
     @patch('app.publish.post', autospec=True)
     def test_transactions(self, mock_post):
         items = transactions([{}, ], 5, 3, '123-12')
-        self.assertEqual(items, [{'scheme_account_id': 5, 'user_id': 3}])
+        self.assertEqual(items, [{'scheme_account_id': 5, 'user_set': 3}])
         self.assertTrue(mock_post.called)
         self.assertTrue(mock_post.call_args[0][0][-13:], '/transactions')
 
@@ -29,7 +29,7 @@ class TestRetry(unittest.TestCase):
         }
         item = balance(b, 5, 8, '123-12')
         self.assertEqual(item, {
-            'user_id': 8,
+            'user_set': 8,
             'value': Decimal('9.44'),
             'scheme_account_id': 5,
             'points': Decimal('51251285'),
@@ -57,7 +57,7 @@ class TestRetry(unittest.TestCase):
     def test_zero_balance(self, mock_post):
         item = zero_balance(5, 8, '123-12')
         self.assertEqual(item, {
-            'user_id': 8,
+            'user_set': 8,
             'value': Decimal('0'),
             'scheme_account_id': 5,
             'points': Decimal('0'),

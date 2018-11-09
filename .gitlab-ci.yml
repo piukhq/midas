@@ -32,6 +32,32 @@ build-develop:
   only:
     - develop
 
+build-internal-sandbox:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build --pull -t "$CI_REGISTRY/midas:merge" .
+    - docker push "$CI_REGISTRY/midas:merge"
+  only:
+    - banking-api-merge
+
+build-ukbanking:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build --pull -t "$CI_REGISTRY/midas:ukbanking" .
+    - docker push "$CI_REGISTRY/midas:ukbanking"
+  only:
+    - feature/ukbanking
+
 build-master:
   stage: build
   image: docker:latest
@@ -54,6 +80,24 @@ deploy-dev:
     - kubectl delete po -n=dev -l=project=midas-celery
   only:
     - develop
+
+deploy-internal-sandbox:
+  stage: deploy
+  image: binkops.azurecr.io/kubedeployer:latest
+  environment: dev
+  script:
+    - kubectl delete po -n=ubiquity -l=project=midas
+  only:
+    - banking-api-merge
+
+deploy-ukbanking:
+  stage: deploy
+  image: binkops.azurecr.io/kubedeployer:latest
+  environment: dev
+  script:
+    - kubectl delete po -n=ukbanking -l=project=midas
+  only:
+    - feature/ukbanking
 
 deploy-staging:
   stage: deploy

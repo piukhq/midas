@@ -1,8 +1,8 @@
-import os
 import logging
+import os
+
 from app import AgentException
 from environment import env_var, read_env
-
 
 os.chdir(os.path.dirname(__file__))
 read_env()
