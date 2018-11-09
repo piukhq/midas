@@ -768,7 +768,7 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
