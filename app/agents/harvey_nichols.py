@@ -56,10 +56,10 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(result['outcome'])
 
         tiers_list = {
-            'SILVER': 0,
-            'GOLD': 1,
-            'PLATINUM': 2,
-            'BLACK': 3
+            'SILVER': 1,
+            'GOLD': 2,
+            'PLATINUM': 3,
+            'BLACK': 4,
         }
         tier = tiers_list[result['loyaltyTierId']]
 
