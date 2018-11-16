@@ -167,7 +167,7 @@ class HarveyNichols(ApiMiner):
         if json_result['outcome'] == 'Success':
             self.customer_number = json_result['customerNumber']
             self.token = json_result['token']
-            self.token_store.set('user-token-store:{}'.format(self.scheme_id), self.token)
+            self.token_store.set(self.scheme_id, self.token)
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
