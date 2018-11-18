@@ -29,8 +29,8 @@ AGENTS = {
     'iceland-bonus-card': 'test_agent.TestAgentIce',
     # 'club-individual': 'club_individual.ClubIndividual',
     'club-individual': 'test_agent.TestAgentCI',
-    # 'harvey-nichols': 'harvey_nichols.HarveyNichols',
-    'harvey-nichols': 'test_agent.TestAgentHN',
+    # 'harvey-nichols': 'test_agent.TestAgentHN',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     # ----------- sandbox testing end ---------------- #
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
