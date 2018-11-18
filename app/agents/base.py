@@ -66,6 +66,7 @@ class BaseMiner(object):
     identifier = None
     expecting_callback = False
     is_async = False
+    create_journey = None
 
     def register(self, credentials):
         raise NotImplementedError()

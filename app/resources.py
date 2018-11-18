@@ -127,10 +127,12 @@ class Balance(Resource):
 def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     scheme_account_id = user_info['scheme_account_id']
     threads = []
+    create_journey = None
 
     status = SchemeAccountStatus.UNKNOWN_ERROR
     try:
-        balance, status = request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads)
+        balance, status, create_journey = request_balance(agent_class, user_info, scheme_account_id, scheme_slug,
+                                                          tid, threads)
         return balance
     except (LoginError, AgentError) as e:
         status = e.code
@@ -145,12 +147,14 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         if user_info.get('pending') and not status == SchemeAccountStatus.ACTIVE:
             pass
         else:
-            threads.append(thread_pool_executor.submit(publish.status, scheme_account_id, status, tid))
+            threads.append(
+                thread_pool_executor.submit(publish.status, scheme_account_id, status, tid, journey=create_journey))
 
         [thread.result() for thread in threads]
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
+    create_journey = None
     # Pending scheme account using the merchant api framework expects a callback so should not call balance.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
     if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
@@ -175,8 +179,9 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,
                                                    user_info['user_set'], tid))
         status = SchemeAccountStatus.ACTIVE
+        create_journey = agent_instance.create_journey
 
-    return balance, status
+    return balance, status, create_journey
 
 
 def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
