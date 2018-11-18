@@ -100,7 +100,7 @@ class TestUserConsents(unittest.TestCase):
 
         }
         hn._login(credentials)
-        self.assertEqual('https://hn_sso.harveynichols.com/preferences/create', mock_post.call_args_list[0][0][0])
+        self.assertEqual('https://admin.uat.harveynichols.com/preferences/create', mock_post.call_args_list[0][0][0])
 
         self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
                          mock_post.call_args_list[0][1]["data"])
@@ -133,7 +133,7 @@ class TestUserConsents(unittest.TestCase):
 
         }
         hn._login(credentials)
-        self.assertEqual('https://hn_sso.harveynichols.com/preferences/create', mock_post.call_args_list[0][0][0])
+        self.assertEqual('https://admin.uat.harveynichols.com/preferences/create', mock_post.call_args_list[0][0][0])
 
         self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
                          mock_post.call_args_list[0][1]["data"])
@@ -170,7 +170,7 @@ class TestUserConsents(unittest.TestCase):
         }
         with self.assertLogs() as logs:
             hn._login(credentials)
-            self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
+            self.assertEqual('https://admin.uat.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])
 
             self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
@@ -224,7 +224,7 @@ class TestUserConsents(unittest.TestCase):
         }
         with self.assertLogs() as logs:
             hn._login(credentials)
-            self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
+            self.assertEqual('https://admin.uat.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])
 
             self.assertEqual('{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
