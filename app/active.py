@@ -24,6 +24,14 @@ AGENTS = {
     # 'rewards4golf': 'rewards4golf.Rewards4Golf',           # CG request to deactivate due to low usage.
     # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
     # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
+    # ----------- sandbox testing start -------------- #
+    # 'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
+    'iceland-bonus-card': 'test_agent.TestAgentIce',
+    # 'club-individual': 'club_individual.ClubIndividual',
+    'club-individual': 'test_agent.TestAgentCI',
+    # 'harvey-nichols': 'test_agent.TestAgentHN',
+    'harvey-nichols': 'harvey_nichols.HarveyNichols',
+    # ----------- sandbox testing end ---------------- #
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
     'the-co-operative-membership': 'cooperative.Cooperative',
@@ -74,7 +82,6 @@ AGENTS = {
     'le-club': 'accor.Accor',
     'discovery': 'gha.Gha',
     'clubcarlson': 'carlson.Carlson',
-    'harvey-nichols': 'harvey_nichols.HarveyNichols',
     'omni': 'omni.Omni',
     'bonus-club': 'brewersfayre.BrewersFayre',
     'love-your-body': 'the_body_shop.TheBodyShop',
@@ -83,13 +90,11 @@ AGENTS = {
     'pure-hmv': 'hmv.HMV',
     'victoria': 'victoria.Victoria',
     'star-rewards': 'star_rewards.StarRewards',
-    'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
     'the-garden-club': 'the_garden_club.TheGardenClub',
     'handm-club': 'handm.HAndM',
     'tkmaxx': 'tk_maxx.TKMaxx',
     'macdonald-hotels': 'the_club.TheClub',
     'marriott-rewards-card': 'marriott.Marriott',
-    'club-individual': 'club_individual.ClubIndividual',
     'test-club-individual': 'club_individual_merchant_integration.ClubIndividual',
     'showcase': 'showcase.Showcase',
     'krisflyer': 'krisflyer.Krisflyer',
