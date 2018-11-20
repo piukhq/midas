@@ -1,11 +1,14 @@
-from .resend import ReTryTaskStore
-from settings import HERMES_URL, logger
-from app.utils import get_headers
 import importlib
-import requests
 import json
-from app.encoding import JsonEncoder
 from enum import IntEnum
+
+import requests
+
+from app import sentry
+from app.encoding import JsonEncoder
+from app.utils import get_headers
+from settings import HERMES_URL, logger
+from .resend import ReTryTaskStore
 
 
 class ConsentStatus(IntEnum):
@@ -27,7 +30,7 @@ def send_consents(consents_data):
     done, message = try_consents(consents_data)
 
     if not done:
-        logger.error(message)
+        logger.debug(message)
         task = ReTryTaskStore()
         task.set_task("app.tasks.resend_consents", "try_consents", consents_data)
 
@@ -51,9 +54,9 @@ def try_consents(consents_data):
                 return False, message
         return try_hermes_confirm(consents_data)
 
-    except IOError as e:
+    except requests.RequestException as e:
         # other exceptions will abort retries and exception will be monitored by sentry
-        # an ioerror may not occur on retires
+        sentry.captureException()
         return False, f"{consents_data.get('identifier','')} {consents_data['state']}: IO error {str(e)}"
 
 

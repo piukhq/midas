@@ -111,7 +111,7 @@ def create_error_response(error_code, error_description):
 
 def get_headers(tid):
     headers = {'Content-type': 'application/json',
-               'transaction': tid,
+               'transaction': str(tid),
                'User-agent': 'Midas on {0}'.format(socket.gethostname()),
                'Authorization': 'token ' + SERVICE_API_KEY}
 
