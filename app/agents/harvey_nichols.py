@@ -10,14 +10,8 @@ import json
 
 
 class HarveyNichols(ApiMiner):
-    # Agent settings
-    # Prod Harvey Nichols URLs
-    # BASE_URL = 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty'
-    # CONSENTS_URL = 'https://hn_sso.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
-
-    # SIT Harvey Nichols URLs
-    BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
-    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'
+    BASE_URL = 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL = 'https://hn_sso.harveynichols.com/preferences/create'
 
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"   # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
