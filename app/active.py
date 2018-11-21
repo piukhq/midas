@@ -25,8 +25,8 @@ AGENTS = {
     # 'rewards4racing': 'rewards4racing.Rewards4Racing',     # CG request to deactivate due to low usage.
     # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
     # ----------- sandbox testing start -------------- #
-    # 'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
-    'iceland-bonus-card': 'test_agent.TestAgentIce',
+    'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
+    # 'iceland-bonus-card': 'test_agent.TestAgentIce',
     # 'club-individual': 'club_individual.ClubIndividual',
     'club-individual': 'test_agent.TestAgentCI',
     # 'harvey-nichols': 'test_agent.TestAgentHN',
