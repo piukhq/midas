@@ -19,7 +19,7 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent
+from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent, JourneyTypes
 from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 
@@ -162,10 +162,8 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         status = SchemeAccountStatus.PENDING
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
     else:
-        # cl @ 2018-11-01: temporarily disabled to prevent calling iceland's link endpoint until they have fixed
-        #                : the 15,000 linked accounts problem in their system.
-        # if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
-        #     user_info['journey_type'] = JourneyTypes.LINK.value
+        if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
+            user_info['journey_type'] = JourneyTypes.LINK.value
 
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
