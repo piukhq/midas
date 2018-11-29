@@ -83,10 +83,14 @@ class Balance(Resource):
     def get(self, scheme_slug):
         status = request.args.get('status')
         journey_type = request.args.get('journey_type')
+        user_set = get_user_set_from_request(request.args)
+        if not user_set:
+            abort(400, message='Please provide either "user_set" or "user_id" parameters')
+
         user_info = {
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
-            'user_set': request.args['user_set'],
+            'user_set': user_set,
             'journey_type': int(journey_type) if journey_type else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
@@ -244,9 +248,12 @@ class Transactions(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
+        user_set = get_user_set_from_request(request.args)
+        if not user_set:
+            abort(400, message='Please provide either "user_set" or "user_id" parameters')
 
         user_info = {
-            'user_id': int(request.args['user_id']),
+            'user_set': user_set,
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': request.args.get('status'),
             'scheme_account_id': int(request.args['scheme_account_id']),
@@ -262,7 +269,7 @@ class Transactions(Resource):
 
             transactions = publish.transactions(agent_instance.transactions(),
                                                 user_info['scheme_account_id'],
-                                                user_info['user_id'],
+                                                user_info['user_set'],
                                                 tid)
             return create_response(transactions)
         except (LoginError, AgentError) as e:
@@ -285,8 +292,9 @@ class AccountOverview(Resource):
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
+        user_set = get_user_set_from_request(request.args)
         user_info = {
-            'user_id': int(request.args['user_id']),
+            'user_set': user_set,
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': request.args.get('status'),
             'scheme_account_id': int(request.args['scheme_account_id']),
@@ -300,11 +308,11 @@ class AccountOverview(Resource):
             account_overview = agent_instance.account_overview()
             publish.balance(account_overview["balance"],
                             user_info['scheme_account_id'],
-                            user_info['user_id'],
+                            user_info['user_set'],
                             tid)
             publish.transactions(account_overview["transactions"],
                                  user_info['scheme_account_id'],
-                                 user_info['user_id'],
+                                 user_info['user_set'],
                                  tid)
 
             return create_response(account_overview)
@@ -500,3 +508,10 @@ def get_hades_balance(scheme_account_id):
         if resp_json:
             return resp_json
         raise UnknownException('Empty response getting previous balance')
+
+
+def get_user_set_from_request(request_args):
+    try:
+        return request_args.get('user_set') or str(request_args['user_id'])
+    except KeyError:
+        return None
