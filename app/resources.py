@@ -166,8 +166,9 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         status = SchemeAccountStatus.PENDING
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
     else:
-        if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
-            user_info['journey_type'] = JourneyTypes.LINK.value
+        if scheme_slug == 'iceland-bonus-card' and settings.ENABLE_ICELAND_VALIDATE:
+            if user_info['status'] != SchemeAccountStatus.ACTIVE:
+                user_info['journey_type'] = JourneyTypes.LINK.value
 
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
