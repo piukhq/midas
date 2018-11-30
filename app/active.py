@@ -26,10 +26,10 @@ AGENTS = {
     # 'toysrus': 'toysrus.Toysrus',                          # Scheme is being/has been shut down.
     # ----------- sandbox testing start -------------- #
     'iceland-bonus-card': 'merchant_api_generic.MerchantAPIGeneric',
-    # 'iceland-bonus-card': 'test_agent.TestAgentIce',
+    'iceland-bonus-card-mock': 'test_agent.TestAgentIce',
     # 'club-individual': 'club_individual.ClubIndividual',
     'club-individual': 'test_agent.TestAgentCI',
-    # 'harvey-nichols': 'test_agent.TestAgentHN',
+    'harvey-nichols-mock': 'test_agent.TestAgentHN',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
     # ----------- sandbox testing end ---------------- #
     'avios': 'avios_api.Avios',
