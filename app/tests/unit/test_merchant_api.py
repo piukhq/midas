@@ -46,9 +46,15 @@ class TestMerchantApi(FlaskTestCase):
 
     user_info = {'scheme_account_id': 1,
                  'status': '',
-                 'user_id': 1,
+                 'user_set': '1',
                  'journey_type': JourneyTypes.LINK.value,
                  'credentials': {}}
+
+    user_info_user_set = {'scheme_account_id': 1,
+                          'status': '',
+                          'user_set': '1,2',
+                          'journey_type': JourneyTypes.LINK.value,
+                          'credentials': {}}
 
     json_data = json_data
 
@@ -81,6 +87,7 @@ class TestMerchantApi(FlaskTestCase):
         }
         self.config = mock_configuration
         self.m = MerchantApi(1, self.user_info)
+        self.m_user_set = MerchantApi(1, self.user_info_user_set)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, '_sync_outbound')
@@ -831,6 +838,10 @@ class TestMerchantApi(FlaskTestCase):
 
     def test_get_merchant_ids(self):
         merchant_ids = self.m.get_merchant_ids({})
+        self.assertIn('merchant_scheme_id1', merchant_ids)
+
+    def test_get_merchant_ids_user_set(self):
+        merchant_ids = self.m_user_set.get_merchant_ids({})
         self.assertIn('merchant_scheme_id1', merchant_ids)
 
     def test_credential_mapping(self):

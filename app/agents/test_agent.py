@@ -238,6 +238,95 @@ users = {
         'points': Decimal('123456')
     },
 
+    '900018': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'passtest1@testbink.com',
+            'password': r'/!£Password1'
+        },
+        'points': Decimal('123456')
+    },
+    '900019': {
+        'len_transactions': 3,
+        'credentials': {
+            'email': 'passtest2@testbink.com',
+            'password': r'Password1?£$'
+        },
+        'points': Decimal('123456')
+    },
+    '900020': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'passtest3@testbink.com',
+            'password': r'<!-=]{'
+        },
+        'points': Decimal('123456')
+    },
+    '900021': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'passtest4@testbink.com',
+            'password': r'Pass word1'
+        },
+        'points': Decimal('123456')
+    },
+    '900022': {
+        'len_transactions': 3,
+        'credentials': {
+            'email': 'passtest5@testbink.com',
+            'password': r"Pass'wo'rd1"
+        },
+        'points': Decimal('123456')
+    },
+    '900023': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'passtest6@testbink.com',
+            'password': r'Pa"ssw"ord1'
+        },
+        'points': Decimal('123456')
+    },
+    '900024': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'passtest7@testbink.com',
+            'password': r'Pass@word1'
+        },
+        'points': Decimal('123456')
+    },
+    '900025': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'passtest8@testbink.com',
+            'password': r'Pass_word1'
+        },
+        'points': Decimal('123456')
+    },
+    '900026': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'passtest9@testbink.com',
+            'password': r'Pa*()ss'
+        },
+        'points': Decimal('123456')
+    },
+    '900027': {
+        'len_transactions': 3,
+        'credentials': {
+            'email': 'passtest10@testbink.com',
+            'password': r'Pas\s\word1'
+        },
+        'points': Decimal('123456')
+    },
+    '900028': {
+        'len_transactions': 4,
+        'credentials': {
+            'email': 'passtest11@testbink.com',
+            'password': r'Pa$££€ss'
+        },
+        'points': Decimal('123456')
+    },
+
 }
 
 transactions = [
@@ -321,6 +410,17 @@ class TestAgentHN(ApiMiner):
             '900015': '9000000000015',
             '900016': '9000000000016',
             '900017': '9000000000017',
+            '900018': '9000000000018',
+            '900019': '9000000000019',
+            '900020': '9000000000020',
+            '900021': '9000000000021',
+            '900022': '9000000000022',
+            '900023': '9000000000023',
+            '900024': '9000000000024',
+            '900025': '9000000000025',
+            '900026': '9000000000026',
+            '900027': '9000000000027',
+            '900028': '9000000000028',
 
         }
         self.customer_number = card_number_mapping[self.customer_number]

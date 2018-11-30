@@ -19,7 +19,7 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account
-from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent
+from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent, JourneyTypes
 from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 
@@ -31,13 +31,13 @@ scheme_account_id_doc = {
 }
 user_id_doc = {
     "name": "user_id",
-    "required": True,
+    "required": False,
     "dataType": "integer",
     "paramType": "query"
 }
 user_set_doc = {
     "name": "user_set",
-    "required": True,
+    "required": False,
     "dataType": "string",
     "paramType": "query"
 }
@@ -77,16 +77,20 @@ class Balance(Resource):
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_set_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
         status = request.args.get('status')
         journey_type = request.args.get('journey_type')
+        user_set = get_user_set_from_request(request.args)
+        if not user_set:
+            abort(400, message='Please provide either "user_set" or "user_id" parameters')
+
         user_info = {
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': int(status) if status else None,
-            'user_set': request.args['user_set'],
+            'user_set': user_set,
             'journey_type': int(journey_type) if journey_type else None,
             'scheme_account_id': int(request.args['scheme_account_id']),
         }
@@ -162,10 +166,9 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         status = SchemeAccountStatus.PENDING
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
     else:
-        # cl @ 2018-11-01: temporarily disabled to prevent calling iceland's link endpoint until they have fixed
-        #                : the 15,000 linked accounts problem in their system.
-        # if is_merchant_api_agent and user_info['status'] != SchemeAccountStatus.ACTIVE:
-        #     user_info['journey_type'] = JourneyTypes.LINK.value
+        if scheme_slug == 'iceland-bonus-card' and settings.ENABLE_ICELAND_VALIDATE:
+            if user_info['status'] != SchemeAccountStatus.ACTIVE:
+                user_info['journey_type'] = JourneyTypes.LINK.value
 
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
@@ -242,13 +245,16 @@ class Transactions(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
         notes="Return a users latest transactions for a specific agent",
-        parameters=[scheme_account_id_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
+        user_set = get_user_set_from_request(request.args)
+        if not user_set:
+            abort(400, message='Please provide either "user_set" or "user_id" parameters')
 
         user_info = {
-            'user_id': int(request.args['user_id']),
+            'user_set': user_set,
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': request.args.get('status'),
             'scheme_account_id': int(request.args['scheme_account_id']),
@@ -264,7 +270,7 @@ class Transactions(Resource):
 
             transactions = publish.transactions(agent_instance.transactions(),
                                                 user_info['scheme_account_id'],
-                                                user_info['user_id'],
+                                                user_info['user_set'],
                                                 tid)
             return create_response(transactions)
         except (LoginError, AgentError) as e:
@@ -283,12 +289,13 @@ class AccountOverview(Resource):
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
+        user_set = get_user_set_from_request(request.args)
         user_info = {
-            'user_id': int(request.args['user_id']),
+            'user_set': user_set,
             'credentials': decrypt_credentials(request.args['credentials']),
             'status': request.args.get('status'),
             'scheme_account_id': int(request.args['scheme_account_id']),
@@ -302,11 +309,11 @@ class AccountOverview(Resource):
             account_overview = agent_instance.account_overview()
             publish.balance(account_overview["balance"],
                             user_info['scheme_account_id'],
-                            user_info['user_id'],
+                            user_info['user_set'],
                             tid)
             publish.transactions(account_overview["transactions"],
                                  user_info['scheme_account_id'],
-                                 user_info['user_id'],
+                                 user_info['user_set'],
                                  tid)
 
             return create_response(account_overview)
@@ -502,3 +509,10 @@ def get_hades_balance(scheme_account_id):
         if resp_json:
             return resp_json
         raise UnknownException('Empty response getting previous balance')
+
+
+def get_user_set_from_request(request_args):
+    try:
+        return request_args.get('user_set') or str(request_args['user_id'])
+    except KeyError:
+        return None
