@@ -31,13 +31,13 @@ scheme_account_id_doc = {
 }
 user_id_doc = {
     "name": "user_id",
-    "required": True,
+    "required": False,
     "dataType": "integer",
     "paramType": "query"
 }
 user_set_doc = {
     "name": "user_set",
-    "required": True,
+    "required": False,
     "dataType": "string",
     "paramType": "query"
 }
@@ -77,7 +77,7 @@ class Balance(Resource):
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_set_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
         notes="Return a users balance for a specific agent"
     )
     def get(self, scheme_slug):
@@ -244,7 +244,7 @@ class Transactions(Resource):
     @swagger.operation(
         responseMessages=list(errors.values()),
         notes="Return a users latest transactions for a specific agent",
-        parameters=[scheme_account_id_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
@@ -288,7 +288,7 @@ class AccountOverview(Resource):
     @validate_parameters
     @swagger.operation(
         responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_id_doc, credentials_doc],
+        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
     )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
