@@ -28,6 +28,7 @@ VALIDATION = "VALIDATION"
 CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
 SERVICE_CONNECTION_ERROR = "SERVICE_CONNECTION_ERROR"
 PRE_REGISTERED_CARD = "PRE_REGISTERED_CARD"
+LINK_LIMIT_EXCEEDED = "LINK_LIMIT_EXCEEDED"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -103,9 +104,14 @@ errors = {
     SERVICE_CONNECTION_ERROR: {"code": 537,
                                "message": "There was in issue connecting to an external service.",
                                "name": "Service connection error"},
+    LINK_LIMIT_EXCEEDED: {
+        "code": 538,
+        "message": "You can only Link one card per day.",
+        "name": "Link Limit Exceeded"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
+
 }
 
 SYSTEM_ACTION_REQUIRED = [

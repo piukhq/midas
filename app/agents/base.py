@@ -28,7 +28,7 @@ from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -423,7 +423,8 @@ class MerchantApi(BaseMiner):
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
             PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
-            UNKNOWN: ['GENERAL_ERROR']
+            UNKNOWN: ['GENERAL_ERROR'],
+            LINK_LIMIT_EXCEEDED: ['LINK_LIMIT_EXCEEDED']
         }
 
     def login(self, credentials):
