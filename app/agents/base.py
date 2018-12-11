@@ -422,13 +422,11 @@ class MerchantApi(BaseMiner):
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
-            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
-            UNKNOWN: ['GENERAL_ERROR'],
+            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR', 'CARD_NOT_REGISTERED'],
+            UNKNOWN: ['GENERAL_ERROR', 'UNKNOWN'],
             # additional mappings for iceland
             CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
-            PRE_REGISTERED_CARD: ['CARD_NOT_REGISTERED'],
             LINK_LIMIT_EXCEEDED: ['LINK_LIMIT_EXCEEDED'],
-            UNKNOWN: ['UNKNOWN']
         }
 
     def login(self, credentials):
