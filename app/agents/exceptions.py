@@ -29,6 +29,7 @@ CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
 SERVICE_CONNECTION_ERROR = "SERVICE_CONNECTION_ERROR"
 PRE_REGISTERED_CARD = "PRE_REGISTERED_CARD"
 LINK_LIMIT_EXCEEDED = "LINK_LIMIT_EXCEEDED"
+CARD_NUMBER_ERROR = "CARD_NUMBER_ERROR"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -108,6 +109,10 @@ errors = {
         "code": 538,
         "message": "You can only Link one card per day.",
         "name": "Link Limit Exceeded"},
+    CARD_NUMBER_ERROR: {
+        "code": 539,
+        "message": "Invalid card_number",
+        "name": "Card number error"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
