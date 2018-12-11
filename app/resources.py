@@ -223,7 +223,7 @@ class Register(Resource):
         journey_type = data['journey_type']
         status = int(data['status'])
         user_info = {
-            'user_id': int(request.get_json()['user_id']),
+            'user_set': get_user_set_from_request(data),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
             'status': status,
             'journey_type': int(journey_type),
@@ -453,7 +453,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
 @log_task
 def registration(scheme_slug, user_info, tid):
     intercom_data = {
-        'user_id': user_info['user_id'],
+        'user_id': user_info['user_set'],
         'user_email': user_info['credentials']['email'],
         'metadata': {'scheme': scheme_slug},
     }
