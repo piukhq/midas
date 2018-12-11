@@ -487,8 +487,8 @@ def registration(scheme_slug, user_info, tid):
 
     try:
         status = SchemeAccountStatus.ACTIVE
-        publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_id'], tid)
-        publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_id'], tid)
+        publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_set'], tid)
+        publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_set'], tid)
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
