@@ -451,8 +451,6 @@ class MerchantApi(BaseMiner):
 
         error = self._check_for_error_response(self.result)
         if error:
-            if self.scheme_slug == 'iceland-bonus-card' and account_link:
-                self._handle_iceland_errors()
             self._handle_errors(error[0]['code'])
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
@@ -710,9 +708,6 @@ class MerchantApi(BaseMiner):
             if response in values:
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
-
-    def _handle_iceland_errors(self):
-        raise AgentError(PRE_REGISTERED_CARD)
 
     def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
                             contains_errors=False):
