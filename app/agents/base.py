@@ -687,8 +687,7 @@ class MerchantApi(BaseMiner):
 
     # agents will override this if unique values are needed
     def get_merchant_ids(self, credentials):
-        user_list = [int(x) for x in self.user_info['user_set'].split(',')]
-        user_id = sorted(user_list)[0]
+        user_id = sorted(map(int, self.user_info['user_set'].split(',')))[0]
         merchant_ids = {
             'merchant_scheme_id1': hash_ids.encode(user_id),
             'merchant_scheme_id2': credentials.get('merchant_identifier'),
