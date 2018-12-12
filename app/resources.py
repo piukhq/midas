@@ -223,7 +223,7 @@ class Register(Resource):
         journey_type = data['journey_type']
         status = int(data['status'])
         user_info = {
-            'user_id': int(request.get_json()['user_id']),
+            'user_set': get_user_set_from_request(data),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
             'status': status,
             'journey_type': int(journey_type),
@@ -453,7 +453,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
 @log_task
 def registration(scheme_slug, user_info, tid):
     intercom_data = {
-        'user_id': user_info['user_id'],
+        'user_id': user_info['user_set'],
         'user_email': user_info['credentials']['email'],
         'metadata': {'scheme': scheme_slug},
     }
@@ -487,8 +487,8 @@ def registration(scheme_slug, user_info, tid):
 
     try:
         status = SchemeAccountStatus.ACTIVE
-        publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_id'], tid)
-        publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_id'], tid)
+        publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_set'], tid)
+        publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_set'], tid)
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)

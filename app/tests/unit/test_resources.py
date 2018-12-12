@@ -383,7 +383,7 @@ class TestResources(TestCase):
                 'scheme_slug': encrypt(scheme_slug),
                 'email': 'test@email.com'
             },
-            'user_id': 4,
+            'user_set': '4',
             'scheme_account_id': 2,
             'status': ''
         }
@@ -415,7 +415,7 @@ class TestResources(TestCase):
                 'scheme_slug': encrypt(scheme_slug),
                 'email': 'test@email.com'
             },
-            'user_id': 4,
+            'user_set': '4',
             'scheme_account_id': 2,
             'status': ''
         }
