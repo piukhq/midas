@@ -33,6 +33,12 @@ class SchemeAccountStatus:
     PASSWORD_EXPIRED = 533
     JOIN = 900
     NO_SUCH_RECORD = 444
+    JOIN_IN_PROGRESS = 441
+    JOIN_ERROR = 538
+    GENERAL_ERROR = 439
+    CARD_NUMBER_ERROR = 436
+    CARD_NOT_REGISTERED = 438
+    LINK_LIMIT_EXCEEDED = 437
 
 
 class JourneyTypes(IntEnum):
