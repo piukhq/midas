@@ -159,12 +159,16 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
     create_journey = None
-    # Pending scheme account using the merchant api framework expects a callback so should not call balance.
+    # Pending scheme account using the merchant api framework expects a callback so should not call balance unless
+    # the call is an async Link.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
-    if is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING:
+    if (is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING and
+            user_info['journey_type'] != JourneyTypes.LINK):
+
         user_info['pending'] = True
         status = SchemeAccountStatus.PENDING
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
+
     else:
         if scheme_slug == 'iceland-bonus-card' and settings.ENABLE_ICELAND_VALIDATE:
             if user_info['status'] != SchemeAccountStatus.ACTIVE:
