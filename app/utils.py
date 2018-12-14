@@ -44,6 +44,8 @@ class SchemeAccountStatus:
 class JourneyTypes(IntEnum):
     JOIN = 0
     LINK = 1
+    ADD = 2
+    UPDATE = 3
 
 
 def extract_decimal(s):
