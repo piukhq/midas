@@ -1,5 +1,5 @@
 import unittest
-from app.agents.test_agent import TestAgentCI, TestAgentHN, TestAgentIce
+from app.agents.mock_agents import MockAgentCI, MockAgentHN, MockAgentIce
 from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
@@ -9,7 +9,7 @@ class TestCI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = TestAgentCI(*AGENT_CLASS_ARGUMENTS)
+        cls.b = MockAgentCI(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '66666666',
             'email': 'six@testbink.com'
@@ -29,7 +29,7 @@ class TestCI(unittest.TestCase):
 class TestCIFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = TestAgentCI(*AGENT_CLASS_ARGUMENTS)
+        b = MockAgentCI(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '000000',
             'email': 'notzero@testbink.com'
@@ -43,7 +43,7 @@ class TestHN(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = TestAgentHN(*AGENT_CLASS_ARGUMENTS)
+        cls.b = MockAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'email': 'sixdigitpoints@testbink.com',
             'password': 'pa$$w&rd01!'
@@ -64,7 +64,7 @@ class TestHN(unittest.TestCase):
 class TestHNFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = TestAgentHN(*AGENT_CLASS_ARGUMENTS)
+        b = MockAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '000001',
             'email': 'notzero@testbink.com',
@@ -79,7 +79,7 @@ class TestIce(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.b = TestAgentIce(*AGENT_CLASS_ARGUMENTS)
+        cls.b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '1020304050607087777',
             'last_name': 'seven-digits, smith\'s',
@@ -100,7 +100,7 @@ class TestIce(unittest.TestCase):
 class TestIceFail(unittest.TestCase):
 
     def test_login_fail(self):
-        b = TestAgentIce(*AGENT_CLASS_ARGUMENTS)
+        b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {
             'card_number': '000000',
             'last_name': 'notzero',
