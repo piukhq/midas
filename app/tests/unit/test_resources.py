@@ -19,7 +19,7 @@ from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, get_balance_and_publish, \
     async_get_balance_and_publish
-from app.utils import SchemeAccountStatus
+from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
 CREDENTIALS = {
@@ -636,6 +636,7 @@ class TestResources(TestCase):
 
         pending_user_info = dict(self.user_info)
         pending_user_info['status'] = SchemeAccountStatus.PENDING
+        pending_user_info['journey_type'] = JourneyTypes.UPDATE
         balance = get_balance_and_publish(MerchantAPIGeneric, 'scheme_slug', pending_user_info, 'tid')
 
         self.assertFalse(mock_login.called)
