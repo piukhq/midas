@@ -370,7 +370,7 @@ def get_user(card_number):
         raise LoginError(STATUS_LOGIN_FAILED)
 
 
-class TestAgentHN(ApiMiner):
+class MockAgentHN(ApiMiner):
     retry_limit = None
 
     def login(self, credentials):
@@ -447,7 +447,7 @@ class TestAgentHN(ApiMiner):
         return transactions[:max_transactions]
 
 
-class TestAgentIce(MerchantApi):
+class MockAgentIce(MerchantApi):
     retry_limit = None
     point_conversion_rate = Decimal('1')
 
@@ -512,7 +512,7 @@ class TestAgentIce(MerchantApi):
         return transactions[:max_transactions]
 
 
-class TestAgentCI(ApiMiner):
+class MockAgentCI(ApiMiner):
     retry_limit = None
     point_conversion_rate = Decimal('0.01')
 

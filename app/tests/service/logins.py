@@ -13,7 +13,7 @@ AGENT_CLASS_ARGUMENTS = [
     {
         'scheme_account_id': 1,
         'status': SchemeAccountStatus.ACTIVE,
-        'user_id': 1,
+        'user_set': '1,2',
         'journey_type': None
     }
 ]
@@ -24,7 +24,7 @@ AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
         'scheme_account_id': 1,
         'status': SchemeAccountStatus.WALLET_ONLY,
         'journey_type': JourneyTypes.LINK.value,
-        'user_id': 1
+        'user_set': '1,2'
     }
 ]
 
