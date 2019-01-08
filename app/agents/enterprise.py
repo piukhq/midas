@@ -12,17 +12,15 @@ class Enterprise(ApiMiner):
     connect_timeout = 10
 
     def login(self, credentials):
-        url = 'https://prd.webapi.enterprise.co.uk/enterprise-ewt/ecom-service/login/EP?&' + str(int(time.time()))
-        login_data = {
-            'username': credentials['username'],
-            'password': credentials['password'],
-            'remember_credentials': 'false',
-        }
+        form = 'https://prd-east.webapi.enterprise.co.uk/enterprise-ewt/enterprise/profile/login/EP?locale=en_GB&' + str(int(time.time()))
+        self.response = self.make_request(
+            form,
+            method='post',
+            json={
+                'username': credentials['username'],
+                'password': credentials['password']
+            })
 
-        self.headers["origin"] = "https://www.enterprise.co.uk"
-        self.headers["referer"] = "https://www.enterprise.co.uk/en/home.html"
-
-        self.response = self.make_request(url, method='post', json=login_data)
         self.account_data = json.loads(self.response.text)
 
         if self.account_data['messages'] and len(self.account_data['messages']):
