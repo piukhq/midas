@@ -8,13 +8,14 @@ from app.utils import extract_decimal
 class Gha(RoboBrowserMiner):
 
     def login(self, credentials):
-        url = 'https://www.gha.com/member/login'
-        data = {
-            'login': credentials['username'],
-            'password': credentials['password'],
-            'redirect_view': 'reservations',
-        }
-        self.open_url(url, data=data, method='post')
+        form = 'https://www.discoveryloyalty.com/member/login'
+        self.open_url(
+            form,
+            method='post',
+            data={
+                'login': credentials['username'],
+                'password': credentials['password']
+            })
 
         self.check_error('/member/login',
                          (('div.Message--error > p', STATUS_LOGIN_FAILED, 'We found errors in the following:'), ))
