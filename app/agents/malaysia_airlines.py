@@ -1,43 +1,35 @@
-from app.agents.base import SeleniumMiner
+from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal
 import arrow
-from time import sleep
+import json
 
 
-class MalaysiaAirlines(SeleniumMiner):
-
+class MalaysiaAirlines(RoboBrowserMiner):
     def check_if_logged_in(self):
-        try:
-            username = self.browser.find_element_by_class_name('username')
-            if username.is_displayed():
-                self.is_login_successful = True
-            else:
-                raise LoginError(STATUS_LOGIN_FAILED)
-        except LoginError as exception:
-            raise exception
-
-    def _login(self, credentials):
-        self.browser.get('https://www.malaysiaairlines.com/enrich-portal/login.html')
-        sleep(5)
-        self.browser.find_element_by_name('mhNumber').send_keys(credentials['card_number'])
-        sleep(5)
-        self.browser.find_elements_by_name('Password')[2].send_keys(credentials['password'])
-        sleep(5)
-        self.browser.find_element_by_class_name('login-form').click()
-        sleep(60)
+        if self.browser.response.json()['responseCode'] == 'OK':
+            self.is_login_successful = True
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
-        self._login(credentials)
+        form = 'https://www.malaysiaairlines.com/bin/services/new/authuser'
+        self.open_url(
+            form,
+            method='post',
+            data={
+                'userId': credentials['card_number'],
+                'password': credentials['password']
+            },
+            headers={'Referer': 'https://www.malaysiaairlines.com/uk/en.html'})
         self.check_if_logged_in()
 
-        self.points = self.browser.find_element_by_class_name('miles-value').text
-        self.get_transactions()
-
     def balance(self):
+        phantom_cookie = self.browser.response.json()['phantomCookieValue']
+        data = json.loads(phantom_cookie)
         return {
-            'points': extract_decimal(self.points),
+            'points': extract_decimal(data['milesCount']),
             'value': Decimal('0'),
             'value_label': '',
         }
@@ -55,7 +47,6 @@ class MalaysiaAirlines(SeleniumMiner):
 
     @staticmethod
     def parse_transaction(row):
-
         return {
             'date': arrow.get(row['date'], 'DD MMM YYYY'),
             'description': row['description'],
