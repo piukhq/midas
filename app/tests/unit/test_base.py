@@ -1,10 +1,12 @@
-from app.agents.avios import Avios
-from app.agents.base import RoboBrowserMiner, ApiMiner
-from app.agents.exceptions import AgentError, LoginError, RetryLimitError
 from decimal import Decimal
+from unittest import TestCase, mock
+
 import arrow
 import httpretty
-from unittest import mock, TestCase
+
+from app.agents.avios import Avios
+from app.agents.base import ApiMiner, RoboBrowserMiner
+from app.agents.exceptions import AgentError, LoginError, RetryLimitError
 
 
 class TestBase(TestCase):
@@ -78,7 +80,7 @@ class TestBase(TestCase):
 
         with self.assertRaises(LoginError):
             RoboBrowserMiner.check_error(mock_instance, "/HomeSecurityLayer.aspx",
-                                         (("", "INVALID_MFA_INFO", "The details"), ))
+                                         (("", "INVALID_MFA_INFO", "The details"),))
 
     def test_default_point_conversion(self):
         user_info = {'scheme_account_id': 1,
