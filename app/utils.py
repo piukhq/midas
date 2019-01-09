@@ -33,11 +33,19 @@ class SchemeAccountStatus:
     PASSWORD_EXPIRED = 533
     JOIN = 900
     NO_SUCH_RECORD = 444
+    JOIN_IN_PROGRESS = 441
+    JOIN_ERROR = 538
+    GENERAL_ERROR = 439
+    CARD_NUMBER_ERROR = 436
+    CARD_NOT_REGISTERED = 438
+    LINK_LIMIT_EXCEEDED = 437
 
 
 class JourneyTypes(IntEnum):
     JOIN = 0
     LINK = 1
+    ADD = 2
+    UPDATE = 3
 
 
 def extract_decimal(s):
@@ -111,7 +119,7 @@ def create_error_response(error_code, error_description):
 
 def get_headers(tid):
     headers = {'Content-type': 'application/json',
-               'transaction': tid,
+               'transaction': str(tid),
                'User-agent': 'Midas on {0}'.format(socket.gethostname()),
                'Authorization': 'token ' + SERVICE_API_KEY}
 
