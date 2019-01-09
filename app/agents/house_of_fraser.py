@@ -5,7 +5,7 @@ import re
 import json
 
 
-class HouseOfFraser(SeleniumMiner):
+class HouseOfFraser(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
