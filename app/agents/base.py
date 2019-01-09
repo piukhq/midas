@@ -6,26 +6,22 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
-from random import randint
 from urllib.parse import urlsplit
 from uuid import uuid1
+from random import randint
 
-import arrow
 import requests
+import arrow
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ReadTimeout, Timeout
 from requests.packages.urllib3.poolmanager import PoolManager
 from robobrowser import RoboBrowser
 from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 from app import publish
-from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
@@ -36,11 +32,11 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
     CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
-from app.scheme_account import update_pending_join_account
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
+from app.scheme_account import update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
 
 
@@ -392,16 +388,6 @@ class SeleniumMiner(BaseMiner):
         WebDriverWait(self.browser, timeout).until(
             ec.text_to_be_present_in_element((webdriver.common.by.By.CSS_SELECTOR, css_selector), text)
         )
-
-    def wait_for_element_to_be_visible(self, element, timeout=15, wait_if_error=5):
-        try:
-            WebDriverWait(self.browser, timeout).until(
-                ec.visibility_of(element)
-            )
-        except StaleElementReferenceException:
-            time.sleep(wait_if_error)
-            if ec.visibility_of(element):
-                return True
 
 
 class MerchantApi(BaseMiner):
