@@ -1,45 +1,31 @@
-from app.agents.base import SeleniumMiner
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, UNKNOWN
-from app.utils import extract_decimal
+from app.agents.base import RoboBrowserMiner
+from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN
 from decimal import Decimal
 
 
-class JetBlue(SeleniumMiner):
-    is_successful_login = False
-
-    def _login(self, credentials):
-        self.browser.get('https://book.jetblue.com/B6.auth/login?intcmp=hd_signin'
-                         '&service=https://www.jetblue.com/default.aspx')
-        self.browser.find_element_by_name('username').send_keys(credentials['email'])
-        self.browser.find_element_by_name('password').send_keys(credentials['password'])
-        self.browser.find_element_by_css_selector('#casLoginForm button').click()
-
-    def check_login(self):
-        account_url = 'https://trueblue.jetblue.com/group/trueblue/my-trueblue-home'
-
-        self.browser.get(account_url)
-        self.wait_for_page_load(timeout=15)
-        # repeat above call to account_url to get past one time redirect
-        self.browser.get(account_url)
-        current_url = self.browser.current_url
-        if current_url == account_url:
-            self.is_successful_login = True
-        else:
-            raise LoginError(STATUS_LOGIN_FAILED)
-
+class JetBlue(RoboBrowserMiner):
     def login(self, credentials):
-        try:
-            self._login(credentials)
-        except Exception:
-            raise LoginError(UNKNOWN)
+        form = 'https://prd.b6prdeng.net/iam/login'
+        self.open_url(
+            form,
+            method='post',
+            json={
+                'id': credentials['email'],
+                'pwd': credentials['password']
+            })
 
-        self.check_login()
-        self.points = self.browser.find_element_by_class_name('points-info').text
+        json = self.browser.response.json()
+
+        if 'error' in json:
+            if json['error']['code'] == 'JB_INVALID_CREDENTIALS':
+                raise LoginError(STATUS_LOGIN_FAILED)
+            else:
+                raise LoginError(UNKNOWN)
 
     def balance(self):
 
         return {
-            'points': extract_decimal(self.points),
+            'points': Decimal(self.browser.response.json()['points']),
             'value': Decimal('0'),
             'value_label': '',
         }
