@@ -10,9 +10,9 @@ import json
 
 
 class HarveyNichols(ApiMiner):
-    # Agent settings
-    BASE_URL = 'http://89.206.220.40:8080/WebCustomerLoyalty/services/CustomerLoyalty'
-    CONSENTS_URL = 'https://admin.uat.harveynichols.com/preferences/create'  # Harvey Nichols end point for consents
+    BASE_URL = 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty'
+    CONSENTS_URL = 'https://hn_sso.harveynichols.com/preferences/create'
+
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"   # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
@@ -56,10 +56,10 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(result['outcome'])
 
         tiers_list = {
-            'SILVER': 0,
-            'GOLD': 1,
-            'PLATINUM': 2,
-            'BLACK': 3
+            'SILVER': 1,
+            'GOLD': 2,
+            'PLATINUM': 3,
+            'BLACK': 4,
         }
         tier = tiers_list[result['loyaltyTierId']]
 
@@ -92,13 +92,14 @@ class HarveyNichols(ApiMiner):
     @staticmethod
     def parse_transaction(row):
         if type(row['value']) == int:
-            money_value = '£{:.2f}'.format(Decimal(row['value'] / 100))
+            money_value = abs(row['value'])
+            formatted_money_value = ' £{:.2f}'.format(Decimal(money_value / 100))
         else:
-            money_value = ''
+            formatted_money_value = ''
 
         return {
             "date": arrow.get(row['date']),
-            "description": row['type'] + ': ' + row['locationName'] + ' ' + money_value,
+            "description": '{}: {}{}'.format(row['type'], row['locationName'], formatted_money_value),
             "points": Decimal(row['pointsValue']),
         }
 
@@ -113,7 +114,7 @@ class HarveyNichols(ApiMiner):
             self.handle_errors(result['outcome'])
 
         transactions = [transaction['CustomerTransaction'] for transaction in result['transactions']]
-        transaction_types = ['Sale']
+        transaction_types = ['Sale', 'Refund']
         sorted_transactions = [transaction for transaction in transactions if transaction['type'] in transaction_types]
 
         return sorted_transactions
@@ -166,7 +167,7 @@ class HarveyNichols(ApiMiner):
         if json_result['outcome'] == 'Success':
             self.customer_number = json_result['customerNumber']
             self.token = json_result['token']
-            self.token_store.set('user-token-store:{}'.format(self.scheme_id), self.token)
+            self.token_store.set(self.scheme_id, self.token)
 
             if self.identifier_type not in credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
@@ -175,6 +176,7 @@ class HarveyNichols(ApiMiner):
                 if not credentials.get('consents'):
                     return
 
+                self.create_journey = 'join'
                 # Use consents retry mechanism as explained in
                 # https://books.bink.com/books/backend-development/page/retry-tasks
                 hn_post_message = {"enactor_id": self.customer_number}

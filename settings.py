@@ -1,8 +1,8 @@
-import os
 import logging
+import os
+
 from app import AgentException
 from environment import env_var, read_env
-
 
 os.chdir(os.path.dirname(__file__))
 read_env()
@@ -91,3 +91,5 @@ SELENIUM_BROWSER_TIMEOUT = env_var('SELENIUM_BROWSER_TIMEOUT', '300')
 BACK_OFF_COOLDOWN = 120
 
 HERMES_CONFIRMATION_TRIES = 10
+
+ENABLE_ICELAND_VALIDATE = env_var('ENABLE_ICELAND_VALIDATE', False)

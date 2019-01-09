@@ -1,14 +1,17 @@
 import logging
 
+from ddtrace import tracer
+from ddtrace.contrib.flask import TraceMiddleware
+
+from celery import Celery
 from flask import Flask, jsonify
 from raven.contrib.flask import Sentry
+
 from app.exceptions import AgentException, UnknownException
-from app.retry import redis
-from app.version import __version__
-from celery import Celery
 
 import settings
-
+from app.retry import redis
+from app.version import __version__
 
 sentry = Sentry()
 celery = Celery(backend=settings.CELERY_RESULT_BACKEND, broker=settings.CELERY_BROKER_URL, config_source=settings)
@@ -18,6 +21,13 @@ def create_app(config_name="settings"):
     from app.urls import api
     app = Flask('core')
     app.config.from_object(config_name)
+
+    TraceMiddleware(
+        app,
+        tracer,
+        service="midas",
+        distributed_tracing=True)
+
     app.config['SENTRY_CONFIG'] = {
         'ignore_exceptions': [AgentException, UnknownException],
     }
