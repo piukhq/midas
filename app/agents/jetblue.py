@@ -1,7 +1,6 @@
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError, UNKNOWN
 from decimal import Decimal
-import arrow
 
 
 class JetBlue(RoboBrowserMiner):
@@ -24,6 +23,7 @@ class JetBlue(RoboBrowserMiner):
                 raise LoginError(UNKNOWN)
 
     def balance(self):
+
         return {
             'points': Decimal(self.browser.response.json()['points']),
             'value': Decimal('0'),
@@ -31,14 +31,10 @@ class JetBlue(RoboBrowserMiner):
         }
 
     # TODO: Parse transactions. Not done yet because there's no transaction data in the account.
+
     @staticmethod
     def parse_transaction(row):
         return row
 
     def scrape_transactions(self):
-        t = {
-            'date': arrow.get(0),
-            'description': 'placeholder',
-            'points': Decimal('0'),
-        }
-        return [t]
+        return []

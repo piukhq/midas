@@ -13,11 +13,11 @@ class TestJetBlue(unittest.TestCase):
         cls.j.attempt_login(CREDENTIALS['trueblue'])
 
     def test_login(self):
-        self.assertEqual(self.j.browser.response.status_code, 200)
+        self.assertTrue(self.j.is_successful_login)
 
     def test_transactions(self):
         transactions = self.j.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):
