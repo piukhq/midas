@@ -10,6 +10,7 @@ from flask_testing import TestCase
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.avios import Avios
+from app.agents.base import BaseMiner
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
 from app.agents.harvey_nichols import HarveyNichols
@@ -18,7 +19,7 @@ from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, get_balance_and_publish, \
     async_get_balance_and_publish
-from app.utils import SchemeAccountStatus
+from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
 CREDENTIALS = {
@@ -37,7 +38,7 @@ def encrypt(scheme_slug):
 class TestResources(TestCase):
     TESTING = True
     user_info = {
-        'user_id': 1,
+        'user_set': 1,
         'credentials': {'credentials': 'test',
                         'email': 'test@email.com'},
         'status': SchemeAccountStatus.WALLET_ONLY,
@@ -45,7 +46,7 @@ class TestResources(TestCase):
         'pending': True
     }
 
-    class Agent:
+    class Agent(BaseMiner):
         def __init__(self, identifier):
             self.identifier = identifier
 
@@ -77,7 +78,7 @@ class TestResources(TestCase):
                            mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
         credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -95,7 +96,7 @@ class TestResources(TestCase):
                                     mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
         credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -112,7 +113,7 @@ class TestResources(TestCase):
                                    mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
         credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -212,7 +213,7 @@ class TestResources(TestCase):
     def test_bad_agent_updates_status(self, mock_submit):
         credentials = ('JnoPkhKfU6uddLtbTTOvr1DgsNBeWhI0ADM2VGyfTFR8Wi2%2FRHQ5SX%2Bvk'
                        'zIgqmsGGqq94x%2BcBd7Vd%2FKsRTOEBDkV45rsm6WRV6wfZTC51rQ%3D')
-        url = '/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_id=1'.format(credentials)
+        url = '/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_set=1'.format(credentials)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
         mock_submit.assert_called_with(publish.status, 1, 10, None)
@@ -382,7 +383,7 @@ class TestResources(TestCase):
                 'scheme_slug': encrypt(scheme_slug),
                 'email': 'test@email.com'
             },
-            'user_id': 4,
+            'user_set': '4',
             'scheme_account_id': 2,
             'status': ''
         }
@@ -414,7 +415,7 @@ class TestResources(TestCase):
                 'scheme_slug': encrypt(scheme_slug),
                 'email': 'test@email.com'
             },
-            'user_id': 4,
+            'user_set': '4',
             'scheme_account_id': 2,
             'status': ''
         }
@@ -463,8 +464,9 @@ class TestResources(TestCase):
     def test_balance_updates_hermes_if_agent_sets_identifier(self, mock_update_pending_join_account, mock_login,
                                                              mock_publish_balance, mock_pool):
         mock_publish_balance.return_value = {'points': 1}
-        mock_login.return_value = mock.MagicMock()
-        mock_login().identifier = True
+        mock_agent = self.Agent(None)
+        mock_agent.identifier = True
+        mock_login.return_value = mock_agent
         credentials = {
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
@@ -472,7 +474,7 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -480,6 +482,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
+        self.assertIsNone(mock_pool.call_args[1]['journey'])
 
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
@@ -498,7 +501,7 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_login.called)
@@ -520,7 +523,7 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}&status={3}".format(
+        url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}&status={3}".format(
             credentials, 1, 2, SchemeAccountStatus.WALLET_ONLY
         )
         resp = self.client.get(url)
@@ -550,7 +553,7 @@ class TestResources(TestCase):
         aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/rewards-club/balance?credentials={0}&user_id={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         resp = self.client.get(url)
 
         self.assertFalse(mock_publish_zero_balance.called)
@@ -633,6 +636,7 @@ class TestResources(TestCase):
 
         pending_user_info = dict(self.user_info)
         pending_user_info['status'] = SchemeAccountStatus.PENDING
+        pending_user_info['journey_type'] = JourneyTypes.UPDATE
         balance = get_balance_and_publish(MerchantAPIGeneric, 'scheme_slug', pending_user_info, 'tid')
 
         self.assertFalse(mock_login.called)
@@ -645,7 +649,7 @@ class TestResources(TestCase):
             'points_label': '0',
             'reward_tier': 0,
             'scheme_account_id': 123,
-            'user_id': 1,
+            'user_set': 1,
             'value': Decimal(0),
             'value_label': 'Pending'
         }
@@ -730,6 +734,7 @@ class TestResources(TestCase):
     def test_balance_runs_everything_while_async_raises_unexpected_error(self, mock_transactions, mock_publish_balance,
                                                                          mock_publish_status, mock_login,
                                                                          mock_update_pending_link_account):
+
         mock_publish_balance.side_effect = KeyError('test not handled agent error')
         mock_update_pending_link_account.side_effect = AgentException('test not handled agent error')
         mock_login.return_value = self.Agent(None)
@@ -744,3 +749,32 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertFalse(mock_transactions.called)
         self.assertTrue(mock_update_pending_link_account.called)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.balance', auto_spec=False)
+    @mock.patch('app.resources.agent_login', auto_spec=False)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_sets_create_journey_on_status_call(self, mock_update_pending_join_account, mock_login,
+                                                        mock_publish_balance, mock_pool):
+
+        mock_publish_balance.return_value = {'points': 1}
+        mock_agent = self.Agent(None)
+        mock_agent.identifier = True
+        mock_agent.create_journey = 'join'
+        mock_login.return_value = mock_agent
+        credentials = {
+            "username": "la@loyaltyangels.com",
+            "password": "YSHansbrics6",
+        }
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+
+        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        self.client.get(url)
+
+        self.assertTrue(mock_update_pending_join_account)
+        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_update_pending_join_account.called)
+        self.assertTrue(mock_publish_balance.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(mock_pool.call_args[1]['journey'], 'join')

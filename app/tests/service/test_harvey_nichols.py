@@ -62,7 +62,7 @@ class TestToken(unittest.TestCase):
         self.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
 
         store = UserTokenStore(REDIS_URL)
-        store.set(1, '1')
+        store.set(1, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
 
         credentials = CREDENTIALS['harvey-nichols']
         credentials['card_number'] = "1000000613736"
