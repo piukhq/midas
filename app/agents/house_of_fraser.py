@@ -5,8 +5,8 @@ import re
 import json
 
 
-class HouseOfFraser(RoboBrowserMiner):
-    error_message_pattern = re.compile(r'showErrorMsg\("","(.*)"\)')
+class HouseOfFraser(SeleniumMiner):
+    point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
         form = 'https://www.houseoffraser.co.uk/account/validatelogin'
