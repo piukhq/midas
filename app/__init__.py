@@ -44,12 +44,16 @@ def create_app(config_name="settings"):
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):
         error = error.args[0]
+        settings.logger.exception(error.message)
+
         response = jsonify({'message': error.message, 'code': error.code, 'name': error.name})
         response.status_code = error.code
         return response
 
     @app.errorhandler(UnknownException)
     def agent_unknown_request_handler(error):
+        settings.logger.exception(str(error))
+
         response = jsonify({'message': str(error), 'code': 520, 'name': 'Unknown Error'})
         response.status_code = 520
         return response
