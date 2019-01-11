@@ -1,6 +1,10 @@
 import unittest
 from unittest.mock import patch
-from app.retry import get_key, inc_count, get_count
+
+import redis
+
+from app.agents.exceptions import AgentError
+from app.retry import get_key, inc_count, get_count, redis_connection
 
 
 class TestRetry(unittest.TestCase):
@@ -24,3 +28,13 @@ class TestRetry(unittest.TestCase):
     def test_max_out_count(self, mock_redis):
         self.assertTrue(mock_redis.get.set)
         self.assertTrue(mock_redis.get.expire)
+
+    def test_redis_connection_decorator_handles_connection_error(self):
+        @redis_connection
+        def func():
+            raise redis.exceptions.ConnectionError('Test connection error')
+
+        with self.assertRaises(AgentError) as e:
+            func()
+
+        self.assertEqual(e.exception.message, 'Error connecting to Redis.')
