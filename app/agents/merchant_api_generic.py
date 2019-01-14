@@ -19,7 +19,7 @@ class MerchantAPIGeneric(MerchantApi):
         return self.result['transactions']
 
     @staticmethod
-    def parse_transactions(row):
+    def parse_transaction(row):
         return {
             "date": arrow.get(row['timestamp']),
             "description": row['reference'],
