@@ -28,7 +28,8 @@ from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD
+    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
+    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -65,7 +66,8 @@ class BaseMiner(object):
     identifier_type = None
     identifier = None
     expecting_callback = False
-    async = False
+    is_async = False
+    create_journey = None
 
     def register(self, credentials):
         raise NotImplementedError()
@@ -135,7 +137,7 @@ class BaseMiner(object):
         return questions
 
     def attempt_login(self, credentials):
-        if self.retry_count >= self.retry_limit:
+        if self.retry_limit and self.retry_count >= self.retry_limit:
             raise RetryLimitError(RETRY_LIMIT_REACHED)
 
         try:
@@ -422,7 +424,15 @@ class MerchantApi(BaseMiner):
             STATUS_LOGIN_FAILED: ['VALIDATION'],
             ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
             PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
-            UNKNOWN: ['GENERAL_ERROR']
+            UNKNOWN: ['UNKNOWN'],
+            # additional mappings for iceland
+            CARD_NOT_REGISTERED: ['CARD_NOT_REGISTERED'],
+            GENERAL_ERROR: ['GENERAL_ERROR'],
+            CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
+            LINK_LIMIT_EXCEEDED: ['LINK_LIMIT_EXCEEDED'],
+            JOIN_IN_PROGRESS: ['JOIN_IN_PROGRESS'],
+            JOIN_ERROR: ['JOIN_ERROR'],
+
         }
 
     def login(self, credentials):
@@ -441,9 +451,7 @@ class MerchantApi(BaseMiner):
 
         error = self._check_for_error_response(self.result)
         if error:
-            if self.scheme_slug == 'iceland-bonus-card' and account_link:
-                self._handle_iceland_errors()
-            self._handle_errors(error[0]['code'])
+            self._handle_errors(error[0]['code'], exception_type=LoginError)
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -482,10 +490,9 @@ class MerchantApi(BaseMiner):
             else:
                 consent_status = ConsentStatus.PENDING
                 try:
-                    # check for error response
                     error = self._check_for_error_response(self.result)
                     if error:
-                        self._handle_errors(error[0]['code'])
+                        self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
                 except (AgentException, LoginError, AgentError):
                     consent_status = ConsentStatus.FAILED
@@ -502,11 +509,9 @@ class MerchantApi(BaseMiner):
         """
         consent_status = ConsentStatus.PENDING
         try:
-            # check for error response
             error = self._check_for_error_response(self.result)
             if error:
-                # TODO: convert to RegistrationError instead of default LoginError for _handle_errors
-                self._handle_errors(error[0]['code'])
+                self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
@@ -686,21 +691,19 @@ class MerchantApi(BaseMiner):
 
     # agents will override this if unique values are needed
     def get_merchant_ids(self, credentials):
+        user_id = sorted(map(int, self.user_info['user_set'].split(',')))[0]
         merchant_ids = {
-            'merchant_scheme_id1': hash_ids.encode(self.user_info['user_id']),
+            'merchant_scheme_id1': hash_ids.encode(user_id),
             'merchant_scheme_id2': credentials.get('merchant_identifier'),
         }
 
         return merchant_ids
 
-    def _handle_errors(self, response, exception_type=LoginError):
+    def _handle_errors(self, response, exception_type=AgentError):
         for key, values in self.errors.items():
             if response in values:
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
-
-    def _handle_iceland_errors(self):
-        raise AgentError(PRE_REGISTERED_CARD)
 
     def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
                             contains_errors=False):

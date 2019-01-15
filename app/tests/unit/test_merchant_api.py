@@ -14,7 +14,8 @@ from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
-    SERVICE_CONNECTION_ERROR
+    SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
+    RegistrationError, CONFIGURATION_ERROR
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.exceptions import AgentException
@@ -46,9 +47,15 @@ class TestMerchantApi(FlaskTestCase):
 
     user_info = {'scheme_account_id': 1,
                  'status': '',
-                 'user_id': 1,
+                 'user_set': '1',
                  'journey_type': JourneyTypes.LINK.value,
                  'credentials': {}}
+
+    user_info_user_set = {'scheme_account_id': 1,
+                          'status': '',
+                          'user_set': '1,2',
+                          'journey_type': JourneyTypes.LINK.value,
+                          'credentials': {}}
 
     json_data = json_data
 
@@ -81,6 +88,7 @@ class TestMerchantApi(FlaskTestCase):
         }
         self.config = mock_configuration
         self.m = MerchantApi(1, self.user_info)
+        self.m_user_set = MerchantApi(1, self.user_info_user_set)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, '_sync_outbound')
@@ -333,7 +341,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_iceland_link_fail_raises_specific_exception(self, mock_outbound_handler):
+    def test_iceland_link_fail_no_longer_raises_specific_exception(self, mock_outbound_handler):
         mock_outbound_handler.return_value = {
             'message_uid': 'test_message_uid',
             'error_codes': [{
@@ -345,7 +353,8 @@ class TestMerchantApi(FlaskTestCase):
         with self.assertRaises(AgentError) as e:
             self.m.login({'card_number': '1234'})
 
-        self.assertEqual(e.exception.name, 'Pre-registered card')
+        self.assertEqual(e.exception.code, 439)
+        self.assertEqual(e.exception.code, errors[GENERAL_ERROR]['code'])
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
@@ -361,7 +370,109 @@ class TestMerchantApi(FlaskTestCase):
         with self.assertRaises(AgentError) as e:
             self.m.login({'card_number': '1234'})
 
-        self.assertEqual(e.exception.name, 'An unknown error has occurred')
+        self.assertEqual(e.exception.code, errors[GENERAL_ERROR]['code'])
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_card_not_registered_1(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'CARD_NOT_REGISTERED',
+                'description': 'Card number not found'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, errors[CARD_NOT_REGISTERED]['code'])
+        self.assertEqual(e.exception.code, 438)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_card_not_registered_2(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'CARD_NOT_REGISTERED',
+                'description': 'card_number mandatory'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, errors[CARD_NOT_REGISTERED]['code'])
+        self.assertEqual(e.exception.code, 438)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_card_number_invalid(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'CARD_NUMBER_ERROR',
+                'description': 'card_number not valid.'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, errors[CARD_NUMBER_ERROR]['code'])
+        self.assertEqual(e.exception.code, 436)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_validation(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'VALIDATION',
+                'description': 'Invalid postcode format'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, errors[STATUS_LOGIN_FAILED]['code'])
+        self.assertEqual(e.exception.code, 403)
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_not_sent(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'NOT_SENT',
+                'description': 'Message was not sent'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, 535)
+        self.assertEqual(e.exception.code, errors[NOT_SENT]['code'])
+        self.assertTrue(mock_outbound_handler.called)
+
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_iceland_unknown(self, mock_outbound_handler):
+        mock_outbound_handler.return_value = {
+            'message_uid': 'test_message_uid',
+            'error_codes': [{
+                'code': 'UNKNOWN',
+                'description': 'An unknown error has occurred with status code 500'
+            }]
+        }
+        self.m.scheme_slug = 'iceland-bonus-card'
+        with self.assertRaises(AgentError) as e:
+            self.m.login({'card_number': '1234'})
+
+        self.assertEqual(e.exception.code, 520)
+        self.assertEqual(e.exception.code, errors[UNKNOWN]['code'])
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
@@ -624,12 +735,44 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 520)
 
     @mock.patch('requests.get', autospec=True)
-    def test_config_service_raises_exception_on_fail(self, mock_request):
+    def test_config_service_raises_exception_on_fail_response(self, mock_request):
         # Should error on any status code other than 200 i.e if helios is down or no config found etc.
         mock_request.return_value.status_code = 404
 
-        with self.assertRaises(AgentError):
+        with self.assertRaises(AgentError) as e:
             Configuration('', 1)
+
+        self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
+
+    @mock.patch('requests.get', autospec=True)
+    def test_config_service_handles_connection_error(self, mock_request):
+        mock_request.side_effect = requests.ConnectionError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration('', 1)
+
+        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
+
+    @mock.patch('hvac.Client.read')
+    def test_vault_connection_error_is_handled(self, mock_client):
+        mock_client.side_effect = requests.ConnectionError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration.get_security_credentials([{'storage_key': 'value'}])
+
+        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(e.exception.message, 'Error connecting to vault.')
+
+    @mock.patch('hvac.Client.read')
+    def test_vault_credentials_not_found_raises_error(self, mock_client):
+        # vault returns None type if there is nothing stored for the key provided
+        mock_client.side_effect = TypeError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration.get_security_credentials([{'storage_key': 'value'}])
+
+        self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
+        self.assertEqual(e.exception.message, 'Could not locate security credentials in vault.')
 
     @mock.patch.object(Client, 'read')
     @mock.patch('requests.get', autospec=True)
@@ -833,6 +976,10 @@ class TestMerchantApi(FlaskTestCase):
         merchant_ids = self.m.get_merchant_ids({})
         self.assertIn('merchant_scheme_id1', merchant_ids)
 
+    def test_get_merchant_ids_user_set(self):
+        merchant_ids = self.m_user_set.get_merchant_ids({})
+        self.assertIn('merchant_scheme_id1', merchant_ids)
+
     def test_credential_mapping(self):
         self.m.credential_mapping = {'barcode': 'customer_number', 'date_of_birth': 'dob'}
         json_credentials = json.dumps({'barcode': '12345', 'date_of_birth': '01/01/2001'})
@@ -900,7 +1047,7 @@ class TestMerchantApi(FlaskTestCase):
         self.m.config = self.config
         self.m.config.integration_service = 'ASYNC'
 
-        with self.assertRaises(LoginError):
+        with self.assertRaises(RegistrationError):
             self.m.register(credentials)
 
         mock_consent_confirmation.assert_called_with(credentials['consents'], ConsentStatus.FAILED)

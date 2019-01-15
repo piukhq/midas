@@ -37,6 +37,9 @@ sudo docker-compose run --service-ports redis
   - String Value, Number of seconds to retry consents send (should be about '1800')
 - `REDIS_CELERY_DB`
   - String Value, To allow the use of a different database for Celery
+- `ENABLE_ICELAND_VALIDATE`
+  - Boolean Value, allows Iceland validate calls for non-active scheme accounts.
+  See `request_balance` function in `resources.py`
     
 
 ### Use consents retry mechanism as explained in 

@@ -7,7 +7,6 @@ from app.utils import extract_decimal
 
 
 class Maximiles(RoboBrowserMiner):
-    async = True
     point_conversion_rate = Decimal('0.0009')
 
     def login(self, credentials):

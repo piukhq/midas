@@ -8,7 +8,7 @@ from app.utils import extract_decimal
 
 class HollandAndBarrett(RoboBrowserMiner):
     point_value_re = re.compile(
-        "^You've collected (\d+) points so far this quarter(?:\.| which will be worth £(\d*\.\d\d))")
+        r"^You've collected (\d+) points so far this quarter(?:\.| which will be worth £(\d*\.\d\d))")
     balance_re = re.compile('<[^>]+>')
 
     def login(self, credentials):

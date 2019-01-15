@@ -28,6 +28,12 @@ VALIDATION = "VALIDATION"
 CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
 SERVICE_CONNECTION_ERROR = "SERVICE_CONNECTION_ERROR"
 PRE_REGISTERED_CARD = "PRE_REGISTERED_CARD"
+LINK_LIMIT_EXCEEDED = "LINK_LIMIT_EXCEEDED"
+CARD_NUMBER_ERROR = "CARD_NUMBER_ERROR"
+CARD_NOT_REGISTERED = "CARD_NOT_REGISTERED"
+GENERAL_ERROR = "GENERAL_ERROR"
+JOIN_IN_PROGRESS = "JOIN_IN_PROGRESS"
+JOIN_ERROR = "JOIN_ERROR"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -49,23 +55,43 @@ errors = {
     RETRY_LIMIT_REACHED: {"code": 429,
                           "message": "You have reached your maximum amount of login tries please wait 15 minutes.",
                           "name": "Retry limit reached"},
-    STATUS_ACCOUNT_LOCKED: {"code": 434,
-                            "message": "We could not update your account because it appears your account "
-                                       "has been locked. This usually results from too many unsuccessful login "
-                                       "attempts in a short period of time. Please visit the site or contact its "
-                                       "customer support to resolve this issue. Once done, please update your "
-                                       "account credentials in case they are changed.",
-                            "name": "Account locked on end site"},
-    WRONG_CREDENTIAL_TYPE: {"code": 435,
-                            "message": "One of the account credentials you have entered is the wrong type. For example,"
-                                       " you may have entered your card number instead of your barcode. Please correct "
-                                       "this information and try again.",
-                            "name": "Wrong credential type entered"},
-    STATUS_REGISTRATION_FAILED: {"code": 440,
-                                 "message": "The username and/or password you have entered were reported to be invalid."
-                                            "This may for reasons such as the password being too short, or it requiring"
-                                            "capital letters and numbers etc.",
-                                 "name": 'Invalid credentials entered i.e password too short'},
+    STATUS_ACCOUNT_LOCKED: {
+        "code": 434,
+        "message": "We could not update your account because it appears your account has been locked. This usually"
+                   " results from too many unsuccessful login attempts in a short period of time. Please visit the site"
+                   " or contact its customer support to resolve this issue. Once done, please update your account"
+                   " credentials in case they are changed.",
+        "name": "Account locked on end site"},
+    WRONG_CREDENTIAL_TYPE: {
+        "code": 435,
+        "message": "One of the account credentials you have entered is the wrong type. For example, you may have"
+                   " entered your card number instead of your barcode. Please correct this information and try again.",
+        "name": "Wrong credential type entered"},
+    CARD_NUMBER_ERROR: {
+        "code": 436,
+        "message": "Invalid card_number",
+        "name": "Card number error"},
+    LINK_LIMIT_EXCEEDED: {
+        "code": 437,
+        "message": "You can only Link one card per day.",
+        "name": "Link Limit Exceeded"},
+    CARD_NOT_REGISTERED: {
+        "code": 438,
+        "message": "Unknown Card number",
+        "name": "Card not registered or Unknown"},
+    GENERAL_ERROR: {
+        "code": 439,
+        "message": "General Error such as incorrect user details",
+        "name": "General Error"},
+    STATUS_REGISTRATION_FAILED: {
+        "code": 440,
+        "message": "The username and/or password you have entered were reported to be invalid. This may for reasons "
+                   "such as the password being too short, or it requiring capital letters and numbers etc.",
+        "name": 'Invalid credentials entered i.e password too short'},
+    JOIN_IN_PROGRESS: {
+        "code": 441,
+        "message": "Join in progress",
+        "name": "Join in progress"},
     NO_SUCH_RECORD: {"code": 444,
                      "message": "There is currently no account with the credentials you have provided.",
                      "name": "Account does not exist"},
@@ -103,14 +129,19 @@ errors = {
     SERVICE_CONNECTION_ERROR: {"code": 537,
                                "message": "There was in issue connecting to an external service.",
                                "name": "Service connection error"},
+    JOIN_ERROR: {
+        "code": 538,
+        "message": "A system error occurred during join.",
+        "name": "General Error preventing join"},
     UNKNOWN: {"code": 520,
               "message": "We have no idea what went wrong the team is on to it.",
               "name": "An unknown error has occurred"},
+
 }
 
 SYSTEM_ACTION_REQUIRED = [
     END_SITE_DOWN, RETRY_LIMIT_REACHED, UNKNOWN, IP_BLOCKED, TRIPPED_CAPTCHA, NO_SUCH_RECORD, RESOURCE_LIMIT_REACHED,
-    CONFIGURATION_ERROR, NOT_SENT
+    CONFIGURATION_ERROR, NOT_SENT, JOIN_ERROR
 ]
 
 
@@ -118,9 +149,9 @@ class AgentError(Exception):
     """Exception raised for errors in the input.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, message=None):
         self.name = errors[name]['name']
-        self.message = errors[name]['message']
+        self.message = message or errors[name]['message']
         self.code = errors[name]['code']
 
     def __str__(self):
