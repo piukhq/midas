@@ -20,10 +20,11 @@ def update_pending_join_account(scheme_account_id, message, tid, identifier=None
 
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
-    data = {'status': SchemeAccountStatus.JOIN,
-            'event_name': 'join-failed-event',
-            'metadata': intercom_data['meta_data']
-            }
+    data = {
+        'status': SchemeAccountStatus.JOIN,
+        'event_name': 'join-failed-event',
+        'metadata': intercom_data['metadata']
+    }
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
                   data=json.dumps(data, cls=JsonEncoder), headers=headers)
 
@@ -42,7 +43,7 @@ def update_pending_link_account(scheme_account_id, message, tid, intercom_data=N
     headers = get_headers(tid)
     status_data = {'status': SchemeAccountStatus.WALLET_ONLY,
                    'event_name': 'async-link-failed-event',
-                   'metadata': intercom_data['meta_data']
+                   'metadata': intercom_data['metadata']
                    }
     requests.post('{}/schemes/accounts/{}/status'.format(HERMES_URL, scheme_account_id),
                   data=json.dumps(status_data, cls=JsonEncoder), headers=headers)
