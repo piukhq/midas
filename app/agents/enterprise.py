@@ -12,7 +12,12 @@ class Enterprise(ApiMiner):
     connect_timeout = 10
 
     def login(self, credentials):
-        form = 'https://prd-east.webapi.enterprise.co.uk/enterprise-ewt/enterprise/profile/login/EP?locale=en_GB&' + str(int(time.time()))
+        form = (
+            'https://prd-east.webapi.enterprise.co.uk'
+            '/enterprise-ewt/enterprise/profile/login/EP'
+            '?locale=en_GB'
+            '&{}'.format(int(time.time()))
+        )
         self.response = self.make_request(
             form,
             method='post',
