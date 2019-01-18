@@ -38,8 +38,8 @@ mock_configuration.log_level = 'DEBUG'
 mock_configuration.country = 'GB'
 
 json_data = json.dumps({'message_uid': '123-123-123-123',
-                        'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',  # hash for a scheme account id of 1
-                        'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
+                        'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',  # hash for a scheme account id of 1
+                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'})
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -1184,8 +1184,8 @@ class TestOAuth(TestCase):
             'headers': {'Authorization': 'Bearer some_token'},
             'json': {
                 'message_uid': '123-123-123-123',
-                'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',
-                'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'
+                'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'
             }
         }
 
