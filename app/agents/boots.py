@@ -1,48 +1,71 @@
+import json
+from decimal import Decimal
+
 import arrow
+import requests
 
-from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import STATUS_ACCOUNT_LOCKED, STATUS_LOGIN_FAILED
-from app.utils import extract_decimal
+import settings
+from app.agents.base import ApiMiner
+from app.agents.exceptions import UNKNOWN, AgentError, LoginError, errors
+from app.encryption import AESCipher
+from app.utils import TWO_PLACES
 
 
-class Boots(RoboBrowserMiner):
+class Boots(ApiMiner):
+    is_login_successful = False
+
+    @staticmethod
+    def encrypt_credentials(credentials: dict) -> str:
+        aes = AESCipher(settings.AES_KEY.encode())
+        return aes.encrypt(json.dumps(credentials)).decode()
+
     def login(self, credentials):
-        self.open_url('http://www.boots.com/LogonForm?catalogId=28501&myAcctMain=1&langId=-1&storeId=11352',
-                      read_timeout=15)
+        url = "".join(
+            [
+                settings.AGENT_PROXY_URL,
+                "/agent_proxy/account_balance/advantage-card",
+                "?credentials=",
+                self.encrypt_credentials(credentials),
+            ]
+        )
 
-        login_form = self.browser.get_form('Logon')
-        login_form['logonId'].value = credentials['email']
-        login_form['logonPassword'].value = credentials['password']
+        resp = requests.get(
+            url,
+            headers={
+                "Authorization": "Token {}".format(settings.SERVICE_API_KEY)
+            },
+        )
+        self.account_data = resp.json()
 
-        self.browser.submit_form(login_form, timeout=(1, 15, ))
+        if not self.account_data["success"]:
+            for name, args in errors.items():
+                if args["code"] == resp.status_code:
+                    raise LoginError(name)
+            else:
+                raise AgentError(UNKNOWN)
 
-        self.check_error('/webapp/wcs/stores/servlet/Logon', (
-            ('p.overlay_head', STATUS_ACCOUNT_LOCKED, 'Account locked'),
-            ('a[href*="logonError"]', STATUS_LOGIN_FAILED,
-             'The email address and/or password you entered has not been recognised.')))
+        self.is_login_successful = True
 
     def balance(self):
-        elements = self.browser.select("p#advantageCardDetails")
-        spans = elements[0].select("span")
-        true_points = extract_decimal(spans[0].text)
-        true_value = extract_decimal(spans[1].text)
-
+        points_balance = self.account_data["balance"]["points"]
+        value = Decimal(points_balance["value"]).quantize(TWO_PLACES)
         return {
-            'points': true_points,
-            'value': true_value,
-            'value_label': '£{}'.format(true_value)
+            "points": Decimal(points_balance["points"]),
+            "value": value,
+            "balance": Decimal(points_balance["balance"]),
+            "value_label": "£{}".format(value),
+            "reward_tier": points_balance["reward_tier"],
         }
 
     @staticmethod
     def parse_transaction(row):
-        items = row.find_all("td")
-
         return {
-            "date": arrow.get(items[0].contents[0], 'DD/MM/YYYY'),
-            "description": items[1].contents[0],
-            "points": extract_decimal(items[3].contents[0]),
+            "date": arrow.get(row["date"]),
+            "description": row["description"],
+            "points": Decimal(row["points"]),
+            "value": Decimal(row["value"]),
+            "location": row["location"],
         }
 
     def scrape_transactions(self):
-        self.open_url('https://www.boots.com/ADCAccountSummary', read_timeout=15)
-        return self.browser.select("#adcardPointStatement tr")[1:]
+        return self.account_data["balance"]["transactions"]
