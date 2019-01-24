@@ -616,6 +616,13 @@ class MerchantApi(BaseMiner):
 
         return self.process_join_response()
 
+    def apply_security_measures(self, json_data, security_service, security_credentials):
+        outbound_security_agent = get_security_agent(security_service,
+                                                     security_credentials)
+        request = outbound_security_agent.encode(json_data)
+
+        return request
+
     def _sync_outbound(self, json_data, config):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
@@ -625,9 +632,9 @@ class MerchantApi(BaseMiner):
         :return: Response payload
         """
         json_data = self.map_credentials_to_request(json_data)
-        outbound_security_agent = get_security_agent(config.security_credentials['outbound']['service'],
-                                                     config.security_credentials)
-        request = outbound_security_agent.encode(json_data)
+        request = self.apply_security_measures(json_data,
+                                               config.security_credentials['outbound']['service'],
+                                               config.security_credentials)
         back_off_service = BackOffService()
 
         for retry_count in range(1 + config.retry_limit):

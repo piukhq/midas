@@ -1,7 +1,6 @@
 import logging
 import os
 
-from app import AgentException
 from environment import env_var, read_env
 
 os.chdir(os.path.dirname(__file__))
@@ -65,7 +64,7 @@ MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
 SENTRY_DSN = env_var('SENTRY_DSN')
-RAVEN_IGNORE_EXCEPTIONS = [AgentException]
+# RAVEN_IGNORE_EXCEPTIONS = [AgentException]
 
 PROPAGATE_EXCEPTIONS = True
 
