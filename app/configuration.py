@@ -1,7 +1,7 @@
 import hvac
 import requests
 
-from app.agents.exceptions import AgentError, CONFIGURATION_ERROR
+from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, SERVICE_CONNECTION_ERROR
 from settings import SERVICE_API_KEY, VAULT_TOKEN, VAULT_URL, CONFIG_SERVICE_URL, logger
 
 
@@ -83,7 +83,7 @@ class Configuration:
         try:
             resp = requests.get(CONFIG_SERVICE_URL + '/configuration', params=params, headers=headers)
         except requests.RequestException as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
+            raise AgentError(SERVICE_CONNECTION_ERROR, message='Error connecting to configuration service.') from e
 
         if resp.status_code != 200:
             raise AgentError(CONFIGURATION_ERROR)
@@ -101,11 +101,9 @@ class Configuration:
         self.security_credentials = self.data['security_credentials']
         inbound_data = self.security_credentials['inbound']['credentials']
         outbound_data = self.security_credentials['outbound']['credentials']
-        try:
-            self.security_credentials['inbound']['credentials'] = self.get_security_credentials(inbound_data)
-            self.security_credentials['outbound']['credentials'] = self.get_security_credentials(outbound_data)
-        except TypeError as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
+
+        self.security_credentials['inbound']['credentials'] = self.get_security_credentials(inbound_data)
+        self.security_credentials['outbound']['credentials'] = self.get_security_credentials(outbound_data)
 
     @staticmethod
     def get_security_credentials(key_items):
@@ -124,6 +122,8 @@ class Configuration:
                 value = stored_dict.get('value')
                 key_item.update(value=value or stored_dict)
         except TypeError as e:
-            raise TypeError('Could not locate security credentials in vault.') from e
+            raise AgentError(CONFIGURATION_ERROR, message='Could not locate security credentials in vault.') from e
+        except requests.RequestException as e:
+            raise AgentError(SERVICE_CONNECTION_ERROR, message='Error connecting to vault.') from e
 
         return key_items

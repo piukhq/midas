@@ -37,7 +37,8 @@ class BaseSecurity:
         json_with_timestamp = '{}{}'.format(json_data, current_time)
         return json_with_timestamp, current_time
 
-    def _get_key(self, key_type, credentials_list):
+    @staticmethod
+    def _get_key(key_type, credentials_list):
         for item in credentials_list:
             if item['credential_type'] == key_type:
                 return item['value']
