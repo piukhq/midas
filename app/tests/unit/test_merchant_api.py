@@ -14,7 +14,8 @@ from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
-    SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED
+    SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
+    RegistrationError, CONFIGURATION_ERROR
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.exceptions import AgentException
@@ -37,8 +38,8 @@ mock_configuration.log_level = 'DEBUG'
 mock_configuration.country = 'GB'
 
 json_data = json.dumps({'message_uid': '123-123-123-123',
-                        'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',  # hash for a scheme account id of 1
-                        'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'})
+                        'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',  # hash for a scheme account id of 1
+                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'})
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -734,12 +735,44 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 520)
 
     @mock.patch('requests.get', autospec=True)
-    def test_config_service_raises_exception_on_fail(self, mock_request):
+    def test_config_service_raises_exception_on_fail_response(self, mock_request):
         # Should error on any status code other than 200 i.e if helios is down or no config found etc.
         mock_request.return_value.status_code = 404
 
-        with self.assertRaises(AgentError):
+        with self.assertRaises(AgentError) as e:
             Configuration('', 1)
+
+        self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
+
+    @mock.patch('requests.get', autospec=True)
+    def test_config_service_handles_connection_error(self, mock_request):
+        mock_request.side_effect = requests.ConnectionError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration('', 1)
+
+        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
+
+    @mock.patch('hvac.Client.read')
+    def test_vault_connection_error_is_handled(self, mock_client):
+        mock_client.side_effect = requests.ConnectionError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration.get_security_credentials([{'storage_key': 'value'}])
+
+        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(e.exception.message, 'Error connecting to vault.')
+
+    @mock.patch('hvac.Client.read')
+    def test_vault_credentials_not_found_raises_error(self, mock_client):
+        # vault returns None type if there is nothing stored for the key provided
+        mock_client.side_effect = TypeError
+
+        with self.assertRaises(AgentError) as e:
+            Configuration.get_security_credentials([{'storage_key': 'value'}])
+
+        self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
+        self.assertEqual(e.exception.message, 'Could not locate security credentials in vault.')
 
     @mock.patch.object(Client, 'read')
     @mock.patch('requests.get', autospec=True)
@@ -1014,7 +1047,7 @@ class TestMerchantApi(FlaskTestCase):
         self.m.config = self.config
         self.m.config.integration_service = 'ASYNC'
 
-        with self.assertRaises(LoginError):
+        with self.assertRaises(RegistrationError):
             self.m.register(credentials)
 
         mock_consent_confirmation.assert_called_with(credentials['consents'], ConsentStatus.FAILED)
@@ -1151,8 +1184,8 @@ class TestOAuth(TestCase):
             'headers': {'Authorization': 'Bearer some_token'},
             'json': {
                 'message_uid': '123-123-123-123',
-                'merchant_scheme_id1': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5',
-                'record_uid': 'V8YaqMdl6WEPeZ4XWv91zO7o2GKQgwm5'
+                'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'
             }
         }
 
