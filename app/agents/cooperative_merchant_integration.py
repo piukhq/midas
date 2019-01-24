@@ -45,9 +45,13 @@ class Cooperative(MerchantApi):
         return merchant_ids
 
     def apply_security_measures(self, json_data, security_service, security_credentials):
+
+        # TODO: if access token is in UserTokenStore and is valid, use that, or retrieve token.
         request = super().apply_security_measures(json_data, security_service, security_credentials)
 
         request['headers']['Access Token'] = request['headers'].pop('Authorization')
         request['headers']['X-API-KEY'] = Cooperative.API_KEY
+
+        # TODO: store access token in UserTokenStore
 
         return request
