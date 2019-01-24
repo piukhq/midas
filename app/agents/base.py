@@ -29,7 +29,7 @@ from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
-    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR
+    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -451,7 +451,7 @@ class MerchantApi(BaseMiner):
 
         error = self._check_for_error_response(self.result)
         if error:
-            self._handle_errors(error[0]['code'])
+            self._handle_errors(error[0]['code'], exception_type=LoginError)
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -490,10 +490,9 @@ class MerchantApi(BaseMiner):
             else:
                 consent_status = ConsentStatus.PENDING
                 try:
-                    # check for error response
                     error = self._check_for_error_response(self.result)
                     if error:
-                        self._handle_errors(error[0]['code'])
+                        self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
                 except (AgentException, LoginError, AgentError):
                     consent_status = ConsentStatus.FAILED
@@ -510,11 +509,9 @@ class MerchantApi(BaseMiner):
         """
         consent_status = ConsentStatus.PENDING
         try:
-            # check for error response
             error = self._check_for_error_response(self.result)
             if error:
-                # TODO: convert to RegistrationError instead of default LoginError for _handle_errors
-                self._handle_errors(error[0]['code'])
+                self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
@@ -702,7 +699,7 @@ class MerchantApi(BaseMiner):
 
         return merchant_ids
 
-    def _handle_errors(self, response, exception_type=LoginError):
+    def _handle_errors(self, response, exception_type=AgentError):
         for key, values in self.errors.items():
             if response in values:
                 raise exception_type(key)

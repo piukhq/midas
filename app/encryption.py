@@ -4,7 +4,8 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from hashids import Hashids
 
-hash_ids = Hashids(min_length=32, salt='GJgCh--VgsonCWacO5-MxAuMS9hcPeGGxj5tGsT40FM')
+ALPHABET = 'abcdefghijklmnopqrstuvwxyz1234567890'
+hash_ids = Hashids(min_length=32, salt='GJgCh--VgsonCWacO5-MxAuMS9hcPeGGxj5tGsT40FM', alphabet=ALPHABET)
 
 
 class AESCipher(object):
