@@ -1,7 +1,8 @@
 from app.agents.base import RoboBrowserMiner
-from app.agents.exceptions import STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
 from decimal import Decimal, ROUND_DOWN
+from urllib.parse import urlsplit
 import arrow
 
 
@@ -9,18 +10,23 @@ class ThePerfumeShop(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.01')
 
     def login(self, credentials):
+        form = 'https://www.theperfumeshop.com/j_spring_security_check'
+        self.open_url(
+            form,
+            method='post',
+            data={
+                'j_username': credentials['email'],
+                'j_password': credentials['password']
+            })
         self.open_url('https://www.theperfumeshop.com/my-account/loyalty')
 
-        login_form = self.browser.get_form('loginForm')
-        login_form['j_username'].value = credentials['email']
-        login_form['j_password'].value = credentials['password']
-        self.browser.submit_form(login_form)
-
-        self.check_error('/login',
-                         (('span.message-box.error.show', STATUS_LOGIN_FAILED, 'There was an error'), ))
+        parts = urlsplit(self.browser.url)
+        if parts.path == '/login':
+            raise LoginError(STATUS_LOGIN_FAILED)
 
     def balance(self):
-        points = extract_decimal(self.browser.select('p.p-points-balance--amount')[0].text)
+        points_locate = 'p.p-points-balance--amount'
+        points = extract_decimal(self.browser.select(points_locate)[0].text)
         reward_qty = self.calculate_point_value(points).quantize(0, ROUND_DOWN)
 
         return {
@@ -35,7 +41,7 @@ class ThePerfumeShop(RoboBrowserMiner):
         return row
 
     def scrape_transactions(self):
-        # self.open_url('https://www.theperfumeshop.com/my-account/orders')
+        self.open_url('https://www.theperfumeshop.com/my-account/orders')
         t = {
             'date': arrow.get(0),
             'description': 'placeholder',
