@@ -1,5 +1,4 @@
 import re
-
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import STATUS_LOGIN_FAILED, LoginError
 from app.utils import extract_decimal
@@ -10,33 +9,30 @@ class VibeClub(RoboBrowserMiner):
     points_re = re.compile(r'points balance is [^=.]*')
     balance_re = re.compile(r'cash balance is [^=.]*')
 
+    def login(self, credentials):
+        form = 'https://www.boostjuicebars.co.uk/api/vibe/user.php'
+        headers = {
+            'email': credentials['email'],
+            'pass': credentials['password'],
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+        self.open_url(
+            form,
+            method='post',
+            headers=headers)
+        self.check_if_logged_in()
+
     def check_if_logged_in(self):
-        success_url = "https://boostvibe.boostjuicebars.co.uk/main.py"
-        current_url = self.browser.url
-        if current_url.startswith(success_url):
+        status = self.browser.response.json()['Success']
+        if status == 1:
             self.is_login_successful = True
         else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
-    def _login(self, credentials):
-        self.browser.open('https://boostvibe.boostjuicebars.co.uk/login.py')
-
-        login_form = self.browser.get_form('login')
-        login_form['formPosted'].value = '1'
-        login_form['uri'].value = ''
-        login_form['login_email'].value = credentials['email']
-        login_form['password'].value = credentials['password']
-        self.browser.submit_form(login_form)
-
-    def login(self, credentials):
-        self._login(credentials)
-        self.check_if_logged_in()
-
     def balance(self):
-        source = self.browser.parsed.prettify()
-        points_text = self.points_re.findall(source)[0]
+        points_text = self.browser.response.json()['Points']
         points = extract_decimal(points_text)
-        value_text = self.balance_re.findall(source)[0]
+        value_text = self.browser.response.json()['Money']
         value = extract_decimal(value_text)
 
         return {

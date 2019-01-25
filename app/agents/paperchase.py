@@ -6,28 +6,28 @@ import arrow
 
 class Paperchase(RoboBrowserMiner):
     def login(self, credentials):
-        self.open_url('https://www.paperchase.co.uk/treat-me/balance/account/')
-
-        login_form = self.browser.get_form('login-form')
-        login_form['login[username]'].value = credentials['email']
-        login_form['login[password]'].value = credentials['password']
-        self.browser.submit_form(login_form)
-
+        form = 'https://www.paperchase.com/en_gb//treat-me/ajax/login'
+        headers = {"X-Requested-With": "XMLHttpRequest"}
+        self.open_url(
+            form,
+            method='post',
+            json={
+                'username': credentials['email'],
+                'password': credentials['password']
+            },
+            headers=headers)
         json = self.browser.response.json()
 
-        if json['error']:
-            message = json['message']
-
-            if message == 'Invalid login or password.':
+        if json['errors']:
+            if json['message'] == 'Invalid login or password.':
                 raise LoginError(STATUS_LOGIN_FAILED)
             else:
                 raise LoginError(UNKNOWN)
 
     def balance(self):
         self.open_url('https://www.paperchase.co.uk/treat-me/balance/account/')
-
-        stamps = self.browser.select('#spend-more-block-id > div > div')[0].select('span')
-        num_spent = len([stamp for stamp in stamps if 'spent' in stamp.attrs['class']])
+        stamps = self.browser.select('div#spend-more-block-id > div.future-promo > div.promo-stamp > span.spent')
+        num_spent = len(stamps)
 
         return {
             'points': Decimal(num_spent),

@@ -57,6 +57,7 @@ CELERY_IMPORTS = [
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 HERMES_URL = env_var('HERMES_URL', 'http://local.hermes.chingrewards.com:8000')
 HELIOS_URL = env_var('HELIOS_URL', 'https://api.bink-dev.xyz/dashboard')
+AGENT_PROXY_URL = env_var('AGENT_PROXY_URL', "http://localhost:5000")
 HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92ac-6e05e0916e82')
 CONFIG_SERVICE_URL = env_var('CONFIG_SERVICE_URL', '')
 MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
@@ -93,3 +94,5 @@ BACK_OFF_COOLDOWN = 120
 HERMES_CONFIRMATION_TRIES = 10
 
 ENABLE_ICELAND_VALIDATE = env_var('ENABLE_ICELAND_VALIDATE', False)
+
+BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
