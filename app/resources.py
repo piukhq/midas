@@ -100,7 +100,7 @@ class Balance(Resource):
             agent_class = get_agent_class(scheme_slug)
         except NotFound as e:
             # Update the scheme status on hermes to WALLET_ONLY (10)
-            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], 10, tid)
+            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], 10, tid, user_info)
             abort(e.code, message=e.data['message'])
 
         if agent_class.is_async:
@@ -114,7 +114,7 @@ class Balance(Resource):
         scheme_account_id = user_info['scheme_account_id']
         if user_info['status'] == SchemeAccountStatus.WALLET_ONLY:
             prev_balance = publish.zero_balance(scheme_account_id, tid, user_info['user_set'])
-            publish.status(scheme_account_id, 0, tid)
+            publish.status(scheme_account_id, 0, tid, user_info)
         else:
             prev_balance = get_hades_balance(scheme_account_id)
 
@@ -152,7 +152,8 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             pass
         else:
             threads.append(
-                thread_pool_executor.submit(publish.status, scheme_account_id, status, tid, journey=create_journey))
+                thread_pool_executor.submit(publish.status, scheme_account_id, status, tid, user_info,
+                                            journey=create_journey))
 
         [thread.result() for thread in threads]
 
@@ -178,7 +179,7 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
 
         # Send identifier (e.g membership id) to hermes if it's not already stored.
         if agent_instance.identifier:
-            update_pending_join_account(scheme_account_id, "success", tid, identifier=agent_instance.identifier)
+            update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
 
         balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_set'], tid)
 
@@ -205,11 +206,12 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
                 'metadata': {'scheme': scheme_slug},
             }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
-            update_pending_link_account(scheme_account_id, message, tid, intercom_data=intercom_data)
+            update_pending_link_account(user_info, message, tid, intercom_data=intercom_data)
         else:
             status = e.status_code
             requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
-                          data=json.dumps({'status': status}, cls=JsonEncoder), headers=get_headers(tid))
+                          data=json.dumps({'status': status, 'user_info': user_info}, cls=JsonEncoder),
+                          headers=get_headers(tid))
 
         raise e
 
@@ -284,7 +286,7 @@ class Transactions(Resource):
             status = SchemeAccountStatus.UNKNOWN_ERROR
             raise UnknownException(e)
         finally:
-            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], status, tid)
+            thread_pool_executor.submit(publish.status, user_info['scheme_account_id'], status, tid, user_info)
 
 
 class AccountOverview(Resource):
@@ -445,7 +447,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
         if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info['scheme_account_id'], e.args[0], tid, intercom_data=intercom_data,
+            update_pending_join_account(user_info, e.args[0], tid, intercom_data=intercom_data,
                                         consent_ids=consent_ids)
 
     return {
@@ -466,7 +468,7 @@ def registration(scheme_slug, user_info, tid):
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
         # Update the scheme status on hermes to JOIN(900)
-        publish.status(user_info['scheme_account_id'], 900, tid)
+        publish.status(user_info['scheme_account_id'], 900, tid, user_info)
         abort(e.code, message=e.data['message'])
 
     register_result = agent_register(agent_class, user_info, intercom_data, tid,
@@ -477,13 +479,13 @@ def registration(scheme_slug, user_info, tid):
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug,
                                      from_register=True)
         if agent_instance.identifier:
-            update_pending_join_account(user_info['scheme_account_id'], "success", tid,
+            update_pending_join_account(user_info, "success", tid,
                                         identifier=agent_instance.identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info['scheme_account_id'], str(e.args[0]), tid,
+            update_pending_join_account(user_info, str(e.args[0]), tid,
                                         intercom_data=intercom_data, consent_ids=consent_ids)
         else:
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
@@ -497,7 +499,7 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        publish.status(user_info['scheme_account_id'], status, tid, journey='join')
+        publish.status(user_info['scheme_account_id'], status, tid, user_info, journey='join')
         return True
 
 

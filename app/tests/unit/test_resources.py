@@ -214,9 +214,11 @@ class TestResources(TestCase):
         credentials = ('JnoPkhKfU6uddLtbTTOvr1DgsNBeWhI0ADM2VGyfTFR8Wi2%2FRHQ5SX%2Bvk'
                        'zIgqmsGGqq94x%2BcBd7Vd%2FKsRTOEBDkV45rsm6WRV6wfZTC51rQ%3D')
         url = '/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_set=1'.format(credentials)
+        user_info = {"user_id": "123",
+                     "scheme_account_id": "123"}
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
-        mock_submit.assert_called_with(publish.status, 1, 10, None)
+        mock_submit.assert_called_with(publish.status, 1, 10, None, user_info)
 
     def test_bad_parameters(self):
         url = "/tesco-clubcard/transactions?credentials=234"
