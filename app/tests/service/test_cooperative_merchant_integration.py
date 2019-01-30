@@ -11,8 +11,8 @@ class TestCooperative(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.c = Cooperative(*AGENT_CLASS_ARGUMENTS)
-        cls.c.attempt_login(CREDENTIALS['cooperative'])
+        cls.c = Cooperative(*AGENT_CLASS_ARGUMENTS, scheme_slug='test-co-op')
+        cls.c.attempt_login(CREDENTIALS['the-co-operative-membership'])
         cls.token_store = UserTokenStore(REDIS_URL)
 
     def test_transactions(self):
@@ -37,11 +37,11 @@ class TestCooperative(unittest.TestCase):
 class TestCooperativeValidate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.i = Cooperative(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='cooperative')
-        credentials = CREDENTIALS['cooperative']
+        cls.i = Cooperative(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug='the-co-operative-membership')
+        credentials = CREDENTIALS['the-co-operative-membership']
         credentials.pop('merchant_identifier', None)
 
-        cls.i.attempt_login(CREDENTIALS['cooperative'])
+        cls.i.attempt_login(CREDENTIALS['the-co-operative-membership'])
 
     def test_validate(self):
         balance = self.i.balance()

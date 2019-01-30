@@ -89,6 +89,7 @@ class TestMerchantApi(FlaskTestCase):
         self.config = mock_configuration
         self.m = MerchantApi(1, self.user_info)
         self.m_user_set = MerchantApi(1, self.user_info_user_set)
+        self.m.config = self.config
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, '_sync_outbound')
@@ -194,7 +195,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(resp, self.json_data)
 
@@ -215,7 +216,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         self.m.record_uid = '123'
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
@@ -239,7 +240,7 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
@@ -263,7 +264,7 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
@@ -277,7 +278,7 @@ class TestMerchantApi(FlaskTestCase):
 
         expected_resp = {"error_codes": [{"code": NOT_SENT, "description": errors[NOT_SENT]['message']}]}
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertFalse(mock_request.called)

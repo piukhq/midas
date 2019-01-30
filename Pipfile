@@ -65,6 +65,7 @@ PyExecJS = "*"
 Werkzeug = "*"
 SQLAlchemy = "*"
 ddtrace = "*"
+tenacity = "*"
 
 [dev-packages]
 

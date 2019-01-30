@@ -20,6 +20,7 @@ from robobrowser import RoboBrowser
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 from app import publish
 from app.back_off_service import BackOffService
@@ -29,7 +30,7 @@ from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
-    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError
+    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -38,6 +39,10 @@ from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
 from app.scheme_account import update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
+
+
+class UnauthorisedError(Exception):
+    pass
 
 
 class SSLAdapter(HTTPAdapter):
@@ -415,6 +420,7 @@ class MerchantApi(BaseMiner):
         self.consents_data = consents_data
 
         self.record_uid = None
+        self.request = None
         self.result = None
 
         # { error we raise: error we receive in merchant payload }
@@ -619,62 +625,82 @@ class MerchantApi(BaseMiner):
     def apply_security_measures(self, json_data, security_service, security_credentials):
         outbound_security_agent = get_security_agent(security_service,
                                                      security_credentials)
-        request = outbound_security_agent.encode(json_data)
+        self.request = outbound_security_agent.encode(json_data)
 
-        return request
-
-    def _sync_outbound(self, json_data, config):
+    def _sync_outbound(self, json_data):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
-        Calls are made to security and back off services pre-request.
+        Calls are made to security and back off services pre-request. Security measures are reapplied before
+        retrying if an unauthorised response is returned.
         :param json_data: JSON string of payload to send to merchant
-        :param config: dict of merchant configuration settings
         :return: Response payload
         """
         json_data = self.map_credentials_to_request(json_data)
-        request = self.apply_security_measures(json_data,
-                                               config.security_credentials['outbound']['service'],
-                                               config.security_credentials)
+
+        def apply_security_measures(retry_state):
+            return self.apply_security_measures(json_data,
+                                                self.config.security_credentials['outbound']['service'],
+                                                self.config.security_credentials)
+
+        @retry(stop=stop_after_attempt(2),
+               retry=retry_if_exception_type(UnauthorisedError),
+               before=apply_security_measures,
+               reraise=True)
+        def send_request():
+            return self._send_request()
+
         back_off_service = BackOffService()
 
-        for retry_count in range(1 + config.retry_limit):
-            if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
+        response_json = None
+        for retry_count in range(1 + self.config.retry_limit):
+            if back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.handler_type):
                 response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
                 break
             else:
-                response = requests.post(config.merchant_url, **request)
-                status = response.status_code
+                try:
+                    response_json = send_request()
+                except UnauthorisedError:
+                    response_json = create_error_response(VALIDATION,
+                                                          errors[VALIDATION]['name'])
+                if retry_count == self.config.retry_limit:
+                    back_off_service.activate_cooldown(self.config.scheme_slug,
+                                                       self.config.handler_type,
+                                                       BACK_OFF_COOLDOWN)
+        return response_json
 
-                if status in [200, 202]:
-                    if config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
-                        inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
-                    else:
-                        inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
-                                                                    config.security_credentials)
+    def _send_request(self):
+        response = requests.post(self.config.merchant_url, **self.request)
+        status = response.status_code
 
-                    response_json = inbound_security_agent.decode(response.headers, response.text)
-                    # Log if request was redirected
-                    if response.history:
-                        logging_info = self._create_log_message(
-                            response_json,
-                            json.loads(json_data)['message_uid'],
-                            config.scheme_slug,
-                            config.handler_type,
-                            config.integration_service,
-                            "OUTBOUND"
-                        )
-                        logger.warning(json.dumps(logging_info))
-                    break
+        if status in [200, 202]:
+            if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+                inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+            else:
+                inbound_security_agent = get_security_agent(self.config.security_credentials['inbound']['service'],
+                                                            self.config.security_credentials)
 
-                elif status in [503, 504, 408]:
-                    response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
-                else:
-                    response_json = create_error_response(UNKNOWN,
-                                                          errors[UNKNOWN]['name'] + ' with status code {}'
-                                                          .format(status))
+            response_json = inbound_security_agent.decode(response.headers, response.text)
+            # Log if request was redirected
+            if response.history:
+                logging_info = self._create_log_message(
+                    response_json,
+                    json.loads(self.request['json'])['message_uid'],
+                    self.config.scheme_slug,
+                    self.config.handler_type,
+                    self.config.integration_service,
+                    "OUTBOUND"
+                )
+                logger.warning(json.dumps(logging_info))
 
-                if retry_count == config.retry_limit:
-                    back_off_service.activate_cooldown(config.scheme_slug, config.handler_type, BACK_OFF_COOLDOWN)
+        elif status == 401:
+            raise UnauthorisedError
+
+        elif status in [503, 504, 408]:
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        else:
+            response_json = create_error_response(UNKNOWN,
+                                                  errors[UNKNOWN]['name'] + ' with status code {}'
+                                                  .format(status))
 
         return response_json
 
