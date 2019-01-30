@@ -18,19 +18,11 @@ class Cooperative(MerchantApi):
     token_store = UserTokenStore(REDIS_URL)
 
     def balance(self):
-        value = Decimal(self.result['alt_value'])
-        value_units = self.result['alt_unit']
-        tier_list = {
-            'Platinum': 0,
-            'Black': 1
-        }
-        tier = tier_list[self.result['tier']]
-
         return {
-            'points': Decimal(self.result['balance_value']),
-            'value': value,
-            'value_label': '{} {}'.format(value, value_units),
-            'reward_tier': tier,
+            'points': Decimal(0),
+            'value': 0,
+            'value_label': '{} {}'.format(0, ''),
+            'reward_tier': 0,
         }
 
     def scrape_transactions(self):
@@ -45,17 +37,12 @@ class Cooperative(MerchantApi):
         }
 
     def get_merchant_ids(self, credentials):
-        merchant_ids = {
-            'merchant_scheme_id1': credentials['email'],
-            'merchant_scheme_id2': credentials.get('merchant_identifier')
-        }
-
-        return merchant_ids
+        return {}
 
     def apply_security_measures(self, json_data, security_service, security_credentials):
         auth_token_header = "Access Token"
         try:
-            access_token = self.token_store.get(self.scheme_id)
+            access_token = json.loads(self.token_store.get(self.scheme_id))
 
             if self._token_is_valid(access_token['timestamp']):
                 request = {
@@ -74,7 +61,7 @@ class Cooperative(MerchantApi):
             request['headers'][auth_token_header] = request['headers'].pop('Authorization')
             self.token_store.set(
                 self.scheme_id,
-                {'token': request['headers'][auth_token_header], 'timestamp': timestamp}
+                json.dumps({'token': request['headers'][auth_token_header], 'timestamp': timestamp})
             )
 
         request['headers']['X-API-KEY'] = Cooperative.API_KEY
