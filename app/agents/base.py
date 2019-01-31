@@ -579,7 +579,7 @@ class MerchantApi(BaseMiner):
 
         logger.info(json.dumps(logging_info))
 
-        response_json = self._sync_outbound(payload, self.config)
+        response_json = self._sync_outbound(payload)
 
         response_data = {}
         if response_json:
