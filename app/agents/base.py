@@ -682,18 +682,8 @@ class MerchantApi(BaseMiner):
                                                             self.config.security_credentials)
 
             response_json = inbound_security_agent.decode(response.headers, response.text)
-            # Log if request was redirected
-            if response.history:
-                logging_info = self._create_log_message(
-                    response_json,
-                    json.loads(self.request['json'])['message_uid'],
-                    self.config.scheme_slug,
-                    self.config.handler_type,
-                    self.config.integration_service,
-                    "OUTBOUND"
-                )
-                logger.warning(json.dumps(logging_info))
 
+            self.log_if_redirect(response, response_json)
         elif status == 401:
             raise UnauthorisedError
         elif status in [503, 504, 408]:
@@ -838,3 +828,15 @@ class MerchantApi(BaseMiner):
         for consent in consents:
             if consent['journey_type'] == journey:
                 data.update({consent['slug']: consent['value']})
+
+    def log_if_redirect(self, response, message):
+        if response.history:
+            logging_info = self._create_log_message(
+                message,
+                json.loads(self.request['json'])['message_uid'],
+                self.config.scheme_slug,
+                self.config.handler_type,
+                self.config.integration_service,
+                "OUTBOUND"
+            )
+            logger.warning(json.dumps(logging_info))
