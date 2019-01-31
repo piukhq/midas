@@ -51,10 +51,11 @@ def balance(balance_item, scheme_account_id, user_set, tid):
     return balance_item
 
 
-def status(scheme_account_id, status, tid, journey=None):
+def status(scheme_account_id, status, tid, user_info, journey=None):
     data = {
         "status": status,
-        "journey": journey
+        "journey": journey,
+        "user_info": user_info
     }
     post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
     return status

@@ -13,6 +13,7 @@ class Cooperative(RoboBrowserMiner):
     value_pattern = re.compile(r'<h2 class="mega"><span class="block">You have </span>£([0-9.0-9]+) to spend</h2>')
     points_pattern = re.compile(r'<span class="z-points-value">([0-9.0-9]+)')
     logged_in_pattern = re.compile(r'("invalid loginID or password")')
+    bad_account_pattern = re.compile(r'("Account temporarily locked out")')
 
     def login(self, credentials):
 
@@ -56,7 +57,8 @@ class Cooperative(RoboBrowserMiner):
         pretty_html = self.browser.parsed.prettify()
 
         login_fail = self.logged_in_pattern.findall(pretty_html)
-        if login_fail:
+        bad_account_message = self.bad_account_pattern.findall(pretty_html)
+        if login_fail or bad_account_message:
             raise LoginError(STATUS_LOGIN_FAILED)
 
         timestamp = re.compile(r'"signatureTimestamp":\s"(\d+)"').findall(pretty_html)[0]

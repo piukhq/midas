@@ -17,7 +17,7 @@ class TestJetBlue(unittest.TestCase):
 
     def test_transactions(self):
         transactions = self.j.transactions()
-        self.assertTrue(transactions)
+        self.assertIsNotNone(transactions)
         schemas.transactions(transactions)
 
     def test_balance(self):

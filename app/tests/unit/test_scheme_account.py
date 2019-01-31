@@ -9,39 +9,37 @@ from app.tasks.resend_consents import ConsentStatus
 class TestSchemeAccount(TestCase):
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.delete')
-    @mock.patch('app.scheme_account.raise_event')
-    def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete, mock_requests_post):
+    def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete):
         intercom_data = {
             'user_id': 'userid12345',
             'user_email': 'test@email.com',
             'metadata': {'scheme': 'scheme_slug'}
         }
+        user_info = {'scheme_account_id': 1}
         with self.assertRaises(AgentException):
-            update_pending_link_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
+            update_pending_link_account(user_info, 'Error Message: error', 'tid123', intercom_data=intercom_data)
 
         self.assertTrue(mock_intercom_call.called)
         self.assertTrue(mock_requests_delete.called)
-        self.assertTrue(mock_requests_post.called)
 
-    @mock.patch('app.scheme_account.raise_event')
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.put')
     @mock.patch('app.scheme_account.requests.delete')
-    def test_update_pending_join_account(self, mock_requests_delete, mock_requests_put, mock_requests_post,
-                                         mock_intercom_call):
+    def test_update_pending_join_account(self, mock_requests_delete, mock_requests_put, mock_requests_post):
 
-        update_pending_join_account('123', 'success', 'tid123', identifier='12345')
+        user_info = {'scheme_account_id': 1}
+
+        update_pending_join_account(user_info, 'success', 'tid123', identifier='12345')
         self.assertTrue(mock_requests_put.called)
         self.assertFalse(mock_requests_delete.called)
         self.assertFalse(mock_requests_post.called)
-        self.assertFalse(mock_intercom_call.called)
 
-    @mock.patch('app.scheme_account.raise_event')
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.put')
     @mock.patch('app.scheme_account.requests.delete')
-    def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post,
-                                               mock_intercom_call):
+    def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post):
+
+        user_info = {'scheme_account_id': 1}
 
         intercom_data = {
             'user_id': 'userid12345',
@@ -49,41 +47,37 @@ class TestSchemeAccount(TestCase):
             'metadata': {'scheme': 'scheme_slug'}
         }
         with self.assertRaises(AgentException):
-            update_pending_join_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data)
+            update_pending_join_account(user_info, 'Error Message: error', 'tid123', intercom_data=intercom_data)
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
-        self.assertTrue(mock_intercom_call.called)
 
-    @mock.patch('app.scheme_account.raise_event')
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.put')
     @mock.patch('app.scheme_account.requests.delete')
     def test_update_pending_join_account_raise_exception_false(self, mock_requests_delete, mock_requests_put,
-                                                               mock_requests_post, mock_intercom_call):
-
+                                                               mock_requests_post):
+        user_info = {'scheme_account_id': 1}
         intercom_data = {
             'user_id': 'userid12345',
             'user_email': 'test@email.com',
             'metadata': {'scheme': 'scheme_slug'}
         }
-        update_pending_join_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data,
+        update_pending_join_account(user_info, 'Error Message: error', 'tid123', intercom_data=intercom_data,
                                     raise_exception=False)
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
-        self.assertTrue(mock_intercom_call.called)
 
     @mock.patch('app.scheme_account.remove_pending_consents')
-    @mock.patch('app.scheme_account.raise_event')
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.put')
     @mock.patch('app.scheme_account.requests.delete')
     def test_update_pending_join_account_deletes_consents(self, mock_requests_delete, mock_requests_put,
-                                                          mock_requests_post, mock_intercom_call, mock_consents):
-
+                                                          mock_requests_post, mock_consents):
+        user_info = {'scheme_account_id': 1}
         intercom_data = {
             'user_id': 'userid12345',
             'user_email': 'test@email.com',
@@ -91,13 +85,12 @@ class TestSchemeAccount(TestCase):
         }
         consent_ids = (1, 2)
         with self.assertRaises(AgentException):
-            update_pending_join_account('123', 'Error Message: error', 'tid123', intercom_data=intercom_data,
+            update_pending_join_account(user_info, 'Error Message: error', 'tid123', intercom_data=intercom_data,
                                         consent_ids=consent_ids)
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
-        self.assertTrue(mock_intercom_call.called)
         self.assertTrue(mock_consents.called)
         self.assertEqual(mock_consents.call_args[0][0], consent_ids)
 

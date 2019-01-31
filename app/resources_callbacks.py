@@ -48,11 +48,11 @@ class JoinCallback(Resource):
 
             agent_instance.register(data, inbound=True)
         except AgentError as e:
-            update_pending_join_account(user_info['scheme_account_id'], str(e), message_uid, raise_exception=False)
+            update_pending_join_account(user_info, str(e), message_uid, raise_exception=False)
             sentry.captureException()
             raise AgentException(e)
         except Exception as e:
-            update_pending_join_account(user_info['scheme_account_id'], str(e), message_uid, raise_exception=False)
+            update_pending_join_account(user_info, str(e), message_uid, raise_exception=False)
             sentry.captureException()
             raise UnknownException(e)
 
