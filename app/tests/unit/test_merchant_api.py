@@ -10,12 +10,12 @@ from hvac import Client
 from requests import Response
 
 from app import create_app
-from app.agents.base import MerchantApi
+from app.agents.base import MerchantApi, UnauthorisedError
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
-    RegistrationError, CONFIGURATION_ERROR
+    RegistrationError, CONFIGURATION_ERROR, VALIDATION
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.exceptions import AgentException
@@ -283,6 +283,36 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertFalse(mock_request.called)
         self.assertFalse(mock_back_off.return_value.activate_cooldown.called)
+
+    @mock.patch.object(RSA, 'encode', autospec=True)
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
+    @mock.patch('app.agents.base.MerchantApi._send_request', autospec=True)
+    def test_sync_outbound_retry_on_unauthorised_exception(self, mock_send_request, mock_back_off,
+                                                           mock_encode):
+        mock_encode.return_value = {'json': self.json_data}
+        mock_back_off.return_value.is_on_cooldown.return_value = False
+        mock_send_request.side_effect = UnauthorisedError
+
+        resp = self.m._sync_outbound(self.json_data)
+
+        expected_resp = {"error_codes": [{"code": VALIDATION, "description": errors[VALIDATION]["name"]}]}
+
+        self.assertEqual(mock_send_request.call_count, 6)
+        self.assertEqual(mock_encode.call_count, 6)
+        self.assertEqual(resp, json.dumps(expected_resp))
+
+    @mock.patch('requests.post', autospec=True)
+    def test_send_request_raises_exception_on_unauthorised_response(self, mock_request):
+        mock_resp = Response()
+        mock_resp.status_code = 401
+        mock_request.return_value = mock_resp
+
+        self.m.request = {"json": "{}"}
+
+        with self.assertRaises(UnauthorisedError):
+            self.m._send_request()
+
+            self.assertTrue(mock_request.called)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)

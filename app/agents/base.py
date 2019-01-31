@@ -647,6 +647,8 @@ class MerchantApi(BaseMiner):
                before=apply_security_measures,
                reraise=True)
         def send_request():
+            # This is to refresh auth creds and retry the request on Unauthorised errors.
+            # These errors will result in additional retries to the retry_count below.
             return self._send_request()
 
         back_off_service = BackOffService()
@@ -694,7 +696,6 @@ class MerchantApi(BaseMiner):
 
         elif status == 401:
             raise UnauthorisedError
-
         elif status in [503, 504, 408]:
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
         else:
