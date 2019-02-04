@@ -24,8 +24,8 @@ class TheClub(RoboBrowserMiner):
         self.browser.submit_form(login_form, submit=login_form.submit_fields['ctl00$Main$cmdLogin'])
 
     def login(self, credentials):
-            self._login(credentials)
-            self.check_if_logged_in()
+        self._login(credentials)
+        self.check_if_logged_in()
 
     def balance(self):
         points = self.browser.select('#ctl00_myAccountLinks_MemberPanel div div h5')[1].text

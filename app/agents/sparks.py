@@ -12,7 +12,7 @@ class Sparks(RoboBrowserMiner):
         cookies = self.browser.session.cookies
 
         if cookies.get('IS_LOYALTY_USER_COOKIE'):
-                self.is_login_successful = True
+            self.is_login_successful = True
         else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
