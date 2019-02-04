@@ -24,6 +24,18 @@ class Cooperative(MerchantApi):
 
     token_store = UserTokenStore(REDIS_URL)
 
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
+        super().__init__(retry_count, user_info, scheme_slug, config, consents_data)
+
+        # To change the request contents, using a function, based on the type of journey.
+        self.handler_type_to_updated_request = {
+            Configuration.JOIN_HANDLER: self._update_join_request,
+        }
+        # For journey specific error handling.
+        self.handler_type_to_error_handler = {
+            Configuration.JOIN_HANDLER: self._error_handler,
+        }
+
     def balance(self):
         return {
             'points': Decimal(0),
@@ -84,31 +96,8 @@ class Cooperative(MerchantApi):
         return (current_time - timestamp) > Cooperative.AUTH_TOKEN_TIMEOUT
 
     def _send_request(self):
-        # To change the request contents, using a function, based on the type of journey.
-        handler_type_to_updated_request = {
-            Configuration.JOIN_HANDLER: self._update_join_request
-        }
-
-        handler_type_to_updated_request[self.config.handler_type[0]]()
-
-        response = requests.post(self.config.merchant_url, **self.new_request)
-        status = response.status_code
-
-        if status == 200:
-            inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
-
-            response_json = inbound_security_agent.decode(response.headers, response.text)
-
-            self.log_if_redirect(response, response_json)
-        elif status == 401:
-            raise UnauthorisedError
-        elif status in [503, 504, 408]:
-            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
-        else:
-            response_json = create_error_response(UNKNOWN,
-                                                  errors[UNKNOWN]['name'] + ' with status code {}'
-                                                  .format(status))
-        return response_json
+        handler_type = self.config.handler_type[0]
+        return self.handler_type_to_updated_request[handler_type]()
 
     def _update_join_request(self):
         old_json = self.request['json']
@@ -127,3 +116,25 @@ class Cooperative(MerchantApi):
 
         self.new_request = self.request.copy()
         self.new_request['json'] = new_json
+
+        response = requests.post(self.config.merchant_url, **self.new_request)
+        handler_type = self.config.handler_type[0]
+
+        return self.handler_type_to_error_handler[handler_type](response)
+
+    def _error_handler(self, response):
+        status = response.status_code
+
+        if status == 200:
+            inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+            response_json = inbound_security_agent.decode(response.headers, response.text)
+            self.log_if_redirect(response, response_json)
+        elif status == 401:
+            raise UnauthorisedError
+        elif status in [503, 504, 408]:
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        else:
+            response_json = create_error_response(UNKNOWN,
+                                                  errors[UNKNOWN]['name'] + ' with status code {}'
+                                                  .format(status))
+        return response_json
