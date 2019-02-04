@@ -27,8 +27,8 @@ class PlayPoints(RoboBrowserMiner):
         self.browser.open(url, method='post', data=data)
 
     def login(self, credentials):
-            self._login(credentials)
-            self.check_if_logged_in()
+        self._login(credentials)
+        self.check_if_logged_in()
 
     def balance(self):
         current_timestamp = time()
