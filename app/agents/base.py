@@ -520,18 +520,18 @@ class MerchantApi(BaseMiner):
                 self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
-            update_pending_join_account(self.user_info, "success", self.result['message_uid'],
+            update_pending_join_account(self.user_info, "success", self.message_uid,
                                         identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
         except (AgentException, LoginError, AgentError) as e:
             consent_status = ConsentStatus.FAILED
-            update_pending_join_account(self.user_info, e, self.result['message_uid'])
+            update_pending_join_account(self.user_info, e, self.message_uid, scheme_slug=self.scheme_slug)
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.result['message_uid'], self.user_info, journey='join')
+        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey='join')
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """
@@ -622,7 +622,7 @@ class MerchantApi(BaseMiner):
 
         return self.process_join_response()
 
-    def apply_security_measures(self, json_data, security_service, security_credentials):
+    def apply_security_measures(self, json_data, security_service, security_credentials, refresh_token=False):
         outbound_security_agent = get_security_agent(security_service,
                                                      security_credentials)
         self.request = outbound_security_agent.encode(json_data)
@@ -640,17 +640,21 @@ class MerchantApi(BaseMiner):
         def apply_security_measures(retry_state):
             return self.apply_security_measures(json_data,
                                                 self.config.security_credentials['outbound']['service'],
-                                                self.config.security_credentials)
+                                                self.config.security_credentials,
+                                                refresh_token=True)
 
         @retry(stop=stop_after_attempt(2),
                retry=retry_if_exception_type(UnauthorisedError),
-               before=apply_security_measures,
+               after=apply_security_measures,
                reraise=True)
         def send_request():
             # This is to refresh auth creds and retry the request on Unauthorised errors.
             # These errors will result in additional retries to the retry_count below.
             return self._send_request()
 
+        self.apply_security_measures(json_data,
+                                     self.config.security_credentials['outbound']['service'],
+                                     self.config.security_credentials)
         back_off_service = BackOffService()
 
         response_json = None
