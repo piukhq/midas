@@ -514,18 +514,18 @@ class MerchantApi(BaseMiner):
                 self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
-            update_pending_join_account(self.user_info['scheme_account_id'], "success", self.result['message_uid'],
+            update_pending_join_account(self.user_info, "success", self.result['message_uid'],
                                         identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
         except (AgentException, LoginError, AgentError) as e:
             consent_status = ConsentStatus.FAILED
-            update_pending_join_account(self.user_info['scheme_account_id'], e, self.result['message_uid'])
+            update_pending_join_account(self.user_info, e, self.result['message_uid'])
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.result['message_uid'], journey='join')
+        publish.status(self.scheme_id, status, self.result['message_uid'], self.user_info, journey='join')
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """

@@ -23,8 +23,8 @@ class Krisflyer(RoboBrowserMiner):
         self.browser.submit_form(login_form)
 
     def login(self, credentials):
-            self._login(credentials)
-            self.check_if_logged_in()
+        self._login(credentials)
+        self.check_if_logged_in()
 
     def balance(self):
         points_sel = self.browser.select('.slide__text--style-2')[0].text
