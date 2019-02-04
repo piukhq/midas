@@ -89,12 +89,12 @@ class Cooperative(MerchantApi):
             Configuration.JOIN_HANDLER: self._update_join_request
         }
 
-        handler_type_to_updated_request[self.config.handler_type]()
+        handler_type_to_updated_request[self.config.handler_type[0]]()
 
-        response = requests.post(self.config.merchant_url, **self.request)
+        response = requests.post(self.config.merchant_url, **self.new_request)
         status = response.status_code
 
-        if status in [200, 202]:
+        if status == 200:
             inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
 
             response_json = inbound_security_agent.decode(response.headers, response.text)
@@ -114,7 +114,7 @@ class Cooperative(MerchantApi):
         old_json = self.request['json']
         new_json = {
             'title': old_json['title'],
-            'dateOfBirth': old_json['date_of_birth'],
+            'dateOfBirth': old_json['dob'],
             'firstName': old_json['first_name'],
             'lastName': old_json['last_name'],
             'email': old_json['email'],
@@ -125,4 +125,5 @@ class Cooperative(MerchantApi):
             }
         }
 
-        self.request['json'] = new_json
+        self.new_request = self.request.copy()
+        self.new_request['json'] = new_json
