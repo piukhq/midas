@@ -18,8 +18,9 @@ from settings import REDIS_URL
 class Cooperative(MerchantApi):
     API_KEY = 'awmHjJzzfV3YMUuJdcmd56PKRIzg6KAg1WKn94Ds'
     AUTH_TOKEN_TIMEOUT = 3600
+    new_request = None
 
-    identifier_type = ['card_number', 'merchant_scheme_id2']
+    identifier_type = ['cardNumber', 'memberId']
 
     token_store = UserTokenStore(REDIS_URL)
 
@@ -45,34 +46,37 @@ class Cooperative(MerchantApi):
     def get_merchant_ids(self, credentials):
         return {}
 
-    def apply_security_measures(self, json_data, security_service, security_credentials):
-        auth_token_header = "Access Token"
+    def apply_security_measures(self, json_data, security_service, security_credentials, refresh_token=True):
+        auth_token_header = "Authorization"
         try:
+            if refresh_token:
+                raise self.token_store.NoSuchToken
+
             access_token = json.loads(self.token_store.get(self.scheme_id))
 
             if self._token_is_valid(access_token['timestamp']):
-                request = {
+                self.request = {
                     "json": json.loads(json_data),
                     "headers": {
-                        auth_token_header: "{} {}".format(security_credentials['prefix'], access_token['token'])
+                        auth_token_header: "{} {}".format(
+                            security_credentials['outbound']['credentials'][0]['value']['prefix'],
+                            access_token['token'])
                     }
                 }
             else:
                 raise self.token_store.NoSuchToken
 
         except self.token_store.NoSuchToken:
-            request = super().apply_security_measures(json_data, security_service, security_credentials)
+            super().apply_security_measures(json_data, security_service, security_credentials)
             timestamp = time.time()
 
-            request['headers'][auth_token_header] = request['headers'].pop('Authorization')
+            self.request['headers'][auth_token_header] = self.request['headers']['Authorization']
             self.token_store.set(
                 self.scheme_id,
-                json.dumps({'token': request['headers'][auth_token_header], 'timestamp': timestamp})
+                json.dumps({'token': self.request['headers'][auth_token_header], 'timestamp': timestamp})
             )
 
-        request['headers']['X-API-KEY'] = Cooperative.API_KEY
-
-        return request
+        self.request['headers']['X-API-KEY'] = Cooperative.API_KEY
 
     @staticmethod
     def _token_is_valid(timestamp):
