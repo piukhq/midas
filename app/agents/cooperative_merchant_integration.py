@@ -1,9 +1,8 @@
 import json
+import time
 from decimal import Decimal
 
 import arrow
-import time
-
 import requests
 from gaia.user_token import UserTokenStore
 
@@ -22,6 +21,10 @@ class Cooperative(MerchantApi):
 
     new_request = None
     identifier_type = ['cardNumber', 'memberId']
+    merchant_identifier_mapping = {
+        'memberId': 'merchant_identifier',
+    }
+
     token_store = UserTokenStore(REDIS_URL)
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
@@ -30,10 +33,14 @@ class Cooperative(MerchantApi):
         # To change the request contents, using a function, based on the type of journey.
         self.handler_type_to_updated_request = {
             Configuration.JOIN_HANDLER: self._update_join_request,
+            Configuration.VALIDATE_HANDLER: self._update_validate_request,
+            Configuration.UPDATE_HANDLER: self._update_balance_request
         }
         # For journey specific error handling.
         self.handler_type_to_error_handler = {
-            Configuration.JOIN_HANDLER: self._error_handler
+            Configuration.JOIN_HANDLER: self._join_error_handler,
+            Configuration.VALIDATE_HANDLER: self._validate_error_handler,
+            Configuration.UPDATE_HANDLER: self._balance_error_handler
         }
         self.scope = None
 
@@ -152,7 +159,73 @@ class Cooperative(MerchantApi):
 
         return self.handler_type_to_error_handler[handler_type](response)
 
-    def _error_handler(self, response):
+    def _join_error_handler(self, response):
+        status = response.status_code
+
+        if status == 200:
+            inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+            response_json = inbound_security_agent.decode(response.headers, response.text)
+            self.log_if_redirect(response, response_json)
+        elif status == 401:
+            raise UnauthorisedError
+        elif status in [503, 504, 408]:
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        else:
+            response_json = create_error_response(UNKNOWN,
+                                                  errors[UNKNOWN]['name'] + ' with status code {}'
+                                                  .format(status))
+        return response_json
+
+    def _update_validate_request(self):
+        handler_type = self.config.handler_type[0]
+        old_json = self.request['json']
+        new_json = {
+            'cardNumber': old_json['title'],
+            'dateOfBirth': old_json['dob'],
+            'postcode': old_json['first_name']
+        }
+
+        self.new_request = self.request.copy()
+        self.new_request['json'] = new_json
+        response = requests.post(self.config.merchant_url, **self.new_request)
+        response_json = self.handler_type_to_error_handler[handler_type](response)
+        member_id = json.loads(response_json)['memberId']
+
+
+        self.balance_config = Configuration(self.scheme_slug, Configuration.UPDATE_HANDLER)
+        balance_url = self.balance_config.merchant_url.format(member_id)
+        response = requests.get(balance_url, headers=self.request['headers'])
+
+        balance_handler_type = self.balance_config.handler_type[0]
+        return self.handler_type_to_error_handler[balance_handler_type](response)
+
+    def _validate_error_handler(self, response):
+        status = response.status_code
+
+        if status == 200:
+            inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+            response_json = inbound_security_agent.decode(response.headers, response.text)
+            self.log_if_redirect(response, response_json)
+        elif status == 401:
+            raise UnauthorisedError
+        elif status in [503, 504, 408]:
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        else:
+            response_json = create_error_response(UNKNOWN,
+                                                  errors[UNKNOWN]['name'] + ' with status code {}'
+                                                  .format(status))
+        return response_json
+
+    def _update_balance_request(self):
+        handler_type = self.config.handler_type[0]
+        old_json = self.request['json']
+        member_id = old_json['merchant_scheme_id1']
+
+        balance_url = self.config.merchant_url.format(member_id)
+        response = requests.post(balance_url, headers=self.request['headers'])
+        return self.handler_type_to_error_handler[handler_type](response)
+
+    def _balance_error_handler(self, response):
         status = response.status_code
 
         if status == 200:
