@@ -604,10 +604,11 @@ class MerchantApi(BaseMiner):
         :return: dict of response data
         """
         self.result = data
+        self.message_uid = self.result.get('message_uid')
 
         logging_info = self._create_log_message(
             data,
-            self.result.get('message_uid'),
+            self.message_uid,
             scheme_slug,
             self.config.handler_type,
             'ASYNC',

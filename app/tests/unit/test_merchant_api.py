@@ -298,7 +298,7 @@ class TestMerchantApi(FlaskTestCase):
         expected_resp = {"error_codes": [{"code": VALIDATION, "description": errors[VALIDATION]["name"]}]}
 
         self.assertEqual(mock_send_request.call_count, 6)
-        self.assertEqual(mock_encode.call_count, 6)
+        self.assertEqual(mock_encode.call_count, 7)
         self.assertEqual(resp, json.dumps(expected_resp))
 
     @mock.patch('requests.post', autospec=True)
@@ -347,8 +347,9 @@ class TestMerchantApi(FlaskTestCase):
     def test_process_join_handles_errors(self, mock_consent_confirmation, mock_update):
         mock_update.side_effect = AgentException('An unknown error has occurred')
         self.m.record_uid = self.m.scheme_id
+        self.m.message_uid = "test_message_uid"
         self.m.result = {
-            "message_uid": "test_message_uid",
+            "message_uid": self.m.message_uid,
             "error_codes": [{
                 "code": "GENERAL_ERROR",
                 "description": 'An unknown error has occurred'
@@ -554,8 +555,9 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation, mock_update):
+        self.m.message_uid = "test_message_uid"
         mock_outbound_handler.return_value = {
-            "message_uid": "test_message_uid",
+            "message_uid": self.m.message_uid,
             "error_codes": [{
                 "code": "GENERAL_ERROR",
                 "description": "An unknown error has occurred",
@@ -1033,8 +1035,8 @@ class TestMerchantApi(FlaskTestCase):
                                      'journey_type': JourneyTypes.JOIN.value}]}
         self.m.user_info.update(credentials=credentials)
 
-        message_uid = ''
-        mock_outbound_handler.return_value = {'message_uid': message_uid}
+        self.m.message_uid = ''
+        mock_outbound_handler.return_value = {'message_uid': self.m.message_uid}
         self.m.config = self.config
 
         self.m.register(credentials)
