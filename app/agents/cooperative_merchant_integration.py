@@ -1,7 +1,6 @@
 import json
 import time
 from decimal import Decimal
-from unittest.mock import MagicMock
 
 import arrow
 import requests
@@ -171,11 +170,6 @@ class Cooperative(MerchantApi):
         full_url = merchant_url.format(card_number=card_number)
         resp = requests.get(full_url, headers=headers)
 
-        # # For testing since Coop check card endpoint is down.
-        # resp = MagicMock()
-        # resp.status_code = 200
-        # resp.json.return_value = {'isTemporary': False}
-
         if resp.status_code == 404:
             raise LoginError(CARD_NUMBER_ERROR)
         elif resp.status_code == 401:
@@ -191,7 +185,7 @@ class Cooperative(MerchantApi):
         card_number = old_json.get('card_number')
 
         try:
-            if self._card_is_temporary(card_number):
+            if card_number and self._card_is_temporary(card_number):
                 return (create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name']),
                         errors[PRE_REGISTERED_CARD]['code'])
         except KeyError:
@@ -287,7 +281,6 @@ class Cooperative(MerchantApi):
         return json.dumps(response_dict), balance_status
 
     def _validate_error_handler(self, response):
-        # response_json = self._error_handler(response, self.journey_to_scope[Configuration.VALIDATE_HANDLER])
         response_json = self._error_handler(response)
 
         response_dict = json.loads(response_json)
