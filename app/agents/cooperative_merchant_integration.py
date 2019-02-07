@@ -76,10 +76,13 @@ class Cooperative(MerchantApi):
 
     @staticmethod
     def parse_transactions(row):
+        charity_value = Decimal(row['balance']['value']) / 100
+        transaction_value = Decimal(row['balance']['value']) / 100
+
         return {
             'date': arrow.get(row['timestamp']),
-            'description': row['reference'],
-            'points': Decimal(row['balance_value']),
+            'description': 'Charity: £{}'.format(charity_value.quantize(TWO_PLACES)),
+            'points': transaction_value.quantize(TWO_PLACES),
         }
 
     def get_merchant_ids(self, credentials):
@@ -175,9 +178,6 @@ class Cooperative(MerchantApi):
         old_json = self.request['json']
         card_number = old_json.get('card_number')
 
-        # if card_number:
-        #     register_temporary_card()
-
         try:
             if self._card_is_temporary(card_number):
                 return create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name'])
@@ -221,7 +221,8 @@ class Cooperative(MerchantApi):
             self.token_store.delete(scope)
             raise UnauthorisedError
         elif status in [503, 504, 408]:
-            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
+                                                  .format(status))
         else:
             response_json = create_error_response(UNKNOWN,
                                                   errors[UNKNOWN]['name'] + ' with status code {}'

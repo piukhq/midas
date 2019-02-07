@@ -660,7 +660,8 @@ class MerchantApi(BaseMiner):
         response_json = None
         for retry_count in range(1 + self.config.retry_limit):
             if back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.handler_type):
-                response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+                error_desc = '{} {} is currently on cooldown'.format(errors[NOT_SENT]['name'], self.config.scheme_slug)
+                response_json = create_error_response(NOT_SENT, error_desc)
                 break
             else:
                 try:
