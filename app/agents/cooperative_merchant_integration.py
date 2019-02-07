@@ -1,13 +1,15 @@
 import json
 import time
 from decimal import Decimal
+from unittest.mock import MagicMock
 
 import arrow
 import requests
 from gaia.user_token import UserTokenStore
 
 from app.agents.base import MerchantApi, UnauthorisedError
-from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD
+from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
+    CARD_NUMBER_ERROR, VALIDATION
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
@@ -93,7 +95,7 @@ class Cooperative(MerchantApi):
             if refresh_token:
                 raise self.token_store.NoSuchToken
 
-            access_token = self._get_auth_token()
+            access_token = self._get_auth_token(self.scope)
 
             if self._token_is_valid(access_token['timestamp']):
                 self.request = {
@@ -108,7 +110,7 @@ class Cooperative(MerchantApi):
                 raise self.token_store.NoSuchToken
 
         except self.token_store.NoSuchToken:
-            self._refresh_auth_token(json_data, security_service, security_credentials)
+            self._refresh_auth_token(json_data, security_service, security_credentials, self.scope)
 
         self.request['headers']['X-API-KEY'] = Cooperative.API_KEY
 
@@ -117,23 +119,25 @@ class Cooperative(MerchantApi):
         current_time = time.time()
         return (current_time - timestamp) < Cooperative.AUTH_TOKEN_TIMEOUT
 
-    def _get_auth_token(self):
-        return json.loads(self.token_store.get(f'{self.scope}'))
+    def _get_auth_token(self, scope):
+        return json.loads(self.token_store.get(f'{scope}'))
 
-    def _refresh_auth_token(self, json_data, security_service, security_credentials):
-        security_credentials['outbound']['credentials'][0]['value']['payload']['scope'] = self.scope
-        super().apply_security_measures(json_data, security_service, security_credentials)
+    def _refresh_auth_token(self, json_data, security_service, security_credentials, scope):
+        security_credentials['outbound']['credentials'][0]['value']['payload']['scope'] = scope
+        outbound_security_agent = get_security_agent(security_service, security_credentials)
+
+        request = outbound_security_agent.encode(json_data)
 
         timestamp = time.time()
 
-        self.request['headers'][self.AUTH_TOKEN_HEADER] = self.request['headers']['Authorization']
-
-        key = f"{self.scope}"
-        token_data = json.dumps({
-            'token': self.request['headers'][self.AUTH_TOKEN_HEADER].split()[1],
+        key = f"{scope}"
+        token_data = {
+            'token': request['headers'][self.AUTH_TOKEN_HEADER].split()[1],
             'timestamp': timestamp
-        })
-        self.token_store.set(key, token_data)
+        }
+        self.token_store.set(key, json.dumps(token_data))
+
+        return token_data
 
     def _get_scope(self):
         handler_type = self.config.handler_type[0]
@@ -151,7 +155,9 @@ class Cooperative(MerchantApi):
 
     def _send_request(self):
         handler_type = self.config.handler_type[0]
-        return self.handler_type_to_updated_request[handler_type]()
+        response_json, status = self.handler_type_to_updated_request[handler_type]()
+
+        return response_json, status
 
     def _card_is_temporary(self, card_number):
         scope = 'check_card'
@@ -165,9 +171,15 @@ class Cooperative(MerchantApi):
         full_url = merchant_url.format(card_number=card_number)
         resp = requests.get(full_url, headers=headers)
 
+        # # For testing since Coop check card endpoint is down.
+        # resp = MagicMock()
+        # resp.status_code = 200
+        # resp.json.return_value = {'isTemporary': False}
+
         if resp.status_code == 404:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            raise LoginError(CARD_NUMBER_ERROR)
         elif resp.status_code == 401:
+            self.token_store.delete(scope)
             raise UnauthorisedError
 
         resp_json = resp.json()
@@ -180,13 +192,17 @@ class Cooperative(MerchantApi):
 
         try:
             if self._card_is_temporary(card_number):
-                return create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name'])
+                return (create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name']),
+                        errors[PRE_REGISTERED_CARD]['code'])
         except KeyError:
-            return create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + ' isTemporary not in check card response')
+            return (create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + ' isTemporary not in check card response'),
+                    errors[UNKNOWN]['code'])
         except LoginError:
-            return create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name'])
+            return (create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name']),
+                    errors[STATUS_LOGIN_FAILED]['code'])
         except UnauthorisedError:
-            self.token_store.delete('check_card')
+            return (create_error_response(VALIDATION, errors[VALIDATION]['name']),
+                    errors[VALIDATION]['code'])
 
         old_json = self.request['json']
         new_json = {
@@ -208,9 +224,9 @@ class Cooperative(MerchantApi):
         response = requests.post(self.config.merchant_url, **self.new_request)
         handler_type = self.config.handler_type[0]
 
-        return self.handler_type_to_error_handler[handler_type](response)
+        return self.handler_type_to_error_handler[handler_type](response), response.status_code
 
-    def _error_handler(self, response, scope):
+    def _error_handler(self, response):
         status = response.status_code
 
         if status == 200:
@@ -218,7 +234,6 @@ class Cooperative(MerchantApi):
             response_json = inbound_security_agent.decode(response.headers, response.text)
             self.log_if_redirect(response, response_json)
         elif status == 401:
-            self.token_store.delete(scope)
             raise UnauthorisedError
         elif status in [503, 504, 408]:
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
@@ -231,8 +246,19 @@ class Cooperative(MerchantApi):
 
     def _update_validate_request(self):
         card_number = self.request['json']['card_number']
-        if self._card_is_temporary(card_number):
-            return create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name'])
+        try:
+            if self._card_is_temporary(card_number):
+                return (create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name']),
+                        errors[PRE_REGISTERED_CARD]['code'])
+        except KeyError:
+            return (create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + ' isTemporary not in check card response'),
+                    errors[UNKNOWN]['code'])
+        except LoginError:
+            return (create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name']),
+                    errors[STATUS_LOGIN_FAILED]['code'])
+        except UnauthorisedError:
+            return (create_error_response(VALIDATION, errors[VALIDATION]['name']),
+                    errors[VALIDATION]['code'])
 
         old_json = self.request['json']
         new_json = {
@@ -243,21 +269,27 @@ class Cooperative(MerchantApi):
 
         self.new_request = self.request.copy()
         self.new_request['json'] = new_json
-        response = requests.post(self.config.merchant_url, **self.new_request)
-        handler_type = self.config.handler_type[0]
-        validate_response = self.handler_type_to_error_handler[handler_type](response)
-        validate_dict = json.loads(validate_response)
-        if validate_dict.get('error_codes'):
-            return validate_response
 
-        member_id = validate_dict['memberId']
-        response_json = self._get_balance(member_id)
+        response = requests.post(self.config.merchant_url, **self.new_request)
+
+        handler_type = self.config.handler_type[0]
+        validated_response = self.handler_type_to_error_handler[handler_type](response)
+        validated_response_dict = json.loads(validated_response)
+        if validated_response_dict.get('error_codes'):
+            return validated_response, response.status_code
+
+        member_id = validated_response_dict['memberId']
+        response_json, balance_status = self._get_balance(member_id)
+
         response_dict = json.loads(response_json)
         response_dict['memberId'] = member_id
-        return json.dumps(response_dict)
+
+        return json.dumps(response_dict), balance_status
 
     def _validate_error_handler(self, response):
+        # response_json = self._error_handler(response, self.journey_to_scope[Configuration.VALIDATE_HANDLER])
         response_json = self._error_handler(response)
+
         response_dict = json.loads(response_json)
         if not response_dict.get('error_codes'):
             if not response_dict.get('isVerified'):
@@ -271,7 +303,7 @@ class Cooperative(MerchantApi):
 
         balance_url = self.config.merchant_url.format(member_id=member_id)
         response = requests.get(balance_url, headers=self.request['headers'])
-        return self.handler_type_to_error_handler[handler_type](response)
+        return self.handler_type_to_error_handler[handler_type](response), response.status_code
 
     def _update_error_handler(self, response):
         response_json = self._error_handler(response)
@@ -286,12 +318,26 @@ class Cooperative(MerchantApi):
         balance_config = Configuration(self.scheme_slug, balance_handler)
         full_url = balance_config.merchant_url.format(member_id=member_id)
         response = requests.get(full_url, headers=headers)
-        return self.handler_type_to_error_handler[balance_handler](response)
+        return self.handler_type_to_error_handler[balance_handler](response), response.status_code
 
     def _get_auth_headers(self, scope_key):
         scope = self.journey_to_scope[scope_key]
         security_service = self.config.security_credentials['outbound']['service']
         security_credentials = self.config.security_credentials.copy()
-        security_credentials['outbound']['credentials'][0]['value']['payload']['scope'] = scope
-        request = self.apply_security_measures('{}', security_service, security_credentials)
-        return request['headers']
+
+        try:
+            access_token = self._get_auth_token(scope)
+
+            if not self._token_is_valid(access_token['timestamp']):
+                access_token = self._refresh_auth_token('{}', security_service, security_credentials, scope)
+
+        except self.token_store.NoSuchToken:
+            access_token = self._refresh_auth_token('{}', security_service, security_credentials, scope)
+
+        return {
+            self.AUTH_TOKEN_HEADER: "{} {}".format(
+                security_credentials['outbound']['credentials'][0]['value']['prefix'],
+                access_token['token']
+            ),
+            'X-API-KEY': Cooperative.API_KEY
+        }

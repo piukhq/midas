@@ -665,7 +665,10 @@ class MerchantApi(BaseMiner):
                 break
             else:
                 try:
-                    response_json = send_request()
+                    response_json, status = send_request()
+
+                    if status == 200:
+                        break
                 except UnauthorisedError:
                     response_json = create_error_response(VALIDATION,
                                                           errors[VALIDATION]['name'])
@@ -698,7 +701,7 @@ class MerchantApi(BaseMiner):
                                                   errors[UNKNOWN]['name'] + ' with status code {}'
                                                   .format(status))
 
-        return response_json
+        return response_json, status
 
     def _async_inbound(self, data, scheme_slug, handler_type):
         """
