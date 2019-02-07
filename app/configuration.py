@@ -22,6 +22,8 @@ class Configuration:
     UPDATE_HANDLER = 0
     JOIN_HANDLER = 1
     VALIDATE_HANDLER = 2
+    TRANSACTION_MATCHING = 3
+    CHECK_MEMBERSHIP = 4
 
     HANDLER_TYPE_CHOICES = (
         (UPDATE_HANDLER, "Update"),

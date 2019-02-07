@@ -624,8 +624,7 @@ class MerchantApi(BaseMiner):
         return self.process_join_response()
 
     def apply_security_measures(self, json_data, security_service, security_credentials, refresh_token=False):
-        outbound_security_agent = get_security_agent(security_service,
-                                                     security_credentials)
+        outbound_security_agent = get_security_agent(security_service, security_credentials)
         self.request = outbound_security_agent.encode(json_data)
 
     def _sync_outbound(self, json_data):
