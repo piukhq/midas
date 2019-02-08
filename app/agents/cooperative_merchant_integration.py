@@ -220,7 +220,7 @@ class Cooperative(MerchantApi):
         elif status == 401:
             self.token_store.delete(self.scope)
             raise UnauthorisedError
-        elif status in [500, 503, 504, 408]:
+        elif status in [503, 504, 408]:
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
                                                   .format(status))
         else:
