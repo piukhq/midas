@@ -45,7 +45,7 @@ class Cooperative(MerchantApi):
         self.handler_type_to_updated_request = {
             Configuration.JOIN_HANDLER: self._update_join_request,
             Configuration.VALIDATE_HANDLER: self._update_validate_request,
-            Configuration.UPDATE_HANDLER: self._update_balance_request
+            Configuration.UPDATE_HANDLER: self._get_balance
         }
         # For journey specific error handling.
         self.handler_type_to_error_handler = {
@@ -59,6 +59,15 @@ class Cooperative(MerchantApi):
             Configuration.VALIDATE_HANDLER: 'membership-api/verify-member',
             Configuration.JOIN_HANDLER: 'membership-api/register-members',
             'check_card': 'membership-api/check-card'
+        }
+
+        # { error we raise: error we receive in merchant payload }
+        self.errors = {
+            NOT_SENT: ['NOT_SENT'],
+            VALIDATION: ['VALIDATION'],
+            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
+            UNKNOWN: ['UNKNOWN'],
+            CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
         }
 
         self.scope = self._get_scope()
@@ -89,29 +98,24 @@ class Cooperative(MerchantApi):
     def get_merchant_ids(self, credentials):
         return {}
 
-    def apply_security_measures(self, json_data, security_service, security_credentials, refresh_token=False):
+    def apply_security_measures(self, json_data, security_service, security_credentials):
         try:
-            if refresh_token:
-                raise self.token_store.NoSuchToken
-
             access_token = self._get_auth_token(self.scope)
-
-            if self._token_is_valid(access_token['timestamp']):
-                self.request = {
-                    "json": json.loads(json_data),
-                    "headers": {
-                        self.AUTH_TOKEN_HEADER: "{} {}".format(
-                            security_credentials['outbound']['credentials'][0]['value']['prefix'],
-                            access_token['token'])
-                    }
-                }
-            else:
+            if not self._token_is_valid(access_token['timestamp']):
                 raise self.token_store.NoSuchToken
 
         except self.token_store.NoSuchToken:
-            self._refresh_auth_token(json_data, security_service, security_credentials, self.scope)
+            access_token = self._refresh_auth_token(json_data, security_service, security_credentials, self.scope)
 
-        self.request['headers']['X-API-KEY'] = Cooperative.API_KEY
+        self.request = {
+            "json": json.loads(json_data),
+            "headers": {
+                self.AUTH_TOKEN_HEADER: "{} {}".format(
+                    security_credentials['outbound']['credentials'][0]['value']['prefix'],
+                    access_token['token']),
+                'X-API-KEY': Cooperative.API_KEY
+            }
+        }
 
     @staticmethod
     def _token_is_valid(timestamp):
@@ -128,7 +132,6 @@ class Cooperative(MerchantApi):
         request = outbound_security_agent.encode(json_data)
 
         timestamp = time.time()
-
         key = f"{scope}"
         token_data = {
             'token': request['headers'][self.AUTH_TOKEN_HEADER].split()[1],
@@ -140,17 +143,7 @@ class Cooperative(MerchantApi):
 
     def _get_scope(self):
         handler_type = self.config.handler_type[0]
-
-        if handler_type != Configuration.JOIN_HANDLER:
-            scope = self.journey_to_scope[handler_type]
-        else:
-            # Must call verify if it is a ghost card
-            if self.user_info['credentials'].get('card_number'):
-                scope = self.journey_to_scope['check_card']
-            else:
-                scope = self.journey_to_scope[handler_type]
-
-        return scope
+        return self.journey_to_scope[handler_type]
 
     def _send_request(self):
         handler_type = self.config.handler_type[0]
@@ -159,8 +152,8 @@ class Cooperative(MerchantApi):
         return response_json, status
 
     def _card_is_temporary(self, card_number):
-        scope = 'check_card'
-        headers = self._get_auth_headers(scope)
+        scope_key = 'check_card'
+        headers = self._get_auth_headers(scope_key)
 
         # check_card_config = Configuration(self.scheme_slug, Configuration.CHECK_MEMBERSHIP)
 
@@ -173,7 +166,7 @@ class Cooperative(MerchantApi):
         if resp.status_code == 404:
             raise LoginError(CARD_NUMBER_ERROR)
         elif resp.status_code == 401:
-            self.token_store.delete(scope)
+            self.token_store.delete(self.journey_to_scope[scope_key])
             raise UnauthorisedError
 
         resp_json = resp.json()
@@ -194,9 +187,6 @@ class Cooperative(MerchantApi):
         except LoginError:
             return (create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name']),
                     errors[STATUS_LOGIN_FAILED]['code'])
-        except UnauthorisedError:
-            return (create_error_response(VALIDATION, errors[VALIDATION]['name']),
-                    errors[VALIDATION]['code'])
 
         old_json = self.request['json']
         new_json = {
@@ -228,6 +218,7 @@ class Cooperative(MerchantApi):
             response_json = inbound_security_agent.decode(response.headers, response.text)
             self.log_if_redirect(response, response_json)
         elif status == 401:
+            self.token_store.delete(self.scope)
             raise UnauthorisedError
         elif status in [503, 504, 408]:
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
@@ -250,9 +241,6 @@ class Cooperative(MerchantApi):
         except LoginError:
             return (create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name']),
                     errors[STATUS_LOGIN_FAILED]['code'])
-        except UnauthorisedError:
-            return (create_error_response(VALIDATION, errors[VALIDATION]['name']),
-                    errors[VALIDATION]['code'])
 
         old_json = self.request['json']
         new_json = {
@@ -289,21 +277,11 @@ class Cooperative(MerchantApi):
                 return create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name'])
         return response_json
 
-    def _update_balance_request(self):
-        handler_type = self.config.handler_type[0]
-        old_json = self.request['json']
-        member_id = old_json['merchant_identifier']
-
-        balance_url = self.config.merchant_url.format(member_id=member_id)
-        response = requests.get(balance_url, headers=self.request['headers'])
-        return self.handler_type_to_error_handler[handler_type](response), response.status_code
-
     def _update_error_handler(self, response):
         response_json = self._error_handler(response)
         # delete card if delete me is true (GDPR thing)
         return response_json
 
-    # TODO: rename me
     def _get_balance(self, member_id):
         balance_handler = Configuration.UPDATE_HANDLER
         headers = self._get_auth_headers(balance_handler)

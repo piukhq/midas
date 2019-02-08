@@ -623,7 +623,7 @@ class MerchantApi(BaseMiner):
 
         return self.process_join_response()
 
-    def apply_security_measures(self, json_data, security_service, security_credentials, refresh_token=False):
+    def apply_security_measures(self, json_data, security_service, security_credentials):
         outbound_security_agent = get_security_agent(security_service, security_credentials)
         self.request = outbound_security_agent.encode(json_data)
 
@@ -640,21 +640,17 @@ class MerchantApi(BaseMiner):
         def apply_security_measures(retry_state):
             return self.apply_security_measures(json_data,
                                                 self.config.security_credentials['outbound']['service'],
-                                                self.config.security_credentials,
-                                                refresh_token=True)
+                                                self.config.security_credentials)
 
         @retry(stop=stop_after_attempt(2),
                retry=retry_if_exception_type(UnauthorisedError),
-               after=apply_security_measures,
+               before=apply_security_measures,
                reraise=True)
         def send_request():
             # This is to refresh auth creds and retry the request on Unauthorised errors.
             # These errors will result in additional retries to the retry_count below.
             return self._send_request()
 
-        self.apply_security_measures(json_data,
-                                     self.config.security_credentials['outbound']['service'],
-                                     self.config.security_credentials)
         back_off_service = BackOffService()
 
         response_json = None
