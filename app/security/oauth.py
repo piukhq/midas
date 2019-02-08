@@ -2,6 +2,7 @@ import json
 
 import requests
 
+from app import sentry
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, SERVICE_CONNECTION_ERROR
 from app.security.base import BaseSecurity
 
@@ -13,6 +14,7 @@ class OAuth(BaseSecurity):
             credentials = self.credentials['outbound']['credentials'][0]['value']
             url = credentials['url']
             resp = requests.post(url=url, data=credentials['payload'])
+            resp.raise_for_status()
             response_json = resp.json()
 
             request_data = {
@@ -22,6 +24,7 @@ class OAuth(BaseSecurity):
                 }
             }
         except requests.RequestException as e:
+            sentry.captureMessage('Failed request to get oauth token from {}. exception: {}'. format(url, e))
             raise AgentError(SERVICE_CONNECTION_ERROR) from e
         except (KeyError, IndexError) as e:
             raise AgentError(CONFIGURATION_ERROR) from e
