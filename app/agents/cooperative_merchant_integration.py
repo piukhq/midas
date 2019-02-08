@@ -229,7 +229,7 @@ class Cooperative(MerchantApi):
             self.log_if_redirect(response, response_json)
         elif status == 401:
             raise UnauthorisedError
-        elif status in [503, 504, 408]:
+        elif status in [500, 503, 504, 408]:
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
                                                   .format(status))
         else:
