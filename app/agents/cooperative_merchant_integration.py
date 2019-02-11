@@ -281,7 +281,7 @@ class Cooperative(MerchantApi):
     def _join_error_handler(self, response):
         response_json = self._error_handler(response)
         if response.status_code == 400:
-                return create_error_response(JOIN_ERROR, "Duplicate registration.")
+            return create_error_response(JOIN_ERROR, "Duplicate registration.")
         return response_json
 
     def _validate_error_handler(self, response):
