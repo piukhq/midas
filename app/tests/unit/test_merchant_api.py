@@ -18,7 +18,6 @@ from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentEr
     RegistrationError, CONFIGURATION_ERROR, VALIDATION
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
-from app.exceptions import AgentException
 from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
