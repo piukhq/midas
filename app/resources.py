@@ -414,6 +414,9 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
     """
     key = retry.get_key(agent_class.__name__, user_info['scheme_account_id'])
     retry_count = retry.get_count(key)
+    if from_register:
+        user_info['journey_type'] = JourneyTypes.UPDATE.value
+
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_login(user_info['credentials'])
@@ -442,8 +445,7 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
         if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug,
-                                        consent_ids=consent_ids)
+            update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,

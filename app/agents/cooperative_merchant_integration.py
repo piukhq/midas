@@ -8,7 +8,7 @@ from gaia.user_token import UserTokenStore
 
 from app.agents.base import MerchantApi, UnauthorisedError
 from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
-    CARD_NUMBER_ERROR, VALIDATION
+    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
@@ -45,11 +45,11 @@ class Cooperative(MerchantApi):
         self.handler_type_to_updated_request = {
             Configuration.JOIN_HANDLER: self._update_join_request,
             Configuration.VALIDATE_HANDLER: self._update_validate_request,
-            Configuration.UPDATE_HANDLER: self._get_balance
+            Configuration.UPDATE_HANDLER: self._update_balance_request
         }
         # For journey specific error handling.
         self.handler_type_to_error_handler = {
-            Configuration.JOIN_HANDLER: self._error_handler,
+            Configuration.JOIN_HANDLER: self._join_error_handler,
             Configuration.VALIDATE_HANDLER: self._validate_error_handler,
             Configuration.UPDATE_HANDLER: self._update_error_handler
         }
@@ -60,7 +60,6 @@ class Cooperative(MerchantApi):
             Configuration.JOIN_HANDLER: 'membership-api/register-members',
             'check_card': 'membership-api/check-card'
         }
-
         # { error we raise: error we receive in merchant payload }
         self.errors = {
             NOT_SENT: ['NOT_SENT'],
@@ -68,6 +67,7 @@ class Cooperative(MerchantApi):
             PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
             UNKNOWN: ['UNKNOWN'],
             CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
+            JOIN_ERROR: ['JOIN_ERROR']
         }
 
         self.scope = self._get_scope()
@@ -208,7 +208,13 @@ class Cooperative(MerchantApi):
         response = requests.post(self.config.merchant_url, **self.new_request)
         handler_type = self.config.handler_type[0]
 
-        return self.handler_type_to_error_handler[handler_type](response), response.status_code
+        validated_response = self.handler_type_to_error_handler[handler_type](response)
+        validated_response_dict = json.loads(validated_response)
+        if validated_response_dict.get('error_codes'):
+            return validated_response, response.status_code
+
+        self.user_info['credentials']['merchant_identifier'] = validated_response_dict['memberId']
+        return validated_response, response.status_code
 
     def _error_handler(self, response):
         status = response.status_code
@@ -268,6 +274,16 @@ class Cooperative(MerchantApi):
 
         return json.dumps(response_dict), balance_status
 
+    def _update_balance_request(self):
+        member_id = self.request['json']['merchant_identifier']
+        return self._get_balance(member_id)
+
+    def _join_error_handler(self, response):
+        response_json = self._error_handler(response)
+        if response.status_code == 400:
+                return create_error_response(JOIN_ERROR, "Duplicate registration.")
+        return response_json
+
     def _validate_error_handler(self, response):
         response_json = self._error_handler(response)
 
@@ -286,7 +302,11 @@ class Cooperative(MerchantApi):
         balance_handler = Configuration.UPDATE_HANDLER
         headers = self._get_auth_headers(balance_handler)
 
-        balance_config = Configuration(self.scheme_slug, balance_handler)
+        if self.config and self.config.handler_type == Configuration.UPDATE_HANDLER:
+            balance_config = self.config
+        else:
+            balance_config = Configuration(self.scheme_slug, balance_handler)
+
         full_url = balance_config.merchant_url.format(member_id=member_id)
         response = requests.get(full_url, headers=headers)
         return self.handler_type_to_error_handler[balance_handler](response), response.status_code

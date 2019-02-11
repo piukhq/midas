@@ -520,13 +520,9 @@ class MerchantApi(BaseMiner):
                 self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
-            update_pending_join_account(self.user_info, "success", self.message_uid,
-                                        identifier=identifier)
+            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
-        except (AgentException, LoginError, AgentError) as e:
-            consent_status = ConsentStatus.FAILED
-            update_pending_join_account(self.user_info, e, self.message_uid, scheme_slug=self.scheme_slug)
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
