@@ -39,6 +39,13 @@ class JoinCallback(Resource):
             sentry.captureException()
             raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
 
+        def update_failed_scheme_account():
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
+            update_pending_join_account(user_info, e.args[0], message_uid, scheme_slug=scheme_slug,
+                                        consent_ids=consent_ids, raise_exception=False)
+            sentry.captureException()
+
         try:
             agent_class = get_agent_class(scheme_slug)
 
@@ -48,12 +55,10 @@ class JoinCallback(Resource):
 
             agent_instance.register(data, inbound=True)
         except AgentError as e:
-            update_pending_join_account(user_info, str(e), message_uid, raise_exception=False)
-            sentry.captureException()
+            update_failed_scheme_account()
             raise AgentException(e)
         except Exception as e:
-            update_pending_join_account(user_info, str(e), message_uid, raise_exception=False)
-            sentry.captureException()
+            update_failed_scheme_account()
             raise UnknownException(e)
 
         return create_response({'success': True})
