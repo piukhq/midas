@@ -12,7 +12,7 @@ from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
-from settings import REDIS_URL
+from settings import REDIS_URL, logger
 
 
 class Cooperative(MerchantApi):
@@ -67,7 +67,8 @@ class Cooperative(MerchantApi):
             PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
             UNKNOWN: ['UNKNOWN'],
             CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
-            JOIN_ERROR: ['JOIN_ERROR']
+            JOIN_ERROR: ['JOIN_ERROR'],
+            STATUS_LOGIN_FAILED: ['STATUS_LOGIN_FAILED']
         }
 
         self.scope = self._get_scope()
@@ -219,6 +220,8 @@ class Cooperative(MerchantApi):
     def _error_handler(self, response):
         status = response.status_code
 
+        logger.debug(f"raw_response: {response.text}, scheme_account: {self.scheme_id}")
+
         if status == 200:
             inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             response_json = inbound_security_agent.decode(response.headers, response.text)
@@ -271,6 +274,8 @@ class Cooperative(MerchantApi):
 
         response_dict = json.loads(response_json)
         response_dict['memberId'] = member_id
+
+        self._get_balance(member_id)
 
         return json.dumps(response_dict), balance_status
 
