@@ -411,6 +411,8 @@ class MerchantApi(BaseMiner):
         'merchant_scheme_id2': 'merchant_identifier',
     }
 
+    ERRORS_KEY = 'error_codes'
+
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
         self.scheme_id = user_info['scheme_account_id']
@@ -523,6 +525,9 @@ class MerchantApi(BaseMiner):
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
+
+        except (AgentException, LoginError, AgentError):
+            consent_status = ConsentStatus.FAILED
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
@@ -769,9 +774,8 @@ class MerchantApi(BaseMiner):
 
         return json.dumps(data)
 
-    @staticmethod
-    def _check_for_error_response(response):
-        return response.get('error_codes')
+    def _check_for_error_response(self, response):
+        return response.get(self.ERRORS_KEY)
 
     @staticmethod
     def consent_confirmation(consents_data, status):
