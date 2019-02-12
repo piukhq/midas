@@ -411,7 +411,7 @@ class MerchantApi(BaseMiner):
         'merchant_scheme_id2': 'merchant_identifier',
     }
 
-    ERRORS_KEY = 'error_codes'
+    ERRORS_KEYS = ['error_codes', 'errors']
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
@@ -775,7 +775,12 @@ class MerchantApi(BaseMiner):
         return json.dumps(data)
 
     def _check_for_error_response(self, response):
-        return response.get(self.ERRORS_KEY)
+        error = None
+        for key in self.ERRORS_KEYS:
+            error = response.get(key)
+            if error:
+                break
+        return error
 
     @staticmethod
     def consent_confirmation(consents_data, status):

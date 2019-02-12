@@ -293,7 +293,8 @@ class Cooperative(MerchantApi):
         response_json = self._error_handler(response)
 
         response_dict = json.loads(response_json)
-        if not response_dict.get('error_codes'):
+        errors_in_resp = self._check_for_error_response(response_dict)
+        if not errors_in_resp:
             if not response_dict.get('isVerified'):
                 return create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name'])
         return response_json
