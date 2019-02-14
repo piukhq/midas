@@ -23,12 +23,16 @@ class Configuration:
     JOIN_HANDLER = 1
     VALIDATE_HANDLER = 2
     TRANSACTION_MATCHING = 3
-    CHECK_MEMBERSHIP = 4
+    CHECK_MEMBERSHIP_HANDLER = 4
+    TRANSACTION_HISTORY_HANDLER = 5
 
     HANDLER_TYPE_CHOICES = (
         (UPDATE_HANDLER, "Update"),
         (JOIN_HANDLER, "Join"),
         (VALIDATE_HANDLER, "Validate"),
+        (TRANSACTION_MATCHING, "Transaction Matching"),
+        (CHECK_MEMBERSHIP_HANDLER, "Check Membership"),
+        (TRANSACTION_HISTORY_HANDLER, "Transaction History"),
     )
 
     SYNC_INTEGRATION = 0
