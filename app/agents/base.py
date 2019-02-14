@@ -528,6 +528,7 @@ class MerchantApi(BaseMiner):
 
         except (AgentException, LoginError, AgentError):
             consent_status = ConsentStatus.FAILED
+            raise
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
