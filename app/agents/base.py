@@ -679,7 +679,7 @@ class MerchantApi(BaseMiner):
         response = requests.post(self.config.merchant_url, **self.request)
         status = response.status_code
 
-        logger.debug(f"raw_response: {response.text}, scheme_account: {self.scheme_id}")
+        logger.debug(f"raw response: {response.text}, scheme_account: {self.scheme_id}")
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
