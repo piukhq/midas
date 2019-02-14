@@ -10,12 +10,12 @@ from hvac import Client
 from requests import Response
 
 from app import create_app
-from app.agents.base import MerchantApi, UnauthorisedError
+from app.agents.base import MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
-    RegistrationError, CONFIGURATION_ERROR, VALIDATION
+    RegistrationError, CONFIGURATION_ERROR, VALIDATION, UnauthorisedError
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.resources import agent_register

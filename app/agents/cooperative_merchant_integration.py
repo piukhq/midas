@@ -6,9 +6,9 @@ import arrow
 import requests
 from gaia.user_token import UserTokenStore
 
-from app.agents.base import MerchantApi, UnauthorisedError
+from app.agents.base import MerchantApi
 from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
-    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR
+    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
