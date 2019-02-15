@@ -41,6 +41,8 @@ class Cooperative(MerchantApi):
         except KeyError:
             self.config = Configuration(scheme_slug, Configuration.UPDATE_HANDLER)
 
+        self.scope = self._get_scope()
+
         # To change the request contents, using a function, based on the type of journey.
         self.handler_type_to_updated_request = {
             Configuration.JOIN_HANDLER: self._update_join_request,
@@ -70,8 +72,6 @@ class Cooperative(MerchantApi):
             JOIN_ERROR: ['JOIN_ERROR'],
             STATUS_LOGIN_FAILED: ['STATUS_LOGIN_FAILED']
         }
-
-        self.scope = self._get_scope()
 
     def balance(self):
         balance = self.result['balance'] / 100
@@ -156,12 +156,9 @@ class Cooperative(MerchantApi):
         scope_key = 'check_card'
         headers = self._get_auth_headers(scope_key)
 
-        # check_card_config = Configuration(self.scheme_slug, Configuration.CHECK_MEMBERSHIP)
+        check_card_config = Configuration(self.scheme_slug, Configuration.CHECK_MEMBERSHIP_HANDLER)
 
-        # delete me
-        merchant_url = 'https://api.sit.membership-dev.digital.coop.co.uk/card/{card_number}'
-
-        full_url = merchant_url.format(card_number=card_number)
+        full_url = check_card_config.merchant_url.format(card_number=card_number)
         resp = requests.get(full_url, headers=headers)
 
         if resp.status_code == 404:
