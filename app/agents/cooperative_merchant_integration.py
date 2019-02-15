@@ -41,8 +41,6 @@ class Cooperative(MerchantApi):
         except KeyError:
             self.config = Configuration(scheme_slug, Configuration.UPDATE_HANDLER)
 
-        self.scope = self._get_scope()
-
         # To change the request contents, using a function, based on the type of journey.
         self.handler_type_to_updated_request = {
             Configuration.JOIN_HANDLER: self._update_join_request,
@@ -72,6 +70,9 @@ class Cooperative(MerchantApi):
             JOIN_ERROR: ['JOIN_ERROR'],
             STATUS_LOGIN_FAILED: ['STATUS_LOGIN_FAILED']
         }
+
+        self.scope = self._get_scope()
+
 
     def balance(self):
         balance = self.result['balance'] / 100

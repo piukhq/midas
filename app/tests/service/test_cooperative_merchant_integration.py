@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from app.agents.cooperative_merchant_integration import Cooperative
 from app.agents import schemas
+from app.agents.exceptions import LoginError, UnauthorisedError
 from app.configuration import Configuration
 from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 from gaia.user_token import UserTokenStore
@@ -72,6 +73,78 @@ class TestCooperative(unittest.TestCase):
         self.assertTrue(mock_get_token.called)
         self.assertTrue(mock_refresh_token.called)
         self.assertEqual(result, expected_result)
+        self.assertFalse(result)
+
+    @patch('app.agents.cooperative_merchant_integration.requests.get')
+    @patch('app.agents.cooperative_merchant_integration.Configuration')
+    @patch.object(Cooperative, '_get_auth_headers')
+    def test_card_is_temporary_success(self, mock_get_auth_headers, mock_config, mock_request):
+        conf = MagicMock()
+        conf.merchant_url = "{card_number}"
+        mock_config.return_value = conf
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+
+        mock_resp.json.return_value = {'isTemporary': False}
+        mock_request.return_value = mock_resp
+        result = self.c._card_is_temporary('123')
+
+        self.assertEqual(result, False)
+
+        mock_resp.json.return_value = {'isTemporary': True}
+        mock_request.return_value = mock_resp
+        result = self.c._card_is_temporary('123')
+
+        self.assertEqual(result, True)
+
+        self.assertTrue(mock_get_auth_headers.called)
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_request.called)
+
+    @patch('app.agents.cooperative_merchant_integration.requests.get')
+    @patch('app.agents.cooperative_merchant_integration.Configuration')
+    @patch.object(Cooperative, '_get_auth_headers')
+    def test_card_is_temporary_raises_invalid_card_number_on_404(self, mock_get_auth_headers, mock_config,
+                                                                 mock_request):
+        conf = MagicMock()
+        conf.merchant_url = "{card_number}"
+        mock_config.return_value = conf
+        mock_resp = MagicMock()
+        mock_resp.status_code = 404
+
+        mock_resp.json.return_value = {'isTemporary': False}
+        mock_request.return_value = mock_resp
+
+        with self.assertRaises(LoginError) as e:
+            self.c._card_is_temporary('123')
+
+        self.assertEqual(e.exception.message, 'Invalid card_number')
+        self.assertTrue(mock_get_auth_headers.called)
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_request.called)
+
+    @patch.object(Cooperative, 'token_store')
+    @patch('app.agents.cooperative_merchant_integration.requests.get')
+    @patch('app.agents.cooperative_merchant_integration.Configuration')
+    @patch.object(Cooperative, '_get_auth_headers')
+    def test_card_is_temporary_raises_invalid_card_number_on_404(self, mock_get_auth_headers, mock_config,
+                                                                 mock_request, mock_token_store):
+        conf = MagicMock()
+        conf.merchant_url = "{card_number}"
+        mock_config.return_value = conf
+        mock_resp = MagicMock()
+        mock_resp.status_code = 401
+
+        mock_resp.json.return_value = {'isTemporary': False}
+        mock_request.return_value = mock_resp
+
+        with self.assertRaises(UnauthorisedError):
+            self.c._card_is_temporary('123')
+
+        self.assertTrue(mock_get_auth_headers.called)
+        self.assertTrue(mock_config.called)
+        self.assertTrue(mock_request.called)
+        self.assertTrue(mock_token_store.delete.called)
 
 
 class TestCooperativeValidate(unittest.TestCase):
