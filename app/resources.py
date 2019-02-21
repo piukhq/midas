@@ -200,13 +200,8 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
     except (AgentException, UnknownException) as e:
         if user_info.get('pending'):
-            intercom_data = {
-                'user_set': user_info['user_set'],
-                'user_email': user_info['credentials']['email'],
-                'metadata': {'scheme': scheme_slug},
-            }
             message = 'Error with async linking. Scheme: {}, Error: {}'.format(scheme_slug, str(e))
-            update_pending_link_account(user_info, message, tid, intercom_data=intercom_data)
+            update_pending_link_account(user_info, message, tid, scheme_slug=scheme_slug)
         else:
             status = e.status_code
             requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
@@ -419,6 +414,9 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
     """
     key = retry.get_key(agent_class.__name__, user_info['scheme_account_id'])
     retry_count = retry.get_count(key)
+    if from_register:
+        user_info['journey_type'] = JourneyTypes.UPDATE.value
+
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_login(user_info['credentials'])
@@ -436,7 +434,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
     return agent_instance
 
 
-def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None):
+def agent_register(agent_class, user_info, tid, scheme_slug=None):
     agent_instance = agent_class(0, user_info, scheme_slug=scheme_slug)
     error = None
     try:
@@ -447,8 +445,7 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
         if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, e.args[0], tid, intercom_data=intercom_data,
-                                        consent_ids=consent_ids)
+            update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,
@@ -458,12 +455,6 @@ def agent_register(agent_class, user_info, intercom_data, tid, scheme_slug=None)
 
 @log_task
 def registration(scheme_slug, user_info, tid):
-    intercom_data = {
-        'user_id': user_info['user_set'],
-        'user_email': user_info['credentials']['email'],
-        'metadata': {'scheme': scheme_slug},
-    }
-
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
@@ -471,8 +462,7 @@ def registration(scheme_slug, user_info, tid):
         publish.status(user_info['scheme_account_id'], 900, tid, user_info)
         abort(e.code, message=e.data['message'])
 
-    register_result = agent_register(agent_class, user_info, intercom_data, tid,
-                                     scheme_slug=scheme_slug)
+    register_result = agent_register(agent_class, user_info, tid, scheme_slug=scheme_slug)
     try:
         if register_result['agent'].expecting_callback:
             return True
@@ -485,14 +475,14 @@ def registration(scheme_slug, user_info, tid):
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, str(e.args[0]), tid,
-                                        intercom_data=intercom_data, consent_ids=consent_ids)
+            update_pending_join_account(user_info, str(e.args[0]), tid, scheme_slug=scheme_slug,
+                                        consent_ids=consent_ids)
         else:
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True
 
+    status = SchemeAccountStatus.ACTIVE
     try:
-        status = SchemeAccountStatus.ACTIVE
         publish.balance(agent_instance.balance(), user_info['scheme_account_id'], user_info['user_set'], tid)
         publish_transactions(agent_instance, user_info['scheme_account_id'], user_info['user_set'], tid)
     except Exception as e:
