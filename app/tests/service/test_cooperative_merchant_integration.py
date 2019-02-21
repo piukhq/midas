@@ -127,8 +127,8 @@ class TestCooperative(unittest.TestCase):
     @patch('app.agents.cooperative_merchant_integration.requests.get')
     @patch('app.agents.cooperative_merchant_integration.Configuration')
     @patch.object(Cooperative, '_get_auth_headers')
-    def test_card_is_temporary_raises_invalid_card_number_on_404(self, mock_get_auth_headers, mock_config,
-                                                                 mock_request, mock_token_store):
+    def test_card_is_temporary_raises_unauthorised_error_on_401(self, mock_get_auth_headers, mock_config,
+                                                                mock_request, mock_token_store):
         conf = MagicMock()
         conf.merchant_url = "{card_number}"
         mock_config.return_value = conf

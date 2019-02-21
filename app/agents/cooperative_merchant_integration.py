@@ -73,7 +73,6 @@ class Cooperative(MerchantApi):
 
         self.scope = self._get_scope()
 
-
     def balance(self):
         balance = self.result['balance'] / 100
         value = Decimal(balance).quantize(TWO_PLACES)
