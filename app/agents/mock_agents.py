@@ -3,7 +3,8 @@ from decimal import Decimal
 import arrow
 
 from app.agents.base import ApiMiner, MerchantApi
-from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
+from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, RegistrationError, ACCOUNT_ALREADY_EXISTS, \
+    STATUS_REGISTRATION_FAILED, UNKNOWN
 
 users = {
     '000000': {
@@ -374,16 +375,21 @@ class MockAgentHN(ApiMiner):
     retry_limit = None
 
     def login(self, credentials):
-        for user, info in users.items():
-            check_email = info['credentials']['email']
-            check_password = info['credentials']['password']
-            if credentials['email'] == check_email and credentials['password'] == check_password:
-                self.user_info = info
-                self.customer_number = user
-                break
+        if all(cred in credentials for cred in ['email', 'password', 'title', 'first_name', 'last_name']):
+            self.user_info = users['000000']
+            self.customer_number = '000000'
 
         else:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            for user, info in users.items():
+                check_email = info['credentials']['email']
+                check_password = info['credentials']['password']
+                if credentials['email'] == check_email and credentials['password'] == check_password:
+                    self.user_info = info
+                    self.customer_number = user
+                    break
+
+            else:
+                raise LoginError(STATUS_LOGIN_FAILED)
 
         card_number_mapping = {
             '000000': '0000000000000',
@@ -445,6 +451,47 @@ class MockAgentHN(ApiMiner):
     def scrape_transactions(self):
         max_transactions = self.user_info['len_transactions']
         return transactions[:max_transactions]
+
+    def register(self, credentials):
+        self.errors = {
+            ACCOUNT_ALREADY_EXISTS: 'AlreadyExists',
+            STATUS_REGISTRATION_FAILED: 'Invalid',
+            UNKNOWN: 'Fail'
+        }
+        data = {
+            'username': credentials['email'],
+            'email': credentials['email'],
+            'password': credentials['password'],
+            'title': credentials['title'],
+            'forename': credentials['first_name'],
+            'surname': credentials['last_name'],
+            'applicationId': 'BINK_APP'
+        }
+        if credentials.get('phone'):
+            data['phone'] = credentials['phone']
+
+        register_response = self._validate_credentials(data)
+
+        if register_response == 'Success':
+            return {"message": "success"}
+
+        self.handle_errors(register_response, exception_type=RegistrationError)
+
+    @staticmethod
+    def _validate_credentials(data):
+        for user, info in users.items():
+            check_email = info['credentials']['email']
+            check_password = info['credentials']['password']
+            if data['email'] == check_email and data['password'] == check_password:
+                return 'AlreadyExists'
+
+        titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dame', 'Sir', 'Doctor', 'Professor', 'Lord', 'Lady']
+        if data['title'].capitalize() not in titles or len(data['password']) < 6:
+            return 'Invalid'
+        elif data['email'].lower() == 'fail@unknown.com':
+            return 'Fail'
+
+        return 'Success'
 
 
 class MockAgentIce(MerchantApi):
