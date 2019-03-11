@@ -1,4 +1,5 @@
 from decimal import Decimal
+from time import sleep
 
 import arrow
 
@@ -327,6 +328,16 @@ users = {
         },
         'points': Decimal('123456')
     },
+    '999000': {
+        'len_transactions': 2,
+        'credentials': {
+            'email': 'slow@testbink.com',
+            'password': 'Slowpass01',
+            'last_name': 'slow',
+            'postcode': 'sl1 1ow'
+        },
+        'points': Decimal('300')
+    },
 
 }
 
@@ -525,11 +536,15 @@ class MockAgentIce(MerchantApi):
             '9000000000000000015': '900015',
             '9000000000000000016': '900016',
             '9000000000000000017': '900017',
+            '9991112223334445000': '999000',
         }
         try:
             card_number = card_number_mapping[card_number]
         except (KeyError, TypeError):
             raise LoginError(STATUS_LOGIN_FAILED)
+
+        if card_number == '999000':
+            sleep(20)
 
         self.user_info = get_user(card_number)
         login_credentials = (credentials['last_name'].lower(), credentials['postcode'].lower())
