@@ -8,7 +8,7 @@ from gaia.user_token import UserTokenStore
 
 from app.agents.base import MerchantApi
 from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
-    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError
+    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError, ACCOUNT_ALREADY_EXISTS, CARD_NOT_REGISTERED
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
@@ -64,7 +64,7 @@ class Cooperative(MerchantApi):
         self.errors = {
             NOT_SENT: ['NOT_SENT'],
             VALIDATION: ['VALIDATION'],
-            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
+            PRE_REGISTERED_CARD: ['PRE_REGISTERED_CARD'],
             UNKNOWN: ['UNKNOWN'],
             CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
             JOIN_ERROR: ['JOIN_ERROR'],
@@ -272,8 +272,6 @@ class Cooperative(MerchantApi):
         response_dict = json.loads(response_json)
         response_dict['memberId'] = member_id
 
-        self._get_balance(member_id)
-
         return json.dumps(response_dict), balance_status
 
     def _update_balance_request(self):
@@ -282,12 +280,15 @@ class Cooperative(MerchantApi):
 
     def _join_error_handler(self, response):
         response_json = self._error_handler(response)
-        if response.status_code == 400:
-            return create_error_response(JOIN_ERROR, "Duplicate registration.")
+        if response.status_code in [400, 404]:
+            return self.generate_response_from_error_codes(response)
         return response_json
 
     def _validate_error_handler(self, response):
         response_json = self._error_handler(response)
+
+        if response.status_code in [400, 404]:
+            return self.generate_response_from_error_codes(response)
 
         response_dict = json.loads(response_json)
         errors_in_resp = self._check_for_error_response(response_dict)
@@ -298,6 +299,10 @@ class Cooperative(MerchantApi):
 
     def _update_error_handler(self, response):
         response_json = self._error_handler(response)
+
+        if response.status_code in [404]:
+            return self.generate_response_from_error_codes(response)
+
         # delete card if delete me is true (GDPR thing)
         return response_json
 
@@ -335,3 +340,28 @@ class Cooperative(MerchantApi):
             ),
             'X-API-KEY': Cooperative.API_KEY
         }
+
+    def generate_response_from_error_codes(self, response):
+        """
+        Assumes the response is an error response.
+        Parses the response json and converts the response error codes to internal error codes.
+        :param response: Response object
+        :return: JSON string of converted response
+        """
+        inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+        response_json = inbound_security_agent.decode(response.headers, response.text)
+
+        error_mapping = {
+            VALIDATION: ['VALIDATION_FAILED'],
+            STATUS_LOGIN_FAILED: ['VERIFICATION_FAILURE'],
+            ACCOUNT_ALREADY_EXISTS: ['DUPLICATE_REGISTRATION'],
+            PRE_REGISTERED_CARD: ['INVALID_TEMP_CARD'],
+            CARD_NOT_REGISTERED: ['CARD_NOT_FOUND']
+        }
+        error = self._check_for_error_response(json.loads(response_json))
+        if error:
+            for key, values in error_mapping.items():
+                if error[0]['code'] in values:
+                    return create_error_response(key, errors[key]['name'])
+
+        return create_error_response(UNKNOWN, errors[UNKNOWN]['name'])

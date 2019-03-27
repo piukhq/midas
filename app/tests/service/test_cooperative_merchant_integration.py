@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from app.agents.cooperative_merchant_integration import Cooperative
 from app.agents import schemas
-from app.agents.exceptions import LoginError, UnauthorisedError
+from app.agents.exceptions import LoginError, UnauthorisedError, VALIDATION, STATUS_LOGIN_FAILED, \
+    ACCOUNT_ALREADY_EXISTS, PRE_REGISTERED_CARD, CARD_NOT_REGISTERED, UNKNOWN
 from app.configuration import Configuration
 from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 from gaia.user_token import UserTokenStore
@@ -145,6 +146,27 @@ class TestCooperative(unittest.TestCase):
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_request.called)
         self.assertTrue(mock_token_store.delete.called)
+
+    @patch('app.agents.cooperative_merchant_integration.Configuration')
+    def test_generate_response_from_error_codes(self, mock_config):
+        mock_config.OPEN_AUTH_SECURITY = 1
+        mock_response = MagicMock()
+
+        error_mapping = {
+            'VALIDATION_FAILED': VALIDATION,
+            'VERIFICATION_FAILURE': STATUS_LOGIN_FAILED,
+            'DUPLICATE_REGISTRATION': ACCOUNT_ALREADY_EXISTS,
+            'INVALID_TEMP_CARD': PRE_REGISTERED_CARD,
+            'CARD_NOT_FOUND': CARD_NOT_REGISTERED,
+            'ANY UNRECOGNISED ERROR': UNKNOWN
+        }
+
+        for error in error_mapping:
+            mock_response.text = f'{{"errors": [{{"code": "{error}", "message": ""}}]}}'
+
+            response = json.loads(self.c.generate_response_from_error_codes(mock_response))
+
+            self.assertEqual(response['error_codes'][0]['code'], error_mapping[error])
 
 
 class TestCooperativeValidate(unittest.TestCase):
