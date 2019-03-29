@@ -6,7 +6,7 @@ ADD . .
 ARG FIREFOX_URL=https://ftp.mozilla.org/pub/firefox/releases/55.0/linux-x86_64/en-US/firefox-55.0.tar.bz2
 ARG GECKODRIVER_URL=https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz
 
-RUN apt update && apt -y install curl bzip2 ca-certificates xvfb && \
+RUN apt update && apt -y install curl bzip2 ca-certificates xvfb nodejs && \
     curl -L "$FIREFOX_URL" -o /tmp/firefox.tar.bz2 && \
     tar xvf /tmp/firefox.tar.bz2 -C /usr/local && \
     ln -s /usr/local/firefox/firefox /usr/bin/firefox && \

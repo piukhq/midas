@@ -20,6 +20,7 @@ from robobrowser import RoboBrowser
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 from app import publish
 from app.back_off_service import BackOffService
@@ -29,7 +30,7 @@ from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
     IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
-    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError
+    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION, UnauthorisedError
 from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
@@ -406,6 +407,8 @@ class MerchantApi(BaseMiner):
         'merchant_scheme_id2': 'merchant_identifier',
     }
 
+    ERRORS_KEYS = ['error_codes', 'errors']
+
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
         self.scheme_id = user_info['scheme_account_id']
@@ -415,6 +418,7 @@ class MerchantApi(BaseMiner):
         self.consents_data = consents_data
 
         self.record_uid = None
+        self.request = None
         self.result = None
 
         # { error we raise: error we receive in merchant payload }
@@ -514,18 +518,18 @@ class MerchantApi(BaseMiner):
                 self._handle_errors(error[0]['code'], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
-            update_pending_join_account(self.user_info, "success", self.result['message_uid'],
-                                        identifier=identifier)
+            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
 
             consent_status = ConsentStatus.SUCCESS
-        except (AgentException, LoginError, AgentError) as e:
+
+        except (AgentException, LoginError, AgentError):
             consent_status = ConsentStatus.FAILED
-            update_pending_join_account(self.user_info, e, self.result['message_uid'])
+            raise
         finally:
             self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.result['message_uid'], self.user_info, journey='join')
+        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey='join')
 
     def _outbound_handler(self, data, scheme_slug, handler_type):
         """
@@ -573,7 +577,7 @@ class MerchantApi(BaseMiner):
 
         logger.info(json.dumps(logging_info))
 
-        response_json = self._sync_outbound(payload, self.config)
+        response_json = self._sync_outbound(payload)
 
         response_data = {}
         if response_json:
@@ -598,10 +602,11 @@ class MerchantApi(BaseMiner):
         :return: dict of response data
         """
         self.result = data
+        self.message_uid = self.result.get('message_uid')
 
         logging_info = self._create_log_message(
             data,
-            self.result.get('message_uid'),
+            self.message_uid,
             scheme_slug,
             self.config.handler_type,
             'ASYNC',
@@ -616,60 +621,83 @@ class MerchantApi(BaseMiner):
 
         return self.process_join_response()
 
-    def _sync_outbound(self, json_data, config):
+    def apply_security_measures(self, json_data, security_service, security_credentials):
+        outbound_security_agent = get_security_agent(security_service, security_credentials)
+        self.request = outbound_security_agent.encode(json_data)
+
+    def _sync_outbound(self, json_data):
         """
         Synchronous outbound service to build a request and make call to merchant endpoint.
-        Calls are made to security and back off services pre-request.
+        Calls are made to security and back off services pre-request. Security measures are reapplied before
+        retrying if an unauthorised response is returned.
         :param json_data: JSON string of payload to send to merchant
-        :param config: dict of merchant configuration settings
         :return: Response payload
         """
         json_data = self.map_credentials_to_request(json_data)
-        outbound_security_agent = get_security_agent(config.security_credentials['outbound']['service'],
-                                                     config.security_credentials)
-        request = outbound_security_agent.encode(json_data)
+
+        def apply_security_measures(retry_state):
+            return self.apply_security_measures(json_data,
+                                                self.config.security_credentials['outbound']['service'],
+                                                self.config.security_credentials)
+
+        @retry(stop=stop_after_attempt(2),
+               retry=retry_if_exception_type(UnauthorisedError),
+               before=apply_security_measures,
+               reraise=True)
+        def send_request():
+            # This is to refresh auth creds and retry the request on Unauthorised errors.
+            # These errors will result in additional retries to the retry_count below.
+            return self._send_request()
+
         back_off_service = BackOffService()
 
-        for retry_count in range(1 + config.retry_limit):
-            if back_off_service.is_on_cooldown(config.scheme_slug, config.handler_type):
-                response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        response_json = None
+        for retry_count in range(1 + self.config.retry_limit):
+            if back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.handler_type):
+                error_desc = '{} {} is currently on cooldown'.format(errors[NOT_SENT]['name'], self.config.scheme_slug)
+                response_json = create_error_response(NOT_SENT, error_desc)
                 break
             else:
-                response = requests.post(config.merchant_url, **request)
-                status = response.status_code
+                try:
+                    response_json, status = send_request()
 
-                if status in [200, 202]:
-                    if config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
-                        inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
-                    else:
-                        inbound_security_agent = get_security_agent(config.security_credentials['inbound']['service'],
-                                                                    config.security_credentials)
-
-                    response_json = inbound_security_agent.decode(response.headers, response.text)
-                    # Log if request was redirected
-                    if response.history:
-                        logging_info = self._create_log_message(
-                            response_json,
-                            json.loads(json_data)['message_uid'],
-                            config.scheme_slug,
-                            config.handler_type,
-                            config.integration_service,
-                            "OUTBOUND"
-                        )
-                        logger.warning(json.dumps(logging_info))
-                    break
-
-                elif status in [503, 504, 408]:
-                    response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
-                else:
-                    response_json = create_error_response(UNKNOWN,
-                                                          errors[UNKNOWN]['name'] + ' with status code {}'
-                                                          .format(status))
-
-                if retry_count == config.retry_limit:
-                    back_off_service.activate_cooldown(config.scheme_slug, config.handler_type, BACK_OFF_COOLDOWN)
-
+                    if status == 200:
+                        break
+                except UnauthorisedError:
+                    response_json = create_error_response(VALIDATION,
+                                                          errors[VALIDATION]['name'])
+                if retry_count == self.config.retry_limit:
+                    back_off_service.activate_cooldown(self.config.scheme_slug,
+                                                       self.config.handler_type,
+                                                       BACK_OFF_COOLDOWN)
         return response_json
+
+    def _send_request(self):
+        response = requests.post(self.config.merchant_url, **self.request)
+        status = response.status_code
+
+        logger.debug(f"raw response: {response.text}, scheme_account: {self.scheme_id}")
+
+        if status in [200, 202]:
+            if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+                inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
+            else:
+                inbound_security_agent = get_security_agent(self.config.security_credentials['inbound']['service'],
+                                                            self.config.security_credentials)
+
+            response_json = inbound_security_agent.decode(response.headers, response.text)
+
+            self.log_if_redirect(response, response_json)
+        elif status == 401:
+            raise UnauthorisedError
+        elif status in [503, 504, 408]:
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+        else:
+            response_json = create_error_response(UNKNOWN,
+                                                  errors[UNKNOWN]['name'] + ' with status code {}'
+                                                  .format(status))
+
+        return response_json, status
 
     def _async_inbound(self, data, scheme_slug, handler_type):
         """
@@ -743,9 +771,13 @@ class MerchantApi(BaseMiner):
 
         return json.dumps(data)
 
-    @staticmethod
-    def _check_for_error_response(response):
-        return response.get('error_codes')
+    def _check_for_error_response(self, response):
+        error = None
+        for key in self.ERRORS_KEYS:
+            error = response.get(key)
+            if error:
+                break
+        return error
 
     @staticmethod
     def consent_confirmation(consents_data, status):
@@ -804,3 +836,15 @@ class MerchantApi(BaseMiner):
         for consent in consents:
             if consent['journey_type'] == journey:
                 data.update({consent['slug']: consent['value']})
+
+    def log_if_redirect(self, response, message):
+        if response.history:
+            logging_info = self._create_log_message(
+                message,
+                json.loads(self.request['json'])['message_uid'],
+                self.config.scheme_slug,
+                self.config.handler_type,
+                self.config.integration_service,
+                "OUTBOUND"
+            )
+            logger.warning(json.dumps(logging_info))

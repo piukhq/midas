@@ -172,3 +172,7 @@ class AgentModifiedError(Exception):
 
 class RegistrationError(AgentError):
     pass
+
+
+class UnauthorisedError(Exception):
+    pass

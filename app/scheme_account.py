@@ -9,7 +9,7 @@ from app.utils import get_headers, SchemeAccountStatus
 from settings import HERMES_URL, logger
 
 
-def update_pending_join_account(user_info, message, tid, identifier=None, intercom_data=None,
+def update_pending_join_account(user_info, message, tid, identifier=None, scheme_slug=None,
                                 consent_ids=(), raise_exception=True):
 
     scheme_account_id = user_info['scheme_account_id']
@@ -25,7 +25,7 @@ def update_pending_join_account(user_info, message, tid, identifier=None, interc
     data = {
         'status': SchemeAccountStatus.JOIN,
         'event_name': 'join-failed-event',
-        'metadata': intercom_data['metadata'],
+        'metadata': {'scheme': scheme_slug},
         'user_info': user_info
     }
     requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
@@ -41,14 +41,14 @@ def update_pending_join_account(user_info, message, tid, identifier=None, interc
         raise AgentException(message)
 
 
-def update_pending_link_account(user_info, message, tid, intercom_data=None, raise_exception=True):
+def update_pending_link_account(user_info, message, tid, scheme_slug=None, raise_exception=True):
 
     scheme_account_id = user_info['scheme_account_id']
     # error handling for pending scheme accounts waiting for async link to complete
     headers = get_headers(tid)
     status_data = {'status': SchemeAccountStatus.WALLET_ONLY,
                    'event_name': 'async-link-failed-event',
-                   'metadata': intercom_data['metadata'],
+                   'metadata': {'scheme': scheme_slug},
                    'user_info': user_info
                    }
     requests.post('{}/schemes/accounts/{}/status'.format(HERMES_URL, scheme_account_id),

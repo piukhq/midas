@@ -15,10 +15,9 @@ from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
-    RegistrationError, CONFIGURATION_ERROR
+    RegistrationError, CONFIGURATION_ERROR, VALIDATION, UnauthorisedError
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
-from app.exceptions import AgentException
 from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
@@ -89,6 +88,7 @@ class TestMerchantApi(FlaskTestCase):
         self.config = mock_configuration
         self.m = MerchantApi(1, self.user_info)
         self.m_user_set = MerchantApi(1, self.user_info_user_set)
+        self.m.config = self.config
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, '_sync_outbound')
@@ -194,7 +194,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_request.return_value = response
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(resp, self.json_data)
 
@@ -215,7 +215,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         self.m.record_uid = '123'
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
@@ -239,7 +239,7 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
@@ -263,7 +263,7 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
@@ -275,13 +275,44 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_back_off.return_value.is_on_cooldown.return_value = True
 
-        expected_resp = {"error_codes": [{"code": NOT_SENT, "description": errors[NOT_SENT]['message']}]}
+        expected_resp = {"error_codes": [{"code": NOT_SENT,
+                                          "description": errors[NOT_SENT]['message'] + " id is currently on cooldown"}]}
 
-        resp = self.m._sync_outbound(self.json_data, self.config)
+        resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertFalse(mock_request.called)
         self.assertFalse(mock_back_off.return_value.activate_cooldown.called)
+
+    @mock.patch.object(RSA, 'encode', autospec=True)
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
+    @mock.patch('app.agents.base.MerchantApi._send_request', autospec=True)
+    def test_sync_outbound_retry_on_unauthorised_exception(self, mock_send_request, mock_back_off,
+                                                           mock_encode):
+        mock_encode.return_value = {'json': self.json_data}
+        mock_back_off.return_value.is_on_cooldown.return_value = False
+        mock_send_request.side_effect = UnauthorisedError
+
+        resp = self.m._sync_outbound(self.json_data)
+
+        expected_resp = {"error_codes": [{"code": VALIDATION, "description": errors[VALIDATION]["name"]}]}
+
+        self.assertEqual(mock_send_request.call_count, 6)
+        self.assertEqual(mock_encode.call_count, 6)
+        self.assertEqual(resp, json.dumps(expected_resp))
+
+    @mock.patch('requests.post', autospec=True)
+    def test_send_request_raises_exception_on_unauthorised_response(self, mock_request):
+        mock_resp = Response()
+        mock_resp.status_code = 401
+        mock_request.return_value = mock_resp
+
+        self.m.request = {"json": "{}"}
+
+        with self.assertRaises(UnauthorisedError):
+            self.m._send_request()
+
+            self.assertTrue(mock_request.called)
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
@@ -311,25 +342,23 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.warning.called)
 
-    @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, 'consent_confirmation')
-    def test_process_join_handles_errors(self, mock_consent_confirmation, mock_update):
-        mock_update.side_effect = AgentException('An unknown error has occurred')
+    def test_process_join_handles_errors(self, mock_consent_confirmation):
         self.m.record_uid = self.m.scheme_id
+        self.m.message_uid = "test_message_uid"
         self.m.result = {
-            "message_uid": "test_message_uid",
+            "message_uid": self.m.message_uid,
             "error_codes": [{
-                "code": "GENERAL_ERROR",
-                "description": 'An unknown error has occurred'
+                "code": GENERAL_ERROR,
+                "description": errors[GENERAL_ERROR]['message']
             }]
         }
 
-        with self.assertRaises(AgentException) as e:
+        with self.assertRaises(RegistrationError) as e:
             self.m.process_join_response()
 
-        self.assertEqual(str(e.exception), "An unknown error has occurred")
+        self.assertEqual(e.exception.message, "General Error such as incorrect user details")
         self.assertTrue(mock_consent_confirmation.called)
-        self.assertTrue(mock_update.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
@@ -519,25 +548,23 @@ class TestMerchantApi(FlaskTestCase):
             self.m.login({})
         self.assertEqual(e.exception.name, "Message was not sent")
 
-    @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation, mock_update):
+    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
+        self.m.message_uid = "test_message_uid"
         mock_outbound_handler.return_value = {
-            "message_uid": "test_message_uid",
+            "message_uid": self.m.message_uid,
             "error_codes": [{
-                "code": "GENERAL_ERROR",
-                "description": "An unknown error has occurred",
+                "code": GENERAL_ERROR,
+                "description": errors[GENERAL_ERROR]['message'],
             }]
         }
-        mock_update.side_effect = AgentException('An unknown error has occurred')
         self.m.config = self.config
 
-        with self.assertRaises(AgentException) as e:
+        with self.assertRaises(RegistrationError) as e:
             self.m.register({})
-        self.assertEqual(str(e.exception), 'An unknown error has occurred')
+        self.assertEqual(e.exception.message, errors[GENERAL_ERROR]['message'])
         self.assertTrue(mock_consent_confirmation.called)
-        self.assertTrue(mock_update.called)
 
     @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
@@ -1002,8 +1029,8 @@ class TestMerchantApi(FlaskTestCase):
                                      'journey_type': JourneyTypes.JOIN.value}]}
         self.m.user_info.update(credentials=credentials)
 
-        message_uid = ''
-        mock_outbound_handler.return_value = {'message_uid': message_uid}
+        self.m.message_uid = ''
+        mock_outbound_handler.return_value = {'message_uid': self.m.message_uid}
         self.m.config = self.config
 
         self.m.register(credentials)
@@ -1196,8 +1223,9 @@ class TestOAuth(TestCase):
         self.assertTrue(mock_request.called)
         self.assertEqual(request, expected_request)
 
+    @mock.patch('app.security.oauth.sentry')
     @mock.patch('requests.post')
-    def test_oath_encode_raises_error_on_connection_error(self, mock_request):
+    def test_oath_encode_raises_error_on_connection_error(self, mock_request, mock_sentry):
         mock_request.side_effect = requests.ConnectionError
         auth = OAuth(self.auth_creds)
 
@@ -1205,6 +1233,7 @@ class TestOAuth(TestCase):
             auth.encode(self.json_data)
 
         self.assertEqual(e.exception.name, 'Service connection error')
+        self.assertTrue(mock_sentry.captureMessage.called)
 
     @mock.patch('requests.post')
     def test_oauth_encode_raises_error_on_incorrect_credential_setup(self, mock_request):
