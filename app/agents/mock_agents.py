@@ -68,6 +68,27 @@ users = {
         },
         'points': Decimal(1234567)
     },
+    # QA Automated Test Fixtures
+    '222220': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'auto_zero@testbink.com',
+            'password': 'Password01',
+            'last_name': 'qa',
+            'postcode': 'qa1 1qa'
+        },
+        'points': Decimal('0')
+    },
+    '222225': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': 'auto_five@testbink.com',
+            'password': 'Password01',
+            'last_name': 'qa',
+            'postcode': 'qa1 1qa'
+        },
+        'points': Decimal('380.01')
+    },
     # NEW FIXTURES
     '900001': {
         'len_transactions': 0,
@@ -239,7 +260,6 @@ users = {
         },
         'points': Decimal('123456')
     },
-
     '900018': {
         'len_transactions': 2,
         'credentials': {
@@ -409,6 +429,9 @@ class MockAgentHN(ApiMiner):
             '666666': '6666666666666',
             '123456': '1020304056666',
             '234567': '1020304057777',
+            # QA Automated Test Fixtures
+            '222220': '9123001122330',
+            '222225': '9123001122335',
             # New fixtures
             '900001': '9000000000001',
             '900002': '9000000000002',
@@ -518,6 +541,9 @@ class MockAgentIce(MerchantApi):
             '6666666666666666666': '666666',
             '1020304050607086666': '123456',
             '1020304050607087777': '234567',
+            # QA Automated Test Fixtures
+            '9123123123001122330': '222220',
+            '9123123123001122335': '222225',
             # New fixtures
             '9000000000000000001': '900001',
             '9000000000000000002': '900002',
@@ -587,6 +613,9 @@ class MockAgentCI(ApiMiner):
             '66666666': '666666',
             '1026666': '123456',
             '1027777': '234567',
+            # QA Automated Test Fixtures
+            '00002220': '222220',
+            '00002225': '222225',
             # New fixtures
             '00009001': '900001',
             '00009002': '900002',

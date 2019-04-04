@@ -31,7 +31,7 @@ AGENTS = {
     'club-individual': 'mock_agents.MockAgentCI',
     'harvey-nichols-mock': 'mock_agents.MockAgentHN',
     'harvey-nichols': 'harvey_nichols.HarveyNichols',
-    'test-co-op': 'cooperative_merchant_integration.Cooperative',
+    'cooperative': 'cooperative_merchant_integration.Cooperative',
     # ----------- sandbox testing end ---------------- #
     'avios': 'avios_api.Avios',
     'advantage-card': 'boots.Boots',
