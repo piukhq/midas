@@ -66,3 +66,8 @@ def remove_pending_consents(consent_ids, headers):
     data = json.dumps({'status': ConsentStatus.FAILED}, cls=JsonEncoder)
     for consent_id in consent_ids:
         requests.put('{}/schemes/user_consent/{}'.format(HERMES_URL, consent_id), data=data, headers=headers)
+
+
+def delete_scheme_account(tid, scheme_account_id):
+    headers = get_headers(tid)
+    requests.delete("{}/schemes/accounts/{}".format(HERMES_URL, scheme_account_id), headers=headers)
