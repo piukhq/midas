@@ -12,7 +12,9 @@ from app import publish
 from app.agents.avios import Avios
 from app.agents.base import BaseMiner
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
-    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
+    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS, \
+    SCHEME_REQUESTED_DELETE
+from app.agents.cooperative_merchant_integration import Cooperative
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
@@ -598,13 +600,14 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_requests.called)
 
+    @mock.patch('app.resources.delete_scheme_account', auto_spec=True)
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
     @mock.patch('app.publish.balance', auto_spec=False)
     @mock.patch('app.publish.transactions', auto_spec=True)
     def test_get_balance_and_publish(self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login,
-                                     mock_update_pending_join_account):
+                                     mock_update_pending_join_account, mock_delete):
         mock_publish_balance.return_value = {'points': 1}
 
         get_balance_and_publish(HarveyNichols, 'scheme_slug', self.user_info, 'tid')
@@ -613,6 +616,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_transactions.called)
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_pending_join_account.called)
+        self.assertFalse(mock_delete.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=True)
@@ -621,13 +625,15 @@ class TestResources(TestCase):
     def test_get_balance_and_publish_balance_error(self, mock_publish_balance, mock_publish_status, mock_login,
                                                    mock_update_pending_join_account):
         mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
+        user_info = self.user_info
+        user_info['pending'] = False
 
         with self.assertRaises(AgentException):
-            get_balance_and_publish(HarveyNichols, 'scheme_slug', self.user_info, 'tid')
+            get_balance_and_publish(HarveyNichols, 'scheme_slug', user_info, 'tid')
 
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
-        self.assertFalse(mock_publish_status.called)
+        self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
@@ -657,6 +663,26 @@ class TestResources(TestCase):
             'value_label': 'Pending'
         }
         self.assertEqual(balance, expected_balance)
+
+    @mock.patch('app.resources.delete_scheme_account', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=False)
+    @mock.patch('app.publish.status', auto_spec=True)
+    @mock.patch('app.publish.balance', auto_spec=False)
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    def test_get_balance_and_publish_delete_error(self, mock_transactions, mock_publish_balance, mock_publish_status,
+                                                  mock_login, mock_delete):
+        mock_login.side_effect = LoginError(SCHEME_REQUESTED_DELETE)
+        user_info = self.user_info
+        user_info['pending'] = False
+
+        with self.assertRaises(AgentException):
+            get_balance_and_publish(Cooperative, 'scheme_slug', self.user_info, 'tid')
+
+        self.assertTrue(mock_login.called)
+        self.assertFalse(mock_publish_balance.called)
+        self.assertFalse(mock_transactions.called)
+        self.assertTrue(mock_publish_status.called)
+        self.assertTrue(mock_delete.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
