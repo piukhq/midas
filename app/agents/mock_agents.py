@@ -5,7 +5,7 @@ import arrow
 
 from app.agents.base import ApiMiner, MerchantApi
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, RegistrationError, ACCOUNT_ALREADY_EXISTS, \
-    STATUS_REGISTRATION_FAILED, UNKNOWN
+    STATUS_REGISTRATION_FAILED, UNKNOWN, CARD_NUMBER_ERROR
 
 users = {
     '000000': {
@@ -14,7 +14,8 @@ users = {
             'email': 'zero@testbink.com',
             'password': 'Password01',
             'last_name': 'zero',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -24,7 +25,8 @@ users = {
             'email': 'one@testbink.com',
             'password': 'Password01',
             'last_name': 'one',
-            'postcode': 'rg1 1aa'
+            'postcode': 'rg1 1aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('20.10')
     },
@@ -34,7 +36,8 @@ users = {
             'email': 'five@testbink.com',
             'password': 'Password01',
             'last_name': 'five',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -44,7 +47,8 @@ users = {
             'email': 'six@testbink.com',
             'password': 'Password01',
             'last_name': 'six',
-            'postcode': 'rg6 6aa'
+            'postcode': 'rg6 6aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('1480')
     },
@@ -54,7 +58,8 @@ users = {
             'email': 'sixdigitpoints@testbink.com',
             'password': 'pa$$w&rd01!',
             'last_name': 'million',
-            'postcode': 'mp6 0bb'
+            'postcode': 'mp6 0bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('123456')
     },
@@ -64,7 +69,8 @@ users = {
             'email': 'sevendigitpoints@testbink.com',
             'password': 'Password01',
             'last_name': 'seven-digits, smith\'s',
-            'postcode': 'mp7 1bb'
+            'postcode': 'mp7 1bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal(1234567)
     },
@@ -75,7 +81,8 @@ users = {
             'email': 'auto_zero@testbink.com',
             'password': 'Password01',
             'last_name': 'qa',
-            'postcode': 'qa1 1qa'
+            'postcode': 'qa1 1qa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -85,7 +92,8 @@ users = {
             'email': 'auto_five@testbink.com',
             'password': 'Password01',
             'last_name': 'qa',
-            'postcode': 'qa1 1qa'
+            'postcode': 'qa1 1qa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -96,7 +104,8 @@ users = {
             'email': 'perfuser01@testbink.com',
             'password': 'Password01',
             'last_name': 'perfuser01',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -106,7 +115,8 @@ users = {
             'email': 'perfuser02@testbink.com',
             'password': 'Password02',
             'last_name': 'perfuser02',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -116,7 +126,8 @@ users = {
             'email': 'perfuser03@testbink.com',
             'password': 'Password03',
             'last_name': 'perfuser03',
-            'postcode': 'mp6 0bb'
+            'postcode': 'mp6 0bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('123456')
     },
@@ -126,7 +137,8 @@ users = {
             'email': 'perfuser04@testbink.com',
             'password': 'Password04',
             'last_name': 'perfuser04',
-            'postcode': 'mp7 1bb'
+            'postcode': 'mp7 1bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('1234567')
     },
@@ -136,7 +148,8 @@ users = {
             'email': 'perfuser05@testbink.com',
             'password': 'Password05',
             'last_name': 'perfuser05',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -146,7 +159,8 @@ users = {
             'email': 'perfuser06@testbink.com',
             'password': 'Password06',
             'last_name': 'perfuser06',
-            'postcode': 'rg1 1aa'
+            'postcode': 'rg1 1aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('20.10')
     },
@@ -156,7 +170,8 @@ users = {
             'email': 'perfuser07@testbink.com',
             'password': 'Password07',
             'last_name': 'perfuser07',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -166,7 +181,8 @@ users = {
             'email': 'perfuser08@testbink.com',
             'password': 'Password08',
             'last_name': 'perfuser08',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -176,7 +192,8 @@ users = {
             'email': 'perfuser09@testbink.com',
             'password': 'Password09',
             'last_name': 'perfuser09',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -186,7 +203,8 @@ users = {
             'email': 'perfuser10@testbink.com',
             'password': 'Password10',
             'last_name': 'perfuser10',
-            'postcode': 'mp6 0bb'
+            'postcode': 'mp6 0bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('20.10')
     },
@@ -196,7 +214,8 @@ users = {
             'email': 'perfuser11@testbink.com',
             'password': 'Password11',
             'last_name': 'perfuser11',
-            'postcode': 'mp7 1bb'
+            'postcode': 'mp7 1bb',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('1234567')
     },
@@ -206,7 +225,8 @@ users = {
             'email': 'perfuser12@testbink.com',
             'password': 'Password12',
             'last_name': 'perfuser12',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -216,7 +236,8 @@ users = {
             'email': 'perfuser13@testbink.com',
             'password': 'Password13',
             'last_name': 'perfuser13',
-            'postcode': 'rg1 1aa'
+            'postcode': 'rg1 1aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('20.10')
     },
@@ -226,7 +247,8 @@ users = {
             'email': 'perfuser14@testbink.com',
             'password': 'Password14',
             'last_name': 'perfuser14',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -236,7 +258,8 @@ users = {
             'email': 'perfuser15@testbink.com',
             'password': 'Password15',
             'last_name': 'perfuser15',
-            'postcode': 'rg0 0aa'
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('0')
     },
@@ -246,7 +269,8 @@ users = {
             'email': 'perfuser16@testbink.com',
             'password': 'Password16',
             'last_name': 'perfuser16',
-            'postcode': 'rg5 5aa'
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('380.01')
     },
@@ -256,7 +280,8 @@ users = {
             'email': 'perfuser17@testbink.com',
             'password': 'Password17',
             'last_name': 'perfuser17',
-            'postcode': 'rg1 1aa'
+            'postcode': 'rg1 1aa',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('123456')
     },
@@ -354,7 +379,8 @@ users = {
             'email': 'slow@testbink.com',
             'password': 'Slowpass01',
             'last_name': 'slow',
-            'postcode': 'sl1 1ow'
+            'postcode': 'sl1 1ow',
+            'date_of_birth': '2000-01-01',
         },
         'points': Decimal('300')
     },
@@ -531,55 +557,81 @@ class MockAgentHN(ApiMiner):
 class MockAgentIce(MerchantApi):
     retry_limit = None
     point_conversion_rate = Decimal('1')
+    card_number_mapping = {
+        '0000000000000000000': '000000',
+        '1111111111111111111': '111111',
+        '5555555555555555555': '555555',
+        '6666666666666666666': '666666',
+        '1020304050607086666': '123456',
+        '1020304050607087777': '234567',
+        # QA Automated Test Fixtures
+        '9123123123001122330': '222220',
+        '9123123123001122335': '222225',
+        # New fixtures
+        '9000000000000000001': '900001',
+        '9000000000000000002': '900002',
+        '9000000000000000003': '900003',
+        '9000000000000000004': '900004',
+        '9000000000000000005': '900005',
+        '9000000000000000006': '900006',
+        '9000000000000000007': '900007',
+        '9000000000000000008': '900008',
+        '9000000000000000009': '900009',
+        '9000000000000000010': '900010',
+        '9000000000000000011': '900011',
+        '9000000000000000012': '900012',
+        '9000000000000000013': '900013',
+        '9000000000000000014': '900014',
+        '9000000000000000015': '900015',
+        '9000000000000000016': '900016',
+        '9000000000000000017': '900017',
+        '9991112223334445000': '999000',
+    }
 
     def login(self, credentials):
-        card_number = credentials.get('card_number') or credentials.get('barcode')
-        card_number_mapping = {
-            '0000000000000000000': '000000',
-            '1111111111111111111': '111111',
-            '5555555555555555555': '555555',
-            '6666666666666666666': '666666',
-            '1020304050607086666': '123456',
-            '1020304050607087777': '234567',
-            # QA Automated Test Fixtures
-            '9123123123001122330': '222220',
-            '9123123123001122335': '222225',
-            # New fixtures
-            '9000000000000000001': '900001',
-            '9000000000000000002': '900002',
-            '9000000000000000003': '900003',
-            '9000000000000000004': '900004',
-            '9000000000000000005': '900005',
-            '9000000000000000006': '900006',
-            '9000000000000000007': '900007',
-            '9000000000000000008': '900008',
-            '9000000000000000009': '900009',
-            '9000000000000000010': '900010',
-            '9000000000000000011': '900011',
-            '9000000000000000012': '900012',
-            '9000000000000000013': '900013',
-            '9000000000000000014': '900014',
-            '9000000000000000015': '900015',
-            '9000000000000000016': '900016',
-            '9000000000000000017': '900017',
-            '9991112223334445000': '999000',
-        }
-        try:
-            card_number = card_number_mapping[card_number]
-        except (KeyError, TypeError):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        self.identifier = {}
+        if all(cred in credentials for cred in ['title', 'first_name', 'last_name', 'phone', 'email', 'date_of_birth',
+                                                'postcode', 'county', 'town_city', 'address_1', 'address_2']):
+            self.user_info = users['000000']
+            self.customer_number = credentials.get('card_number') or credentials.get('barcode')
+            if not self.customer_number:
+                self.customer_number = '0000000000000000000'
 
-        if card_number == '999000':
-            sleep(20)
+            self.identifier['card_number'] = self.customer_number
+            self.identifier['barcode'] = self.customer_number
+            self.identifier['merchant_identifier'] = 'testregister'
+        else:
+            if credentials.get('merchant_identifier') == 'testregister':
+                self.user_info = users['000000']
+                return
 
-        self.user_info = get_user(card_number)
-        login_credentials = (credentials['last_name'].lower(), credentials['postcode'].lower())
-        auth_check = (self.user_info['credentials']['last_name'], self.user_info['credentials']['postcode'])
+            self.customer_number = credentials.get('card_number') or credentials.get('barcode')
+            try:
+                card_number = self.card_number_mapping[self.customer_number]
+            except (KeyError, TypeError):
+                raise LoginError(STATUS_LOGIN_FAILED)
 
-        if login_credentials != auth_check:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            if card_number == '999000':
+                sleep(20)
+
+            self.user_info = get_user(card_number)
+            login_credentials = (credentials['last_name'].lower(), credentials['postcode'].lower())
+            auth_check = (self.user_info['credentials']['last_name'], self.user_info['credentials']['postcode'])
+
+            if login_credentials != auth_check:
+                raise LoginError(STATUS_LOGIN_FAILED)
+
+            self.add_missing_credentials(credentials)
 
         return
+
+    def add_missing_credentials(self, credentials):
+        if not credentials.get('merchant_identifier'):
+            self.identifier['merchant_identifier'] = '2900001'
+        if not credentials.get('card_number'):
+            self.identifier['card_number'] = self.customer_number
+        if not credentials.get('barcode'):
+            self.identifier['barcode'] = self.customer_number
 
     def balance(self):
         points = self.user_info['points']
@@ -598,6 +650,27 @@ class MockAgentIce(MerchantApi):
     def scrape_transactions(self):
         max_transactions = self.user_info['len_transactions']
         return transactions[:max_transactions]
+
+    def register(self, credentials, inbound=False):
+        return self._validate_credentials(credentials)
+
+    def _validate_credentials(self, data):
+        ghost_card = data.get('card_number') or data.get('barcode')
+        if ghost_card and ghost_card in self.card_number_mapping:
+            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+
+        for user, info in users.items():
+            try:
+                check_email = info['credentials']['email']
+                if data['email'] == check_email:
+                    raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+            except KeyError:
+                continue
+
+        if data['postcode'].lower() == 'fail':
+            raise RegistrationError(UNKNOWN)
+
+        return {"message": "success"}
 
 
 class MockAgentCI(ApiMiner):
@@ -664,3 +737,116 @@ class MockAgentCI(ApiMiner):
     def scrape_transactions(self):
         max_transactions = self.user_info['len_transactions']
         return transactions[:max_transactions]
+
+
+class MockAgentCoop(MerchantApi):
+    retry_limit = None
+    point_conversion_rate = Decimal('1')
+    card_number_mapping = {
+        '633174910000000000': '000000',
+        '633174911111111111': '111111',
+        '633174915555555555': '555555',
+        '633174916666666666': '666666',
+        '633174915060706666': '123456',
+        '633174915060707777': '234567',
+        # QA Automated Test Fixtures
+        '633174912301122330': '222220',
+        '633174912301122335': '222225',
+        # New fixtures
+        '633174910000000001': '900001',
+        '633174910000000002': '900002',
+        '633174910000000003': '900003',
+        '633174910000000004': '900004',
+        '633174910000000005': '900005',
+        '633174910000000006': '900006',
+        '633174910000000007': '900007',
+        '633174910000000008': '900008',
+        '633174910000000009': '900009',
+        '633174910000000010': '900010',
+        '633174910000000011': '900011',
+        '633174910000000012': '900012',
+        '633174910000000013': '900013',
+        '633174910000000014': '900014',
+        '633174910000000015': '900015',
+        '633174910000000016': '900016',
+        '633174910000000017': '900017',
+        '633174919991234500': '999000',
+    }
+
+    def login(self, credentials):
+        self.identifier = {}
+        if all(cred in credentials for cred in ['title', 'first_name', 'last_name', 'email', 'date_of_birth',
+                                                'postcode', 'town_city', 'address_1']):
+            self.user_info = users['000000']
+            try:
+                self.customer_number = credentials['card_number']
+            except KeyError:
+                self.customer_number = '633174910000000000'
+
+            self.identifier['card_number'] = self.customer_number
+            self.identifier['merchant_identifier'] = 'testregister'
+
+        else:
+            if credentials.get('merchant_identifier') == 'testregister':
+                self.user_info = users['000000']
+                return
+
+            self.customer_number = credentials.get('card_number')
+            try:
+                user_number = self.card_number_mapping[self.customer_number]
+            except (KeyError, TypeError):
+                raise LoginError(CARD_NUMBER_ERROR)
+
+            self.user_info = get_user(user_number)
+            login_credentials = (credentials['postcode'].lower(), credentials['date_of_birth'])
+            auth_check = (self.user_info['credentials']['postcode'], self.user_info['credentials']['date_of_birth'])
+
+            if login_credentials != auth_check:
+                raise LoginError(STATUS_LOGIN_FAILED)
+
+            if not credentials.get('merchant_identifier'):
+                self.identifier['merchant_identifier'] = '4000000000001'
+
+        return
+
+    def balance(self):
+        points = self.user_info['points']
+        value = self.calculate_point_value(points)
+
+        return {
+            'points': self.user_info['points'],
+            'value': value,
+            'value_label': '£{}'.format(value)
+        }
+
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def scrape_transactions(self):
+        max_transactions = self.user_info['len_transactions']
+        return transactions[:max_transactions]
+
+    def register(self, credentials, inbound=False):
+        return self._validate_credentials(credentials)
+
+    def _validate_credentials(self, data):
+        ghost_card = data.get('card_number')
+        if ghost_card and ghost_card in self.card_number_mapping:
+            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+
+        for user, info in users.items():
+            try:
+                check_email = info['credentials']['email']
+                if data['email'] == check_email:
+                    raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+            except KeyError:
+                continue
+
+        titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Doctor', 'Prefer not to say']
+        if data['title'].capitalize() not in titles:
+            raise RegistrationError(STATUS_REGISTRATION_FAILED)
+        elif data['postcode'].lower() == 'fail':
+            raise RegistrationError(UNKNOWN)
+
+        return {"message": "success"}
