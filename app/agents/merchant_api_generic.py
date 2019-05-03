@@ -7,6 +7,8 @@ from app.utils import TWO_PLACES
 
 
 class MerchantAPIGeneric(MerchantApi):
+    retry_limit = 9    # tries 10 times overall
+
     def balance(self):
         value = Decimal(self.result['balance']).quantize(TWO_PLACES)
         return {
