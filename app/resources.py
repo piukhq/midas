@@ -13,12 +13,12 @@ import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
-                                   SYSTEM_ACTION_REQUIRED, errors)
+                                   SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
-from app.scheme_account import update_pending_join_account, update_pending_link_account
+from app.scheme_account import update_pending_join_account, update_pending_link_account, delete_scheme_account
 from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent, JourneyTypes
 from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
@@ -156,6 +156,10 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
                                             journey=create_journey))
 
         [thread.result() for thread in threads]
+        if status == errors[SCHEME_REQUESTED_DELETE]['code']:
+            delete_log = 'Received deleted request from scheme: {}. Deleting scheme account: {}'
+            logger.debug(delete_log.format(scheme_slug, scheme_account_id))
+            delete_scheme_account(tid, scheme_account_id)
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):

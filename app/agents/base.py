@@ -436,7 +436,6 @@ class MerchantApi(BaseMiner):
             LINK_LIMIT_EXCEEDED: ['LINK_LIMIT_EXCEEDED'],
             JOIN_IN_PROGRESS: ['JOIN_IN_PROGRESS'],
             JOIN_ERROR: ['JOIN_ERROR'],
-
         }
 
     def login(self, credentials):

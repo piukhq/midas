@@ -2,7 +2,8 @@ import json
 from unittest import mock, TestCase
 
 from app import AgentException
-from app.scheme_account import update_pending_join_account, update_pending_link_account, remove_pending_consents
+from app.scheme_account import (update_pending_join_account, update_pending_link_account, remove_pending_consents,
+                                delete_scheme_account)
 from app.tasks.resend_consents import ConsentStatus
 
 
@@ -86,3 +87,11 @@ class TestSchemeAccount(TestCase):
         expected_request_json = json.dumps({'status': ConsentStatus.FAILED})
         for request in mock_requests_put.call_args_list:
             self.assertEqual(request[1], {'data': expected_request_json, 'headers': headers})
+
+    @mock.patch('app.scheme_account.requests.delete')
+    def test_delete_scheme_account(self, mock_delete):
+        delete_scheme_account('tid', 123)
+
+        self.assertTrue(mock_delete.called)
+        url_called = mock_delete.call_args[0][0]
+        self.assertTrue('123' in url_called)

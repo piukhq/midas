@@ -34,6 +34,7 @@ CARD_NOT_REGISTERED = "CARD_NOT_REGISTERED"
 GENERAL_ERROR = "GENERAL_ERROR"
 JOIN_IN_PROGRESS = "JOIN_IN_PROGRESS"
 JOIN_ERROR = "JOIN_ERROR"
+SCHEME_REQUESTED_DELETE = "SCHEME_REQUESTED_DELETE"
 
 errors = {
     VALIDATION: {"code": 401,
@@ -98,6 +99,9 @@ errors = {
     ACCOUNT_ALREADY_EXISTS: {"code": 445,
                              "message": "An account with this username/email already exists",
                              "name": "Account already exists"},
+    SCHEME_REQUESTED_DELETE: {"code": 447,
+                              "message": "The scheme has requested this account should be deleted",
+                              "name": "Scheme requested account deletion"},
     RESOURCE_LIMIT_REACHED: {"code": 503,
                              "message": "there are currently too many balance requests running, please wait before "
                                         "trying again",

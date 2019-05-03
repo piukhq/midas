@@ -8,7 +8,8 @@ from gaia.user_token import UserTokenStore
 
 from app.agents.base import MerchantApi
 from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
-    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError, ACCOUNT_ALREADY_EXISTS, CARD_NOT_REGISTERED
+    CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError, ACCOUNT_ALREADY_EXISTS, CARD_NOT_REGISTERED, \
+    SCHEME_REQUESTED_DELETE
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
@@ -68,7 +69,8 @@ class Cooperative(MerchantApi):
             UNKNOWN: ['UNKNOWN'],
             CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
             JOIN_ERROR: ['JOIN_ERROR'],
-            STATUS_LOGIN_FAILED: ['STATUS_LOGIN_FAILED']
+            STATUS_LOGIN_FAILED: ['STATUS_LOGIN_FAILED'],
+            SCHEME_REQUESTED_DELETE: ['SCHEME_REQUESTED_DELETE'],
         }
 
         self.scope = self._get_scope()
@@ -227,12 +229,11 @@ class Cooperative(MerchantApi):
             self.token_store.delete(self.scope)
             raise UnauthorisedError
         elif status in [503, 504, 408]:
-            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + ' merchant returned status {}'
-                                                  .format(status))
+            error_suffix = ' merchant returned status {}'.format(status)
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'] + error_suffix)
         else:
-            response_json = create_error_response(UNKNOWN,
-                                                  errors[UNKNOWN]['name'] + ' with status code {}'
-                                                  .format(status))
+            error_suffix = ' with status code {}'.format(status)
+            response_json = create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + error_suffix)
         return response_json
 
     def _update_validate_request(self):
@@ -292,18 +293,24 @@ class Cooperative(MerchantApi):
 
         response_dict = json.loads(response_json)
         errors_in_resp = self._check_for_error_response(response_dict)
-        if not errors_in_resp:
-            if not response_dict.get('isVerified'):
-                return create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name'])
+        if not errors_in_resp and not response_dict.get('isVerified'):
+            return create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name'])
         return response_json
 
     def _update_error_handler(self, response):
         response_json = self._error_handler(response)
 
-        if response.status_code in [404]:
-            return self.generate_response_from_error_codes(response)
+        try:
+            response_dict = json.loads(response)
+            error_resp = self._check_for_error_response(response_dict)
+        except json.JSONDecodeError:
+            return response_json
 
-        # delete card if delete me is true (GDPR thing)
+        if response.status_code == 400 and error_resp:
+            if error_resp['code'] == 'CARD_NOT_FOUND':
+                return (create_error_response(SCHEME_REQUESTED_DELETE, errors[SCHEME_REQUESTED_DELETE]['name']),
+                        errors[SCHEME_REQUESTED_DELETE]['code'])
+
         return response_json
 
     def _get_balance(self, member_id):
