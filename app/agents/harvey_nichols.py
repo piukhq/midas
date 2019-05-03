@@ -17,6 +17,7 @@ class HarveyNichols(ApiMiner):
     AGENT_TRIES = 10   # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10   # no of attempts to confirm to hermes Agent has received consents
     token_store = UserTokenStore(REDIS_URL)
+    retry_limit = 9    # tries 10 times overall
 
     def login(self, credentials):
         self.credentials = credentials
