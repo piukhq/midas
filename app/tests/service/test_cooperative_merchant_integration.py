@@ -16,7 +16,7 @@ class TestCooperative(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.c = Cooperative(*AGENT_CLASS_ARGUMENTS, scheme_slug='test-co-op')
+        cls.c = Cooperative(*AGENT_CLASS_ARGUMENTS, scheme_slug='cooperative')
         credentials = CREDENTIALS['test-co-op']
 
         cls.token_store = UserTokenStore(REDIS_URL)
@@ -49,7 +49,7 @@ class TestCooperative(unittest.TestCase):
 
         expected_result = {
             'Authorization': 'Bearer refreshed_token',
-            'X-API-KEY': Cooperative.API_KEY
+            'X-API-KEY': self.c._get_api_key()
         }
 
         result = self.c._get_auth_headers('check_card')
@@ -66,7 +66,7 @@ class TestCooperative(unittest.TestCase):
 
         expected_result = {
             'Authorization': 'Bearer refreshed_token',
-            'X-API-KEY': Cooperative.API_KEY
+            'X-API-KEY': self.c._get_api_key()
         }
 
         result = self.c._get_auth_headers('check_card')

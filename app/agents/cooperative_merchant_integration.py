@@ -9,7 +9,7 @@ from gaia.user_token import UserTokenStore
 from app.agents.base import MerchantApi
 from app.agents.exceptions import LoginError, NOT_SENT, errors, UNKNOWN, STATUS_LOGIN_FAILED, PRE_REGISTERED_CARD, \
     CARD_NUMBER_ERROR, VALIDATION, JOIN_ERROR, UnauthorisedError, ACCOUNT_ALREADY_EXISTS, CARD_NOT_REGISTERED, \
-    SCHEME_REQUESTED_DELETE
+    SCHEME_REQUESTED_DELETE, AgentError, CONFIGURATION_ERROR
 from app.configuration import Configuration
 from app.security.utils import get_security_agent
 from app.utils import create_error_response, JourneyTypes, TWO_PLACES
@@ -17,7 +17,6 @@ from settings import REDIS_URL, logger
 
 
 class Cooperative(MerchantApi):
-    API_KEY = 'awmHjJzzfV3YMUuJdcmd56PKRIzg6KAg1WKn94Ds'
     AUTH_TOKEN_TIMEOUT = 3600
     AUTH_TOKEN_HEADER = "Authorization"
 
@@ -116,7 +115,7 @@ class Cooperative(MerchantApi):
                 self.AUTH_TOKEN_HEADER: "{} {}".format(
                     security_credentials['outbound']['credentials'][0]['value']['prefix'],
                     access_token['token']),
-                'X-API-KEY': Cooperative.API_KEY
+                'X-API-KEY': self._get_api_key()
             }
         }
 
@@ -301,7 +300,7 @@ class Cooperative(MerchantApi):
         response_json = self._error_handler(response)
 
         try:
-            response_dict = json.loads(response)
+            response_dict = json.loads(response_json)
             error_resp = self._check_for_error_response(response_dict)
         except json.JSONDecodeError:
             return response_json
@@ -345,7 +344,7 @@ class Cooperative(MerchantApi):
                 security_credentials['outbound']['credentials'][0]['value']['prefix'],
                 access_token['token']
             ),
-            'X-API-KEY': Cooperative.API_KEY
+            'X-API-KEY': self._get_api_key()
         }
 
     def generate_response_from_error_codes(self, response):
@@ -372,3 +371,9 @@ class Cooperative(MerchantApi):
                     return create_error_response(key, errors[key]['name'])
 
         return create_error_response(UNKNOWN, errors[UNKNOWN]['name'])
+
+    def _get_api_key(self):
+        try:
+            return self.config.security_credentials['outbound']['credentials'][0]['value']['api_key']
+        except KeyError as e:
+            raise AgentError(CONFIGURATION_ERROR) from e
