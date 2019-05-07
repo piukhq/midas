@@ -300,7 +300,7 @@ class Cooperative(MerchantApi):
         response_json = self._error_handler(response)
 
         try:
-            response_dict = json.loads(response)
+            response_dict = json.loads(response_json)
             error_resp = self._check_for_error_response(response_dict)
         except json.JSONDecodeError:
             return response_json
