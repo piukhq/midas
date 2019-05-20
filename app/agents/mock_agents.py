@@ -384,7 +384,39 @@ users = {
         },
         'points': Decimal('300')
     },
-
+    '911111': {
+        'len_transactions': 5,
+        'credentials': {
+            'email': "special!#$%&'char1@testbink.com",
+            'password': 'Password01',
+            'last_name': 'five',
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('380.01')
+    },
+    '922222': {
+        'len_transactions': 3,
+        'credentials': {
+            'email': "special*+-/=?^char2@testbink.com",
+            'password': 'Password01',
+            'last_name': 'five',
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('380.01')
+    },
+    '933333': {
+        'len_transactions': 4,
+        'credentials': {
+            'email': 'special_`{|}~char3@testbink.com',
+            'password': 'Password01',
+            'last_name': 'five',
+            'postcode': 'rg5 5aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('380.01')
+    },
 }
 
 transactions = [
@@ -487,6 +519,9 @@ class MockAgentHN(ApiMiner):
             '900026': '9000000000026',
             '900027': '9000000000027',
             '900028': '9000000000028',
+            '911111': '9000000000029',
+            '922222': '9000000000030',
+            '933333': '9000000000031',
 
         }
         self.customer_number = card_number_mapping[self.customer_number]
