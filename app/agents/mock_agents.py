@@ -5,7 +5,7 @@ import arrow
 
 from app.agents.base import ApiMiner, MerchantApi
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED, RegistrationError, ACCOUNT_ALREADY_EXISTS, \
-    STATUS_REGISTRATION_FAILED, UNKNOWN, CARD_NUMBER_ERROR
+    STATUS_REGISTRATION_FAILED, UNKNOWN, CARD_NUMBER_ERROR, END_SITE_DOWN
 
 users = {
     '000000': {
@@ -452,6 +452,21 @@ transactions = [
     },
 ]
 
+error_credentials = {
+    'email': {
+        'endsitedown@testbink.com': END_SITE_DOWN,
+    },
+}
+
+
+def check_and_raise_error_credentials(credentials):
+    for credential_type, credential in credentials.items():
+        try:
+            error_to_raise = error_credentials[credential_type][credential]
+            raise LoginError(error_to_raise)
+        except KeyError:
+            pass
+
 
 def get_user(card_number):
     try:
@@ -464,6 +479,7 @@ class MockAgentHN(ApiMiner):
     retry_limit = None
 
     def login(self, credentials):
+        check_and_raise_error_credentials(credentials)
         if all(cred in credentials for cred in ['email', 'password', 'title', 'first_name', 'last_name']):
             self.user_info = users['000000']
             self.customer_number = '000000'
