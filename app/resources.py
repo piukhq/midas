@@ -167,11 +167,11 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
     # Pending scheme account using the merchant api framework expects a callback so should not call balance unless
     # the call is an async Link.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
-    if (is_merchant_api_agent and user_info['status'] == SchemeAccountStatus.PENDING and
-            user_info['journey_type'] != JourneyTypes.LINK):
-
+    check_status = user_info['status']
+    is_pending = check_status in [SchemeAccountStatus.PENDING, SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS]
+    if is_merchant_api_agent and is_pending and user_info['journey_type'] != JourneyTypes.LINK:
         user_info['pending'] = True
-        status = SchemeAccountStatus.PENDING
+        status = check_status
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
 
     else:

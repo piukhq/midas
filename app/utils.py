@@ -39,6 +39,7 @@ class SchemeAccountStatus:
     CARD_NUMBER_ERROR = 436
     CARD_NOT_REGISTERED = 438
     LINK_LIMIT_EXCEEDED = 437
+    JOIN_ASYNC_IN_PROGRESS = 442
 
 
 class JourneyTypes(IntEnum):
