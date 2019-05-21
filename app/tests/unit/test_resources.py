@@ -664,6 +664,33 @@ class TestResources(TestCase):
         }
         self.assertEqual(balance, expected_balance)
 
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.publish.status', auto_spec=True)
+    @mock.patch('app.publish.balance', auto_spec=False)
+    def test_get_balance_and_publish_with_pending_join_merchant_api(self, mock_publish_balance, mock_publish_status,
+                                                                    mock_login, mock_update_pending_join_account):
+        pending_user_info = dict(self.user_info)
+        pending_user_info['status'] = SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS
+        pending_user_info['journey_type'] = JourneyTypes.UPDATE
+        balance = get_balance_and_publish(MerchantAPIGeneric, 'scheme_slug', pending_user_info, 'tid')
+
+        self.assertFalse(mock_login.called)
+        self.assertFalse(mock_publish_balance.called)
+        self.assertFalse(mock_publish_status.called)
+        self.assertFalse(mock_update_pending_join_account.called)
+
+        expected_balance = {
+            'points': Decimal(0),
+            'points_label': '0',
+            'reward_tier': 0,
+            'scheme_account_id': 123,
+            'user_set': 1,
+            'value': Decimal(0),
+            'value_label': 'Pending'
+        }
+        self.assertEqual(balance, expected_balance)
+
     @mock.patch('app.resources.delete_scheme_account', auto_spec=True)
     @mock.patch('app.resources.agent_login', auto_spec=False)
     @mock.patch('app.publish.status', auto_spec=True)
