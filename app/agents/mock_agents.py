@@ -1,4 +1,5 @@
 from decimal import Decimal
+import random
 from time import sleep
 
 import arrow
@@ -429,14 +430,23 @@ def get_user(card_number):
 
 
 class MockAgentHN(ApiMiner):
+    REGISTER_PREFIX = '911'
     retry_limit = None
 
     def login(self, credentials):
         if all(cred in credentials for cred in ['email', 'password', 'title', 'first_name', 'last_name']):
             self.user_info = users['000000']
-            self.customer_number = '000000'
+            register_suffix = random.randint(0, 9999999999)
+            self.identifier = {
+                'card_number': f'{self.REGISTER_PREFIX}{register_suffix:010d}'
+            }
+            return
 
         else:
+            if credentials.get('card_number')[:3] == self.REGISTER_PREFIX:
+                self.user_info = users['000000']
+                return
+
             for user, info in users.items():
                 check_email = info['credentials']['email']
                 check_password = info['credentials']['password']
@@ -595,7 +605,8 @@ class MockAgentIce(MerchantApi):
             self.user_info = users['000000']
             self.customer_number = credentials.get('card_number') or credentials.get('barcode')
             if not self.customer_number:
-                self.customer_number = '0000000000000000000'
+                card_suffix = random.randint(0, 999999999999999)
+                self.customer_number = f'9000{card_suffix:015d}'
 
             self.identifier['card_number'] = self.customer_number
             self.identifier['barcode'] = self.customer_number
@@ -781,7 +792,8 @@ class MockAgentCoop(MerchantApi):
             try:
                 self.customer_number = credentials['card_number']
             except KeyError:
-                self.customer_number = '633174910000000000'
+                card_suffix = random.randint(0, 9999999999)
+                self.customer_number = f'63317491{card_suffix:010d}'
 
             self.identifier['card_number'] = self.customer_number
             self.identifier['merchant_identifier'] = 'testregister'
