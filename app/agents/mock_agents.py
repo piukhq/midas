@@ -491,7 +491,8 @@ class MockAgentHN(ApiMiner):
             return
 
         else:
-            if credentials.get('card_number') and credentials.get('card_number')[:3] == self.REGISTER_PREFIX:
+            card_number = credentials.get('card_number')
+            if card_number and card_number[:3] == self.REGISTER_PREFIX:
                 self.user_info = users['000000']
                 return
 
