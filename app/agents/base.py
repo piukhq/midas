@@ -660,7 +660,7 @@ class MerchantApi(BaseMiner):
                 try:
                     response_json, status = send_request()
 
-                    if status == 200:
+                    if status in [200, 202]:
                         break
                 except UnauthorisedError:
                     response_json = create_error_response(VALIDATION,
@@ -675,7 +675,7 @@ class MerchantApi(BaseMiner):
         response = requests.post(self.config.merchant_url, **self.request)
         status = response.status_code
 
-        logger.debug(f"raw response: {response.text}, scheme_account: {self.scheme_id}")
+        logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
