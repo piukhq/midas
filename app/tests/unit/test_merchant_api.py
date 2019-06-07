@@ -301,6 +301,17 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(mock_encode.call_count, 6)
         self.assertEqual(resp, json.dumps(expected_resp))
 
+    @mock.patch.object(RSA, 'encode', autospec=True)
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
+    @mock.patch('app.agents.base.MerchantApi._send_request', autospec=True)
+    def test_sync_outbound_doesnt_retry_on_202(self, mock_send_request, mock_back_off, mock_encode):
+        mock_encode.return_value = {'json': self.json_data}
+        mock_send_request.return_value = requests.Response(), 202
+        mock_back_off.return_value.is_on_cooldown.return_value = False
+
+        self.m._sync_outbound(self.json_data)
+        self.assertEqual(1, mock_send_request.call_count)
+
     @mock.patch('requests.post', autospec=True)
     def test_send_request_raises_exception_on_unauthorised_response(self, mock_request):
         mock_resp = Response()
