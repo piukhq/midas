@@ -353,6 +353,25 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_logger.warning.called)
 
+    @mock.patch('app.agents.base.send_consent_status', autospec=True)
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.scheme_account.requests', autospec=True)
+    def test_async_inbound_error_updates_status(self, mock_requests, mock_logger, mock_consents):
+        self.m.record_uid = self.m.scheme_id
+        self.m.config = self.config
+        self.m.consents_data = []
+        data = json.loads(self.json_data)
+        data['error_codes'] = [{
+                "code": "GENERAL_ERROR",
+                "description": 'An unknown error has occurred'
+            }]
+
+        with self.assertRaises(AgentError):
+            self.m._inbound_handler(data, '')
+        self.assertTrue(mock_logger.warning.called)
+        self.assertTrue(mock_consents.called)
+        self.assertIn('status', mock_requests.post.call_args[0][0])
+
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_process_join_handles_errors(self, mock_consent_confirmation):
         self.m.record_uid = self.m.scheme_id
