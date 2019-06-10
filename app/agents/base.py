@@ -618,7 +618,13 @@ class MerchantApi(BaseMiner):
         else:
             logger.info(json.dumps(logging_info))
 
-        return self.process_join_response()
+        try:
+            response = self.process_join_response()
+        except AgentError as e:
+            update_pending_join_account(self.user_info, e.message, self.message_uid, raise_exception=False)
+            raise
+
+        return response
 
     def apply_security_measures(self, json_data, security_service, security_credentials):
         outbound_security_agent = get_security_agent(security_service, security_credentials)
