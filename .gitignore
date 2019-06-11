@@ -11,3 +11,6 @@ andrew
 .cache
 *.json
 .pytest_cache
+.python-version
+celerybeat.pid
+celerybeat-schedule.db
