@@ -244,9 +244,6 @@ class Cooperative(MerchantApi):
         except KeyError:
             return (create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + ' isTemporary not in check card response'),
                     errors[UNKNOWN]['code'])
-        except LoginError:
-            return (create_error_response(STATUS_LOGIN_FAILED, errors[STATUS_LOGIN_FAILED]['name']),
-                    errors[STATUS_LOGIN_FAILED]['code'])
 
         old_json = self.request['json']
         new_json = {
