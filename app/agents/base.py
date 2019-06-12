@@ -395,7 +395,7 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
-    retry_limit = 5
+    retry_limit = 9    # tries 10 times overall
     credential_mapping = {
         'date_of_birth': 'dob',
         'phone': 'phone1',
@@ -618,7 +618,13 @@ class MerchantApi(BaseMiner):
         else:
             logger.info(json.dumps(logging_info))
 
-        return self.process_join_response()
+        try:
+            response = self.process_join_response()
+        except AgentError as e:
+            update_pending_join_account(self.user_info, e.message, self.message_uid, raise_exception=False)
+            raise
+
+        return response
 
     def apply_security_measures(self, json_data, security_service, security_credentials):
         outbound_security_agent = get_security_agent(security_service, security_credentials)
@@ -660,7 +666,7 @@ class MerchantApi(BaseMiner):
                 try:
                     response_json, status = send_request()
 
-                    if status == 200:
+                    if status in [200, 202]:
                         break
                 except UnauthorisedError:
                     response_json = create_error_response(VALIDATION,
@@ -675,7 +681,7 @@ class MerchantApi(BaseMiner):
         response = requests.post(self.config.merchant_url, **self.request)
         status = response.status_code
 
-        logger.debug(f"raw response: {response.text}, scheme_account: {self.scheme_id}")
+        logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
