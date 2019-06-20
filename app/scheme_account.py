@@ -33,7 +33,7 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     remove_pending_consents(consent_ids, headers)
 
-    data = {'all': True}
+    data = {'keep_card_number': True}
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
                     data=json.dumps(data, cls=JsonEncoder), headers=headers)
 
