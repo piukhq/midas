@@ -22,8 +22,13 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
+
+    status = SchemeAccountStatus.JOIN
+    if 'credentials' in user_info and 'card_number' in user_info['credentials']:
+        status = SchemeAccountStatus.PRE_REGISTERED_CARD
+
     data = {
-        'status': SchemeAccountStatus.JOIN,
+        'status': status,
         'event_name': 'join-failed-event',
         'metadata': {'scheme': scheme_slug},
         'user_info': user_info
