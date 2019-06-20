@@ -177,9 +177,9 @@ class Cooperative(MerchantApi):
         card_number = old_json.get('card_number')
 
         try:
-            if card_number and self._card_is_temporary(card_number):
-                return (create_error_response(PRE_REGISTERED_CARD, errors[PRE_REGISTERED_CARD]['name']),
-                        errors[PRE_REGISTERED_CARD]['code'])
+            if card_number and not self._card_is_temporary(card_number):
+                return (create_error_response(ACCOUNT_ALREADY_EXISTS, errors[ACCOUNT_ALREADY_EXISTS]['name']),
+                        errors[ACCOUNT_ALREADY_EXISTS]['code'])
         except KeyError:
             return (create_error_response(UNKNOWN, errors[UNKNOWN]['name'] + ' isTemporary not in check card response'),
                     errors[UNKNOWN]['code'])
