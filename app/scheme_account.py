@@ -22,8 +22,16 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
+
+    status = SchemeAccountStatus.JOIN
+    delete_data = {'all': True}
+
+    if 'credentials' in user_info and 'card_number' in user_info['credentials']:
+        status = SchemeAccountStatus.PRE_REGISTERED_CARD
+        delete_data = {'keep_card_number': True}
+
     data = {
-        'status': SchemeAccountStatus.JOIN,
+        'status': status,
         'event_name': 'join-failed-event',
         'metadata': {'scheme': scheme_slug},
         'user_info': user_info
@@ -33,9 +41,8 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     remove_pending_consents(consent_ids, headers)
 
-    data = {'all': True}
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
-                    data=json.dumps(data, cls=JsonEncoder), headers=headers)
+                    data=json.dumps(delete_data, cls=JsonEncoder), headers=headers)
 
     if raise_exception:
         raise AgentException(message)
