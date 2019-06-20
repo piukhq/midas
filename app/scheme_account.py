@@ -24,8 +24,11 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
     # error handling for pending scheme accounts waiting for join journey to complete
 
     status = SchemeAccountStatus.JOIN
+    delete_data = {'all': True}
+
     if 'credentials' in user_info and 'card_number' in user_info['credentials']:
         status = SchemeAccountStatus.PRE_REGISTERED_CARD
+        delete_data = {'keep_card_number': True}
 
     data = {
         'status': status,
@@ -38,9 +41,8 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     remove_pending_consents(consent_ids, headers)
 
-    data = {'keep_card_number': True}
     requests.delete('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
-                    data=json.dumps(data, cls=JsonEncoder), headers=headers)
+                    data=json.dumps(delete_data, cls=JsonEncoder), headers=headers)
 
     if raise_exception:
         raise AgentException(message)
