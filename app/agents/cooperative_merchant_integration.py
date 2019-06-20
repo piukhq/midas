@@ -201,6 +201,9 @@ class Cooperative(MerchantApi):
             }
         }
 
+        if card_number:
+            new_json['temporaryCardNumber'] = card_number
+
         self.new_request = self.request.copy()
         self.new_request['json'] = new_json
 
