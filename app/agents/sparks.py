@@ -72,6 +72,7 @@ class Sparks(RoboBrowserMiner):
             'logonPassword': credentials['password']
         }
 
+        self.browser.open('https://www.marksandspencer.com')
         self.browser.open(url, data=data, method='post')
         self._check_if_logged_in()
 
