@@ -29,9 +29,6 @@ class Harrods(RoboBrowserMiner):
         self.headers['Host'] = 'secure.harrods.com'
         self.headers['Origin'] = 'https://secure.harrods.com'
         self.headers['Referer'] = 'https://secure.harrods.com/account/en-gb/signin'
-        self.headers['User-Agent'] = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                                      'Chrome/53.0.2785.143 Safari/537.36')
-
         self.browser.submit_form(login_form)
 
         if self.is_login_successful() is False:
