@@ -36,6 +36,7 @@ def get_credentials(agent=None):
     :param agent: loyalty scheme name as used in the tests
     :type agent: str
     :return: dictionary of credentials
+    :rtype: dict
     """
     engine = create_engine(HELIOS_DB_URI)
     where = "WHERE app_agent.loyalty_scheme = '{}';".format(agent) if agent else ";"

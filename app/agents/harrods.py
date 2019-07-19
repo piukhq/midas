@@ -1,3 +1,5 @@
+from robobrowser import RoboBrowser
+
 from app.agents.base import RoboBrowserMiner
 from app.agents.exceptions import LoginError, STATUS_LOGIN_FAILED
 from app.utils import extract_decimal
@@ -8,7 +10,16 @@ import arrow
 class Harrods(RoboBrowserMiner):
     point_conversion_rate = Decimal('0.01')
 
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super(Harrods, self).__init__(retry_count, user_info, scheme_slug=None)
+        self.browser = RoboBrowser(
+            parser="lxml", session=self.session,
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/75.0.3770.100 Safari/537.36"
+        )
+
     def login(self, credentials):
+        self.open_url('https://www.harrods.com/en-gb')
         self.open_url('https://secure.harrods.com/account/en-gb/signin')
 
         login_form = self.browser.get_forms()[2]
@@ -17,24 +28,17 @@ class Harrods(RoboBrowserMiner):
 
         self.headers['Host'] = 'secure.harrods.com'
         self.headers['Origin'] = 'https://secure.harrods.com'
-        self.headers['Referer'] = 'https://secure.harrods.com/' \
-                                  'account/en-gb/signin'
-        self.headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) ' \
-                                     'AppleWebKit/537.36 (KHTML, like Gecko)' \
-                                     ' Chrome/53.0.2785.143 Safari/537.36'
-
+        self.headers['Referer'] = 'https://secure.harrods.com/account/en-gb/signin'
         self.browser.submit_form(login_form)
 
         if self.is_login_successful() is False:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def is_login_successful(self):
-        return 'is-authenticated' in self.browser.select('body')[
-            0].attrs['class']
+        return 'is-authenticated' in self.browser.select('body')[0].attrs['class']
 
     def balance(self):
-        points = extract_decimal(self.browser.select(
-            '.rewards-status_item-value--points')[0].contents[0])
+        points = extract_decimal(self.browser.select('.rewards-status_item-value--points')[0].contents[0])
         value = self.calculate_point_value(points)
 
         return {
