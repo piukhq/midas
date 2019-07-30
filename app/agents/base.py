@@ -169,16 +169,18 @@ class RoboBrowserMiner(BaseMiner):
         self.headers = {}
         self.proxy = False
 
-        session = Session()
+        self.session = Session()
 
         if self.use_tls_v1:
-            session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
+            self.session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
 
         if self.proxy:
-            session.proxies = {'http': 'http://192.168.1.47:3128',
-                               'https': 'https://192.168.1.47:3128'}
+            self.session.proxies = {
+                'http': 'http://192.168.1.47:3128',
+                'https': 'https://192.168.1.47:3128'
+            }
 
-        self.browser = RoboBrowser(parser="lxml", session=session,
+        self.browser = RoboBrowser(parser="lxml", session=self.session,
                                    user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
                                               "Gecko/20100101 Firefox/40.0")
         self.retry_count = retry_count

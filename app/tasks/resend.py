@@ -55,8 +55,8 @@ class ReTryTaskStore:
                 if not done:
                     if self.retry_results in data:
                         data[self.retry_results].append(message)
-                if data[self.retry_name] > 0:
-                    self.save_to_redis(data)
+                    if data[self.retry_name] > 0:
+                        self.save_to_redis(data)
 
         except IOError as e:
             if self.retry_results in data:
