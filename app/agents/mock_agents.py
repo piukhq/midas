@@ -98,6 +98,51 @@ users = {
         },
         'points': Decimal('380.01')
     },
+    # Greppy Test Users
+    '500001': {
+        'len_transactions': 0,
+        'credentials': {
+            'email': 'greppyuser0@testbink.com',
+            'password': 'GreppyPass0',
+            'last_name': 'zero',
+            'postcode': 'rg0 0aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('0')
+    },
+    '500002': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'greppyuser1@testbink.com',
+            'password': 'GreppyPass1',
+            'last_name': 'one',
+            'postcode': 'rg1 1aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('1')
+    },
+    '500003': {
+        'len_transactions': 3,
+        'credentials': {
+            'email': 'greppyuser205@testbink.com',
+            'password': 'GreppyPass205',
+            'last_name': 'hundred',
+            'postcode': 'rg2 2aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('205.02')
+    },
+    '500004': {
+        'len_transactions': 6,
+        'credentials': {
+            'email': 'greppyuser1234567@testbink.com',
+            'password': 'GreppyPass1234567',
+            'last_name': 'million',
+            'postcode': 'rg6 6aa',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('1234567.89')
+    },
     # NEW FIXTURES
     '900001': {
         'len_transactions': 0,
@@ -517,6 +562,11 @@ class MockAgentHN(ApiMiner):
             # QA Automated Test Fixtures
             '222220': '9123001122330',
             '222225': '9123001122335',
+            # Greppy Test Users
+            '500001': '1000001110020',
+            '500002': '1000001221121',
+            '500003': '1000001333323',
+            '500004': '1000001447727',
             # New fixtures
             '900001': '9000000000001',
             '900002': '9000000000002',
@@ -629,6 +679,11 @@ class MockAgentIce(MerchantApi):
         # QA Automated Test Fixtures
         '9123123123001122330': '222220',
         '9123123123001122335': '222225',
+        # Greppy Test Users
+        '6332040000100000001': '500001',
+        '6332040000200000002': '500002',
+        '6332040000300000003': '500003',
+        '6332040000400000004': '500004',
         # New fixtures
         '9000000000000000001': '900001',
         '9000000000000000002': '900002',
@@ -752,6 +807,11 @@ class MockAgentCI(ApiMiner):
             # QA Automated Test Fixtures
             '00002220': '222220',
             '00002225': '222225',
+            # Greppy Test Users
+            '00005220': '500001',
+            '00004221': '500002',
+            '00003222': '500003',
+            '00002117': '500004',
             # New fixtures
             '00009001': '900001',
             '00009002': '900002',
@@ -815,6 +875,11 @@ class MockAgentCoop(MerchantApi):
         # QA Automated Test Fixtures
         '633174912301122330': '222220',
         '633174912301122335': '222225',
+        # Greppy Test Users
+        '633174930007689000': '500001',
+        '633174931117689111': '500002',
+        '633174933337689333': '500003',
+        '633174937777689777': '500004',
         # New fixtures
         '633174910000000001': '900001',
         '633174910000000002': '900002',
