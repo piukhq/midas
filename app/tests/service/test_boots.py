@@ -12,12 +12,12 @@ class TestBoots(unittest.TestCase):
         cls.b.attempt_login(CREDENTIALS["advantage-card"])
 
     def test_login(self):
-        self.assertTrue(self.b.is_login_successful)
+        self.assertEqual(self.b.browser.response.status_code, 200)
 
     def test_balance(self):
         balance = self.b.balance()
         schemas.balance(balance)
-        self.assertRegex(balance["value_label"], r"^£\d*\.\d\d$")
+        self.assertRegex(balance['value_label'], r'^£\d*\.\d\d$')
 
     def test_transactions(self):
         transactions = self.b.transactions()
@@ -34,5 +34,5 @@ class TestBootsFail(unittest.TestCase):
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
