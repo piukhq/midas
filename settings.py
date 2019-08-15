@@ -56,7 +56,6 @@ CELERY_IMPORTS = [
 HADES_URL = env_var('HADES_URL', 'http://local.hades.chingrewards.com:8000')
 HERMES_URL = env_var('HERMES_URL', 'http://local.hermes.chingrewards.com:8000')
 HELIOS_URL = env_var('HELIOS_URL', 'https://api.bink-dev.xyz/dashboard')
-AGENT_PROXY_URL = env_var('AGENT_PROXY_URL', "http://localhost:5000")
 HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92ac-6e05e0916e82')
 CONFIG_SERVICE_URL = env_var('CONFIG_SERVICE_URL', '')
 MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
