@@ -74,7 +74,16 @@ INFLUX_DATABASE = env_var('INFLUX_DATABASE', 'test_results')
 
 MAX_VALUE_LABEL_LENGTH = 11
 
-HELIOS_DB_URI = env_var('HELIOS_DB_URI', 'postgresql+psycopg2://helios:j8NUz3vzPSn$@10.0.104.22:5432/helios')
+HELIOS_DB_USER = env_var('HELIOS_DB_USER', 'helios')
+HELIOS_DB_PASS = env_var('HELIOS_DB_PASS', 'j8NUz3vzPSn$')
+HELIOS_DB_HOST = env_var('HELIOS_DB_HOST', '127.0.0.1')
+HELIOS_DB_PORT = env_var('HELIOS_DB_PORT', '5432')
+HELIOS_DB_NAME = env_var('HELIOS_DB_NAME', 'helios')
+
+HELIOS_DB_URI = (
+    'postgresql+psycopg2://'
+    f'{HELIOS_DB_USER}:{HELIOS_DB_PASS}@{HELIOS_DB_HOST}:{HELIOS_DB_PORT}/{HELIOS_DB_NAME}'
+)
 
 CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
