@@ -60,6 +60,6 @@ class Hertz(RoboBrowserMiner):
             url = 'https://www.hertz.co.uk/rentacar/rest/member/rewards/statement/{}'.format(month.format('YYYY-MM'))
             self.browser.open(url)
             transactions.extend(self.browser.response.json()['data'].get('transactions', []))
-            month = month.replace(months=-1)
+            month = month.shift(months=-1)
 
         return transactions

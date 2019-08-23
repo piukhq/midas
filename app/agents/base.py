@@ -266,11 +266,11 @@ class RoboBrowserMiner(BaseMiner):
 
 # Based on requests library
 class ApiMiner(BaseMiner):
-
     def __init__(self, retry_count, user_info, scheme_slug=None):
         self.scheme_id = user_info['scheme_account_id']
         self.scheme_slug = scheme_slug
         self.account_status = user_info['status']
+        self.journey_type = user_info.get("journey_type")
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
@@ -750,7 +750,7 @@ class MerchantApi(BaseMiner):
             "handler_type": handler_type,
             "integration_service": integration_service,
             "direction": direction,
-            "expiry_date": arrow.utcnow().replace(days=+90).format('YYYY-MM-DD HH:mm:ss'),
+            "expiry_date": arrow.utcnow().shift(days=+90).format('YYYY-MM-DD HH:mm:ss'),
             "contains_errors": contains_errors
         }
 
