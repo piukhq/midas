@@ -173,7 +173,6 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         user_info['pending'] = True
         status = check_status
         balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info['user_set'])
-
     else:
         if scheme_slug == 'iceland-bonus-card' and settings.ENABLE_ICELAND_VALIDATE:
             if user_info['status'] != SchemeAccountStatus.ACTIVE:
