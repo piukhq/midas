@@ -474,7 +474,7 @@ transactions = [
     {
         "date": arrow.get('02/08/2018 12:11:30', 'DD/MM/YYYY HH:mm:ss'),
         "description": 'Test transaction: 3 items',
-        "points": Decimal('100.01'),
+        "points": Decimal('-100.01'),
     },
     {
         "date": arrow.get('03/09/2018 22:05:45', 'DD/MM/YYYY HH:mm:ss'),
@@ -484,7 +484,7 @@ transactions = [
     {
         "date": arrow.get('04/09/2018 16:55:00', 'DD/MM/YYYY HH:mm:ss'),
         "description": 'Test transaction: 2 items',
-        "points": Decimal('50'),
+        "points": Decimal('-50'),
     },
     {
         "date": arrow.get('04/09/2018 07:35:10', 'DD/MM/YYYY HH:mm:ss'),
