@@ -69,4 +69,4 @@ tenacity = "*"
 
 [dev-packages]
 coverage = "*"
-
+flake8 = "*"
