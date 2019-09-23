@@ -134,4 +134,5 @@ AGENTS = {
     'dhaba-lane': 'my360.My360',
     'deep-blue-restaurants': 'my360.My360',
     'el-mexicana': 'my360.My360',
+    "fatface": "ecrebo.Ecrebo",
 }
