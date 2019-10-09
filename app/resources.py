@@ -474,6 +474,9 @@ def registration(scheme_slug, user_info, tid):
         if agent_instance.identifier:
             update_pending_join_account(user_info, "success", tid,
                                         identifier=agent_instance.identifier)
+        elif register_result["agent"].identifier:
+            update_pending_join_account(user_info, "success", tid,
+                                        identifier=register_result["agent"].identifier)
     except (LoginError, AgentError, AgentException) as e:
         if register_result['error'] == ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
