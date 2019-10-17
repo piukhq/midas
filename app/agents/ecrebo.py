@@ -43,7 +43,7 @@ class Ecrebo(ApiMiner):
                     "first_name": credentials["first_name"],
                     "surname": credentials["last_name"],
                     "join_date": arrow.utcnow().format("YYYY-MM-DD"),
-                    "email_marketing": True,
+                    "email_marketing": credentials["email_marketing"],
                     "source": "channel",
                 }
             },
@@ -69,32 +69,31 @@ class Ecrebo(ApiMiner):
             headers=self._make_headers(self._authenticate()),
         )
         resp.raise_for_status()
+
+        rewards = resp.json()["data"]["membership_data"]["rewards"]
+
+        def _voucher_type_from_reason(reason: str) -> str:
+            return {"EARN": VoucherType.ACCUMULATOR.value, "JOIN": VoucherType.JOIN.value}[reason]
+
+        def _voucher_from_json(json):
+            voucher = {
+                "type": _voucher_type_from_reason(json["reason"]),
+                "issue_date": arrow.get(json["issued"], "YYYY-MM-DD").timestamp,
+                "code": json["code"],
+            }
+
+            if "redeemed" in json:
+                voucher["redeem_date"] = json["redeemed"]
+
+            return voucher
+
         return {
-            "points": Decimal(123),
-            "value": Decimal(246),
-            "value_label": "246 points",
+            "points": rewards["balance"],
+            "value": 0,
+            "value_label": "",
             "vouchers": [
-                {   # expired
-                    "type": VoucherType.ACCUMULATOR.value,
-                    "issue_date": 1468883184,
-                    "code": "010e80cc",
-                },
-                {   # in progress
-                    "type": VoucherType.ACCUMULATOR.value,
-                    "value": Decimal(34),
-                    "target_value": Decimal(50),
-                },
-                {   # issued
-                    "type": VoucherType.ACCUMULATOR.value,
-                    "issue_date": 1570543452,
-                    "code": "c9da9309",
-                },
-                {   # redeemed
-                    "type": VoucherType.ACCUMULATOR.value,
-                    "issue_date": 1570543442,
-                    "redeem_date": 1570543452,
-                    "code": "f83341e9",
-                }
+                {"type": VoucherType.ACCUMULATOR.value, "value": rewards["balance"], "target_value": rewards["goal"]},
+                *[_voucher_from_json(voucher) for voucher in rewards["vouchers"]],
             ],
         }
 
