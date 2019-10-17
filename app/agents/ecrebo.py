@@ -38,7 +38,6 @@ class Ecrebo(ApiMiner):
                 "data": {
                     "email": credentials["email"],
                     "validated": True,
-                    "title": "",
                     "first_name": credentials["first_name"],
                     "surname": credentials["last_name"],
                     "join_date": arrow.utcnow().format("YYYY-MM-DD"),
