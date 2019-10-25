@@ -64,9 +64,9 @@ MarkupSafe = "*"
 PyExecJS = "*"
 Werkzeug = "*"
 SQLAlchemy = "*"
-ddtrace = "*"
 tenacity = "*"
 
 [dev-packages]
 coverage = "*"
 flake8 = "*"
+black = "==19.3b0"

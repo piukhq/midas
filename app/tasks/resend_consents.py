@@ -7,7 +7,7 @@ import requests
 from app import sentry
 from app.encoding import JsonEncoder
 from app.utils import get_headers
-from settings import HERMES_URL, logger
+from settings import HERMES_URL, logger, SENTRY_DSN
 from .resend import ReTryTaskStore
 
 
@@ -56,7 +56,10 @@ def try_consents(consents_data):
 
     except requests.RequestException as e:
         # other exceptions will abort retries and exception will be monitored by sentry
-        sentry.captureException()
+        if SENTRY_DSN:
+            sentry.captureException()
+        else:
+            logger.debug(f'Error sending consents data to harvey nichols. Error: {repr(e)}')
         return False, f"{consents_data.get('identifier','')} {consents_data['state']}: IO error {str(e)}"
 
 

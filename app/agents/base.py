@@ -274,6 +274,7 @@ class ApiMiner(BaseMiner):
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
+        self.user_info = user_info
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
