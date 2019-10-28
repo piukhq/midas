@@ -41,7 +41,7 @@ class Ecrebo(ApiMiner):
                     "first_name": credentials["first_name"],
                     "surname": credentials["last_name"],
                     "join_date": arrow.utcnow().format("YYYY-MM-DD"),
-                    "email_marketing": credentials["email_marketing"],
+                    "email_marketing": credentials["consents"]["email_marketing"],
                     "source": "channel",
                 }
             },
