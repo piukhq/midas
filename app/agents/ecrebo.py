@@ -32,6 +32,7 @@ class Ecrebo(ApiMiner):
         return {"Token": token, "Audit-Tag": str(uuid4())}
 
     def register(self, credentials):
+        consents = {c["slug"]: c["value"] for c in credentials["consents"]}
         resp = requests.post(
             f"{BASE_URL}/v1/list/append_item/{RETAILER_ID}/assets/membership",
             json={
@@ -41,7 +42,7 @@ class Ecrebo(ApiMiner):
                     "first_name": credentials["first_name"],
                     "surname": credentials["last_name"],
                     "join_date": arrow.utcnow().format("YYYY-MM-DD"),
-                    "email_marketing": credentials["consents"]["email_marketing"],
+                    "email_marketing": consents["email_marketing"],
                     "source": "channel",
                 }
             },
