@@ -1,5 +1,6 @@
 import enum
 
+from decimal import Decimal
 from uuid import uuid4
 import requests
 import arrow
@@ -87,11 +88,15 @@ class Ecrebo(ApiMiner):
             return voucher
 
         return {
-            "points": rewards["balance"],
-            "value": 0,
+            "points": Decimal(rewards["balance"]),
+            "value": Decimal(0),
             "value_label": "",
             "vouchers": [
-                {"type": VoucherType.ACCUMULATOR.value, "value": rewards["balance"], "target_value": rewards["goal"]},
+                {
+                    "type": VoucherType.ACCUMULATOR.value,
+                    "value": Decimal(rewards["balance"]),
+                    "target_value": Decimal(rewards["goal"])
+                },
                 *[_voucher_from_json(voucher) for voucher in rewards["vouchers"]],
             ],
         }
