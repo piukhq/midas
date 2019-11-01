@@ -88,14 +88,14 @@ class Ecrebo(ApiMiner):
             return voucher
 
         return {
-            "points": Decimal(rewards["balance"]),
+            "points": Decimal(rewards["balance"]) / 5,
             "value": Decimal(0),
             "value_label": "",
             "vouchers": [
                 {
                     "type": VoucherType.ACCUMULATOR.value,
-                    "value": Decimal(rewards["balance"]),
-                    "target_value": Decimal(rewards["goal"])
+                    "value": Decimal(rewards["balance"]) / 5,
+                    "target_value": Decimal(rewards["goal"]) / 5
                 },
                 *[_voucher_from_json(voucher) for voucher in rewards["vouchers"]],
             ],
