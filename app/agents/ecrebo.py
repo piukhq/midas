@@ -32,6 +32,10 @@ class Ecrebo(ApiMiner):
     def _make_headers(self, token):
         return {"Token": token, "Audit-Tag": str(uuid4())}
 
+    def _get_card_number_and_uid(self, message):
+        card_number, uid, *_ = message.split(":")
+        return uid, card_number
+
     def register(self, credentials):
         consents = {c["slug"]: c["value"] for c in credentials["consents"]}
         resp = requests.post(
@@ -52,13 +56,17 @@ class Ecrebo(ApiMiner):
 
         if resp.status_code == 409:  # user already exists
             # we have to parse the error message to get the user ID out
-            merchant_identifier = resp.json()["message"][-37:-1]
+            message = resp.json()["message"]
+            paren_idx = message.rindex("(")
+            message = message[paren_idx + 1 : -1]
         else:
             resp.raise_for_status()
-            merchant_identifier = resp.json()["publisher"][0]["message"].split(":")[1]
+            message = resp.json()["publisher"][0]["message"]
 
-        self.identifier = {"merchant_identifier": merchant_identifier}
-        self.user_info["credentials"]["merchant_identifier"] = merchant_identifier
+        card_number, uid = self._get_card_number_and_uid(message)
+
+        self.identifier = {"merchant_identifier": uid, "card_number": card_number}
+        self.user_info["credentials"]["merchant_identifier"] = uid
 
     def login(self, credentials):
         self.uuid = credentials["merchant_identifier"]
@@ -95,7 +103,7 @@ class Ecrebo(ApiMiner):
                 {
                     "type": VoucherType.ACCUMULATOR.value,
                     "value": Decimal(rewards["balance"]) / 5,
-                    "target_value": Decimal(rewards["goal"]) / 5
+                    "target_value": Decimal(rewards["goal"]) / 5,
                 },
                 *[_voucher_from_json(voucher) for voucher in rewards["vouchers"]],
             ],

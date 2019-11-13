@@ -10,10 +10,10 @@ class TestEcrebo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.g = Ecrebo(*AGENT_CLASS_ARGUMENTS)
-        cls.g.attempt_login(CREDENTIALS["ecrebo"])
+        cls.g.register(CREDENTIALS["ecrebo"])
 
     def test_login(self):
-        pass
+        self.assertIsNotNone(self.g.identifier)
 
     def test_transactions(self):
         transactions = self.g.transactions()

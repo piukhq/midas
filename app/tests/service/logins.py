@@ -14,7 +14,8 @@ AGENT_CLASS_ARGUMENTS = [
         'scheme_account_id': 1,
         'status': SchemeAccountStatus.ACTIVE,
         'user_set': '1,2',
-        'journey_type': None
+        'journey_type': None,
+        'credentials': {},
     }
 ]
 
