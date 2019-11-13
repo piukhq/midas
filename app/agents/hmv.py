@@ -31,7 +31,7 @@ class HMV(RoboBrowserMiner):
             'points': points,
             'value': Decimal('0'),
             'value_label': ''
-            }
+        }
 
     # assumption here is that row is one element of the list that is returned by scrape_transactions
     @staticmethod

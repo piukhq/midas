@@ -19,7 +19,7 @@ class BritishAirways(RoboBrowserMiner):
         login_form.action = '?eId=109001'
         self.browser.submit_form(login_form)
         self.check_error("/travel/loginr/public/en_gb",
-                         (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED,  "We are not able to"),
+                         (('#blsErrosContent > div > ul > li', STATUS_LOGIN_FAILED, "We are not able to"),
                           ('#t-main-fragment > div > h1', TRIPPED_CAPTCHA, 'Validation question')))
 
     def balance(self):
