@@ -65,7 +65,7 @@ class Ecrebo(ApiMiner):
 
         card_number, uid = self._get_card_number_and_uid(message)
 
-        self.identifier = {"merchant_identifier": uid, "card_number": card_number}
+        self.identifier = {"card_number": card_number, "merchant_identifier": uid}
         self.user_info["credentials"]["merchant_identifier"] = uid
 
     def login(self, credentials):
