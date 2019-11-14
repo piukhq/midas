@@ -12,6 +12,8 @@ RUN apk add --no-cache --virtual build \
     apk add --no-cache \
       ca-certificates \
       libxslt \
+      libc-dev \
+      binutils \
       postgresql-dev && \
     mkdir -p /root/.ssh && mv /app/deploy_key /root/.ssh/id_rsa && \
     chmod 0600 /root/.ssh/id_rsa && \
