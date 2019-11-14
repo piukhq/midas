@@ -223,7 +223,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off,  mock_encode):
+    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
 
         response = requests.Response()
@@ -345,9 +345,9 @@ class TestMerchantApi(FlaskTestCase):
         self.m.config = self.config
         data = json.loads(self.json_data)
         data['error_codes'] = [{
-                "code": "GENERAL_ERROR",
-                "description": 'An unknown error has occurred'
-            }]
+            "code": "GENERAL_ERROR",
+            "description": 'An unknown error has occurred'
+        }]
 
         self.m._inbound_handler(data, '')
 
@@ -362,9 +362,9 @@ class TestMerchantApi(FlaskTestCase):
         self.m.consents_data = []
         data = json.loads(self.json_data)
         data['error_codes'] = [{
-                "code": "GENERAL_ERROR",
-                "description": 'An unknown error has occurred'
-            }]
+            "code": "GENERAL_ERROR",
+            "description": 'An unknown error has occurred'
+        }]
 
         with self.assertRaises(AgentError):
             self.m._inbound_handler(data, '')

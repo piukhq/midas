@@ -25,17 +25,17 @@ class Victoria(RoboBrowserMiner):
         self.set_headers()
         url = 'https://www.flytap.com/api/LoginPage?sc_mark=US&sc_lang=en-US'
         data = {
-          'formModel': {
-            'FormData': {
-              'LoginFormID': 0,
-              'Email': credentials['email'],
-              'clientNumber': None,
-              'Password': credentials['password'],
-              'Remember': True,
-              'SocialUserId': None,
-              'SocialProvider': None
+            'formModel': {
+                'FormData': {
+                    'LoginFormID': 0,
+                    'Email': credentials['email'],
+                    'clientNumber': None,
+                    'Password': credentials['password'],
+                    'Remember': True,
+                    'SocialUserId': None,
+                    'SocialProvider': None
+                }
             }
-          }
         }
         self.open_url(url, method='post', json=data)
 
