@@ -60,11 +60,9 @@ class TestUserTokenStore(unittest.TestCase):
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_200)
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_200_ok)
     def test_1(self, mock_put, mock_post):
-
         consents = [
-                {"id": 1, "slug": "optin_1", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "optin_2", "value": False, "created_on": "2018-05-11 12:44"},
-
+            {"id": 1, "slug": "optin_1", "value": True, "created_on": "2018-05-11 12:42"},
+            {"id": 2, "slug": "optin_2", "value": False, "created_on": "2018-05-11 12:44"},
         ]
 
         hn_post_message = {"enactor_id": '1234567'}

@@ -21,7 +21,7 @@ class Nectar(RoboBrowserMiner):
         login_form['password'].value = credentials['password']
         self.browser.submit_form(login_form)
 
-        self.check_error("/login", (('.login-error > p > strong', STATUS_LOGIN_FAILED,  "Sorry"), ))
+        self.check_error("/login", (('.login-error > p > strong', STATUS_LOGIN_FAILED, "Sorry"), ))
 
     def balance(self):
         points_container = self.browser.find("div", {'class': "points-summary"}).select(".fr-reg")

@@ -30,7 +30,7 @@ class ReTryTaskStore:
         if data[self.retry_name] > 0:
             self.storage.lpush(self.task_list, json.dumps(data))
 
-    def set_task(self, module_name, function_name,  data):
+    def set_task(self, module_name, function_name, data):
         if not data.get(self.retry_name, False):
             data[self.retry_name] = 10              # default to 10 retries
         data["_module"] = module_name

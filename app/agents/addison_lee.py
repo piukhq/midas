@@ -40,7 +40,7 @@ class AddisonLee(RoboBrowserMiner):
         self.check_if_logged_in()
 
     def balance(self):
-        self.browser.open('https://beta.addisonlee.com/al/api/user/loyalty/info',  headers=self.headers)
+        self.browser.open('https://beta.addisonlee.com/al/api/user/loyalty/info', headers=self.headers)
         points = self.browser.response.json()['data']['card']['points']
 
         return {
