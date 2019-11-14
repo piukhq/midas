@@ -34,7 +34,7 @@ class Ecrebo(ApiMiner):
 
     def _get_card_number_and_uid(self, message):
         card_number, uid, *_ = message.split(":")
-        return uid, card_number
+        return card_number, uid
 
     def register(self, credentials):
         consents = {c["slug"]: c["value"] for c in credentials["consents"]}
