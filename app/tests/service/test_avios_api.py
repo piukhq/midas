@@ -1,5 +1,4 @@
 import unittest
-from unittest import mock
 from app.agents.avios_api import Avios
 from app.agents.exceptions import LoginError
 from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
@@ -9,8 +8,7 @@ from app.agents import schemas
 class TestAviosAPI(unittest.TestCase):
 
     @classmethod
-    @mock.patch('app.agents.avios_api.sentry')
-    def setUpClass(cls, mock_sentry):
+    def setUpClass(cls):
         cls.b = Avios(*AGENT_CLASS_ARGUMENTS)
         cls.b.attempt_login(CREDENTIALS['avios'])
 
@@ -34,16 +32,13 @@ class TestAviosFakeLogin(unittest.TestCase):
     def setUpClass(cls):
         cls.a = Avios(*AGENT_CLASS_ARGUMENTS)
 
-    @mock.patch('app.agents.avios_api.sentry')
-    def test_missing_card_number(self, mock_sentry):
+    def test_missing_card_number(self):
         credentials = {
             'last_name': CREDENTIALS['avios']['last_name'],
         }
 
         self.a.attempt_login(credentials)
 
-        mock_sentry.captureMessage.assert_called_with(
-            'No card_number in Avios agent! Check the card_number_regex on Hermes.')
         self.assertTrue(self.a.faking_login)
 
         # confirm that no actual scraping is done now that we're faking logins
@@ -56,8 +51,7 @@ class TestAviosFail(unittest.TestCase):
     def setUpClass(cls):
         cls.a = Avios(*AGENT_CLASS_ARGUMENTS)
 
-    @mock.patch('app.agents.avios_api.sentry')
-    def test_login_bad_card_number(self, mock_sentry):
+    def test_login_bad_card_number(self):
         credentials = CREDENTIALS['avios']
         credentials['card_number'] = '0000000000000000'
 
@@ -67,8 +61,7 @@ class TestAviosFail(unittest.TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(e.exception.name, 'Invalid credentials')
 
-    @mock.patch('app.agents.avios_api.sentry')
-    def test_login_bad_last_name(self, mock_sentry):
+    def test_login_bad_last_name(self):
         credentials = CREDENTIALS['avios']
         credentials['last_name'] = 'badbadbad'
 
