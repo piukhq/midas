@@ -1,16 +1,11 @@
-import logging
-
 from celery import Celery
 from flask import Flask, jsonify
-from raven.contrib.flask import Sentry
 
 from app.exceptions import AgentException, UnknownException
 
 import settings
 from app.retry import redis
-from app.version import __version__
 
-sentry = Sentry()
 celery = Celery(backend=settings.CELERY_RESULT_BACKEND, broker=settings.CELERY_BROKER_URL, config_source=settings)
 
 
@@ -19,16 +14,6 @@ def create_app(config_name="settings"):
     app = Flask('core')
     app.config.from_object(config_name)
 
-    app.config['SENTRY_CONFIG'] = {
-        'ignore_exceptions': [AgentException, UnknownException],
-    }
-    if settings.SENTRY_DSN:
-        sentry.init_app(
-            app,
-            dsn=settings.SENTRY_DSN,
-            logging=True,
-            level=logging.ERROR)
-        sentry.client.release = __version__
     api.init_app(app)
     redis.init_app(app)
 

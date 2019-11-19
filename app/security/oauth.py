@@ -1,8 +1,8 @@
 import json
 
+import sentry_sdk
 import requests
 
-from app import sentry
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, SERVICE_CONNECTION_ERROR
 from app.security.base import BaseSecurity
 
@@ -24,7 +24,7 @@ class OAuth(BaseSecurity):
                 }
             }
         except requests.RequestException as e:
-            sentry.captureMessage('Failed request to get oauth token from {}. exception: {}'. format(url, e))
+            sentry_sdk.capture_message('Failed request to get oauth token from {}. exception: {}'. format(url, e))
             raise AgentError(SERVICE_CONNECTION_ERROR) from e
         except (KeyError, IndexError) as e:
             raise AgentError(CONFIGURATION_ERROR) from e

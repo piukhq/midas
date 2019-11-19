@@ -1,4 +1,3 @@
-
 class AgentException(Exception):
     def __init__(self, error):
         self.status_code = return_error_code(error)
@@ -7,6 +6,9 @@ class AgentException(Exception):
 class UnknownException(Exception):
     def __init__(self, error):
         self.status_code = return_error_code(error)
+
+
+SENTRY_IGNORED_EXCEPTIONS = [AgentException, UnknownException]
 
 
 def return_error_code(exception):
