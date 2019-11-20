@@ -95,9 +95,10 @@ class Ecrebo(ApiMiner):
 
             return voucher
 
+        value = Decimal(rewards["balance"]) / 5
         return {
-            "points": Decimal(rewards["balance"]) / 5,
-            "value": Decimal(0),
+            "points": value,
+            "value": value,
             "value_label": "",
             "vouchers": [
                 {
