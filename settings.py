@@ -1,7 +1,12 @@
 import logging
 import os
 
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
+from app.exceptions import SENTRY_IGNORED_EXCEPTIONS
 from environment import env_var, read_env
+from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
 read_env()
@@ -62,7 +67,25 @@ MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
-SENTRY_DSN = env_var('SENTRY_DSN')
+SENTRY_DSN = env_var('SENTRY_DSN', None)
+SENTRY_ENV = env_var('SENTRY_ENV', None)
+if SENTRY_DSN:
+    def ignore_errors(event, hint):
+        if 'exc_info' in hint:
+            exc_type, exc_value, tb = hint['exc_info']
+            if isinstance(exc_value, SENTRY_IGNORED_EXCEPTIONS):
+                return None
+        return event
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENV,
+        integrations=[
+            FlaskIntegration()
+        ],
+        release=__version__,
+        before_send=ignore_errors,
+    )
 
 PROPAGATE_EXCEPTIONS = True
 

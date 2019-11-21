@@ -1,11 +1,12 @@
 import typing as t
 
 import requests
+import sentry_sdk
 from flask_restful import Resource
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from app import retry, AgentException, UnknownException, sentry
+from app import retry, AgentException, UnknownException
 from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR, RegistrationError, UNKNOWN
 from app.configuration import Configuration
 from app.encryption import hash_ids
@@ -33,10 +34,10 @@ class JoinCallback(Resource):
                 'journey_type': JourneyTypes.JOIN.value
             }
         except (KeyError, ValueError, AttributeError) as e:
-            sentry.captureException()
+            sentry_sdk.capture_exception()
             raise UnknownException(e) from e
         except (requests.ConnectionError, AgentError) as e:
-            sentry.captureException()
+            sentry_sdk.capture_exception()
             raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
 
         def update_failed_scheme_account(exception):
@@ -44,7 +45,7 @@ class JoinCallback(Resource):
             consent_ids = (consent['id'] for consent in consents)
             update_pending_join_account(user_info, exception.args[0], message_uid, scheme_slug=scheme_slug,
                                         consent_ids=consent_ids, raise_exception=False)
-            sentry.captureException()
+            sentry_sdk.capture_exception()
 
         try:
             agent_class = get_agent_class(scheme_slug)

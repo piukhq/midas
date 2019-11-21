@@ -1,10 +1,10 @@
 from urllib.parse import urlencode
 from decimal import Decimal
 
+import sentry_sdk
 import requests
 from requests.exceptions import Timeout
 
-from app import sentry
 from app.agents.base import ApiMiner
 from app.agents.exceptions import LoginError, UNKNOWN, STATUS_LOGIN_FAILED, END_SITE_DOWN
 
@@ -15,7 +15,7 @@ class Avios(ApiMiner):
         self.faking_login = False
 
         if 'card_number' not in credentials:
-            sentry.captureMessage('No card_number in Avios agent! Check the card_number_regex on Hermes.')
+            sentry_sdk.capture_message('No card_number in Avios agent! Check the card_number_regex on Hermes.')
             self.faking_login = True
             return
 
@@ -37,12 +37,12 @@ class Avios(ApiMiner):
             self.response.raise_for_status()
 
         except (AttributeError, Timeout) as e:
-            sentry.captureException(e)
+            sentry_sdk.capture_exception(e)
             raise LoginError(END_SITE_DOWN)
 
         except Exception:
             error_code = self.response_json['error']['code']
-            sentry.captureMessage('Avios API login failed! Status code: {} :: Error code: {}'.format(
+            sentry_sdk.capture_message('Avios API login failed! Status code: {} :: Error code: {}'.format(
                 self.response.status_code,
                 error_code))
 

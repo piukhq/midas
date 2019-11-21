@@ -878,13 +878,12 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
 
-    @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.retry', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
     def test_join_callback_raises_error_with_bad_record_uid(self, mock_config, mock_decode, mock_thread,
-                                                            mock_retry, mock_sentry):
+                                                            mock_retry):
         mock_config.return_value = self.config
         json_data_with_bad_record_uid = json.dumps({'message_uid': '123-123-123-123',
                                                     'record_uid': 'a',
@@ -901,21 +900,19 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_decode.called)
         self.assertFalse(mock_thread.called)
         self.assertFalse(mock_retry.get_key.called)
-        self.assertFalse(mock_sentry.called)
 
         self.assertEqual(response.status_code, 520)
         self.assertEqual(response.json, {'code': 520, 'message': 'The record_uid provided is not valid',
                                          'name': 'Unknown Error'})
 
     @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
-    @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
     @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
     def test_join_callback_specific_error(self, mock_config, mock_decode, mock_thread, mock_retry, mock_update_join,
-                                          mock_sentry, mock_collect_credentials):
+                                          mock_collect_credentials):
         mock_retry.side_effect = AgentError(NO_SUCH_RECORD)
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
@@ -929,21 +926,19 @@ class TestMerchantApi(FlaskTestCase):
         self.assertFalse(mock_thread.called)
         self.assertTrue(mock_retry.called)
         self.assertTrue(mock_update_join.called)
-        self.assertTrue(mock_sentry.captureException.called)
         self.assertTrue(mock_collect_credentials.called)
 
         self.assertEqual(response.status_code, errors[NO_SUCH_RECORD]['code'])
         self.assertEqual(response.json, errors[NO_SUCH_RECORD])
 
     @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
-    @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('app.resources_callbacks.update_pending_join_account', autospec=True)
     @mock.patch('app.resources_callbacks.retry.get_key', autospec=True)
     @mock.patch('app.agents.base.thread_pool_executor.submit', autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
     def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_thread, mock_retry,
-                                         mock_update_join, mock_sentry, mock_credentials):
+                                         mock_update_join, mock_credentials):
         mock_retry.side_effect = RuntimeError('test exception')
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
@@ -957,18 +952,16 @@ class TestMerchantApi(FlaskTestCase):
         self.assertFalse(mock_thread.called)
         self.assertTrue(mock_retry.called)
         self.assertTrue(mock_update_join.called)
-        self.assertTrue(mock_sentry.captureException.called)
         self.assertTrue(mock_credentials.called)
 
         self.assertEqual(response.status_code, 520)
         self.assertEqual(response.json, {'code': 520, 'message': 'test exception', 'name': 'Unknown Error'})
 
-    @mock.patch('app.resources_callbacks.sentry')
     @mock.patch('requests.sessions.Session.get')
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch('app.security.utils.configuration.Configuration')
     def test_join_callback_raises_custom_exception_if_collect_credentials_fails(self, mock_config, mock_decode,
-                                                                                mock_session_get, mock_sentry):
+                                                                                mock_session_get):
         mock_config.return_value = self.config
         mock_decode.return_value = json_data
 
@@ -983,7 +976,6 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_sentry.captureException.called)
         self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]['code'])
         self.assertEqual(response.json,
                          {'code': 537,
@@ -1253,9 +1245,8 @@ class TestOAuth(TestCase):
         self.assertTrue(mock_request.called)
         self.assertEqual(request, expected_request)
 
-    @mock.patch('app.security.oauth.sentry')
     @mock.patch('requests.post')
-    def test_oath_encode_raises_error_on_connection_error(self, mock_request, mock_sentry):
+    def test_oath_encode_raises_error_on_connection_error(self, mock_request):
         mock_request.side_effect = requests.ConnectionError
         auth = OAuth(self.auth_creds)
 
@@ -1263,7 +1254,6 @@ class TestOAuth(TestCase):
             auth.encode(self.json_data)
 
         self.assertEqual(e.exception.name, 'Service connection error')
-        self.assertTrue(mock_sentry.captureMessage.called)
 
     @mock.patch('requests.post')
     def test_oauth_encode_raises_error_on_incorrect_credential_setup(self, mock_request):

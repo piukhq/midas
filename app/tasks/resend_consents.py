@@ -3,8 +3,8 @@ import json
 from enum import IntEnum
 
 import requests
+import sentry_sdk
 
-from app import sentry
 from app.encoding import JsonEncoder
 from app.utils import get_headers
 from settings import HERMES_URL, logger, SENTRY_DSN
@@ -57,7 +57,7 @@ def try_consents(consents_data):
     except requests.RequestException as e:
         # other exceptions will abort retries and exception will be monitored by sentry
         if SENTRY_DSN:
-            sentry.captureException()
+            sentry_sdk.capture_exception()
         else:
             logger.debug(f'Error sending consents data to harvey nichols. Error: {repr(e)}')
         return False, f"{consents_data.get('identifier','')} {consents_data['state']}: IO error {str(e)}"
