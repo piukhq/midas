@@ -1,11 +1,13 @@
-import enum
-
 from decimal import Decimal
 from uuid import uuid4
-import requests
+import enum
+import time
+
 import arrow
+import requests
 
 from app.agents.base import ApiMiner
+from app.utils import JourneyTypes
 
 
 @enum.unique
@@ -72,13 +74,33 @@ class Ecrebo(ApiMiner):
         self.uuid = credentials["merchant_identifier"]
 
     def balance(self):
-        resp = requests.get(
-            f"{BASE_URL}/v1/list/query_item/{RETAILER_ID}/assets/membership/uuid/{self.uuid}",
-            headers=self._make_headers(self._authenticate()),
-        )
-        resp.raise_for_status()
+        attempts = 5
+        while attempts > 0:
+            attempts -= 1
+            resp = requests.get(
+                f"{BASE_URL}/v1/list/query_item/{RETAILER_ID}/assets/membership/uuid/{self.uuid}",
+                headers=self._make_headers(self._authenticate()),
+            )
 
-        rewards = resp.json()["data"]["membership_data"]["rewards"]
+            try:
+                resp.raise_for_status()
+                rewards = resp.json()["data"]["membership_data"]["rewards"]
+            except (requests.RequestException, KeyError):
+                if attempts == 0:
+                    raise
+                else:
+                    time.sleep(3)
+            else:
+                break
+
+        # if we got this far without crashing, and the journey type is "link"...
+        # then we are doing the first valid balance update since the join first occurred.
+        # in this case, we must tell hermes to set the join date, not the link date.
+        # if we just set the create journey to "join", hermes will set the card to pending,
+        # and then attempt to get a balance update. i added the "join-with-balance" identifier
+        # to allow hermes to simply set the join date, and stop there.
+        if self.journey_type == JourneyTypes.LINK:
+            self.create_journey = "join-with-balance"
 
         def _voucher_type_from_reason(reason: str) -> str:
             return {"EARN": VoucherType.ACCUMULATOR.value, "JOIN": VoucherType.JOIN.value}[reason]
