@@ -22,7 +22,7 @@ RETAILER_ID = "94"
 
 class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, "join")
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
