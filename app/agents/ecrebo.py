@@ -24,6 +24,7 @@ class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, "join")
         self.base_url = config.merchant_url
+        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
     def _authenticate(self):
@@ -31,7 +32,7 @@ class Ecrebo(ApiMiner):
         Returns an Ecrebo API auth token to use in subsequent requests.
         """
         resp = requests.post(
-            f"{self.base_url}/v1/auth/login", json={"name": "fatface_external_staging", "password": "c5tzCv5ms2k8eFR6"}
+            f"{self.base_url}/v1/auth/login", json={"name": self.auth["username"], "password": self.auth["password"]}
         )
         resp.raise_for_status()
         return resp.json()["token"]
