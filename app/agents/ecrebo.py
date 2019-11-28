@@ -6,6 +6,7 @@ import time
 import arrow
 import requests
 
+from app.configuration import Configuration
 from app.agents.base import ApiMiner
 from app.utils import JourneyTypes
 
@@ -16,17 +17,22 @@ class VoucherType(enum.Enum):
     ACCUMULATOR = 1
 
 
-BASE_URL = "https://london-capi-test.ecrebo.com:2361"
 RETAILER_ID = "94"
 
 
 class Ecrebo(ApiMiner):
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        self.base_url = config.merchant_url
+        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+
     def _authenticate(self):
         """
         Returns an Ecrebo API auth token to use in subsequent requests.
         """
         resp = requests.post(
-            f"{BASE_URL}/v1/auth/login", json={"name": "fatface_external_staging", "password": "c5tzCv5ms2k8eFR6"}
+            f"{self.base_url}/v1/auth/login", json={"name": self.auth["username"], "password": self.auth["password"]}
         )
         resp.raise_for_status()
         return resp.json()["token"]
@@ -41,7 +47,7 @@ class Ecrebo(ApiMiner):
     def register(self, credentials):
         consents = {c["slug"]: c["value"] for c in credentials["consents"]}
         resp = requests.post(
-            f"{BASE_URL}/v1/list/append_item/{RETAILER_ID}/assets/membership",
+            f"{self.base_url}/v1/list/append_item/{RETAILER_ID}/assets/membership",
             json={
                 "data": {
                     "email": credentials["email"],
@@ -78,7 +84,7 @@ class Ecrebo(ApiMiner):
         while attempts > 0:
             attempts -= 1
             resp = requests.get(
-                f"{BASE_URL}/v1/list/query_item/{RETAILER_ID}/assets/membership/uuid/{self.uuid}",
+                f"{self.base_url}/v1/list/query_item/{RETAILER_ID}/assets/membership/uuid/{self.uuid}",
                 headers=self._make_headers(self._authenticate()),
             )
 
