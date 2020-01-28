@@ -41,6 +41,8 @@ class SchemeAccountStatus:
     LINK_LIMIT_EXCEEDED = 437
     JOIN_ASYNC_IN_PROGRESS = 442
     PRE_REGISTERED_CARD = 406
+    JOIN_FAILED = 901
+    ACCOUNT_ALREADY_EXISTS = 445
 
 
 class JourneyTypes(IntEnum):
