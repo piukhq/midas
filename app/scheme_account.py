@@ -3,6 +3,7 @@ import json
 import requests
 
 from app import AgentException
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS
 from app.encoding import JsonEncoder
 from app.tasks.resend_consents import ConsentStatus
 from app.utils import get_headers, SchemeAccountStatus
@@ -22,7 +23,10 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
 
-    status = SchemeAccountStatus.JOIN
+    if message == ACCOUNT_ALREADY_EXISTS:
+        status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
+    else:
+        status = SchemeAccountStatus.JOIN_FAILED
     delete_data = {'all': True}
 
     if 'credentials' in user_info and 'card_number' in user_info['credentials']:
