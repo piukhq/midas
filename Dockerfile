@@ -23,3 +23,5 @@ RUN apk add --no-cache --virtual build \
     pip install pytest pytest-xdist && \
     apk del --no-cache build && \
     rm -rf /tmp/* /root/.ssh
+
+CMD ["/usr/local/bin/gunicorn", "-c", "gunicorn.py", "wsgi:app"]

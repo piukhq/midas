@@ -9,6 +9,7 @@ LAST_NAME = 'last_name'
 FAVOURITE_PLACE = 'favourite_place'
 DATE_OF_BIRTH = 'date_of_birth'
 PHONE = 'phone'
+EMAIL = 'email'
 
 
 ENCRYPTED_CREDENTIALS = (
