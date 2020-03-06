@@ -87,12 +87,12 @@ class Cooperative(MerchantApi):
         return self.result['transactions']
 
     @staticmethod
-    def parse_transactions(row):
+    def parse_transaction(row):
         charity_value = Decimal(row['balance']['value']) / 100
         transaction_value = Decimal(row['balance']['value']) / 100
 
         return {
-            'date': arrow.get(row['timestamp']),
+            'date': arrow.get(row['timestamp']).date().isoformat(),
             'description': 'Charity: £{}'.format(charity_value.quantize(TWO_PLACES)),
             'points': transaction_value.quantize(TWO_PLACES),
         }
