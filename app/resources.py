@@ -12,6 +12,7 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
+from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
                                    SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
 from app.encoding import JsonEncoder
@@ -419,6 +420,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
     retry_count = retry.get_count(key)
     if from_register:
         user_info['journey_type'] = JourneyTypes.UPDATE.value
+        user_info["from_register"] = True
 
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
@@ -445,7 +447,8 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     except Exception as e:
         error = e.args[0]
 
-        if issubclass(agent_class, MerchantApi) or error != ACCOUNT_ALREADY_EXISTS:
+        # this is to allow harvey nichols agent to login and check if join completed
+        if agent_class != HarveyNichols or error != ACCOUNT_ALREADY_EXISTS:
             consents = user_info['credentials'].get('consents', [])
             consent_ids = (consent['id'] for consent in consents)
             update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)

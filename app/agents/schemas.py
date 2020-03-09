@@ -27,9 +27,10 @@ balance = Schema(
         Optional("vouchers"): Schema(
             [
                 {
-                    Required("issue_date"): int,
+                    Optional("issue_date"): int,
                     Optional("redeem_date"): int,
-                    Required("code"): str,
+                    Optional("expiry_date"): int,
+                    Optional("code"): str,
                     Required("type"): int,
                     Optional("value"): Decimal,
                     Optional("target_value"): Decimal,
