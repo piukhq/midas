@@ -162,11 +162,11 @@ class Ecrebo(ApiMiner):
         if self.user_info.get("from_register") is True:
             self.create_journey = "join-with-balance"
 
-        campaign_type = rewards["type"]
+        campaign_type = rewards["type"].strip()
 
-        if campaign_type.strip() == "thresholdmarketing":
+        if campaign_type == "thresholdmarketing":
             return self._accumulator_balance(rewards)
-        elif campaign_type.strip() == "punchcard":
+        elif campaign_type == "punchcard":
             return self._stamps_balance(rewards)
         else:
             raise ValueError(f"Unsupported Ecrebo campaign type: {campaign_type}")
