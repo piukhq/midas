@@ -139,8 +139,8 @@ class Ecrebo(ApiMiner):
         return self._make_balance_response(VoucherType.ACCUMULATOR, value, target_value, issued_vouchers)
 
     def _stamps_balance(self, json: dict) -> dict:
-        value = Decimal(json["stamps"])
-        target_value = Decimal(json["stamp_goal"])
+        value = Decimal(json["config"]["stamps"])
+        target_value = Decimal(json["config"]["stamps_goal"])
         issued_vouchers = json["vouchers"]
         return self._make_balance_response(VoucherType.STAMPS, value, target_value, issued_vouchers)
 
@@ -164,9 +164,9 @@ class Ecrebo(ApiMiner):
 
         campaign_type = rewards["type"]
 
-        if campaign_type == "thresholdmarketing":
+        if campaign_type.strip() == "thresholdmarketing":
             return self._accumulator_balance(rewards)
-        elif campaign_type == "punchcard":
+        elif campaign_type.strip() == "punchcard":
             return self._stamps_balance(rewards)
         else:
             raise ValueError(f"Unsupported Ecrebo campaign type: {campaign_type}")
