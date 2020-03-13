@@ -133,14 +133,14 @@ class Ecrebo(ApiMiner):
         }
 
     def _accumulator_balance(self, json: dict) -> dict:
-        value = Decimal(json["pot_total"]) / 5
-        target_value = Decimal(json["pot_goal"]) / 5
+        value = Decimal(json["config"]["pot_total"]) / 5
+        target_value = Decimal(json["config"]["pot_goal"]) / 5
         issued_vouchers = json["vouchers"]
         return self._make_balance_response(VoucherType.ACCUMULATOR, value, target_value, issued_vouchers)
 
     def _stamps_balance(self, json: dict) -> dict:
-        value = Decimal(json["stamps"])
-        target_value = Decimal(json["stamp_goal"])
+        value = Decimal(json["config"]["stamps"])
+        target_value = Decimal(json["config"]["stamps_goal"])
         issued_vouchers = json["vouchers"]
         return self._make_balance_response(VoucherType.STAMPS, value, target_value, issued_vouchers)
 
@@ -162,7 +162,7 @@ class Ecrebo(ApiMiner):
         if self.user_info.get("from_register") is True:
             self.create_journey = "join-with-balance"
 
-        campaign_type = rewards["campaign_type"]
+        campaign_type = rewards["type"].strip()
 
         if campaign_type == "thresholdmarketing":
             return self._accumulator_balance(rewards)
