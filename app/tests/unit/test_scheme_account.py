@@ -5,6 +5,7 @@ from app import AgentException
 from app.scheme_account import (update_pending_join_account, update_pending_link_account, remove_pending_consents,
                                 delete_scheme_account)
 from app.tasks.resend_consents import ConsentStatus
+from app.utils import SchemeAccountStatus
 
 
 class TestSchemeAccount(TestCase):
@@ -39,6 +40,24 @@ class TestSchemeAccount(TestCase):
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
         self.assertTrue(mock_requests_post.called)
+        status_json = json.loads(mock_requests_post.call_args[1]["data"])
+        self.assertEqual(status_json["status"], SchemeAccountStatus.ENROL_FAILED)
+
+    @mock.patch("app.scheme_account.requests.post")
+    @mock.patch("app.scheme_account.requests.put")
+    @mock.patch("app.scheme_account.requests.delete")
+    def test_update_pending_join_account_with_registration(self, mock_requests_delete, mock_requests_put,
+                                                           mock_requests_post):
+        credentials_dict = {"card_number": "abc1234"}
+        user_info = {"scheme_account_id": 1, "credentials": credentials_dict}
+        with self.assertRaises(AgentException):
+            update_pending_join_account(user_info, "Error Message: error", "tid123", scheme_slug="scheme_slug")
+
+        self.assertFalse(mock_requests_put.called)
+        self.assertTrue(mock_requests_delete.called)
+        self.assertTrue(mock_requests_post.called)
+        status_json = json.loads(mock_requests_post.call_args[1]["data"])
+        self.assertEqual(status_json["status"], SchemeAccountStatus.REGISTRATION_FAILED)
 
     @mock.patch('app.scheme_account.requests.post')
     @mock.patch('app.scheme_account.requests.put')
