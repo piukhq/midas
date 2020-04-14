@@ -541,10 +541,11 @@ class MockAgentHN(ApiMiner):
                 self.user_info = users['000000']
                 return
 
+            lower_case_email = credentials['email'].lower()
             for user, info in users.items():
                 check_email = info['credentials']['email']
                 check_password = info['credentials']['password']
-                if credentials['email'] == check_email and credentials['password'] == check_password:
+                if lower_case_email == check_email and credentials['password'] == check_password:
                     self.user_info = info
                     self.customer_number = user
                     break
@@ -651,16 +652,17 @@ class MockAgentHN(ApiMiner):
 
     @staticmethod
     def _validate_credentials(data):
+        lower_case_email = data['email'].lower()
         for user, info in users.items():
             check_email = info['credentials']['email']
             check_password = info['credentials']['password']
-            if data['email'] == check_email and data['password'] == check_password:
+            if lower_case_email == check_email and data['password'] == check_password:
                 return 'AlreadyExists'
 
         titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dame', 'Sir', 'Doctor', 'Professor', 'Lord', 'Lady']
         if data['title'].capitalize() not in titles or len(data['password']) < 6:
             return 'Invalid'
-        elif data['email'].lower() == 'fail@unknown.com':
+        elif lower_case_email == 'fail@unknown.com':
             return 'Fail'
 
         return 'Success'
