@@ -22,16 +22,19 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
 
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete
+    credentials = user_info.get("credentials")
+    card_number = None
+    if credentials:
+        card_number = credentials.get("card_number") or credentials.get("barcode")
 
+    delete_data = {'all': True}
     if message == ACCOUNT_ALREADY_EXISTS:
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
-    else:
-        status = SchemeAccountStatus.JOIN_FAILED
-    delete_data = {'all': True}
-
-    if 'credentials' in user_info and 'card_number' in user_info['credentials']:
-        status = SchemeAccountStatus.PRE_REGISTERED_CARD
+    elif card_number:
+        status = SchemeAccountStatus.REGISTRATION_FAILED
         delete_data = {'keep_card_number': True}
+    else:
+        status = SchemeAccountStatus.ENROL_FAILED
 
     data = {
         'status': status,

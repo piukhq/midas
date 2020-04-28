@@ -15,7 +15,7 @@ class TestEcrebo(unittest.TestCase):
     @patch("app.agents.ecrebo.Configuration")
     def setUpClass(cls, mock_config):
         conf = MagicMock()
-        conf.merchant_url = "https://virtserver.swaggerhub.com/Bink_API/ecrebo-bink_bk_integration/1.0.0"
+        conf.merchant_url = "https://virtserver.swaggerhub.com/Bink_API/ecrebo-bink_integration/1.0.0"
         conf.security_credentials = {
             "outbound": {
                 "credentials": [{"value": {"username": "fatface_external_staging", "password": "c5tzCv5ms2k8eFR6"}}]
