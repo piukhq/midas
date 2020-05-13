@@ -17,6 +17,7 @@ class MockAgentHN(MockedMiner):
             'endsitedown@testbink.com': END_SITE_DOWN,
         },
     }
+    existing_card_numbers = card_numbers.HARVEY_NICHOLS
     join_fields = {'email', 'password', 'title', 'first_name', 'last_name'}
     join_prefix = '911'
     titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dame', 'Sir', 'Doctor', 'Professor', 'Lord', 'Lady']
@@ -77,7 +78,7 @@ class MockAgentHN(MockedMiner):
         self._validate_join_credentials(credentials)
         return {"message": "success"}
 
-    def _validate_join_credentials(self, data, existing_card_numbers=None):
+    def _validate_join_credentials(self, data):
         if len(data['password']) < 6:
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
 
@@ -85,6 +86,7 @@ class MockAgentHN(MockedMiner):
 
 
 class MockAgentIce(MockedMiner):
+    existing_card_numbers = card_numbers.ICELAND
     ghost_card_prefix = '633204123123123'
     join_fields = {'title', 'first_name', 'last_name', 'phone', 'email', 'date_of_birth', 'postcode', 'county',
                    'town_city', 'address_1', 'address_2'}
@@ -151,11 +153,11 @@ class MockAgentIce(MockedMiner):
     def register(self, credentials, inbound=False):
         return self._validate_join_credentials(credentials)
 
-    def _validate_join_credentials(self, data, existing_card_numbers=None):
+    def _validate_join_credentials(self, data):
         if data['postcode'].lower() in JOIN_FAIL_POSTCODES:
             raise RegistrationError(UNKNOWN)
 
-        return super()._validate_join_credentials(data, existing_card_numbers=card_numbers.ICELAND)
+        return super()._validate_join_credentials(data)
 
     def add_missing_credentials(self, credentials, card_number):
         if not credentials.get('merchant_identifier'):
@@ -167,6 +169,7 @@ class MockAgentIce(MockedMiner):
 
 
 class MockAgentCoop(MockedMiner):
+    existing_card_numbers = card_numbers.COOP
     ghost_card_prefix = '63317492123123'
     join_fields = {'title', 'first_name', 'last_name', 'email', 'date_of_birth', 'postcode', 'town_city', 'address_1'}
     retry_limit = None
@@ -229,11 +232,11 @@ class MockAgentCoop(MockedMiner):
     def register(self, credentials, inbound=False):
         return self._validate_join_credentials(credentials)
 
-    def _validate_join_credentials(self, data, existing_card_numbers=None):
+    def _validate_join_credentials(self, data):
         if data['postcode'].lower() in JOIN_FAIL_POSTCODES:
             raise RegistrationError(UNKNOWN)
 
-        return super()._validate_join_credentials(data, existing_card_numbers=card_numbers.COOP)
+        return super()._validate_join_credentials(data)
 
     def add_missing_credentials(self, credentials, card_number):
         if not credentials.get('merchant_identifier'):

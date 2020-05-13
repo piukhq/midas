@@ -860,10 +860,11 @@ class MerchantApi(BaseMiner):
 
 
 class MockedMiner(BaseMiner):
-    join_fields = []
     add_error_credentials = {}
-    join_prefix = '1'
+    existing_card_numbers = []
     ghost_card_prefix = None
+    join_fields = []
+    join_prefix = '1'
     retry_limit = None
     titles = []
 
@@ -899,21 +900,24 @@ class MockedMiner(BaseMiner):
 
         return False
 
-    def _validate_join_credentials(self, data, existing_card_numbers=None):
-        for join_field in self.join_fields:
-            if join_field not in data.keys():
-                raise KeyError(join_field)
-
-        email = data.get("email").lower()
-        ghost_card = data.get('card_number') or data.get('barcode')
+    def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
-            if ghost_card in existing_card_numbers:
+            if ghost_card in self.existing_card_numbers:
                 raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
             if self._check_email_already_exists(email):
                 raise RegistrationError(JOIN_ERROR)
         else:
             if self._check_email_already_exists(email):
                 raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+
+    def _validate_join_credentials(self, data):
+        for join_field in self.join_fields:
+            if join_field not in data.keys():
+                raise KeyError(join_field)
+
+        email = data.get("email").lower()
+        ghost_card = data.get('card_number') or data.get('barcode')
+        self._check_existing_join_credentials(email, ghost_card)
 
         if email == 'fail@unknown.com':
             raise RegistrationError(UNKNOWN)
