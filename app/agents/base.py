@@ -32,6 +32,7 @@ from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN
     ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
     CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION, UnauthorisedError
 from app.exceptions import AgentException
+from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
 from app.selenium_pid_store import SeleniumPIDStore
@@ -856,3 +857,69 @@ class MerchantApi(BaseMiner):
                 "OUTBOUND"
             )
             logger.warning(json.dumps(logging_info))
+
+
+class MockedMiner(BaseMiner):
+    join_fields = []
+    add_error_credentials = {}
+    join_prefix = '1'
+    ghost_card_prefix = None
+    retry_limit = None
+    titles = []
+
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.account_status = user_info['status']
+        self.errors = {}
+        self.headers = {}
+        self.identifier = {}
+        self.journey_type = user_info.get("journey_type")
+        self.retry_count = retry_count
+        self.scheme_id = user_info['scheme_account_id']
+        self.scheme_slug = scheme_slug
+        self.user_info = user_info
+
+    def check_and_raise_error_credentials(self, credentials):
+        for credential_type, credential in credentials.items():
+            try:
+                error_to_raise = self.add_error_credentials[credential_type][credential]
+                raise LoginError(error_to_raise)
+            except KeyError:
+                pass
+
+        card_number = credentials.get('card_number') or credentials.get('barcode')
+        if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
+            raise LoginError(PRE_REGISTERED_CARD)
+
+    @staticmethod
+    def _check_email_already_exists(email):
+        for user, info in USER_STORE.items():
+            check_email = info['credentials']['email']
+            if email == check_email:
+                return True
+
+        return False
+
+    def _validate_join_credentials(self, data, existing_card_numbers=None):
+        for join_field in self.join_fields:
+            if join_field not in data.keys():
+                raise KeyError(join_field)
+
+        email = data.get("email").lower()
+        ghost_card = data.get('card_number') or data.get('barcode')
+        if ghost_card:
+            if ghost_card in existing_card_numbers:
+                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+            if self._check_email_already_exists(email):
+                raise RegistrationError(JOIN_ERROR)
+        else:
+            if self._check_email_already_exists(email):
+                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+
+        if email == 'fail@unknown.com':
+            raise RegistrationError(UNKNOWN)
+
+        title = data.get("title").capitalize()
+        if self.titles and title not in self.titles:
+            raise RegistrationError(JOIN_ERROR)
+
+        return {"message": "success"}
