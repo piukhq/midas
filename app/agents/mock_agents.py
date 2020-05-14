@@ -3,7 +3,7 @@ import random
 from time import sleep
 
 from app.agents.base import MockedMiner
-from app.agents.exceptions import (LoginError, STATUS_LOGIN_FAILED, RegistrationError, ACCOUNT_ALREADY_EXISTS,
+from app.agents.exceptions import (LoginError, STATUS_LOGIN_FAILED, RegistrationError, STATUS_REGISTRATION_FAILED,
                                    UNKNOWN, CARD_NUMBER_ERROR, END_SITE_DOWN)
 from app.mocks import card_numbers
 from app.mocks.users import USER_STORE, transactions
@@ -80,7 +80,7 @@ class MockAgentHN(MockedMiner):
 
     def _validate_join_credentials(self, data):
         if len(data['password']) < 6:
-            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+            raise RegistrationError(STATUS_REGISTRATION_FAILED)
 
         return super()._validate_join_credentials(data)
 

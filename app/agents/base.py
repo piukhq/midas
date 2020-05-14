@@ -893,12 +893,10 @@ class MockedMiner(BaseMiner):
 
     @staticmethod
     def _check_email_already_exists(email):
-        for user, info in USER_STORE.items():
-            check_email = info['credentials']['email']
-            if email == check_email:
-                return True
-
-        return False
+        return any(
+            info["credentials"]["email"] == email
+            for info in USER_STORE.values()
+        )
 
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
