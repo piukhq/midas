@@ -397,6 +397,11 @@ def get_agent_class(scheme_slug):
     try:
         return resolve_agent(scheme_slug)
     except KeyError:
+        performance_slugs = ["performance-mock", "performance-voucher-mock"]
+        for performance_slug in performance_slugs:
+            if scheme_slug.startswith(performance_slug):
+                return resolve_agent(performance_slug)
+
         abort(404, message='No such agent')
 
 
