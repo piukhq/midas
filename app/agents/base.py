@@ -489,6 +489,7 @@ class MerchantApi(BaseMiner):
             for consent in self.consents_data:
                 if consent["slug"] == "marketing_opt_in_thirdparty":
                     consent["value"] = False
+                    break
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
