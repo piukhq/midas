@@ -494,7 +494,7 @@ class MerchantApi(BaseMiner):
                     'created_on': arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
                     'journey_type': journey_type
                 }
-                self.consents_data.append(consent)
+                data['consents'].append(consent)
             else:
                 logger.debug('Too many consents for Iceland scheme')
 
