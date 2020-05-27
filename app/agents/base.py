@@ -482,6 +482,22 @@ class MerchantApi(BaseMiner):
         self.consents_data = consents_data.copy() if consents_data else []
         logger.debug('registration consents: {}. scheme slug: {}'.format(consents_data, self.scheme_slug))
 
+        "TODO: REMOVE THE FOLLOWING ASAP, when we have a ticket!"
+        "TEMPORARY FUDGE FOR ICELAND CONSENTS DONE UNDER DURESS PLEASE TALK TO SAM IF YOU HAVE A PROBLEM WITH THIS!"
+        if self.scheme_slug == "iceland-bonus-card" and self.consents_data:
+            if len(self.consents_data) < 2:
+                journey_type = self.consents_data[0]['journey_type']
+                consent = {
+                    'id': 99999999999,
+                    'slug': 'marketing_opt_in_thirdparty',
+                    'value': False,
+                    'created_on': arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
+                    'journey_type': journey_type
+                }
+                self.consents_data.append(consent)
+            else:
+                logger.debug('Too many consents for Iceland scheme')
+
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
