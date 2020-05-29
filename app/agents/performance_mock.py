@@ -45,7 +45,7 @@ class MockPerformance(MockedMiner):
         for count in range(5):
             transactions.append(
                 {
-                    "date": arrow.now().shift(days=-count).format("DD/MM/YYYY HH:mm:ss"),
+                    "date": arrow.utcnow().shift(days=-count).format("YYYY-MM-DD HH:mm:ss"),
                     "description": f"Test Transaction: {uuid4()}",
                     "points": Decimal(random.randint(1, 50)),
                 }
