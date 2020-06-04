@@ -486,7 +486,7 @@ class MerchantApi(BaseMiner):
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
         else:
             "TODO: REMOVE THE FOLLOWING ASAP, when we have a ticket!"
-            "TEMPORARY FUDGE FOR ICELAND CONSENTS DONE UNDER DURESS PLEASE TALK TO SAM IF YOU HAVE A PROBLEM WITH THIS!"
+            "TEMPORARY FOR ICELAND CONSENTS"
             if self.scheme_slug == "iceland-bonus-card" and self.consents_data:
                 if len(self.consents_data) < 2:
                     journey_type = self.consents_data[0]['journey_type']
