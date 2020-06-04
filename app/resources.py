@@ -452,11 +452,9 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     except Exception as e:
         error = e.args[0]
 
-        # this is to allow harvey nichols agent to login and check if join completed
-        if agent_class != HarveyNichols or error != ACCOUNT_ALREADY_EXISTS:
-            consents = user_info['credentials'].get('consents', [])
-            consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
+        consents = user_info['credentials'].get('consents', [])
+        consent_ids = (consent['id'] for consent in consents)
+        update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,
