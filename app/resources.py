@@ -12,7 +12,6 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
                                    SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
 from app.encoding import JsonEncoder

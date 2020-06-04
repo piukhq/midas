@@ -349,7 +349,7 @@ class TestResources(TestCase):
         result = agent_register(HarveyNichols, user_info, {}, '')
 
         self.assertTrue(mock_register.called)
-        self.assertFalse(mock_update_pending_join_account.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(result['error'])
         self.assertTrue(isinstance(result['agent'], HarveyNichols))
 
