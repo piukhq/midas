@@ -12,7 +12,6 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.harvey_nichols import HarveyNichols
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
                                    SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
 from app.encoding import JsonEncoder
@@ -397,6 +396,11 @@ def get_agent_class(scheme_slug):
     try:
         return resolve_agent(scheme_slug)
     except KeyError:
+        performance_slugs = ["performance-mock", "performance-voucher-mock"]
+        for performance_slug in performance_slugs:
+            if scheme_slug.startswith(performance_slug):
+                return resolve_agent(performance_slug)
+
         abort(404, message='No such agent')
 
 
@@ -447,11 +451,9 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     except Exception as e:
         error = e.args[0]
 
-        # this is to allow harvey nichols agent to login and check if join completed
-        if agent_class != HarveyNichols or error != ACCOUNT_ALREADY_EXISTS:
-            consents = user_info['credentials'].get('consents', [])
-            consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
+        consents = user_info['credentials'].get('consents', [])
+        consent_ids = (consent['id'] for consent in consents)
+        update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
 
     return {
         'agent': agent_instance,
