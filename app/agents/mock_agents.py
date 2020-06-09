@@ -174,6 +174,7 @@ class MockAgentCoop(MockedMiner):
     join_fields = {'title', 'first_name', 'last_name', 'email', 'date_of_birth', 'postcode', 'town_city', 'address_1'}
     retry_limit = None
     titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Doctor', 'Prefer not to say']
+    point_conversion_rate = Decimal('1')
 
     def login(self, credentials):
         card_number = credentials.get('card_number') or credentials.get('barcode')
