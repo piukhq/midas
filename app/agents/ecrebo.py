@@ -206,3 +206,23 @@ class BurgerKing(Ecrebo):
             "phone": credentials[constants.PHONE],
             "validated": True,
         }
+
+
+class WhSmith(Ecrebo):
+    RETAILER_ID = "100"
+
+    def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
+        data = {
+            "email": credentials[constants.EMAIL],
+            "title": credentials[constants.TITLE],
+            "first_name": credentials[constants.FIRST_NAME],
+            "surname": credentials[constants.LAST_NAME],
+            "mobile_number": credentials[constants.PHONE],
+            "address_line1": credentials['address_1'],
+            "city": credentials['town_city'],
+            "postcode": credentials[constants.POSTCODE],
+            "validated": True,
+        }
+        if credentials[constants.TITLE].lower() == "prefer not to say":
+            del data['title']
+        return data
