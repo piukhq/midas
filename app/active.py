@@ -138,4 +138,5 @@ AGENTS = {
     'el-mexicana': 'my360.My360',
     "fatface": "ecrebo.FatFace",
     "burger-king-rewards": "ecrebo.BurgerKing",
+    "whsmith-rewards": "ecrebo.WhSmith",
 }
