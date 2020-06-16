@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import httpretty
 
 from app.agents import schemas
-from app.agents.ecrebo import FatFace, BurgerKing
+from app.agents.ecrebo import FatFace, BurgerKing, WhSmith
 from app.agents.exceptions import LoginError, RegistrationError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
 
@@ -23,7 +23,7 @@ class TestEcrebo(unittest.TestCase):
         }
         mock_config.return_value = conf
 
-        cls.agents = [agent_class(*AGENT_CLASS_ARGUMENTS) for agent_class in (FatFace, BurgerKing)]
+        cls.agents = [agent_class(*AGENT_CLASS_ARGUMENTS) for agent_class in (FatFace, BurgerKing, WhSmith)]
 
         for agent in cls.agents:
             agent.register(CREDENTIALS[type(agent).__name__.lower()])
