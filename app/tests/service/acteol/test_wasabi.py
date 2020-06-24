@@ -50,46 +50,6 @@ class TestWasabi(unittest.TestCase):
         # A bit arbitrary, but should be less than 5 mins old, as it should have been refreshed
         assert diff.seconds < 300
 
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
-    @patch("app.agents.acteol.Acteol._store_token")
-    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_access_token):
-        """
-        Set the token timeout to a known value, the token should not have reached expiry and should not be refreshed.
-        """
-        # GIVEN
-        test_token = "abcdef123456"
-        mock_refresh_access_token.return_value = test_token
-        # Force refresh any current token so we know the state of the token we're testing
-        self.wasabi.AUTH_TOKEN_TIMEOUT = 0
-        self.wasabi.attempt_login(credentials=self.credentials)
-
-        # WHEN
-        self.wasabi.AUTH_TOKEN_TIMEOUT = 600  # 10 mins
-        self.wasabi.attempt_login(credentials=self.credentials)
-
-        # THEN
-        # Should only have been called once: when we reset the token to a known value at the beginning of the test
-        assert mock_refresh_access_token.called_once()
-        assert mock_store_token.called_once()
-
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
-    @patch("app.agents.acteol.Acteol._store_token")
-    def test_mocked_refreshes_token(self, mock_store_token, mock_refresh_access_token):
-        """
-        Set the token timeout to a known value, the token should not have reached expiry and should not be refreshed
-        """
-        # GIVEN
-        test_token = "abcdef123456"
-        mock_refresh_access_token.return_value = test_token
-        self.wasabi.AUTH_TOKEN_TIMEOUT = 0  # Force retire any current token
-
-        # WHEN
-        self.wasabi.attempt_login(credentials=self.credentials)
-
-        # THEN
-        assert mock_refresh_access_token.called_once()
-        assert mock_store_token.called_once_with(test_token)
-
     @unittest.skip("nothing to see here")
     def test_transactions(self):
         for agent in self.agents:

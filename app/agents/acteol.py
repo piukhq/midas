@@ -8,12 +8,7 @@ from uuid import uuid4
 import arrow
 import requests
 from app.agents.base import ApiMiner
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    STATUS_LOGIN_FAILED,
-    LoginError,
-    RegistrationError,
-)
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
 from app.configuration import Configuration
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
