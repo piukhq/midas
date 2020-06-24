@@ -30,12 +30,11 @@ class Acteol(ApiMiner):
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
-    # TODO: these 3 are from cooperative
     def _token_is_valid(self, token: Dict) -> bool:
         current_timestamp = arrow.utcnow().timestamp
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
-    def _refresh_access_token(self, scheme_id: int, credentials: Dict) -> Dict:
+    def _refresh_access_token(self, credentials: Dict) -> Dict:
         """
         Returns an Acteol API auth token to use in subsequent requests.
         """
@@ -51,6 +50,7 @@ class Acteol(ApiMiner):
 
         return token
 
+    # TODO: from cooperative
     def _make_headers(self, token):
         # application/x-www-form-urlencoded
         return {"Token": token, "Audit-Tag": str(uuid4())}
@@ -134,7 +134,7 @@ class Acteol(ApiMiner):
 
         if not have_valid_token:
             acteol_access_token = self._refresh_access_token(
-                scheme_id=self.scheme_id, credentials=credentials
+                credentials=credentials
             )
             token = self._store_token(acteol_access_token)
             self.token = token
