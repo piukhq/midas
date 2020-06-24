@@ -1,10 +1,12 @@
 import json
 import unittest
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import arrow
 import httpretty
 from app.agents import schemas
-from app.agents.acteol import Wasabi
+from app.agents.acteol_agents.wasabi import Wasabi
 from app.agents.exceptions import LoginError, RegistrationError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
 
@@ -13,31 +15,58 @@ class TestWasabi(unittest.TestCase):
     @classmethod
     @patch("app.agents.acteol.Configuration")
     def setUpClass(cls, mock_config):
-        wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS)
         conf = MagicMock()
-        credentials = CREDENTIALS["wasabi"]
-        conf.merchant_url = credentials["merchant_url"]
-        conf.security_credentials = {
-            "outbound": {
-                "credentials": [
-                    {
-                        "value": {
-                            "username": credentials["email"],
-                            "password": credentials["password"],
-                        }
-                    }
-                ]
-            }
-        }
+        cls.credentials = CREDENTIALS["wasabi"]
+        conf.merchant_url = cls.credentials["merchant_url"]
         mock_config.return_value = conf
-        wasabi.attempt_login(credentials=credentials)
 
-    # @unittest.skip("nothing to see here")
-    def test_login(self):
-        assert True
-        # json_result = self.h.login_response.json()["CustomerSignOnResult"]
-        # self.assertEqual(self.h.login_response.status_code, 200)
-        # self.assertEqual(json_result["outcome"], "Success")
+        cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS)
+
+    def test_login_has_token(self):
+        """
+        The attempt_login() method should result in a token
+        """
+        # WHEN
+        self.wasabi.attempt_login(credentials=self.credentials)
+
+        # THEN
+        assert self.wasabi.token
+
+    def test_refreshes_token(self):
+        """
+        Set the token timeout to a known value to retire it, and expect a new one to have been fetched
+        """
+        # GIVEN
+        self.wasabi.AUTH_TOKEN_TIMEOUT = 0  # Force retire our token
+
+        # WHEN
+        self.wasabi.attempt_login(credentials=self.credentials)
+        token_timestamp = arrow.get(self.wasabi.token["timestamp"])
+        utc_now = arrow.utcnow()
+        diff: timedelta = utc_now - token_timestamp
+
+        # THEN
+        assert diff.days == 0
+        # A bit arbitrary, but should be less than 5 mins old, as it should have been refreshed
+        assert diff.seconds < 300
+
+    @patch("app.agents.acteol.Acteol._refresh_access_token")
+    @patch("app.agents.acteol.Acteol._store_token")
+    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_access_token):
+        """
+        Set the token timeout to a known value, the token should not have reached expiry and should not be refreshed
+        """
+        # GIVEN
+        test_token = "abcdef123456"
+        mock_refresh_access_token.return_value = test_token
+        self.wasabi.AUTH_TOKEN_TIMEOUT = 0  # Force retire any current token
+
+        # WHEN
+        self.wasabi.attempt_login(credentials=self.credentials)
+
+        # THEN
+        assert mock_refresh_access_token.called_once()
+        assert mock_store_token.called_once_with(test_token)
 
     @unittest.skip("nothing to see here")
     def test_transactions(self):
@@ -54,7 +83,7 @@ class TestWasabi(unittest.TestCase):
 
     @unittest.skip("nothing to see here")
     @httpretty.activate
-    @patch("app.agents.acteol.Configuration")
+    @patch("app.agents.acteol_agents.Configuration")
     def test_login_404(self, mock_config):
         conf = MagicMock()
         conf.merchant_url = "http://acteol.test"
@@ -94,7 +123,7 @@ class TestWasabi(unittest.TestCase):
 
     @unittest.skip("nothing to see here")
     @httpretty.activate
-    @patch("app.agents.acteol.Configuration")
+    @patch("app.agents.acteol_agents.Configuration")
     def test_register_409(self, mock_config):
         conf = MagicMock()
         conf.merchant_url = "http://acteol.test"

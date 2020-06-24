@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import arrow
 import requests
-from app import constants
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -17,7 +16,7 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL
+from settings import REDIS_URL, logger
 
 
 @enum.unique
@@ -31,31 +30,26 @@ class Acteol(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.base_url = config.merchant_url
-        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         self.token_store = UserTokenStore(REDIS_URL)
         self.retry_limit = 9  # tries 10 times overall
-        self.token = ""
+        self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
     # TODO: these 3 are from cooperative
-    def token_is_valid(self, token: Dict) -> bool:
-        current_time = time.time()
-        return (current_time - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
+    def _token_is_valid(self, token: Dict) -> bool:
+        current_timestamp = arrow.utcnow().timestamp
+        return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
-    def refresh_access_token(self, scheme_id: int, credentials: Dict) -> Dict:
+    def _refresh_access_token(self, scheme_id: int, credentials: Dict) -> Dict:
         """
         Returns an Acteol API auth token to use in subsequent requests.
         """
-        # application/x-www-form-urlencoded
-        # grant_type=password&username=[username]&password=[password]
         payload = {
             "grant_type": "password",
             "username": credentials["email"],
             "password": credentials["password"],
         }
-        # TODO: fix this
         token_url = f"{self.base_url}/token"
-        token_url = "https://wasabiuat.wasabiworld.co.uk/token"
         resp = requests.post(token_url, data=payload)
         resp.raise_for_status()
         token = resp.json()["access_token"]
@@ -120,29 +114,34 @@ class Acteol(ApiMiner):
         self.identifier = {"card_number": card_number, "merchant_identifier": uid}
         self.user_info["credentials"].update(self.identifier)
 
-    # TODO: This comes from HN
+    def _store_token(self, acteol_access_token):
+        current_timestamp = arrow.utcnow().timestamp
+        token = {"token": acteol_access_token, "timestamp": current_timestamp}
+        self.token_store.set(self.scheme_id, json.dumps(token))
+
+        return token
+
     def login(self, credentials):
-        # get token from redis if we have one, otherwise login to get one and store in cache
+        """
+        get token from redis if we have one, otherwise login to get one and store in cache
+        """
         have_valid_token = False  # Assume no good token to begin with
-        token = {}
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
-                if self.token_is_valid(token=token):
+                if self._token_is_valid(token=token):
                     have_valid_token = True
                     self.token = token
             except (KeyError, TypeError) as e:
-                pass  # have_token is still False
+                logger.exception(e)
         except (KeyError, self.token_store.NoSuchToken):
             pass  # have_token is still False
 
         if not have_valid_token:
-            access_token = self.refresh_access_token(
+            acteol_access_token = self._refresh_access_token(
                 scheme_id=self.scheme_id, credentials=credentials
             )
-            timestamp = time.time()
-            token = {"token": access_token, "timestamp": timestamp}
-            self.token_store.set(self.scheme_id, json.dumps(token))
+            token = self._store_token(acteol_access_token)
             self.token = token
 
     def _make_issued_voucher(
@@ -203,7 +202,8 @@ class Acteol(ApiMiner):
         )
 
     def balance(self):
-        endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
+        merchant_identifier = self.credentials['merchant_identifier']
+        endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{merchant_identifier}"
         rewards = self._get_membership_data(endpoint)["membership_data"]
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
@@ -233,19 +233,3 @@ class Acteol(ApiMiner):
 
     def scrape_transactions(self):
         return []
-
-
-class Wasabi(Acteol):
-    AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
-    RETAILER_ID = "315"
-
-    def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
-        return {
-            "email": credentials[constants.EMAIL],
-            "first_name": credentials[constants.FIRST_NAME],
-            "surname": credentials[constants.LAST_NAME],
-            "join_date": arrow.utcnow().format("YYYY-MM-DD"),
-            "email_marketing": consents["email_marketing"],
-            "source": "channel",
-            "validated": True,
-        }
