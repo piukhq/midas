@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from app.agents.acteol_agents.wasabi import Wasabi
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
 class TestWasabi(unittest.TestCase):
@@ -22,8 +21,17 @@ class TestWasabi(unittest.TestCase):
         }
         conf.merchant_url = cls.credentials["merchant_url"]
         mock_config.return_value = conf
-
-        cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS)
+        MOCK_AGENT_CLASS_ARGUMENTS = [
+            1,
+            {
+                "scheme_account_id": 1,
+                "status": 1,
+                "user_set": "1,2",
+                "journey_type": None,
+                "credentials": {},
+            },
+        ]
+        cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS)
 
     @patch("app.agents.acteol.UserTokenStore")
     @patch("app.agents.acteol.Acteol._token_is_valid")
