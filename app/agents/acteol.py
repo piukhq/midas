@@ -24,12 +24,12 @@ class Acteol(ApiMiner):
         and the token's timestamp is less than the configured timeout in seconds
 
         :param token: Dict of token data
-        :param current_timestamp: timestamp in epoch seconds
+        :param current_timestamp: timestamp of current time from Arrow
         :return: Boolean
         """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
-    def _refresh_access_token(self, credentials: Dict) -> Dict:
+    def _refresh_access_token(self, credentials: Dict) -> str:
         """
         Returns an Acteol API auth token to use in subsequent requests.
         """
@@ -45,22 +45,28 @@ class Acteol(ApiMiner):
 
         return token
 
-    def _store_token(self, acteol_access_token):
-        current_timestamp = arrow.utcnow().timestamp
+    def _store_token(self, acteol_access_token: str, current_timestamp: int) -> Dict:
+        """
+        Create a full token, with timestamp, from the acteol access token
+
+        :param acteol_access_token: A token given to us by logging into the Acteol API
+        :param current_timestamp: Timestamp (Arrow) of the current UTC time
+        :return: The created token dict
+        """
         token = {"token": acteol_access_token, "timestamp": current_timestamp}
         self.token_store.set(self.scheme_id, json.dumps(token))
 
         return token
 
-    def login(self, credentials):
+    def login(self, credentials: Dict) -> None:
         """
         get token from redis if we have one, otherwise login to get one and store in cache
         """
         have_valid_token = False  # Assume no good token to begin with
+        current_timestamp = arrow.utcnow().timestamp
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
-                current_timestamp = arrow.utcnow().timestamp
                 if self._token_is_valid(
                     token=token, current_timestamp=current_timestamp
                 ):
@@ -73,5 +79,8 @@ class Acteol(ApiMiner):
 
         if not have_valid_token:
             acteol_access_token = self._refresh_access_token(credentials=credentials)
-            token = self._store_token(acteol_access_token)
+            token = self._store_token(
+                acteol_access_token=acteol_access_token,
+                current_timestamp=current_timestamp,
+            )
             self.token = token

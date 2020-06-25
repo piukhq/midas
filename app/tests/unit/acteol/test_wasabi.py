@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ class TestWasabi(unittest.TestCase):
     @classmethod
     @patch("app.agents.acteol.Configuration")
     def setUpClass(cls, mock_config):
-        conf = MagicMock()
+        mock_config_object = MagicMock()
         cls.credentials = {
             "merchant_url": "https://test.wasabiuat.wasabiworld.co.uk/",
             "email": "testuser@bink.com",
@@ -19,8 +20,14 @@ class TestWasabi(unittest.TestCase):
             "phone": "00000000000",
             "consents": [{"slug": "email_marketing", "value": True}],
         }
-        conf.merchant_url = cls.credentials["merchant_url"]
-        mock_config.return_value = conf
+        mock_config_object.merchant_url = cls.credentials["merchant_url"]
+        mock_config.return_value = mock_config_object
+
+        cls.mock_token = {
+            "token": "abcde12345fghij",
+            "timestamp": 123456789,
+        }
+
         MOCK_AGENT_CLASS_ARGUMENTS = [
             1,
             {
@@ -33,63 +40,49 @@ class TestWasabi(unittest.TestCase):
         ]
         cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS)
 
-    @patch("app.agents.acteol.UserTokenStore")
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
     @patch("app.agents.acteol.Acteol._store_token")
     def test_refreshes_token(
-        self,
-        mock_store_token,
-        mock_refresh_access_token,
-        mock_token_is_valid,
-        mock_user_token_store,
+        self, mock_store_token, mock_refresh_access_token, mock_token_is_valid,
     ):
         """
         The token is invalid and should be refreshed.
         """
         # GIVEN
-        mock_token = {
-            "token": "abcde12345fghij",
-            "timestamp": 123456789,
-        }
-        mock_user_token_store.return_value.get.return_value = mock_token
         mock_token_is_valid.return_value = False
 
         # WHEN
-        self.wasabi.attempt_login(credentials=self.credentials)
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
+        ):
+            self.wasabi.attempt_login(credentials=self.credentials)
 
-        # THEN
-        assert mock_refresh_access_token.called_once()
-        assert mock_store_token.called_once_with(mock_token)
+            # THEN
+            assert mock_refresh_access_token.called_once()
+            assert mock_store_token.called_once_with(self.mock_token)
 
-    @patch("app.agents.acteol.UserTokenStore")
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
     @patch("app.agents.acteol.Acteol._store_token")
     def test_does_not_refresh_token(
-        self,
-        mock_store_token,
-        mock_refresh_access_token,
-        mock_token_is_valid,
-        mock_user_token_store,
+        self, mock_store_token, mock_refresh_access_token, mock_token_is_valid
     ):
         """
         The token is valid and should not be refreshed.
         """
         # GIVEN
-        mock_token = {
-            "token": "abcde12345fghij",
-            "timestamp": 123456789,
-        }
-        mock_user_token_store.return_value.get.return_value = mock_token
         mock_token_is_valid.return_value = True
 
         # WHEN
-        self.wasabi.attempt_login(credentials=self.credentials)
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
+        ):
+            self.wasabi.attempt_login(credentials=self.credentials)
 
-        # THEN
-        assert not mock_refresh_access_token.called
-        assert not mock_store_token.called
+            # THEN
+            assert not mock_refresh_access_token.called
+            assert not mock_store_token.called
 
     def test_token_is_valid_false_for_just_expired(self):
         """
@@ -156,3 +149,26 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert is_valid is True
+
+    def test_store_token(self):
+        """
+        Test that _store_token() calls the token store set method and returns an expected dict
+        """
+        # GIVEN
+        mock_acteol_access_token = "abcde12345fghij"
+        mock_current_timestamp = 123456789
+
+        # WHEN
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "set", return_value=True
+        ):
+            token = self.wasabi._store_token(
+                acteol_access_token=mock_acteol_access_token,
+                current_timestamp=mock_current_timestamp,
+            )
+
+            # THEN
+            assert token == {
+                "token": mock_acteol_access_token,
+                "timestamp": mock_current_timestamp,
+            }
