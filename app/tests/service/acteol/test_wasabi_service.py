@@ -1,26 +1,39 @@
-import json
+import os
 import unittest
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import arrow
-import httpretty
-from app.agents import schemas
 from app.agents.acteol_agents.wasabi import Wasabi
-from app.agents.exceptions import LoginError, RegistrationError
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
 class TestWasabi(unittest.TestCase):
     @classmethod
     @patch("app.agents.acteol.Configuration")
     def setUpClass(cls, mock_config):
-        conf = MagicMock()
-        cls.credentials = CREDENTIALS["wasabi"]
-        conf.merchant_url = cls.credentials["merchant_url"]
-        mock_config.return_value = conf
+        mock_config_object = MagicMock()
+        cls.credentials = {
+            "merchant_url": "https://wasabiuat.wasabiworld.co.uk/",
+            "email": os.environ.get("WASABI_USERNAME"),
+            "consents": [{"slug": "email_marketing", "value": True}],
+        }
+        mock_config_object.merchant_url = cls.credentials["merchant_url"]
+        mock_config_object.security_credentials = {
+            "outbound": {
+                "credentials": [
+                    {
+                        "value": {
+                            "username": os.environ.get("WASABI_USERNAME"),
+                            "password": os.environ.get("WASABI_PASSWORD"),
+                        }
+                    }
+                ]
+            }
+        }
+        mock_config.return_value = mock_config_object
 
-        cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS)
+        cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
 
     def test_login_has_token(self):
         """
@@ -49,105 +62,6 @@ class TestWasabi(unittest.TestCase):
         assert diff.days == 0
         # A bit arbitrary, but should be less than 5 mins old, as it should have been refreshed
         assert diff.seconds < 300
-
-    @unittest.skip("nothing to see here")
-    def test_transactions(self):
-        for agent in self.agents:
-            transactions = agent.transactions()
-            self.assertIsNotNone(transactions)
-            schemas.transactions(transactions)
-
-    @unittest.skip("nothing to see here")
-    def test_balance(self):
-        for agent in self.agents:
-            balance = agent.balance()
-            schemas.balance(balance)
-
-    @unittest.skip("nothing to see here")
-    @httpretty.activate
-    @patch("app.agents.acteol_agents.Configuration")
-    def test_login_404(self, mock_config):
-        conf = MagicMock()
-        conf.merchant_url = "http://acteol.test"
-        conf.security_credentials = {
-            "outbound": {
-                "credentials": [
-                    {
-                        "value": {
-                            "username": "wasabi_external_staging",
-                            "password": "c5tzCv5ms2k8eFR6",
-                        }
-                    }
-                ]
-            }
-        }
-        mock_config.return_value = conf
-
-        httpretty.register_uri(
-            httpretty.POST,
-            f"{conf.merchant_url}/v1/auth/login",
-            body=json.dumps({"token": "test-api-token"}),
-        )
-
-        agent = Wasabi(*AGENT_CLASS_ARGUMENTS)
-        retailer_id = agent.RETAILER_ID
-        card_number = "card-number-123"
-
-        httpretty.register_uri(
-            httpretty.GET,
-            f"{conf.merchant_url}/v1/list/query_item/{retailer_id}/assets/membership/token/{card_number}",
-            status=404,
-        )
-
-        with self.assertRaises(LoginError) as e:
-            agent.attempt_login({"card_number": card_number})
-        self.assertEqual(e.exception.name, "Invalid credentials")
-
-    @unittest.skip("nothing to see here")
-    @httpretty.activate
-    @patch("app.agents.acteol_agents.Configuration")
-    def test_register_409(self, mock_config):
-        conf = MagicMock()
-        conf.merchant_url = "http://acteol.test"
-        conf.security_credentials = {
-            "outbound": {
-                "credentials": [
-                    {
-                        "value": {
-                            "username": "wasabi_external_staging",
-                            "password": "c5tzCv5ms2k8eFR6",
-                        }
-                    }
-                ]
-            }
-        }
-        mock_config.return_value = conf
-
-        httpretty.register_uri(
-            httpretty.POST,
-            f"{conf.merchant_url}/v1/auth/login",
-            body=json.dumps({"token": "test-api-token"}),
-        )
-
-        agent = Wasabi(*AGENT_CLASS_ARGUMENTS)
-        retailer_id = agent.RETAILER_ID
-
-        httpretty.register_uri(
-            httpretty.POST,
-            f"{conf.merchant_url}/v1/list/append_item/{retailer_id}/assets/membership",
-            status=409,
-        )
-
-        with self.assertRaises(RegistrationError) as e:
-            agent.attempt_register(
-                {
-                    "email": "testuser@test",
-                    "first_name": "test",
-                    "last_name": "user",
-                    "consents": [{"slug": "email_marketing", "value": True}],
-                }
-            )
-        self.assertEqual(e.exception.name, "Account already exists")
 
 
 if __name__ == "__main__":

@@ -13,8 +13,8 @@ class Acteol(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.base_url = config.merchant_url
+        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         self.token_store = UserTokenStore(REDIS_URL)
-        self.retry_limit = 9  # tries 10 times overall
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
@@ -35,8 +35,8 @@ class Acteol(ApiMiner):
         """
         payload = {
             "grant_type": "password",
-            "username": credentials["email"],
-            "password": credentials["password"],
+            "username": self.auth["username"],
+            "password": self.auth["password"],
         }
         token_url = f"{self.base_url}/token"
         resp = requests.post(token_url, data=payload)

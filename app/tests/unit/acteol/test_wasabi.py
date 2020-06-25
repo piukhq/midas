@@ -1,44 +1,32 @@
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app.agents.acteol_agents.wasabi import Wasabi
 
 
 class TestWasabi(unittest.TestCase):
     @classmethod
-    @patch("app.agents.acteol.Configuration")
-    def setUpClass(cls, mock_config):
-        mock_config_object = MagicMock()
-        cls.credentials = {
-            "merchant_url": "https://test.wasabiuat.wasabiworld.co.uk/",
-            "email": "testuser@bink.com",
-            "first_name": "test",
-            "last_name": "user",
-            "password": "$F9eA*RY",
-            "postcode": "AA00 0AA",
-            "phone": "00000000000",
-            "consents": [{"slug": "email_marketing", "value": True}],
-        }
-        mock_config_object.merchant_url = cls.credentials["merchant_url"]
-        mock_config.return_value = mock_config_object
+    def setUpClass(cls):
+        with unittest.mock.patch("app.agents.acteol.Configuration"):
+            cls.credentials = {}
 
-        cls.mock_token = {
-            "token": "abcde12345fghij",
-            "timestamp": 123456789,
-        }
+            cls.mock_token = {
+                "token": "abcde12345fghij",
+                "timestamp": 123456789,
+            }
 
-        MOCK_AGENT_CLASS_ARGUMENTS = [
-            1,
-            {
-                "scheme_account_id": 1,
-                "status": 1,
-                "user_set": "1,2",
-                "journey_type": None,
-                "credentials": {},
-            },
-        ]
-        cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS)
+            MOCK_AGENT_CLASS_ARGUMENTS = [
+                1,
+                {
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": None,
+                    "credentials": {},
+                },
+            ]
+            cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
