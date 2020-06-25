@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from app.agents.acteol_agents.wasabi import Wasabi
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
 class TestWasabi(unittest.TestCase):
@@ -10,7 +10,16 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Configuration")
     def setUpClass(cls, mock_config):
         conf = MagicMock()
-        cls.credentials = CREDENTIALS["wasabi"]
+        cls.credentials = {
+            "merchant_url": "https://test.wasabiuat.wasabiworld.co.uk/",
+            "email": "testuser@bink.com",
+            "first_name": "test",
+            "last_name": "user",
+            "password": "$F9eA*RY",
+            "postcode": "AA00 0AA",
+            "phone": "00000000000",
+            "consents": [{"slug": "email_marketing", "value": True}],
+        }
         conf.merchant_url = cls.credentials["merchant_url"]
         mock_config.return_value = conf
 
@@ -74,26 +83,68 @@ class TestWasabi(unittest.TestCase):
         assert not mock_refresh_access_token.called
         assert not mock_store_token.called
 
-    @patch("app.agents.acteol.arrow.utcnow")
-    def test_token_is_valid_for_expiry(self, mock_utcnow):
+    def test_token_is_valid_false_for_just_expired(self):
         """
         Test that _token_is_valid() returns false when we have exactly reached the expiry
         """
 
         # GIVEN
-        mock_utcnow_obj = MagicMock()
-        mock_utcnow_obj.timestamp = 75700  # an easy number to work with to get 75600
-        mock_utcnow.return_value = mock_utcnow_obj
-        self.wasabi.AUTH_TOKEN_TIMEOUT = (
-            75600  # 21 hours, our cutoff point, is 75600 seconds
-        )
+        mock_current_timestamp = 75700
+        mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
+        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
             "token": "abcde12345fghij",
             "timestamp": 100,  # an easy number to work with to get 75600
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(mock_token)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
 
         # THEN
         assert is_valid is False
+
+    def test_token_is_valid_false_for_expired(self):
+        """
+        Test that _token_is_valid() returns false when we have a token past its expiry
+        """
+
+        # GIVEN
+        mock_current_timestamp = 10000
+        mock_auth_token_timeout = 1  # Expire tokens after 1 second
+        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        mock_token = {
+            "token": "abcde12345fghij",
+            "timestamp": 10,  # an easy number to work with to exceed the timout setting
+        }
+
+        # WHEN
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
+
+        # THEN
+        assert is_valid is False
+
+    def test_token_is_valid_true_for_valid(self):
+        """
+        Test that _token_is_valid() returns true when the token is well within validity
+        """
+
+        # GIVEN
+        mock_current_timestamp = 1000
+        mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
+        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        mock_token = {
+            "token": "abcde12345fghij",
+            "timestamp": 450,  # an easy number to work with to stay within validity range
+        }
+
+        # WHEN
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
+
+        # THEN
+        assert is_valid is True

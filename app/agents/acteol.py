@@ -30,8 +30,15 @@ class Acteol(ApiMiner):
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
-    def _token_is_valid(self, token: Dict) -> bool:
-        current_timestamp = arrow.utcnow().timestamp
+    def _token_is_valid(self, token: Dict, current_timestamp: int) -> bool:
+        """
+        Determine if our token is still valid, based on whether the difference between the current timestamp
+        and the token's timestamp is less than the configured timeout in seconds
+
+        :param token: Dict of token data
+        :param current_timestamp: timestamp in epoch seconds
+        :return: Boolean
+        """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
     def _refresh_access_token(self, credentials: Dict) -> Dict:
@@ -124,7 +131,8 @@ class Acteol(ApiMiner):
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
-                if self._token_is_valid(token=token):
+                current_timestamp = arrow.utcnow().timestamp
+                if self._token_is_valid(token=token, current_timestamp=current_timestamp):
                     have_valid_token = True
                     self.token = token
             except (KeyError, TypeError) as e:
