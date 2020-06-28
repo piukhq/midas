@@ -43,7 +43,7 @@ class TestWasabi(unittest.TestCase):
         with unittest.mock.patch.object(
             self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
         ):
-            self.wasabi.attempt_authenticate()
+            self.wasabi.authenticate()
 
             # THEN
             assert mock_refresh_access_token.called_once()
@@ -65,11 +65,12 @@ class TestWasabi(unittest.TestCase):
         with unittest.mock.patch.object(
             self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
         ):
-            self.wasabi.attempt_authenticate()
+            token = self.wasabi.authenticate()
 
             # THEN
             assert not mock_refresh_access_token.called
             assert not mock_store_token.called
+            assert token == self.mock_token
 
     def test_token_is_valid_false_for_just_expired(self):
         """

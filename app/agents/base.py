@@ -77,9 +77,6 @@ class BaseMiner(object):
     def login(self, credentials):
         raise NotImplementedError()
 
-    def authenticate(self):
-        raise NotImplementedError()
-
     def balance(self):
         raise NotImplementedError()
 
@@ -155,16 +152,6 @@ class BaseMiner(object):
             self.register(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
-
-    def attempt_authenticate(self):
-        """
-        Similar to attempt_login(), but for APIs that don't require user credentials but instead authenticate
-        using a single source of auth parameters - for example set in the outbound auth data
-        """
-        if self.retry_limit and self.retry_count >= self.retry_limit:
-            raise RetryLimitError(RETRY_LIMIT_REACHED)
-
-        self.authenticate()
 
 
 # Based on RoboBrowser Library

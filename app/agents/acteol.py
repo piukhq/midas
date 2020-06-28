@@ -61,13 +61,14 @@ class Acteol(ApiMiner):
 
         return token
 
-    def authenticate(self) -> None:
+    def authenticate(self) -> Dict:
         """
         Get an API token from redis if we have one, otherwise login to get one and store in cache.
         This token is not per-user, it is for our backend to use their API
         """
         have_valid_token = False  # Assume no good token to begin with
         current_timestamp = arrow.utcnow().timestamp
+        token = {}
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
@@ -75,11 +76,10 @@ class Acteol(ApiMiner):
                     token=token, current_timestamp=current_timestamp
                 ):
                     have_valid_token = True
-                    self.token = token
             except (KeyError, TypeError) as e:
-                logger.exception(e)
+                logger.exception(e)  # have_valid_token is still False
         except (KeyError, self.token_store.NoSuchToken):
-            pass  # have_token is still False
+            pass  # have_valid_token is still False
 
         if not have_valid_token:
             acteol_access_token = self._refresh_access_token()
@@ -87,7 +87,8 @@ class Acteol(ApiMiner):
                 acteol_access_token=acteol_access_token,
                 current_timestamp=current_timestamp,
             )
-            self.token = token
+
+        return token
 
     # def register(self, credentials):
     #     consents = {c["slug"]: c["value"] for c in credentials.get("consents", {})}

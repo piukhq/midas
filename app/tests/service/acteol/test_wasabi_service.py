@@ -30,15 +30,17 @@ class TestWasabi(unittest.TestCase):
 
         cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
 
-    def test_authenticate_has_token(self):
+    def test_authenticate_gives_token(self):
         """
         The attempt_authenticate() method should result in a token.
         """
         # WHEN
-        self.wasabi.attempt_authenticate()
+        token = self.wasabi.authenticate()
 
         # THEN
-        assert self.wasabi.token
+        assert isinstance(token, dict)
+        assert "token" in token
+        assert "timestamp" in token
 
     def test_refreshes_token(self):
         """
@@ -48,8 +50,8 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.AUTH_TOKEN_TIMEOUT = 0  # Force retire our token
 
         # WHEN
-        self.wasabi.attempt_authenticate()
-        token_timestamp = arrow.get(self.wasabi.token["timestamp"])
+        token = self.wasabi.authenticate()
+        token_timestamp = arrow.get(token["timestamp"])
         utc_now = arrow.utcnow()
         diff: timedelta = utc_now - token_timestamp
 
