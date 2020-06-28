@@ -77,6 +77,9 @@ class BaseMiner(object):
     def login(self, credentials):
         raise NotImplementedError()
 
+    def authenticate(self):
+        raise NotImplementedError()
+
     def balance(self):
         raise NotImplementedError()
 
@@ -152,6 +155,16 @@ class BaseMiner(object):
             self.register(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    def attempt_authenticate(self):
+        """
+        Similar to attempt_login(), but for APIs that don't require user credentials but instead authenticate
+        using a single source of auth parameters - for example set in the outbound auth data
+        """
+        if self.retry_limit and self.retry_count >= self.retry_limit:
+            raise RetryLimitError(RETRY_LIMIT_REACHED)
+
+        self.authenticate()
 
 
 # Based on RoboBrowser Library
@@ -371,7 +384,7 @@ class SeleniumMiner(BaseMiner):
         """
         parts = urlsplit(self.browser.current_url)
         base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
-        open_browser(self.browser.page_source.encode('utf-8'), base_href)
+        open_browser(self.browser.page_source.encrypt('utf-8'), base_href)
 
     def close_selenium(self):
         try:
@@ -451,7 +464,7 @@ class MerchantApi(BaseMiner):
         """
         account_link = self.user_info['journey_type'] == JourneyTypes.LINK.value
 
-        self.record_uid = hash_ids.encode(self.scheme_id)
+        self.record_uid = hash_ids.encrypt(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
@@ -501,7 +514,7 @@ class MerchantApi(BaseMiner):
                 else:
                     logger.debug('Too many consents for Iceland scheme')
 
-            self.record_uid = data['record_uid'] = hash_ids.encode(self.scheme_id)
+            self.record_uid = data['record_uid'] = hash_ids.encrypt(self.scheme_id)
 
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
@@ -648,7 +661,7 @@ class MerchantApi(BaseMiner):
 
     def apply_security_measures(self, json_data, security_service, security_credentials):
         outbound_security_agent = get_security_agent(security_service, security_credentials)
-        self.request = outbound_security_agent.encode(json_data)
+        self.request = outbound_security_agent.encrypt(json_data)
 
     def _sync_outbound(self, json_data):
         """
@@ -737,7 +750,7 @@ class MerchantApi(BaseMiner):
             self.config = Configuration(scheme_slug, handler_type)
         logger.setLevel(self.config.log_level)
 
-        self.record_uid = hash_ids.encode(self.scheme_id)
+        self.record_uid = hash_ids.encrypt(self.scheme_id)
 
         # asynchronously call handler
         thread_pool_executor.submit(self._inbound_handler, data, self.scheme_slug)
@@ -746,7 +759,7 @@ class MerchantApi(BaseMiner):
     def get_merchant_ids(self, credentials):
         user_id = sorted(map(int, self.user_info['user_set'].split(',')))[0]
         merchant_ids = {
-            'merchant_scheme_id1': hash_ids.encode(user_id),
+            'merchant_scheme_id1': hash_ids.encrypt(user_id),
             'merchant_scheme_id2': credentials.get('merchant_identifier'),
         }
 

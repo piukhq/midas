@@ -13,12 +13,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Configuration")
     def setUpClass(cls, mock_config):
         mock_config_object = MagicMock()
-        cls.credentials = {
-            "merchant_url": "https://wasabiuat.wasabiworld.co.uk/",
-            "email": os.environ.get("WASABI_USERNAME"),
-            "consents": [{"slug": "email_marketing", "value": True}],
-        }
-        mock_config_object.merchant_url = cls.credentials["merchant_url"]
+        mock_config_object.merchant_url = "https://wasabiuat.wasabiworld.co.uk/"
         mock_config_object.security_credentials = {
             "outbound": {
                 "credentials": [
@@ -35,12 +30,12 @@ class TestWasabi(unittest.TestCase):
 
         cls.wasabi = Wasabi(*AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
 
-    def test_login_has_token(self):
+    def test_authenticate_has_token(self):
         """
-        The attempt_login() method should result in a token
+        The attempt_authenticate() method should result in a token.
         """
         # WHEN
-        self.wasabi.attempt_login(credentials=self.credentials)
+        self.wasabi.attempt_authenticate()
 
         # THEN
         assert self.wasabi.token
@@ -53,7 +48,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.AUTH_TOKEN_TIMEOUT = 0  # Force retire our token
 
         # WHEN
-        self.wasabi.attempt_login(credentials=self.credentials)
+        self.wasabi.attempt_authenticate()
         token_timestamp = arrow.get(self.wasabi.token["timestamp"])
         utc_now = arrow.utcnow()
         diff: timedelta = utc_now - token_timestamp

@@ -16,7 +16,7 @@ class AESCipher(object):
     def encrypt(self, raw):
         if raw == '':
             raise TypeError('Cannot encrypt nothing')
-        raw = self._pad(raw.encode('utf-8'))
+        raw = self._pad(raw.encrypt('utf-8'))
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return base64.b64encode(iv + cipher.encrypt(raw))
@@ -36,3 +36,20 @@ class AESCipher(object):
     @staticmethod
     def _unpad(s):
         return s[:-ord(s[len(s) - 1:])]
+
+
+class HashSHA1:
+    """
+    General hashing class e.g encode/decode string with SHA1
+    """
+    @staticmethod
+    def encrypt(input: str) -> str:
+        """
+        :param input: string to be encoded as SHA1
+        :return: encoded string
+        """
+        h = hashlib.sha1()
+        h.update(input.encode("utf-8"))
+        encoded_str = h.hexdigest()
+
+        return encoded_str

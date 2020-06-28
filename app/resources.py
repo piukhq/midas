@@ -382,7 +382,7 @@ class SingleAgentErrorResult(Resource):
 
 
 def decrypt_credentials(credentials):
-    aes = AESCipher(settings.AES_KEY.encode())
+    aes = AESCipher(settings.AES_KEY.encrypt())
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
 
 

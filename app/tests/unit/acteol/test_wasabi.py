@@ -1,4 +1,5 @@
 import json
+import string
 import unittest
 from unittest.mock import patch
 
@@ -9,8 +10,6 @@ class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         with unittest.mock.patch("app.agents.acteol.Configuration"):
-            cls.credentials = {}
-
             cls.mock_token = {
                 "token": "abcde12345fghij",
                 "timestamp": 123456789,
@@ -44,7 +43,7 @@ class TestWasabi(unittest.TestCase):
         with unittest.mock.patch.object(
             self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
         ):
-            self.wasabi.attempt_login(credentials=self.credentials)
+            self.wasabi.attempt_authenticate()
 
             # THEN
             assert mock_refresh_access_token.called_once()
@@ -66,7 +65,7 @@ class TestWasabi(unittest.TestCase):
         with unittest.mock.patch.object(
             self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
         ):
-            self.wasabi.attempt_login(credentials=self.credentials)
+            self.wasabi.attempt_authenticate()
 
             # THEN
             assert not mock_refresh_access_token.called
@@ -145,6 +144,10 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_acteol_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
+        expected_token = {
+            "token": mock_acteol_access_token,
+            "timestamp": mock_current_timestamp,
+        }
 
         # WHEN
         with unittest.mock.patch.object(
@@ -156,7 +159,37 @@ class TestWasabi(unittest.TestCase):
             )
 
             # THEN
-            assert token == {
-                "token": mock_acteol_access_token,
-                "timestamp": mock_current_timestamp,
-            }
+            assert self.wasabi.token_store.set.called_once_with(
+                self.wasabi.scheme_id, json.dumps(expected_token)
+            )
+            assert token == expected_token
+
+    def test_make_headers(self):
+        """
+        Test that _make_headers returns a valid HTTP request authorization header
+        """
+        # GIVEN
+        mock_acteol_access_token = "abcde12345fghij"
+        expected_header = {"Authorization": f"Bearer {mock_acteol_access_token}"}
+
+        # WHEN
+        header = self.wasabi._make_headers(token=mock_acteol_access_token)
+
+        # THEN
+        assert header == expected_header
+
+    def test_create_origin_id(self):
+        """
+        Test that _create_origin_id returns a hex string
+        """
+        # GIVEN
+        user_email = "testperson@bink.com"
+        origin_root = "Bink-Wasabi"
+
+        # WHEN
+        origin_id = self.wasabi._create_origin_id(
+            user_email=user_email, origin_root=origin_root
+        )
+
+        # THEN
+        assert all(c in string.hexdigits for c in origin_id)
