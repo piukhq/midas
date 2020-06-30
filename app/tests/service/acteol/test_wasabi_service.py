@@ -61,18 +61,23 @@ class TestWasabi(unittest.TestCase):
         assert diff.seconds < 300
 
     def test_register(self):
+        # GIVEN
+        email = "doesnotexist@bink.com"
+
         credentials = {
             "first_name": "David",
             "last_name": "TestPerson",
-            "email": "doesnotexist6@bink.com",
+            "email": email,
             "phone": "08765543210",
             "postcode": "BN77UU",
         }
         self.wasabi.register(credentials=credentials)
 
-
-
-
+        # Clean up
+        contact_ids = self.wasabi.get_contact_ids_by_email(email=email)
+        ctcid = contact_ids["CtcIDs"][0]["CtcID"]
+        delete_response = self.wasabi.delete_contact_by_ctcid(ctcid=ctcid)
+        assert delete_response.status_code == 200
 
 
 if __name__ == "__main__":

@@ -252,3 +252,31 @@ class Acteol(ApiMiner):
         # - Current Stamps => LoyaltyPointsBalance
         # - Stamp Goal => will need to be pulled from the Plan Configuration
         self._create_membership_card(ctcid=ctcid, customer_details=customer_details)
+
+    def get_contact_ids_by_email(self, email: str) -> Dict:
+        """
+        Get dict of contact ids from Acteol by email
+        :param email: user's email address
+        """
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth
+        self.headers = self._make_headers(token=token["token"])
+
+        api_url = f"{self.BASE_API_URL}/Contact/GetContactIDsByEmail?Email={email}"
+        contact_ids_response = self.make_request(api_url, method="get", timeout=10)
+        contact_ids_response.raise_for_status()
+        contact_ids_data = contact_ids_response.json()
+
+        return contact_ids_data
+
+    def delete_contact_by_ctcid(self, ctcid: str):
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth
+        self.headers = self._make_headers(token=token["token"])
+        api_url = f"{self.BASE_API_URL}/Contact/DeleteContact/{ctcid}"
+        delete_response = self.make_request(api_url, method="delete", timeout=10)
+
+        return delete_response
+
