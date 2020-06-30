@@ -212,7 +212,7 @@ class TestWasabi(unittest.TestCase):
         responses.add(responses.GET, api_url, json={"test": 1}, status=HTTPStatus.OK)
 
         # WHEN
-        account_already_exists = self.wasabi._account_already_exists(
+        account_already_exists = self.wasabi.account_already_exists(
             origin_id=origin_id
         )
 
@@ -236,7 +236,7 @@ class TestWasabi(unittest.TestCase):
         responses.add(responses.GET, api_url, json=[], status=HTTPStatus.OK)
 
         # WHEN
-        account_already_exists = self.wasabi._account_already_exists(
+        account_already_exists = self.wasabi.account_already_exists(
             origin_id=origin_id
         )
 
@@ -268,7 +268,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid = self.wasabi._create_account(
+        ctcid = self.wasabi.create_account(
             origin_id=origin_id, credentials=credentials
         )
 
@@ -297,7 +297,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         with pytest.raises(AgentError):
-            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+            self.wasabi.create_account(origin_id=origin_id, credentials=credentials)
 
     @responses.activate
     def test_add_member_number(self):
@@ -316,7 +316,7 @@ class TestWasabi(unittest.TestCase):
         responses.add(responses.GET, api_url, json=response_data, status=HTTPStatus.OK)
 
         # WHEN
-        member_number = self.wasabi._add_member_number(ctcid=ctcid)
+        member_number = self.wasabi.add_member_number(ctcid=ctcid)
 
         # THEN
         assert member_number == expected_member_number
@@ -363,7 +363,7 @@ class TestWasabi(unittest.TestCase):
         responses.add(responses.GET, api_url, json=customer_details, status=HTTPStatus.OK)
 
         # WHEN
-        customer_details = self.wasabi._get_customer_details(origin_id=origin_id)
+        customer_details = self.wasabi.get_customer_details(origin_id=origin_id)
 
         # THEN
         assert customer_details["Email"] == expected_email
