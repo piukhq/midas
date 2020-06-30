@@ -5,7 +5,15 @@ import arrow
 import requests
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS, NO_SUCH_RECORD, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN, RegistrationError)
+    ACCOUNT_ALREADY_EXISTS,
+    NO_SUCH_RECORD,
+    STATUS_LOGIN_FAILED,
+    STATUS_REGISTRATION_FAILED,
+    UNKNOWN,
+    JOIN_ERROR,
+    RegistrationError,
+    GENERAL_ERROR,
+)
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
@@ -65,6 +73,8 @@ class Acteol(ApiMiner):
         """
         Get an API token from redis if we have one, otherwise login to get one and store in cache.
         This token is not per-user, it is for our backend to use their API
+
+        :return: valid token dict
         """
         have_valid_token = False  # Assume no good token to begin with
         current_timestamp = arrow.utcnow().timestamp
@@ -90,26 +100,6 @@ class Acteol(ApiMiner):
 
         return token
 
-    # def register(self, credentials):
-    #     consents = {c["slug"]: c["value"] for c in credentials.get("consents", {})}
-    #     resp = requests.post(
-    #         f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
-    #         json={"data": self._get_registration_credentials(credentials, consents)},
-    #         headers=self._make_headers(self._authenticate()),
-    #     )
-    #
-    #     if resp.status_code == 409:
-    #         raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
-    #     else:
-    #         resp.raise_for_status()
-    #         json = resp.json()
-    #         message = json["publisher"][0]["message"]
-    #
-    #     card_number, uid = self._get_card_number_and_uid(message)
-    #
-    #     self.identifier = {"card_number": card_number, "merchant_identifier": uid}
-    #     self.user_info["credentials"].update(self.identifier)
-
     @staticmethod
     def _make_headers(token: str):
         return {"Authorization": f"Bearer {token}"}
@@ -124,37 +114,141 @@ class Acteol(ApiMiner):
 
         return origin_id
 
-    def register(self, credentials):
+    def _account_already_exists(self, origin_id: str) -> bool:
         """
-        - Generate an OriginID for the user, where OriginID = SHA1(Bink-Wasabi-user_email)
-        - Check if account already exists - FindByOriginID
-        - Found - “Customer already exists”: Membership Card State=Failed and Reason Code=X202
-        - Note: FindByOriginID response will not return a failure - the API will return a non-empty list
-        - Not found -continue to step 4
-        - Note: The FindByOriginID response will not return a failure - the API will return a empty list
-        - All other responses (including 3xx/5xx) are caught and the card ends up in a failed state
-        (retry mechanisms are implemented as part of MER-314)
+        Check if account already exists in Acteol
+
+        FindByOriginID will return 200 and an empty list if the account does NOT exist.
+        It will return 200 and details in the json if the account exists.
+        All other responses (including 3xx/5xx) should be caught and the card ends up in a failed state
+
+        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        self.errors = {
-            ACCOUNT_ALREADY_EXISTS: "AlreadyExists",
-            STATUS_REGISTRATION_FAILED: "Invalid",
-            UNKNOWN: "Fail",
+        api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        register_response = self.make_request(api_url, method="get", timeout=10)
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if register_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        response_json = register_response.json()
+        if register_response.status_code == 200 and response_json:
+            return True
+
+        return False
+
+    def _create_account(self, origin_id: str, credentials: Dict) -> str:
+        """
+        Create an account in Acteol
+
+        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
+        :param credentials: dict of user's credentials
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/PostContact"
+        payload = {
+            "OriginID": origin_id,
+            "SourceID": "BinkPlatform",
+            "FirstName": credentials["first_name"],
+            "LastName": credentials["last_name"],
+            "Email": credentials["email"],
+            "Phone": credentials["phone"],
+            "Company": {"PostCode": credentials["postcode"],},
         }
-
-        # Get a valid API token
-        self.attempt_authenticate()
-
-        origin_id = self._create_origin_id(user_email=credentials.get("email", ""), origin_root=self.ORIGIN_ROOT)
-        api_url = f"{self.BASE_API_URL}/api/Contact/FindByOriginID?OriginID={origin_id}"
-        self.headers = self._make_headers(token=self.token["token"])
-        self.register_response = self.make_request(
-            api_url, method="get", timeout=10
+        register_response = self.make_request(
+            api_url, method="post", timeout=10, json=payload
         )
 
-        # TODO: check actual message
-        message = self.register_response.json()
-        if message == "Success":
-            return {"message": "success"}
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if register_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        # TODO: will probably have to overwrite - see AC
-        self.handle_errors(message, exception_type=RegistrationError)
+        response_json = register_response.json()
+        ctcid = response_json["CtcID"]
+
+        return ctcid
+
+    def _add_member_number(self, ctcid: str) -> str:
+        """
+        Add member number to Acteol
+
+        :param ctcid: ID returned from Acteol when creating the account
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        add_member_response = self.make_request(api_url, method="get", timeout=10)
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if add_member_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        member_number = add_member_response.json().get("MemberNumber")
+
+        return member_number
+
+    def _get_customer_details(self, origin_id: str) -> Dict:
+        """
+        Get the customer details from Acteol
+
+        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
+        """
+        api_url = f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        customer_details_response = self.make_request(api_url, method="get", timeout=10)
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if customer_details_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        customer_details_data = customer_details_response.json()
+
+        return customer_details_data
+
+    def _create_membership_card(self, ctcid: str, customer_details: Dict):
+        pass
+
+    def register(self, credentials):
+        """
+        Register a new loyalty scheme member with Acteol. The steps are:
+        - Get API token
+        - Check if account already exists
+        - If not, create account
+        - Use the CtcID from create account to add member number in Acteol
+        - Get the customer details from Acteol
+        - Use the customer details in Bink system
+        (retry mechanisms are implemented as part of MER-314)
+        """
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth for subsequent API calls
+        self.headers = self._make_headers(token=token["token"])
+        # Create an origin id for subsequent API calls
+        user_email = credentials["email"]
+        origin_id = self._create_origin_id(
+            user_email=user_email, origin_root=self.ORIGIN_ROOT
+        )
+
+        # Check if account already exists
+        account_already_exists = self._account_already_exists(origin_id=origin_id)
+        if account_already_exists:
+            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
+
+        # The account does not exist, so we can create one
+        ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
+        assert ctcid
+
+        # Add the new member number to Acteol
+        member_number = self._add_member_number(ctcid=ctcid)
+        # Sanity check: there must be a member_number
+        assert member_number
+
+        # Get customer details
+        customer_details = self._get_customer_details(origin_id=origin_id)
+        # Must at least have these or something is un-recoverably wrong
+        assert customer_details["Email"]
+        assert customer_details["CurrentMemberNumber"]
+
+        # Create an active membership card from customer details response
+        # - Store CtcID => CustomerID
+        # - Store Card number => CurrentMemberNumber
+        # - Generate an “inprogress” voucher
+        # - Current Stamps => LoyaltyPointsBalance
+        # - Stamp Goal => will need to be pulled from the Plan Configuration
+        self._create_membership_card(ctcid=ctcid, customer_details=customer_details)

@@ -60,6 +60,20 @@ class TestWasabi(unittest.TestCase):
         # A bit arbitrary, but should be less than 5 mins old, as it should have been refreshed
         assert diff.seconds < 300
 
+    def test_register(self):
+        credentials = {
+            "first_name": "David",
+            "last_name": "TestPerson",
+            "email": "doesnotexist6@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+        }
+        self.wasabi.register(credentials=credentials)
+
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
