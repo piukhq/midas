@@ -1,9 +1,13 @@
 import json
 import string
 import unittest
+from http import HTTPStatus
 from unittest.mock import patch
 
+import pytest
+import responses
 from app.agents.acteol_agents.wasabi import Wasabi
+from app.agents.exceptions import AgentError
 
 
 class TestWasabi(unittest.TestCase):
@@ -194,3 +198,177 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert all(c in string.hexdigits for c in origin_id)
+
+    @responses.activate
+    def test_account_already_exists(self):
+        """
+        Check if account already exists in Acteol
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = (
+            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        )
+        responses.add(responses.GET, api_url, json={"test": 1}, status=HTTPStatus.OK)
+
+        # WHEN
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
+
+        # THEN
+        assert account_already_exists
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == HTTPStatus.OK
+        assert responses.calls[0].request.url == api_url
+        assert responses.calls[0].response.json()["test"] == 1
+
+    @responses.activate
+    def test_account_does_not_exist(self):
+        """
+        Check for account not existing: an empty but OK response
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = (
+            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        )
+        responses.add(responses.GET, api_url, json=[], status=HTTPStatus.OK)
+
+        # WHEN
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
+
+        # THEN
+        assert not account_already_exists
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == HTTPStatus.OK
+        assert responses.calls[0].request.url == api_url
+        assert responses.calls[0].response.json() == []
+
+    @responses.activate
+    def test_create_account(self):
+        """
+        Test creating an account
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        expected_ctcid = "54321"
+        responses.add(
+            responses.POST, api_url, json={"CtcID": expected_ctcid}, status=HTTPStatus.OK
+        )
+        credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+        }
+
+        # WHEN
+        ctcid = self.wasabi._create_account(
+            origin_id=origin_id, credentials=credentials
+        )
+
+        # THEN
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == HTTPStatus.OK
+        assert responses.calls[0].request.url == api_url
+        assert ctcid == expected_ctcid
+
+    @responses.activate
+    def test_create_account_raises(self):
+        """
+        Test creating an account raises an exception from base class's make_request()
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        responses.add(responses.POST, api_url, json={"CtcID": 54321}, status=HTTPStatus.BAD_REQUEST)
+        credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+        }
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+
+    @responses.activate
+    def test_add_member_number(self):
+        """
+        Test adding member number to Acteol
+        """
+        # GIVEN
+        ctcid = "54321"
+        expected_member_number = "987654321"
+        api_url = f"{self.wasabi.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        response_data = {
+            "Response": True,
+            "MemberNumber": expected_member_number,
+            "Error": "",
+        }
+        responses.add(responses.GET, api_url, json=response_data, status=HTTPStatus.OK)
+
+        # WHEN
+        member_number = self.wasabi._add_member_number(ctcid=ctcid)
+
+        # THEN
+        assert member_number == expected_member_number
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == HTTPStatus.OK
+        assert responses.calls[0].request.url == api_url
+
+    @responses.activate
+    def test_get_customer_details(self):
+        """
+        Test getting the customer details from Acteol
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        expected_email = "doesnotexist@bink.com"
+        expected_customer_id = 142163
+        expected_current_member_number = "1048183413"
+        customer_details = {
+            "Firstname": "David",
+            "Lastname": "Testperson",
+            "BirthDate": None,
+            "Email": expected_email,
+            "MobilePhone": None,
+            "Address1": None,
+            "Address2": None,
+            "PostCode": "BN7 7UU",
+            "City": None,
+            "CountryCode": None,
+            "LastVisiteDate": None,
+            "LoyaltyPointsBalance": 0,
+            "LoyaltyCashBalance": 0.0,
+            "CustomerID": expected_customer_id,
+            "LoyaltyCardNumber": None,
+            "CurrentTiers": "",
+            "NextTiers": "",
+            "NextTiersAmountLeft": 0.0,
+            "Property": None,
+            "TiersExpirationDate": None,
+            "PointsExpirationDate": None,
+            "MemberNumbersList": ["1048183413"],
+            "CurrentMemberNumber": expected_current_member_number,
+        }
+        responses.add(responses.GET, api_url, json=customer_details, status=HTTPStatus.OK)
+
+        # WHEN
+        customer_details = self.wasabi._get_customer_details(origin_id=origin_id)
+
+        # THEN
+        assert customer_details["Email"] == expected_email
+        assert customer_details["CustomerID"] == expected_customer_id
+        assert customer_details["CurrentMemberNumber"] == expected_current_member_number
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == HTTPStatus.OK
+        assert responses.calls[0].request.url == api_url
