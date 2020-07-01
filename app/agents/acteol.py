@@ -110,6 +110,8 @@ class JoinJourney:
 
     def create_membership_card(self, ctcid: str, customer_details: Dict):
         pass
+        # self.identifier = {"card_number": card_number, "merchant_identifier": uid}
+        # self.user_info["credentials"].update(self.identifier)
 
 
 class Acteol(JoinJourney, ApiMiner):
@@ -181,6 +183,7 @@ class Acteol(JoinJourney, ApiMiner):
             except (KeyError, TypeError) as e:
                 logger.exception(e)  # have_valid_token is still False
         except (KeyError, self.token_store.NoSuchToken):
+
             pass  # have_valid_token is still False
 
         if not have_valid_token:
@@ -281,3 +284,10 @@ class Acteol(JoinJourney, ApiMiner):
         delete_response = self.make_request(api_url, method="delete", timeout=10)
 
         return delete_response
+
+
+class Wasabi(Acteol):
+    BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
+    ORIGIN_ROOT = "Bink-Wasabi"
+    AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
+    RETAILER_ID = "315"

@@ -139,4 +139,5 @@ AGENTS = {
     "fatface": "ecrebo.FatFace",
     "burger-king-rewards": "ecrebo.BurgerKing",
     "whsmith-rewards": "ecrebo.WhSmith",
+    "wasabi-club": "acteol.Wasabi",
 }

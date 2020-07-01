@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from app.agents.acteol_agents.wasabi import Wasabi
+from app.agents.acteol import Wasabi
 from app.agents.exceptions import AgentError
 
 
