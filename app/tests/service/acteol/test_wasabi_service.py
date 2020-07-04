@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import arrow
 import pytest
-from app.tests.service.acteol.fixtures.common import clean_up_user, wasabi
 
 
 class TestWasabi:

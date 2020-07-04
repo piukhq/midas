@@ -31,7 +31,7 @@ def wasabi():
         yield wasabi
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def clean_up_user():
     def _clean_up_user(wasabi, email) -> [int, None]:
         contact_ids = wasabi.get_contact_ids_by_email(email=email)

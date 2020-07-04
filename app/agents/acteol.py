@@ -5,9 +5,7 @@ from typing import Dict
 import arrow
 import requests
 from app.agents.base import ApiMiner
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS, GENERAL_ERROR, JOIN_ERROR, NO_SUCH_RECORD, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED,
-    UNKNOWN, RegistrationError)
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JOIN_ERROR, RegistrationError
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
@@ -134,7 +132,8 @@ class Acteol(JoinJourney, ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = (f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                   f"?externalcustomerid={origin_id}&partnerid=BinkPlatform")
         customer_details_response = self.make_request(api_url, method="get", timeout=10)
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
@@ -184,7 +183,9 @@ class Acteol(JoinJourney, ApiMiner):
         customer_details = self.get_customer_details(origin_id=origin_id)
         # Must at least have these or something is un-recoverably wrong
         assert customer_details["Email"]
-        assert customer_details["CurrentMemberNumber"]  # This is the same as member_number, from above
+        assert customer_details[
+            "CurrentMemberNumber"
+        ]  # This is the same as member_number, from above
         assert customer_details["CustomerID"]  # This is the same as ctcid, from above
 
         # Set up instance attributes that will result in the creation of an active membership card
@@ -216,7 +217,9 @@ class Acteol(JoinJourney, ApiMiner):
         customer_details = self.get_customer_details(origin_id=origin_id)
         # Must at least have these or something is un-recoverably wrong
         assert customer_details["Email"]
-        assert customer_details["CurrentMemberNumber"]  # This is the same as member_number, from above
+        assert customer_details[
+            "CurrentMemberNumber"
+        ]  # This is the same as member_number, from above
         assert customer_details["CustomerID"]  # This is the same as ctcid, from above
 
         # TODO: target value must eventually come from Django config
@@ -275,7 +278,9 @@ class Acteol(JoinJourney, ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        self.credentials = credentials  # Ensure credentials are available via the instance
+        self.credentials = (
+            credentials  # Ensure credentials are available via the instance
+        )
 
         return
 

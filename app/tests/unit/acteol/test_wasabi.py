@@ -331,7 +331,8 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = (f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                   f"?externalcustomerid={origin_id}&partnerid=BinkPlatform")
         expected_email = "doesnotexist@bink.com"
         expected_customer_id = 142163
         expected_current_member_number = "1048183413"
