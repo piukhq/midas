@@ -40,7 +40,7 @@ class AESCipher(object):
 
 class HashSHA1:
     """
-    General hashing class e.g encode/decode string with SHA1
+    SHA1 hashing class e.g encode/decode string
     """
     @staticmethod
     def encrypt(input: str) -> str:
