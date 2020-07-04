@@ -7,7 +7,7 @@ from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
 @pytest.fixture(scope="function")
-def setup():
+def wasabi():
     with patch("app.agents.acteol.Configuration") as mock_config:
 
         mock_config_object = MagicMock()
