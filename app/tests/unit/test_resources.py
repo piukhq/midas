@@ -33,7 +33,7 @@ CREDENTIALS = {
 
 
 def encrypt(scheme_slug):
-    aes = AESCipher(AES_KEY.encrypt())
+    aes = AESCipher(AES_KEY.encode())
     return aes.encrypt(json.dumps(CREDENTIALS[scheme_slug])).decode()
 
 
@@ -476,7 +476,7 @@ class TestResources(TestCase):
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encrypt())
+        aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -503,7 +503,7 @@ class TestResources(TestCase):
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encrypt())
+        aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -525,7 +525,7 @@ class TestResources(TestCase):
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encrypt())
+        aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}&status={3}".format(
@@ -555,7 +555,7 @@ class TestResources(TestCase):
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encrypt())
+        aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -822,7 +822,7 @@ class TestResources(TestCase):
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encrypt())
+        aes = AESCipher(AES_KEY.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)

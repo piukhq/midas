@@ -131,7 +131,7 @@ class Cooperative(MerchantApi):
         security_credentials['outbound']['credentials'][0]['value']['payload']['scope'] = scope
         outbound_security_agent = get_security_agent(security_service, security_credentials)
 
-        request = outbound_security_agent.encrypt(json_data)
+        request = outbound_security_agent.encode(json_data)
 
         timestamp = time.time()
         key = f"{scope}"

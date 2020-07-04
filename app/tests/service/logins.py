@@ -70,7 +70,7 @@ def get_credentials(agent=None):
 
 def encrypt(scheme_slug):
     """For testing encryption"""
-    aes = AESCipher(AES_KEY.encrypt())
+    aes = AESCipher(AES_KEY.encode())
 
     return aes.encrypt(json.dumps(CREDENTIALS[scheme_slug])).decode()
 
