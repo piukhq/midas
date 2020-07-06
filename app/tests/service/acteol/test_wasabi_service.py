@@ -53,6 +53,7 @@ class TestWasabi:
     def test_balance(self, wasabi, clean_up_user):
         # GIVEN
         email = "doesnotexist@bink.com"
+        # Clear out any left-over user from previous tests
         clean_up_user(wasabi=wasabi, email=email)
         credentials = {
             "first_name": "David",
@@ -73,6 +74,7 @@ class TestWasabi:
         assert balance["suffix"] == "stamps"
         assert balance["updated_at"]
 
+        # Clean up after ourselves
         clean_up_user(wasabi=wasabi, email=email)
 
 

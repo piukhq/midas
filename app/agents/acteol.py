@@ -24,7 +24,9 @@ class JoinJourney:
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
         api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        register_response = self.make_request(api_url, method="get", timeout=10)
+        register_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if register_response.status_code != 200:
@@ -54,7 +56,7 @@ class JoinJourney:
             "Company": {"PostCode": credentials.get("postcode", "")},
         }
         register_response = self.make_request(
-            api_url, method="post", timeout=10, json=payload
+            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
@@ -73,7 +75,9 @@ class JoinJourney:
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
-        add_member_response = self.make_request(api_url, method="get", timeout=10)
+        add_member_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if add_member_response.status_code != 200:
@@ -132,9 +136,13 @@ class Acteol(JoinJourney, ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = (f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-                   f"?externalcustomerid={origin_id}&partnerid=BinkPlatform")
-        customer_details_response = self.make_request(api_url, method="get", timeout=10)
+        api_url = (
+            f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
+            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        )
+        customer_details_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if customer_details_response.status_code != 200:
@@ -257,7 +265,9 @@ class Acteol(JoinJourney, ApiMiner):
         self.headers = self._make_headers(token=token["token"])
 
         api_url = f"{self.BASE_API_URL}/Contact/GetContactIDsByEmail?Email={email}"
-        contact_ids_response = self.make_request(api_url, method="get", timeout=10)
+        contact_ids_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
         contact_ids_response.raise_for_status()
         contact_ids_data = contact_ids_response.json()
 
@@ -269,7 +279,9 @@ class Acteol(JoinJourney, ApiMiner):
         # Add auth
         self.headers = self._make_headers(token=token["token"])
         api_url = f"{self.BASE_API_URL}/Contact/DeleteContact/{ctcid}"
-        delete_response = self.make_request(api_url, method="delete", timeout=10)
+        delete_response = self.make_request(
+            api_url, method="delete", timeout=self.API_TIMEOUT
+        )
 
         return delete_response
 
@@ -278,9 +290,8 @@ class Acteol(JoinJourney, ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        self.credentials = (
-            credentials  # Ensure credentials are available via the instance
-        )
+        # Ensure credentials are available via the instance
+        self.credentials = credentials
 
         return
 
@@ -344,5 +355,6 @@ class Wasabi(Acteol):
     BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
+    API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
