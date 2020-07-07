@@ -36,3 +36,20 @@ class AESCipher(object):
     @staticmethod
     def _unpad(s):
         return s[:-ord(s[len(s) - 1:])]
+
+
+class HashSHA1:
+    """
+    SHA1 hashing class e.g encode/decode string
+    """
+    @staticmethod
+    def encrypt(input: str) -> str:
+        """
+        :param input: string to be encoded as SHA1
+        :return: encoded string
+        """
+        h = hashlib.sha1()
+        h.update(input.encode("utf-8"))
+        encoded_str = h.hexdigest()
+
+        return encoded_str
