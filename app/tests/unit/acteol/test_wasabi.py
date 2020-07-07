@@ -214,7 +214,9 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        account_already_exists = self.wasabi.account_already_exists(origin_id=origin_id)
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
 
         # THEN
         assert account_already_exists
@@ -237,7 +239,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         with pytest.raises(AgentError):
-            self.wasabi.account_already_exists(origin_id=origin_id)
+            self.wasabi._account_already_exists(origin_id=origin_id)
 
     @httpretty.activate
     def test_account_does_not_exist(self):
@@ -257,7 +259,9 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        account_already_exists = self.wasabi.account_already_exists(origin_id=origin_id)
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
 
         # THEN
         assert not account_already_exists
@@ -286,7 +290,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid = self.wasabi.create_account(origin_id=origin_id, credentials=credentials)
+        ctcid = self.wasabi._create_account(
+            origin_id=origin_id, credentials=credentials
+        )
 
         # THEN
         assert ctcid == expected_ctcid
@@ -310,7 +316,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         with pytest.raises(AgentError):
-            self.wasabi.create_account(origin_id=origin_id, credentials=credentials)
+            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
     @httpretty.activate
     def test_add_member_number(self):
@@ -334,7 +340,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        member_number = self.wasabi.add_member_number(ctcid=ctcid)
+        member_number = self.wasabi._add_member_number(ctcid=ctcid)
 
         # THEN
         assert member_number == expected_member_number
@@ -386,9 +392,36 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        customer_details = self.wasabi.get_customer_details(origin_id=origin_id)
+        customer_details = self.wasabi._get_customer_details(origin_id=origin_id)
 
         # THEN
         assert customer_details["Email"] == expected_email
         assert customer_details["CustomerID"] == expected_customer_id
         assert customer_details["CurrentMemberNumber"] == expected_current_member_number
+
+    def test_customer_fields_are_present(self):
+        """
+        test for required customer fields in dict
+        """
+        # GIVEN
+        customer_details = {
+            "Email": 1,
+            "CurrentMemberNumber": 1,
+            "CustomerID": 1,
+            "AnExtraField": 1,
+        }
+        customer_fields_are_present = self.wasabi._customer_fields_are_present(
+            customer_details=customer_details
+        )
+        assert customer_fields_are_present
+
+    def test_customer_fields_are_present_returns_false(self):
+        """
+        test for required customer fields in dict
+        """
+        # GIVEN
+        customer_details = {"Email": 1, "CurrentMemberNumber": 1, "AnExtraField": 1}
+        customer_fields_are_present = self.wasabi._customer_fields_are_present(
+            customer_details=customer_details
+        )
+        assert not customer_fields_are_present
