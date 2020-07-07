@@ -21,7 +21,7 @@ class VoucherType(enum.Enum):
 
 
 class Ecrebo(ApiMiner):
-    def __init__(selfe retry_count, user_info, scheme_slug=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]

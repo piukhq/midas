@@ -65,7 +65,6 @@ Werkzeug = "==0.16.0"
 SQLAlchemy = "*"
 tenacity = "*"
 sentry-sdk = "*"
-responses = "*"
 
 [dev-packages]
 coverage = "*"
