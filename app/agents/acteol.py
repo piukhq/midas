@@ -12,79 +12,7 @@ from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 
 
-class JoinJourney:
-    def account_already_exists(self, origin_id: str) -> bool:
-        """
-        Check if account already exists in Acteol
-
-        FindByOriginID will return 200 and an empty list if the account does NOT exist.
-        It will return 200 and details in the json if the account exists.
-        All other responses (including 3xx/5xx) should be caught and the card ends up in a failed state
-
-        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
-        """
-        api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        register_response = self.make_request(api_url, method="get", timeout=10)
-
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if register_response.status_code != 200:
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
-
-        response_json = register_response.json()
-        if register_response.status_code == 200 and response_json:
-            return True
-
-        return False
-
-    def create_account(self, origin_id: str, credentials: Dict) -> str:
-        """
-        Create an account in Acteol
-
-        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
-        :param credentials: dict of user's credentials
-        """
-        api_url = f"{self.BASE_API_URL}/Contact/PostContact"
-        payload = {
-            "OriginID": origin_id,
-            "SourceID": "BinkPlatform",
-            "FirstName": credentials["first_name"],
-            "LastName": credentials["last_name"],
-            "Email": credentials["email"],
-            "Phone": credentials.get("phone", ""),
-            "Company": {"PostCode": credentials.get("postcode", "")},
-        }
-        register_response = self.make_request(
-            api_url, method="post", timeout=10, json=payload
-        )
-
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if register_response.status_code != 200:
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
-
-        response_json = register_response.json()
-        ctcid = response_json["CtcID"]
-
-        return ctcid
-
-    def add_member_number(self, ctcid: str) -> str:
-        """
-        Add member number to Acteol
-
-        :param ctcid: ID returned from Acteol when creating the account
-        """
-        api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
-        add_member_response = self.make_request(api_url, method="get", timeout=10)
-
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if add_member_response.status_code != 200:
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
-
-        member_number = add_member_response.json().get("MemberNumber")
-
-        return member_number
-
-
-class Acteol(JoinJourney, ApiMiner):
+class Acteol(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.credentials = user_info["credentials"]
@@ -114,7 +42,6 @@ class Acteol(JoinJourney, ApiMiner):
             except (KeyError, TypeError) as e:
                 logger.exception(e)  # have_valid_token is still False
         except (KeyError, self.token_store.NoSuchToken):
-
             pass  # have_valid_token is still False
 
         if not have_valid_token:
@@ -132,8 +59,10 @@ class Acteol(JoinJourney, ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = (f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-                   f"?externalcustomerid={origin_id}&partnerid=BinkPlatform")
+        api_url = (
+            f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
+            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        )
         customer_details_response = self.make_request(api_url, method="get", timeout=10)
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
@@ -232,6 +161,76 @@ class Acteol(JoinJourney, ApiMiner):
             "suffix": "stamps",
             "updated_at": current_timestamp,
         }
+
+    def account_already_exists(self, origin_id: str) -> bool:
+        """
+        Check if account already exists in Acteol
+
+        FindByOriginID will return 200 and an empty list if the account does NOT exist.
+        It will return 200 and details in the json if the account exists.
+        All other responses (including 3xx/5xx) should be caught and the card ends up in a failed state
+
+        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        register_response = self.make_request(api_url, method="get", timeout=10)
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if register_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        response_json = register_response.json()
+        if register_response.status_code == 200 and response_json:
+            return True
+
+        return False
+
+    def create_account(self, origin_id: str, credentials: Dict) -> str:
+        """
+        Create an account in Acteol
+
+        :param origin_id: hex string of encrypted credentials, standard ID for company plus email
+        :param credentials: dict of user's credentials
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/PostContact"
+        payload = {
+            "OriginID": origin_id,
+            "SourceID": "BinkPlatform",
+            "FirstName": credentials["first_name"],
+            "LastName": credentials["last_name"],
+            "Email": credentials["email"],
+            "Phone": credentials.get("phone", ""),
+            "Company": {"PostCode": credentials.get("postcode", "")},
+        }
+        register_response = self.make_request(
+            api_url, method="post", timeout=10, json=payload
+        )
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if register_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        response_json = register_response.json()
+        ctcid = response_json["CtcID"]
+
+        return ctcid
+
+    def add_member_number(self, ctcid: str) -> str:
+        """
+        Add member number to Acteol
+
+        :param ctcid: ID returned from Acteol when creating the account
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        add_member_response = self.make_request(api_url, method="get", timeout=10)
+
+        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
+        if add_member_response.status_code != 200:
+            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+
+        member_number = add_member_response.json().get("MemberNumber")
+
+        return member_number
 
     @staticmethod
     def parse_transaction(row):

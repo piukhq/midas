@@ -4,8 +4,8 @@ import unittest
 from http import HTTPStatus
 from unittest.mock import patch
 
+import httpretty
 import pytest
-import responses
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import AgentError
 
@@ -199,7 +199,7 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert all(c in string.hexdigits for c in origin_id)
 
-    @responses.activate
+    @httpretty.activate
     def test_account_already_exists(self):
         """
         Check if account already exists in Acteol
@@ -209,21 +209,37 @@ class TestWasabi(unittest.TestCase):
         api_url = (
             f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
         )
-        responses.add(responses.GET, api_url, json={"test": 1}, status=HTTPStatus.OK)
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.OK,
+        )
 
         # WHEN
-        account_already_exists = self.wasabi.account_already_exists(
-            origin_id=origin_id
-        )
+        account_already_exists = self.wasabi.account_already_exists(origin_id=origin_id)
 
         # THEN
         assert account_already_exists
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == HTTPStatus.OK
-        assert responses.calls[0].request.url == api_url
-        assert responses.calls[0].response.json()["test"] == 1
+        querystring = httpretty.last_request().querystring
+        assert querystring["OriginID"][0] == origin_id
 
-    @responses.activate
+    @httpretty.activate
+    def test_account_already_exists_timeout(self):
+        """
+        Check if account already exists in Acteol, API request times out
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = (
+            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        )
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
+        )
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi.account_already_exists(origin_id=origin_id)
+
+    @httpretty.activate
     def test_account_does_not_exist(self):
         """
         Check for account not existing: an empty but OK response
@@ -233,21 +249,20 @@ class TestWasabi(unittest.TestCase):
         api_url = (
             f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
         )
-        responses.add(responses.GET, api_url, json=[], status=HTTPStatus.OK)
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body="[]")],
+            status=HTTPStatus.OK,
+        )
 
         # WHEN
-        account_already_exists = self.wasabi.account_already_exists(
-            origin_id=origin_id
-        )
+        account_already_exists = self.wasabi.account_already_exists(origin_id=origin_id)
 
         # THEN
         assert not account_already_exists
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == HTTPStatus.OK
-        assert responses.calls[0].request.url == api_url
-        assert responses.calls[0].response.json() == []
 
-    @responses.activate
+    @httpretty.activate
     def test_create_account(self):
         """
         Test creating an account
@@ -256,8 +271,11 @@ class TestWasabi(unittest.TestCase):
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
         expected_ctcid = "54321"
-        responses.add(
-            responses.POST, api_url, json={"CtcID": expected_ctcid}, status=HTTPStatus.OK
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps({"CtcID": expected_ctcid}))],
+            status=HTTPStatus.OK,
         )
         credentials = {
             "first_name": "Sarah",
@@ -268,17 +286,12 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid = self.wasabi.create_account(
-            origin_id=origin_id, credentials=credentials
-        )
+        ctcid = self.wasabi.create_account(origin_id=origin_id, credentials=credentials)
 
         # THEN
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == HTTPStatus.OK
-        assert responses.calls[0].request.url == api_url
         assert ctcid == expected_ctcid
 
-    @responses.activate
+    @httpretty.activate
     def test_create_account_raises(self):
         """
         Test creating an account raises an exception from base class's make_request()
@@ -286,7 +299,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
-        responses.add(responses.POST, api_url, json={"CtcID": 54321}, status=HTTPStatus.BAD_REQUEST)
+        httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
         credentials = {
             "first_name": "Sarah",
             "last_name": "TestPerson",
@@ -299,7 +312,7 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi.create_account(origin_id=origin_id, credentials=credentials)
 
-    @responses.activate
+    @httpretty.activate
     def test_add_member_number(self):
         """
         Test adding member number to Acteol
@@ -313,26 +326,30 @@ class TestWasabi(unittest.TestCase):
             "MemberNumber": expected_member_number,
             "Error": "",
         }
-        responses.add(responses.GET, api_url, json=response_data, status=HTTPStatus.OK)
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
 
         # WHEN
         member_number = self.wasabi.add_member_number(ctcid=ctcid)
 
         # THEN
         assert member_number == expected_member_number
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == HTTPStatus.OK
-        assert responses.calls[0].request.url == api_url
 
-    @responses.activate
+    @httpretty.activate
     def test_get_customer_details(self):
         """
         Test getting the customer details from Acteol
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-                   f"?externalcustomerid={origin_id}&partnerid=BinkPlatform")
+        api_url = (
+            f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
+            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        )
         expected_email = "doesnotexist@bink.com"
         expected_customer_id = 142163
         expected_current_member_number = "1048183413"
@@ -361,7 +378,12 @@ class TestWasabi(unittest.TestCase):
             "MemberNumbersList": ["1048183413"],
             "CurrentMemberNumber": expected_current_member_number,
         }
-        responses.add(responses.GET, api_url, json=customer_details, status=HTTPStatus.OK)
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(customer_details))],
+            status=HTTPStatus.OK,
+        )
 
         # WHEN
         customer_details = self.wasabi.get_customer_details(origin_id=origin_id)
@@ -370,6 +392,3 @@ class TestWasabi(unittest.TestCase):
         assert customer_details["Email"] == expected_email
         assert customer_details["CustomerID"] == expected_customer_id
         assert customer_details["CurrentMemberNumber"] == expected_current_member_number
-        assert len(responses.calls) == 1
-        assert responses.calls[0].response.status_code == HTTPStatus.OK
-        assert responses.calls[0].request.url == api_url
