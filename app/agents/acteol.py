@@ -9,6 +9,9 @@ from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
 
 class Acteol(ApiMiner):
@@ -132,10 +135,9 @@ class Acteol(ApiMiner):
         current_timestamp = arrow.utcnow().timestamp
 
         return {
+            "points": value,
             "value": value,
-            "currency": "stamps",
-            "suffix": "stamps",
-            "updated_at": current_timestamp,
+            "value_label": "",
         }
 
     @staticmethod
@@ -203,7 +205,9 @@ class Acteol(ApiMiner):
             f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
             f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
         )
-        customer_details_response = self.make_request(api_url, method="get", timeout=10)
+        customer_details_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if customer_details_response.status_code != 200:
@@ -224,8 +228,15 @@ class Acteol(ApiMiner):
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
         api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        register_response = self.make_request(api_url, method="get", timeout=10)
+        register_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
+        # TODO: catch AgentErrors (end site down) from make_requests and any other non-200-OK errors and retry.
+        # AgentErrors will be either Timeouts or HTTPErrors from requests
+        # Non-OK errors might be 300 moved or something so might need handling differently?
+        # Either 1) create our own make_request() and decorate it but call the parent, 2) decorate this method itself?
+        # TODO: look at the retry lib, used in resources
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if register_response.status_code != 200:
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
@@ -254,7 +265,7 @@ class Acteol(ApiMiner):
             "Company": {"PostCode": credentials.get("postcode", "")},
         }
         register_response = self.make_request(
-            api_url, method="post", timeout=10, json=payload
+            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
@@ -273,7 +284,9 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
-        add_member_response = self.make_request(api_url, method="get", timeout=10)
+        add_member_response = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT
+        )
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
         if add_member_response.status_code != 200:
@@ -308,6 +321,10 @@ class Acteol(ApiMiner):
         """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
+    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    @retry(stop=stop_after_attempt(RETRY_LIMIT),
+           wait=wait_exponential(multiplier=1, min=3, max=12),
+           reraise=True)
     def _refresh_access_token(self) -> str:
         """
         Returns an Acteol API auth token to use in subsequent requests.
@@ -319,7 +336,7 @@ class Acteol(ApiMiner):
         }
         token_url = f"{self.base_url}/token"
         token_request = self.make_request(
-            token_url, method="post", timeout=10, data=payload
+            token_url, method="post", timeout=self.API_TIMEOUT, data=payload
         )
         token = token_request.json()["access_token"]
 
