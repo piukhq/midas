@@ -128,14 +128,12 @@ class Acteol(ApiMiner):
             raise RegistrationError(JOIN_ERROR)
 
         # TODO: target value must eventually come from Django config
-        value = Decimal(customer_details["LoyaltyPointsBalance"] / self.TARGET_VALUE)
-        current_timestamp = arrow.utcnow().timestamp
+        points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         return {
-            "value": value,
-            "currency": "stamps",
-            "suffix": "stamps",
-            "updated_at": current_timestamp,
+            "points": points,
+            "value": points,
+            "value_label": "",
         }
 
     @staticmethod

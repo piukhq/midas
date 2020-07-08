@@ -410,9 +410,13 @@ class TestWasabi(unittest.TestCase):
             "CustomerID": 1,
             "AnExtraField": 1,
         }
+
+        # WHEN
         customer_fields_are_present = self.wasabi._customer_fields_are_present(
             customer_details=customer_details
         )
+
+        # THEN
         assert customer_fields_are_present
 
     def test_customer_fields_are_present_returns_false(self):
@@ -421,7 +425,75 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         customer_details = {"Email": 1, "CurrentMemberNumber": 1, "AnExtraField": 1}
+
+        # WHEN
         customer_fields_are_present = self.wasabi._customer_fields_are_present(
             customer_details=customer_details
         )
+
+        # THEN
         assert not customer_fields_are_present
+
+    @patch("app.agents.acteol.Acteol._refresh_access_token")
+    @patch("app.agents.acteol.Acteol._get_customer_details")
+    @patch("app.agents.acteol.Acteol._token_is_valid")
+    def test_balance(
+        self, mock_token_is_valid, mock_get_customer_details, mock_refresh_access_token
+    ):
+        """
+        Check that the call to balance() returns an expected dict
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_token_is_valid.return_value = False
+        mock_acteol_access_token = "abcde12345fghij"
+        mock_refresh_access_token.return_value = mock_acteol_access_token
+
+        expected_points = 7
+        expected_balance = {
+            "points": expected_points,
+            "value": expected_points,
+            "value_label": "",
+        }
+        customer_details = {
+            "Firstname": "David",
+            "Lastname": "Testperson",
+            "BirthDate": None,
+            "Email": "doesnotexist@bink.com",
+            "MobilePhone": None,
+            "Address1": None,
+            "Address2": None,
+            "PostCode": "BN7 7UU",
+            "City": None,
+            "CountryCode": None,
+            "LastVisiteDate": None,
+            "LoyaltyPointsBalance": expected_points,
+            "LoyaltyCashBalance": 0.0,
+            "CustomerID": 142163,
+            "LoyaltyCardNumber": None,
+            "CurrentTiers": "",
+            "NextTiers": "",
+            "NextTiersAmountLeft": 0.0,
+            "Property": None,
+            "TiersExpirationDate": None,
+            "PointsExpirationDate": None,
+            "MemberNumbersList": ["1048183413"],
+            "CurrentMemberNumber": "1048183413",
+        }
+        mock_get_customer_details.return_value = customer_details
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+        }
+
+        # WHEN
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
+        ):
+            balance = self.wasabi.balance()
+
+            # THEN
+            assert balance == expected_balance
