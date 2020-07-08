@@ -434,20 +434,15 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert not customer_fields_are_present
 
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
+    @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._get_customer_details")
-    @patch("app.agents.acteol.Acteol._token_is_valid")
-    def test_balance(
-        self, mock_token_is_valid, mock_get_customer_details, mock_refresh_access_token
-    ):
+    def test_balance(self, mock_get_customer_details, mock_authenticate):
         """
         Check that the call to balance() returns an expected dict
         """
         # GIVEN
         # Mock us through authentication
-        mock_token_is_valid.return_value = False
-        mock_acteol_access_token = "abcde12345fghij"
-        mock_refresh_access_token.return_value = mock_acteol_access_token
+        mock_authenticate.return_value = self.mock_token
 
         expected_points = 7
         expected_balance = {
@@ -490,10 +485,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        with unittest.mock.patch.object(
-            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
-        ):
-            balance = self.wasabi.balance()
+        balance = self.wasabi.balance()
 
-            # THEN
-            assert balance == expected_balance
+        # THEN
+        assert balance == expected_balance
