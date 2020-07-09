@@ -1,3 +1,4 @@
+from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.tasks.resend_consents import try_consents
 from unittest import mock
@@ -9,6 +10,9 @@ import settings
 class MockStore:
 
     def set(self, *args, **kwargs):
+        pass
+
+    class NoSuchToken(Exception):
         pass
 
 
@@ -252,3 +256,60 @@ class TestUserConsents(unittest.TestCase):
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
             self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
+
+
+class TestLoginCheckLoyaltyAccount(unittest.TestCase):
+
+    def setUp(self):
+        self.credentials = {
+            'email': 'mytest@localhost.com',
+            'password': '12345',
+        }
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending'
+        }
+        self.hn = HarveyNichols(retry_count=1, user_info=user_info)
+        self.hn.token_store = MockStore
+
+    @mock.patch('app.tasks.resend_consents.send_consents')
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
+    def test_harvey_nick_mock_login_loyalty_account_valid(self, mock_make_request, mock_send_consents):
+        mock_make_request.side_effect = [
+            # Response from /user/hasloyaltyaccount
+            MockResponse({"auth_resp": {"message": "OK"}}, 200),
+            # Response from /preferences/create
+            MockResponse({
+                'CustomerSignOnResult': {
+                    'outcome': 'Success',
+                    'customerNumber': '2601507998647',
+                    'token': '1234'
+                }
+            }, 200)
+        ]
+
+        self.hn.login(self.credentials)
+        self.assertEqual(
+            'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
+            mock_make_request.call_args_list[0][0][0]
+        )
+        self.assertEqual(
+            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+            mock_make_request.call_args_list[1][0][0]
+        )
+
+    @mock.patch('app.tasks.resend_consents.send_consents')
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
+    def test_harvey_nick_mock_login_loyalty_account_not_valid(self, mock_make_request, mock_send_consents):
+        for i, msg in enumerate(
+            ["Not found",                       # Web account only
+             "User details not authenticated"]  # Bad credentials
+        ):
+            mock_make_request.side_effect = [MockResponse(
+                {"auth_resp": {"message": msg, "status_code": "404"}}, 200
+            )]
+            self.assertRaises(LoginError, self.hn.login, self.credentials)
+            self.assertEqual(
+                'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
+                mock_make_request.call_args_list[i][0][0]
+            )
