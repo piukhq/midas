@@ -64,7 +64,6 @@ class Acteol(ApiMiner):
         - Use the CtcID from create account to add member number in Acteol
         - Get the customer details from Acteol
         - Use the customer details in Bink system
-        (retry mechanisms are implemented as part of MER-314)
         """
         # Get a valid API token
         token = self.authenticate()
@@ -191,7 +190,7 @@ class Acteol(ApiMiner):
 
     # Private methods
 
-    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
@@ -219,7 +218,7 @@ class Acteol(ApiMiner):
 
         return customer_details_data
 
-    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
@@ -250,7 +249,7 @@ class Acteol(ApiMiner):
 
         return False
 
-    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
@@ -286,7 +285,7 @@ class Acteol(ApiMiner):
 
         return ctcid
 
-    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
@@ -335,7 +334,7 @@ class Acteol(ApiMiner):
         """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
-    # Retry on any Exception at 3, 6, 12 seconds. Reraise the exception from make_request()
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
