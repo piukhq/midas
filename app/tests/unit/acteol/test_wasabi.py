@@ -445,7 +445,7 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
 
         mock_points = 7
-        expected_points = "7/7"
+        expected_points = 7
         expected_balance = {
             "points": expected_points,
             "value": expected_points,
