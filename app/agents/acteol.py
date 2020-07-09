@@ -129,9 +129,7 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
-        # TODO: target value must eventually come from Django config
         points = Decimal(customer_details["LoyaltyPointsBalance"])
-        points = f"{points}/{self.POINTS_TARGET_VALUE}"
 
         return {
             "points": points,

@@ -62,7 +62,7 @@ class TestWasabi:
             "phone": "08765543210",
             "postcode": "BN77UU",
         }
-        expected_points = "0/7"
+        expected_points = 0
         wasabi.register(credentials=credentials)
 
         # WHEN
