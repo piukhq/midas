@@ -9,6 +9,9 @@ from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
 
 class Acteol(ApiMiner):
@@ -61,7 +64,6 @@ class Acteol(ApiMiner):
         - Use the CtcID from create account to add member number in Acteol
         - Get the customer details from Acteol
         - Use the customer details in Bink system
-        (retry mechanisms are implemented as part of MER-314)
         """
         # Get a valid API token
         token = self.authenticate()
@@ -160,9 +162,9 @@ class Acteol(ApiMiner):
         self.headers = self._make_headers(token=token["token"])
 
         api_url = f"{self.BASE_API_URL}/Contact/GetContactIDsByEmail?Email={email}"
-        contact_ids_response = self.make_request(api_url, method="get", timeout=10)
-        contact_ids_response.raise_for_status()
-        contact_ids_data = contact_ids_response.json()
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        resp.raise_for_status()
+        contact_ids_data = resp.json()
 
         return contact_ids_data
 
@@ -172,22 +174,28 @@ class Acteol(ApiMiner):
         # Add auth
         self.headers = self._make_headers(token=token["token"])
         api_url = f"{self.BASE_API_URL}/Contact/DeleteContact/{ctcid}"
-        delete_response = self.make_request(api_url, method="delete", timeout=10)
+        resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
 
-        return delete_response
+        return resp
 
     def login(self, credentials) -> None:
         """
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        self.credentials = (
-            credentials  # Ensure credentials are available via the instance
-        )
+        # Ensure credentials are available via the instance
+        self.credentials = credentials
 
         return
 
     # Private methods
+
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _get_customer_details(self, origin_id: str) -> Dict:
         """
         Get the customer details from Acteol
@@ -198,16 +206,24 @@ class Acteol(ApiMiner):
             f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
             f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
         )
-        customer_details_response = self.make_request(api_url, method="get", timeout=10)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if customer_details_response.status_code != 200:
+        if resp.status_code != 200:
+            logger.debug(
+                f"Error while fetching customer details, reason: {resp.reason}"
+            )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        customer_details_data = customer_details_response.json()
+        customer_details_data = resp.json()
 
         return customer_details_data
 
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _account_already_exists(self, origin_id: str) -> bool:
         """
         Check if account already exists in Acteol
@@ -219,18 +235,26 @@ class Acteol(ApiMiner):
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
         api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        register_response = self.make_request(api_url, method="get", timeout=10)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if register_response.status_code != 200:
+        if resp.status_code != 200:
+            logger.debug(
+                f"Error while checking for existing account, reason: {resp.reason}"
+            )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        response_json = register_response.json()
-        if register_response.status_code == 200 and response_json:
+        response_json = resp.json()
+        if response_json:
             return True
 
         return False
 
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _create_account(self, origin_id: str, credentials: Dict) -> str:
         """
         Create an account in Acteol
@@ -248,19 +272,25 @@ class Acteol(ApiMiner):
             "Phone": credentials.get("phone", ""),
             "Company": {"PostCode": credentials.get("postcode", "")},
         }
-        register_response = self.make_request(
-            api_url, method="post", timeout=10, json=payload
+        resp = self.make_request(
+            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
 
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if register_response.status_code != 200:
+        if resp.status_code != 200:
+            logger.debug(f"Error while creating new account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        response_json = register_response.json()
+        response_json = resp.json()
         ctcid = response_json["CtcID"]
 
         return ctcid
 
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _add_member_number(self, ctcid: str) -> str:
         """
         Add member number to Acteol
@@ -268,13 +298,14 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
-        add_member_response = self.make_request(api_url, method="get", timeout=10)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if add_member_response.status_code != 200:
+        if resp.status_code != 200:
+            logger.debug(f"Error while adding member number, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        member_number = add_member_response.json().get("MemberNumber")
+        member_number = resp.json().get("MemberNumber")
 
         return member_number
 
@@ -303,6 +334,12 @@ class Acteol(ApiMiner):
         """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _refresh_access_token(self) -> str:
         """
         Returns an Acteol API auth token to use in subsequent requests.
@@ -313,10 +350,10 @@ class Acteol(ApiMiner):
             "password": self.auth["password"],
         }
         token_url = f"{self.base_url}/token"
-        token_request = self.make_request(
-            token_url, method="post", timeout=10, data=payload
+        resp = self.make_request(
+            token_url, method="post", timeout=self.API_TIMEOUT, data=payload
         )
-        token = token_request.json()["access_token"]
+        token = resp.json()["access_token"]
 
         return token
 
@@ -349,5 +386,6 @@ class Wasabi(Acteol):
     BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
+    API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
