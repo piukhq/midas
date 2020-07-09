@@ -444,7 +444,8 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        expected_points = 7
+        mock_points = 7
+        expected_points = "7/7"
         expected_balance = {
             "points": expected_points,
             "value": expected_points,
@@ -462,7 +463,7 @@ class TestWasabi(unittest.TestCase):
             "City": None,
             "CountryCode": None,
             "LastVisiteDate": None,
-            "LoyaltyPointsBalance": expected_points,
+            "LoyaltyPointsBalance": mock_points,
             "LoyaltyCashBalance": 0.0,
             "CustomerID": 142163,
             "LoyaltyCardNumber": None,
