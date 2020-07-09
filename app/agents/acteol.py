@@ -4,7 +4,7 @@ from typing import Dict
 
 import arrow
 from app.agents.base import ApiMiner
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JOIN_ERROR, RegistrationError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JOIN_ERROR, NO_SUCH_RECORD, AgentError, RegistrationError
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
@@ -127,10 +127,11 @@ class Acteol(ApiMiner):
                     f"for user email: {user_email}"
                 )
             )
-            raise RegistrationError(JOIN_ERROR)
+            raise AgentError(NO_SUCH_RECORD)
 
         # TODO: target value must eventually come from Django config
         points = Decimal(customer_details["LoyaltyPointsBalance"])
+        points = f"{points}/{self.POINTS_TARGET_VALUE}"
 
         return {
             "points": points,
@@ -388,4 +389,4 @@ class Wasabi(Acteol):
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
-    TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
+    POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config

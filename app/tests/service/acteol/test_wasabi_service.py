@@ -62,6 +62,7 @@ class TestWasabi:
             "phone": "08765543210",
             "postcode": "BN77UU",
         }
+        expected_points = "0/7"
         wasabi.register(credentials=credentials)
 
         # WHEN
@@ -69,8 +70,8 @@ class TestWasabi:
         balance = wasabi.balance()
 
         # THEN
-        assert balance["points"] == 0
-        assert balance["value"] == 0
+        assert balance["points"] == expected_points
+        assert balance["value"] == expected_points
         assert "value_label" in balance
 
         # Clean up after ourselves
