@@ -69,8 +69,8 @@ class TestWasabi:
         balance = wasabi.balance()
 
         # THEN
-        assert balance["value"] == 0
         assert balance["points"] == 0
+        assert balance["value"] == 0
         assert "value_label" in balance
 
         # Clean up after ourselves
