@@ -68,10 +68,9 @@ class TestWasabi:
         balance = wasabi.balance()
 
         # THEN
+        assert balance["points"] == 0
         assert balance["value"] == 0
-        assert balance["currency"] == "stamps"
-        assert balance["suffix"] == "stamps"
-        assert balance["updated_at"]
+        assert "value_label" in balance
 
         clean_up_user(wasabi=wasabi, email=email)
 
