@@ -270,6 +270,7 @@ class TestLoginCheckLoyaltyAccount(unittest.TestCase):
             'status': 'pending'
         }
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
+        self.hn.token_store = MockStore
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
