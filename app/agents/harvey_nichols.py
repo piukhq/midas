@@ -1,6 +1,6 @@
 from decimal import Decimal
 from app.agents.exceptions import (
-    RegistrationError,
+    LoginError, RegistrationError,
     STATUS_REGISTRATION_FAILED,
     ACCOUNT_ALREADY_EXISTS,
     UNKNOWN,
@@ -19,6 +19,7 @@ import json
 class HarveyNichols(ApiMiner):
     BASE_URL = "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty"
     CONSENTS_URL = "https://hn_sso.harveynichols.com/preferences/create"
+    HAS_LOYALTY_ACCOUNT_URL = "https://hn_sso.harveynichols.com/user/hasloyaltyaccount"
 
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"  # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10  # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
@@ -26,7 +27,22 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
     retry_limit = 9  # tries 10 times overall
 
+    def check_loyalty_account_valid(self, credentials):
+        """
+        Checks with HN to verify whether a valid loyalty account exists
+
+        Don't go any further unless the account is valid
+        """
+        data = {"username": credentials["email"], "password": credentials["password"]}
+        headers = {"Accept": "application/json"}
+        response = self.make_request(
+            self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)
+        if response.json()["auth_resp"]["message"] != "OK":
+            raise LoginError(STATUS_LOGIN_FAILED)
+
     def login(self, credentials):
+        self.check_loyalty_account_valid(credentials)
+
         self.credentials = credentials
         self.identifier_type = "card_number"
 
