@@ -457,6 +457,87 @@ USER_STORE = {
         },
         'points': Decimal('380.01')
     },
+    # MER-349
+    '934918': {
+        'len_transactions': 0,
+        'credentials': {
+            'last_name': 'testuser18',
+            'postcode': 'rg0 0aa',
+        },
+        'points': Decimal('0.00')
+    },
+    '934919': {
+        'len_transactions': 5,
+        'credentials': {
+            'last_name': 'testuser19',
+            'postcode': 'rg5 5aa',
+        },
+        'points': Decimal('380.01')
+    },
+    '934920': {
+        'len_transactions': 5,
+        'credentials': {
+            'last_name': 'testuser20',
+            'postcode': 'mp6 obb',
+        },
+        'points': Decimal('123456')
+    },
+    '934921': {
+        'len_transactions': 5,
+        'credentials': {
+            'last_name': 'testuser21',
+            'postcode': 'mp7 1bb',
+        },
+        'points': Decimal('1234567')
+    },
+    '934922': {
+        'len_transactions': 0,
+        'credentials': {
+            'last_name': 'testuser22',
+            'postcode': 'rg0 0aa',
+        },
+        'points': Decimal('0.00')
+    },
+    '934923': {
+        'len_transactions': 1,
+        'credentials': {
+            'last_name': 'testuser23',
+            'postcode': 'rg1 1aa',
+        },
+        'points': Decimal('20.10')
+    },
+    '934924': {
+        'len_transactions': 5,
+        'credentials': {
+            'last_name': 'testuser24',
+            'postcode': 'rg5 5aa',
+        },
+        'points': Decimal('380.01')
+    },
+    '934925': {
+        'len_transactions': 0,
+        'credentials': {
+            'last_name': 'testuser25',
+            'postcode': 'rg0 0aa',
+        },
+        'points': Decimal('0.00')
+    },
+    '934926': {
+        'len_transactions': 5,
+        'credentials': {
+            'last_name': 'testuser26',
+            'postcode': 'rg5 5aa',
+        },
+        'points': Decimal('380.01')
+    },
+    '934927': {
+        'len_transactions': 1,
+        'credentials': {
+            'last_name': 'testuser27',
+            'postcode': 'mp6 0bb',
+        },
+        'points': Decimal('20.10')
+    },
 }
 
 transactions = [
