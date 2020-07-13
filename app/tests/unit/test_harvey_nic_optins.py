@@ -294,6 +294,11 @@ class TestLoginCheckLoyaltyAccount(unittest.TestCase):
             mock_make_request.call_args_list[0][0][0]
         )
         self.assertEqual(
+            mock_make_request.call_args_list[0][1]["headers"],
+            {"Accept": "application/json"})
+        submitted_json = mock_make_request.call_args_list[0][1]["json"]
+        self.assertEqual(submitted_json, self.credentials)
+        self.assertEqual(
             'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
             mock_make_request.call_args_list[1][0][0]
         )
