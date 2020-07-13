@@ -490,3 +490,82 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert balance == expected_balance
+
+    def test_get_email_optin_pref_from_consent(self):
+        """
+        Test finding the dict  with a key of EmailOptin that also has key of "value" set to True
+        """
+        # GIVEN
+        consents = [
+            {
+                "id": 2585,
+                "slug": "EmailOptin",
+                "value": True,
+                "created_on": "2020-07-13T13:26:53.809970+00:00",
+                "journey_type": 0,
+            },
+            {
+                "id": 2586,
+                "slug": "EmailOptin",
+                "value": False,
+                "created_on": "2020-07-13T13:26:53.809970+00:00",
+                "journey_type": 0,
+            },
+            {
+                "id": 2588,
+                "slug": "AnotherOption",
+                "value": 15,
+                "created_on": "2020-07-13T13:26:53.809970+00:00",
+                "journey_type": 0,
+            },
+        ]
+
+        # WHEN
+        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+
+        # THEN
+        assert rv
+
+    def test_get_email_optin_pref_from_consent_is_false(self):
+        """
+        Test finding no matching dict with a key of EmailOptin that also has key of "value" set to True
+        """
+        # GIVEN
+        consents = [
+            {
+                "id": 2586,
+                "slug": "EmailOptin",
+                "value": False,
+                "created_on": "2020-07-13T13:26:53.809970+00:00",
+                "journey_type": 0,
+            },
+            {
+                "id": 2588,
+                "slug": "AnotherOption",
+                "value": 15,
+                "created_on": "2020-07-13T13:26:53.809970+00:00",
+                "journey_type": 0,
+            },
+        ]
+
+        # WHEN
+        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+
+        # THEN
+        assert not rv
+
+    def test_get_email_optin_pref_from_consent_is_false_if_passed_empty(self):
+        """
+        Test finding no matching dict with a key of EmailOptin that also has key of "value" set to True,
+        if passed a list with an empty dict
+        """
+        # GIVEN
+        consents = [
+            {},
+        ]
+
+        # WHEN
+        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+
+        # THEN
+        assert not rv

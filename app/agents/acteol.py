@@ -1,10 +1,17 @@
 import json
 from decimal import Decimal
-from typing import Dict
+from http import HTTPStatus
+from typing import Dict, List
 
 import arrow
 from app.agents.base import ApiMiner
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JOIN_ERROR, NO_SUCH_RECORD, AgentError, RegistrationError
+from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    JOIN_ERROR,
+    NO_SUCH_RECORD,
+    AgentError,
+    RegistrationError,
+)
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
@@ -63,6 +70,7 @@ class Acteol(ApiMiner):
         - If not, create account
         - Use the CtcID from create account to add member number in Acteol
         - Get the customer details from Acteol
+        - Post user preferences (marketing email opt-in) to Acteol
         - Use the customer details in Bink system
         """
         # Get a valid API token
@@ -96,6 +104,19 @@ class Acteol(ApiMiner):
                 )
             )
             raise RegistrationError(JOIN_ERROR)
+
+        # Set user's email opt-in preferences in Acteol
+        email_optin_pref: bool = self._get_email_optin_pref_from_consent(
+            consents=credentials.get("consents", [{}])
+        )
+        try:
+            self._set_customer_preferences(
+                ctcid=ctcid, email_optin_pref=email_optin_pref
+            )
+        except AgentError as ae:
+            logger.info(f"AgentError while setting customer preferences: {ae.message}")
+        except Exception as e:
+            logger.info(f"Exception while setting customer preferences: {str(e)}")
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
@@ -207,7 +228,7 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        if resp.status_code != 200:
+        if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while fetching customer details, reason: {resp.reason}"
             )
@@ -227,8 +248,8 @@ class Acteol(ApiMiner):
         """
         Check if account already exists in Acteol
 
-        FindByOriginID will return 200 and an empty list if the account does NOT exist.
-        It will return 200 and details in the json if the account exists.
+        FindByOriginID will return HTTPStatus.OK and an empty list if the account does NOT exist.
+        It will return HTTPStatus.OK and details in the json if the account exists.
         All other responses (including 3xx/5xx) should be caught and the card ends up in a failed state
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
@@ -236,7 +257,7 @@ class Acteol(ApiMiner):
         api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        if resp.status_code != 200:
+        if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while checking for existing account, reason: {resp.reason}"
             )
@@ -275,7 +296,7 @@ class Acteol(ApiMiner):
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
 
-        if resp.status_code != 200:
+        if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while creating new account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
@@ -299,8 +320,7 @@ class Acteol(ApiMiner):
         api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        # TODO: raise on 3**/4**/5** errors but will implement retries as part of ticket MER-314
-        if resp.status_code != 200:
+        if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
@@ -379,6 +399,45 @@ class Acteol(ApiMiner):
                 for k in ["Email", "CurrentMemberNumber", "CustomerID"]
             ]
         )
+
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _set_customer_preferences(self, ctcid: str, email_optin_pref: bool):
+        """
+        Set user's email opt-in preferences in Acteol
+        Condition: “EmailOptin” = true if Enrol user consent has been marked as true.
+        :param email_optin_pref: boolean
+        """
+        api_url = f"{self.BASE_API_URL}/CommunicationPreference/Post"
+        payload = {
+            "CustomerID": ctcid,
+            "EmailOptin": email_optin_pref,
+        }
+        self.make_request(
+            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
+        )
+
+    def _get_email_optin_pref_from_consent(self, consents: List[Dict]) -> bool:
+        """
+        Find the dict (should only be one) with a key of EmailOptin that also has key of "value" set to True
+        :param consents: the list of consents dicts from the user's credentials
+        :return: bool True if at least one matching dict found
+        """
+        matching_true_consents = list(
+            filter(
+                lambda x: x.get("slug") == "EmailOptin" and bool(x.get("value")),
+                consents,
+            )
+        )
+
+        if matching_true_consents:
+            return True
+
+        return False
 
 
 class Wasabi(Acteol):
