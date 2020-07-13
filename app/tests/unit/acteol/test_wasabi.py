@@ -569,3 +569,22 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert not rv
+
+    @httpretty.activate
+    def test_set_optin_prefs_exception(self):
+        """
+        Test that an exception during setting prefs won't derail the join process
+        """
+        # GIVEN
+        ctcid = "54321"
+        email_optin_pref = True
+        api_url = f"{self.wasabi.BASE_API_URL}/CommunicationPreference/Post"
+        httpretty.register_uri(
+            httpretty.POST, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
+        )
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._set_customer_preferences(
+                ctcid=ctcid, email_optin_pref=email_optin_pref
+            )
