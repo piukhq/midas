@@ -33,7 +33,7 @@ class HarveyNichols(ApiMiner):
 
         Don't go any further unless the account is valid
         """
-        data = {"username": credentials["email"], "password": credentials["password"]}
+        data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
         response = self.make_request(
             self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)

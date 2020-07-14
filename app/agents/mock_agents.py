@@ -43,7 +43,11 @@ class MockAgentHN(MockedMiner):
         # if none of the above, do the normal login checks
         login_credentials = (credentials['email'].lower(), credentials['password'])
         for user, info in USER_STORE.items():
-            auth_check = (info['credentials']['email'], info['credentials']['password'])
+            try:
+                auth_check = (info['credentials']['email'], info['credentials']['password'])
+            except KeyError:
+                continue
+
             if login_credentials == auth_check:
                 self.user_info = info
                 user_id = user
