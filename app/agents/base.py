@@ -910,7 +910,7 @@ class MockedMiner(BaseMiner):
     @staticmethod
     def _check_email_already_exists(email):
         return any(
-            info["credentials"]["email"] == email
+            info["credentials"].get("email") == email
             for info in USER_STORE.values()
         )
 
