@@ -9,14 +9,22 @@ from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     JOIN_ERROR,
     NO_SUCH_RECORD,
+    STATUS_LOGIN_FAILED,
+    VALIDATION,
     AgentError,
+    LoginError,
     RegistrationError,
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -203,6 +211,31 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
+        # If we have a card_number (MemberNumber in Acteol) then we are likely on an ADD journey, and should validate
+        if credentials.get("card_number"):
+            # Get a valid API token
+            token = self.authenticate()
+            # Add auth for subsequent API calls
+            self.headers = self._make_headers(token=token["token"])
+            # Don't go any further unless the account is valid
+            try:
+                self._validate_member_number(credentials)
+            except (AgentError, LoginError) as e:
+                logger.error(
+                    f"Error while validating card_number/MemberNumber: {str(e)}"
+                )
+                raise LoginError(STATUS_LOGIN_FAILED)
+            except Exception as e:  # Catch-all: we can't continue if there's any exception
+                logger.exception(str(e))
+                raise LoginError(STATUS_LOGIN_FAILED)
+            else:
+                self.identifier_type = (
+                    "card_number"  # Not sure this is needed but the base class has one
+                )
+
+                thing = self.journey_type
+                thing = 1
+
         # Ensure credentials are available via the instance
         self.credentials = credentials
 
@@ -438,6 +471,54 @@ class Acteol(ApiMiner):
             return True
 
         return False
+
+    # Retry on AgentError (a HTTP exception) at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
+    # Reraise the exception from make_request()
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        retry=retry_if_exception_type(AgentError),
+        reraise=True,
+    )
+    def _validate_member_number(self, credentials):
+        """
+        Checks with Acteol to verify whether a loyalty account exists for this email and card number
+
+        Invalid Card Number
+            "IsValid": false AND "ValidationMsg": "Invalid Member Number" OR "Invalid Email"
+            Action - membership_card Status=? Add data rejected by merchant, State=Failed and Reason Code=X102
+            (for the front-end to handle) i.e. raise a VALIDATION exception
+
+        Credentials do not match
+            "IsValid": false AND "ValidationMsg": "Email and Member number mismatch"
+            Action - membership_card Status=403 Invalid credentials, State=Failed and Reason Code=X303
+            (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/ValidateContactMemberNumber"
+        member_number = credentials.get("card_number")
+        email = credentials.get("email")
+        payload = {
+            "MemberNumber": member_number,
+            "Email": email,
+        }
+        resp = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+        )
+
+        resp_json = resp.json()
+        if resp_json.get("IsValid") is False:
+            if resp_json.get("ValidationMsg") == "Invalid Email":
+                logger.error(f"Failed login validation for Email {email}: Invalid Email")
+                raise LoginError(VALIDATION)
+            elif resp_json.get("ValidationMsg") == "Invalid Member Number":
+                logger.error(f"Failed login validation for Email {email}: Invalid Member Number")
+                raise LoginError(VALIDATION)
+            elif resp_json.get("ValidationMsg") == "Email and Member number mismatch":
+                logger.error(f"Failed login validation for Email {email}: Email and Member number mismatch")
+                raise LoginError(STATUS_LOGIN_FAILED)
+            else:
+                logger.error(f"Failed login validation for Email {email}: Unexpected error")
+                raise LoginError(STATUS_LOGIN_FAILED)
 
 
 class Wasabi(Acteol):
