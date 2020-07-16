@@ -17,14 +17,10 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from app.utils import JourneyTypes
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -211,8 +207,12 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        # If we have a card_number (MemberNumber in Acteol) then we are likely on an ADD journey, and should validate
-        if credentials.get("card_number"):
+        # Only attempt to validate if we're on an ADD journey (not JOIN)
+        # TODO: But will JourneyTypes.ADD.value actually be set on an add journey??
+        # TODO: if not, could maybe test here for journey_type not in [the other journey types]..?
+        if (
+            credentials.get("card_number") and not self.user_info.get("from_register")
+        ) and self.user_info.get("journey_type") == JourneyTypes.ADD.value:
             # Get a valid API token
             token = self.authenticate()
             # Add auth for subsequent API calls
@@ -232,9 +232,6 @@ class Acteol(ApiMiner):
                 self.identifier_type = (
                     "card_number"  # Not sure this is needed but the base class has one
                 )
-
-                thing = self.journey_type
-                thing = 1
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -472,14 +469,6 @@ class Acteol(ApiMiner):
 
         return False
 
-    # Retry on AgentError (a HTTP exception) at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
-    # Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        retry=retry_if_exception_type(AgentError),
-        reraise=True,
-    )
     def _validate_member_number(self, credentials):
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
@@ -505,19 +494,28 @@ class Acteol(ApiMiner):
             api_url, method="get", timeout=self.API_TIMEOUT, json=payload
         )
 
+        # It's possible for validation to fail but still return a 200 OK response status
         resp_json = resp.json()
         if resp_json.get("IsValid") is False:
             if resp_json.get("ValidationMsg") == "Invalid Email":
-                logger.error(f"Failed login validation for Email {email}: Invalid Email")
+                logger.error(
+                    f"Failed login validation for Email {email}: Invalid Email"
+                )
                 raise LoginError(VALIDATION)
             elif resp_json.get("ValidationMsg") == "Invalid Member Number":
-                logger.error(f"Failed login validation for Email {email}: Invalid Member Number")
+                logger.error(
+                    f"Failed login validation for Email {email}: Invalid Member Number"
+                )
                 raise LoginError(VALIDATION)
             elif resp_json.get("ValidationMsg") == "Email and Member number mismatch":
-                logger.error(f"Failed login validation for Email {email}: Email and Member number mismatch")
+                logger.error(
+                    f"Failed login validation for Email {email}: Email and Member number mismatch"
+                )
                 raise LoginError(STATUS_LOGIN_FAILED)
             else:
-                logger.error(f"Failed login validation for Email {email}: Unexpected error")
+                logger.error(
+                    f"Failed login validation for Email {email}: Unexpected error"
+                )
                 raise LoginError(STATUS_LOGIN_FAILED)
 
 
