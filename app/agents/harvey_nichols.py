@@ -41,12 +41,11 @@ class HarveyNichols(ApiMiner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
-        self.check_loyalty_account_valid(credentials)
-
         self.credentials = credentials
         self.identifier_type = "card_number"
 
         if self.journey_type == JourneyTypes.LINK.value:
+            self.check_loyalty_account_valid(credentials)
             self.errors = {
                 STATUS_LOGIN_FAILED: ["NoSuchRecord", "Invalid", "AuthFailed"],
                 UNKNOWN: ["Fail"],
