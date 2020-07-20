@@ -1,6 +1,7 @@
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.tasks.resend_consents import try_consents
+from app.utils import JourneyTypes
 from unittest import mock
 import json
 import unittest
@@ -258,7 +259,14 @@ class TestUserConsents(unittest.TestCase):
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
 
 
-class TestLoginCheckLoyaltyAccount(unittest.TestCase):
+class TestLoginJourneyTypes(unittest.TestCase):
+    """
+    MER-317 & MER-365
+
+    Harvey Nichols will convert "web only" accounts into full loyalty accounts on signOn.
+
+    Don't allow this during LINK journey.
+    """
 
     def setUp(self):
         self.credentials = {
@@ -274,11 +282,8 @@ class TestLoginCheckLoyaltyAccount(unittest.TestCase):
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
-    def test_harvey_nick_mock_login_loyalty_account_valid(self, mock_make_request, mock_send_consents):
+    def test_login_join_journey(self, mock_make_request, mock_send_consents):
         mock_make_request.side_effect = [
-            # Response from /user/hasloyaltyaccount
-            MockResponse({"auth_resp": {"message": "OK"}}, 200),
-            # Response from /preferences/create
             MockResponse({
                 'CustomerSignOnResult': {
                     'outcome': 'Success',
@@ -288,6 +293,30 @@ class TestLoginCheckLoyaltyAccount(unittest.TestCase):
             }, 200)
         ]
 
+        self.hn.journey_type = JourneyTypes.JOIN.value
+        self.hn.login(self.credentials)
+        self.assertEqual(
+            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+            mock_make_request.call_args_list[0][0][0]
+        )
+
+    @mock.patch('app.tasks.resend_consents.send_consents')
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
+    def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents):
+        mock_make_request.side_effect = [
+            # Response from /user/hasloyaltyaccount
+            MockResponse({"auth_resp": {"message": "OK"}}, 200),
+            # Response from /WebCustomerLoyalty/services/CustomerLoyalty/signOn
+            MockResponse({
+                'CustomerSignOnResult': {
+                    'outcome': 'Success',
+                    'customerNumber': '2601507998647',
+                    'token': '1234'
+                }
+            }, 200)
+        ]
+
+        self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.login(self.credentials)
         self.assertEqual(
             'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
@@ -305,7 +334,8 @@ class TestLoginCheckLoyaltyAccount(unittest.TestCase):
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
-    def test_harvey_nick_mock_login_loyalty_account_not_valid(self, mock_make_request, mock_send_consents):
+    def test_login_add_journey_loyalty_account_check_not_valid(self, mock_make_request, mock_send_consents):
+        self.hn.journey_type = JourneyTypes.LINK.value
         for i, msg in enumerate(
             ["Not found",                       # Web account only
              "User details not authenticated"]  # Bad credentials
