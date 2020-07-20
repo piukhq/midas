@@ -7,7 +7,7 @@ from unittest.mock import patch
 import httpretty
 import pytest
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import AgentError
+from app.agents.exceptions import END_SITE_DOWN, AgentError, LoginError
 
 
 class TestWasabi(unittest.TestCase):
@@ -588,3 +588,94 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._set_customer_preferences(
                 ctcid=ctcid, email_optin_pref=email_optin_pref
             )
+
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._validate_member_number")
+    def test_login_happy_path(self, mock_validate_member_number, mock_authenticate):
+        """
+        Check that the call to login() does not raise exception on happy path
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        try:
+            self.wasabi.login(credentials=credentials)
+        except Exception as e:
+            pytest.fail(f"test_login_happy_path failed: {str(e)}")
+
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch(
+        "app.agents.acteol.Acteol._validate_member_number",
+        side_effect=AgentError(END_SITE_DOWN),
+    )
+    def test_login_fail(self, mock_validate_member_number, mock_authenticate):
+        """
+        Check that the call to login() fails with the appropriate exception
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # THEN
+        with pytest.raises(LoginError):
+            self.wasabi.login(credentials=credentials)
+
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._validate_member_number")
+    def test_login_join_path(self, mock_validate_member_number, mock_authenticate):
+        """
+        Check that the call to login() avoids an email verification call to Acteol when on join journey
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+        self.wasabi.user_info["from_register"] = True
+
+        # WHEN
+        self.wasabi.login(credentials=credentials)
+
+        # THEN
+        assert not mock_validate_member_number.called
+
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._validate_member_number")
+    def test_login_add_path(self, mock_validate_member_number, mock_authenticate):
+        """
+        Check that the call to login() validates email on an add journey
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+        self.wasabi.user_info["from_register"] = False
+
+        # WHEN
+        self.wasabi.login(credentials=credentials)
+
+        # THEN
+        assert mock_validate_member_number.called_once()
