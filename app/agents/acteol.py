@@ -17,7 +17,6 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
-from app.utils import JourneyTypes
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -156,6 +155,15 @@ class Acteol(ApiMiner):
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
+        # If we are coming from register then this is the initial balance request, as part of the join.
+        # if we just let the create journey be set to "join", hermes will set the card to pending
+        # and then attempt to get a balance update and the journey_type will get set to 1 (LINK) during login().
+        # That is a problem because we need to distinguish in login() whether we're on an add or join
+        # journey in order to verify, or not, the email/membership number with Acteol. Add journeys are also
+        # a journey_type of 1 (LINK) so we won't be able to use that to distinguish between adds and joins.
+        if self.user_info.get("from_register") is True:
+            self.create_journey = "join-with-balance"
+
         return {
             "points": points,
             "value": points,
@@ -207,12 +215,8 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        # Only attempt to validate if we're on an ADD journey (not JOIN)
-        # TODO: But will JourneyTypes.ADD.value actually be set on an add journey??
-        # TODO: if not, could maybe test here for journey_type not in [the other journey types]..?
-        if (
-            credentials.get("card_number") and not self.user_info.get("from_register")
-        ) and self.user_info.get("journey_type") == JourneyTypes.ADD.value:
+        # If we are on an add journey, then we will need to verify the supplied email against the card number
+        if credentials.get("card_number") and not self.user_info.get("from_register"):
             # Get a valid API token
             token = self.authenticate()
             # Add auth for subsequent API calls

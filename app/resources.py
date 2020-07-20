@@ -500,8 +500,16 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        # TODO: At this point, user_info.from_register is still True and journey_type == 3
-        publish.status(user_info['scheme_account_id'], status, tid, user_info, journey='join')
+        # MER-56: must set journey to "join-with-balance", which doesn't seem to happen by just setting the
+        # value in Acteol class's balance() method.
+        journey = "join"  # The original default value
+        try:
+            join_with_balance = "join-with-balance"
+            if agent_instance.create_journey == join_with_balance:
+                journey = join_with_balance
+        except AttributeError:  # In case the agent instance has no create_journey attr
+            pass
+        publish.status(user_info['scheme_account_id'], status, tid, user_info, journey=journey)
         return True
 
 
