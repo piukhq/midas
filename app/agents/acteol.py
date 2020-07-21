@@ -155,15 +155,6 @@ class Acteol(ApiMiner):
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
-        # If we are coming from register then this is the initial balance request, as part of the join.
-        # if we just let the create journey be set to "join", hermes will set the card to pending
-        # and then attempt to get a balance update and the journey_type will get set to 1 (LINK) during login().
-        # That is a problem because we need to distinguish in login() whether we're on an add or join
-        # journey in order to verify, or not, the email/membership number with Acteol. Add journeys are also
-        # a journey_type of 1 (LINK) so we won't be able to use that to distinguish between adds and joins.
-        if self.user_info.get("from_register") is True:
-            self.create_journey = "join-with-balance"
-
         return {
             "points": points,
             "value": points,
@@ -530,3 +521,4 @@ class Wasabi(Acteol):
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
+    JOIN_WITH_BALANCE = True
