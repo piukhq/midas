@@ -207,7 +207,7 @@ class Acteol(ApiMiner):
         ensure our API token is still valid / not expired. See authenticate()
         """
         # If we are on an add journey, then we will need to verify the supplied email against the card number
-        if credentials.get("card_number") and not self.user_info.get("from_register"):
+        if credentials["card_number"] and not self.user_info.get("from_register"):
             # Get a valid API token
             token = self.authenticate()
             # Add auth for subsequent API calls
@@ -349,7 +349,7 @@ class Acteol(ApiMiner):
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        member_number = resp.json().get("MemberNumber")
+        member_number = resp.json()["MemberNumber"]
 
         return member_number
 
@@ -479,8 +479,8 @@ class Acteol(ApiMiner):
             (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
         """
         api_url = f"{self.BASE_API_URL}/Contact/ValidateContactMemberNumber"
-        member_number = credentials.get("card_number")
-        email = credentials.get("email")
+        member_number = credentials["card_number"]
+        email = credentials["email"]
         payload = {
             "MemberNumber": member_number,
             "Email": email,
