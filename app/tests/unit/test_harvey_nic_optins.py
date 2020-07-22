@@ -1,7 +1,6 @@
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.tasks.resend_consents import try_consents
-from app.utils import JourneyTypes
 from unittest import mock
 import json
 import unittest
@@ -10,8 +9,14 @@ import settings
 
 class MockStore:
 
+    def __init__(self):
+        self._store = {}
+
     def set(self, *args, **kwargs):
-        pass
+        self._store[args[0]] = args[1]
+
+    def get(self, *args, **kwargs):
+        return self._store.get(args[0])
 
     class NoSuchToken(Exception):
         pass
@@ -94,7 +99,7 @@ class TestUserConsents(unittest.TestCase):
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
-        hn.token_store = MockStore
+        hn.token_store = MockStore()
         credentials = {
             'email': 'mytest@localhost.com',
             'password': '12345',
@@ -127,7 +132,7 @@ class TestUserConsents(unittest.TestCase):
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
-        hn.token_store = MockStore
+        hn.token_store = MockStore()
         credentials = {
             'email': 'mytest@localhost.com',
             'password': '12345',
@@ -163,7 +168,7 @@ class TestUserConsents(unittest.TestCase):
         hn.AGENT_TRIES = 3
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
-        hn.token_store = MockStore
+        hn.token_store = MockStore()
         credentials = {
             'email': 'mytest@localhost.com',
             'password': '12345',
@@ -217,7 +222,7 @@ class TestUserConsents(unittest.TestCase):
         hn.AGENT_TRIES = 3
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
-        hn.token_store = MockStore
+        hn.token_store = MockStore()
         credentials = {
             'email': 'mytest@localhost.com',
             'password': '12345',
@@ -278,12 +283,18 @@ class TestLoginJourneyTypes(unittest.TestCase):
             'status': 'pending'
         }
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
-        self.hn.token_store = MockStore
+        self.hn.token_store = MockStore()
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
     def test_login_join_journey(self, mock_make_request, mock_send_consents):
+        self.hn.scheme_id = 101
+        self.hn.token_store.set(101, 'a token')
+
         mock_make_request.side_effect = [
+            MockResponse({
+                "auth_resp": {"message": "Not found", "status_code": "404"}
+            }, 200),
             MockResponse({
                 'CustomerSignOnResult': {
                     'outcome': 'Success',
@@ -293,11 +304,14 @@ class TestLoginJourneyTypes(unittest.TestCase):
             }, 200)
         ]
 
-        self.hn.journey_type = JourneyTypes.JOIN.value
         self.hn.login(self.credentials)
         self.assertEqual(
-            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+            'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
             mock_make_request.call_args_list[0][0][0]
+        )
+        self.assertEqual(
+            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+            mock_make_request.call_args_list[1][0][0]
         )
 
     @mock.patch('app.tasks.resend_consents.send_consents')
@@ -316,7 +330,6 @@ class TestLoginJourneyTypes(unittest.TestCase):
             }, 200)
         ]
 
-        self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.login(self.credentials)
         self.assertEqual(
             'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
@@ -335,7 +348,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
     def test_login_add_journey_loyalty_account_check_not_valid(self, mock_make_request, mock_send_consents):
-        self.hn.journey_type = JourneyTypes.LINK.value
+        self.hn.scheme_id = 101
         for i, msg in enumerate(
             ["Not found",                       # Web account only
              "User details not authenticated"]  # Bad credentials
