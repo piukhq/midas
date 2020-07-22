@@ -37,15 +37,20 @@ class HarveyNichols(ApiMiner):
         headers = {"Accept": "application/json"}
         response = self.make_request(
             self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)
-        if response.json()["auth_resp"]["message"] != "OK":
+        message = response.json()["auth_resp"]["message"]
+        # "Not found" indicates web-only account (MER-317)
+        if message == "OK" or (message == "Not found" and self.token_store.get(self.scheme_id) is not None):
+            return
+        else:
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
+        self.check_loyalty_account_valid(credentials)
+
         self.credentials = credentials
         self.identifier_type = "card_number"
 
         if self.journey_type == JourneyTypes.LINK.value:
-            self.check_loyalty_account_valid(credentials)
             self.errors = {
                 STATUS_LOGIN_FAILED: ["NoSuchRecord", "Invalid", "AuthFailed"],
                 UNKNOWN: ["Fail"],
