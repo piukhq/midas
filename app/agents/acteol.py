@@ -219,10 +219,10 @@ class Acteol(ApiMiner):
                 logger.error(
                     f"Error while validating card_number/MemberNumber: {str(e)}"
                 )
-                raise LoginError(STATUS_LOGIN_FAILED)
+                raise LoginError(STATUS_LOGIN_FAILED) from e
             except Exception as e:  # Catch-all: we can't continue if there's any exception
                 logger.exception(str(e))
-                raise LoginError(STATUS_LOGIN_FAILED)
+                raise LoginError(STATUS_LOGIN_FAILED) from e
             else:
                 self.identifier_type = (
                     "card_number"  # Not sure this is needed but the base class has one
@@ -491,27 +491,18 @@ class Acteol(ApiMiner):
 
         # It's possible for validation to fail but still return a 200 OK response status
         resp_json = resp.json()
-        if resp_json.get("IsValid") is False:
-            if resp_json.get("ValidationMsg") == "Invalid Email":
-                logger.error(
-                    f"Failed login validation for Email {email}: Invalid Email"
-                )
-                raise LoginError(VALIDATION)
-            elif resp_json.get("ValidationMsg") == "Invalid Member Number":
-                logger.error(
-                    f"Failed login validation for Email {email}: Invalid Member Number"
-                )
-                raise LoginError(VALIDATION)
-            elif resp_json.get("ValidationMsg") == "Email and Member number mismatch":
-                logger.error(
-                    f"Failed login validation for Email {email}: Email and Member number mismatch"
-                )
-                raise LoginError(STATUS_LOGIN_FAILED)
-            else:
-                logger.error(
-                    f"Failed login validation for Email {email}: Unexpected error"
-                )
-                raise LoginError(STATUS_LOGIN_FAILED)
+        validation_error_types = {
+            "Invalid Email": VALIDATION,
+            "Invalid Member Number": VALIDATION,
+            "Email and Member number mismatch": STATUS_LOGIN_FAILED,
+        }
+
+        validation_msg = resp_json.get("ValidationMsg")
+        error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
+        logger.error(
+            f"Failed login validation for member number {member_number}: {validation_msg}"
+        )
+        raise LoginError(error_type)
 
 
 class Wasabi(Acteol):
