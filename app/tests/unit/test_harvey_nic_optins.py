@@ -1,6 +1,7 @@
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.tasks.resend_consents import try_consents
+from app.utils import JourneyTypes
 from unittest import mock
 import json
 import unittest
@@ -8,6 +9,8 @@ import settings
 
 
 class MockStore:
+    class NoSuchToken(Exception):
+        pass
 
     def __init__(self):
         self._store = {}
@@ -16,10 +19,11 @@ class MockStore:
         self._store[args[0]] = args[1]
 
     def get(self, *args, **kwargs):
-        return self._store.get(args[0])
-
-    class NoSuchToken(Exception):
-        pass
+        key = args[0]
+        if key in self._store:
+            return self._store[key]
+        else:
+            raise self.NoSuchToken
 
 
 class MockResponse:
@@ -289,12 +293,8 @@ class TestLoginJourneyTypes(unittest.TestCase):
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
     def test_login_join_journey(self, mock_make_request, mock_send_consents):
         self.hn.scheme_id = 101
-        self.hn.token_store.set(101, 'a token')
-
+        self.hn.journey_type = JourneyTypes.JOIN.value
         mock_make_request.side_effect = [
-            MockResponse({
-                "auth_resp": {"message": "Not found", "status_code": "404"}
-            }, 200),
             MockResponse({
                 'CustomerSignOnResult': {
                     'outcome': 'Success',
@@ -306,58 +306,93 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
         self.hn.login(self.credentials)
         self.assertEqual(
-            'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
-            mock_make_request.call_args_list[0][0][0]
-        )
-        self.assertEqual(
             'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
-            mock_make_request.call_args_list[1][0][0]
+            mock_make_request.call_args_list[0][0][0]
         )
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
     def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents):
-        mock_make_request.side_effect = [
-            # Response from /user/hasloyaltyaccount
-            MockResponse({"auth_resp": {"message": "OK"}}, 200),
-            # Response from /WebCustomerLoyalty/services/CustomerLoyalty/signOn
-            MockResponse({
-                'CustomerSignOnResult': {
-                    'outcome': 'Success',
-                    'customerNumber': '2601507998647',
-                    'token': '1234'
-                }
-            }, 200)
-        ]
+        for jt in (JourneyTypes):
+            if jt != JourneyTypes.JOIN:
+                self.hn.journey_type = jt.value
+                self.hn.token_store = MockStore()
 
-        self.hn.login(self.credentials)
-        self.assertEqual(
-            'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
-            mock_make_request.call_args_list[0][0][0]
-        )
-        self.assertEqual(
-            mock_make_request.call_args_list[0][1]["headers"],
-            {"Accept": "application/json"})
-        submitted_json = mock_make_request.call_args_list[0][1]["json"]
-        self.assertEqual(submitted_json, self.credentials)
-        self.assertEqual(
-            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
-            mock_make_request.call_args_list[1][0][0]
-        )
+                mock_make_request.side_effect = [
+                    # Response from /user/hasloyaltyaccount
+                    MockResponse({"auth_resp": {"message": "OK"}}, 200),
+                    # Response from /WebCustomerLoyalty/services/CustomerLoyalty/signOn
+                    MockResponse({
+                        'CustomerSignOnResult': {
+                            'outcome': 'Success',
+                            'customerNumber': '2601507998647',
+                            'token': '1234'
+                        }
+                    }, 200)
+                ]
+
+                self.hn.login(self.credentials)
+                self.assertEqual(
+                    'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
+                    mock_make_request.call_args_list[0][0][0]
+                )
+                self.assertEqual(
+                    mock_make_request.call_args_list[0][1]["headers"],
+                    {"Accept": "application/json"})
+                submitted_json = mock_make_request.call_args_list[0][1]["json"]
+                self.assertEqual(submitted_json, self.credentials)
+                self.assertEqual(
+                    'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+                    mock_make_request.call_args_list[1][0][0]
+                )
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
-    def test_login_add_journey_loyalty_account_check_not_valid(self, mock_make_request, mock_send_consents):
-        self.hn.scheme_id = 101
-        for i, msg in enumerate(
-            ["Not found",                       # Web account only
-             "User details not authenticated"]  # Bad credentials
-        ):
-            mock_make_request.side_effect = [MockResponse(
-                {"auth_resp": {"message": msg, "status_code": "404"}}, 200
-            )]
-            self.assertRaises(LoginError, self.hn.login, self.credentials)
-            self.assertEqual(
-                'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
-                mock_make_request.call_args_list[i][0][0]
-            )
+    def test_login_add_journey_loyalty_account_check_no_cached_token(self, mock_make_request, mock_send_consents):
+        for jt in (JourneyTypes):
+            if jt != JourneyTypes.JOIN:
+                self.hn.journey_type = jt.value
+                self.hn.scheme_id = 101
+                for i, msg in enumerate(
+                    ["Not found",                       # Web account only
+                     "User details not authenticated"]  # Bad credentials
+                ):
+                    mock_make_request.side_effect = [
+                        MockResponse(
+                            {"auth_resp": {"message": msg, "status_code": "404"}}, 200
+                        )
+                    ]
+                    self.assertRaises(LoginError, self.hn.login, self.credentials)
+                    self.assertEqual(
+                        'https://hn_sso.harveynichols.com/user/hasloyaltyaccount',
+                        mock_make_request.call_args_list[i][0][0]
+                    )
+
+    @mock.patch('app.tasks.resend_consents.send_consents')
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
+    def test_login_add_journey_loyaly_account_check_token_cached(self, mock_make_request, mock_send_consents):
+        for jt in (JourneyTypes):
+            if jt != JourneyTypes.JOIN:
+                self.hn.journey_type = jt.value
+                self.hn.scheme_id = 101
+                self.hn.token_store.set(self.hn.scheme_id, 'a token')
+
+                mock_make_request.side_effect = [
+                    MockResponse({
+                        'CustomerSignOnResult': {
+                            'outcome': 'Success',
+                            'customerNumber': '2601507998647',
+                            'token': '1234'
+                        }
+                    }, 200)
+                ]
+
+                try:
+                    self.hn.login(self.credentials)
+                except LoginError:
+                    self.fail(f'Unexpected LoginError (JourneyType: {jt.value}')
+
+                self.assertEqual(
+                    'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+                    mock_make_request.call_args_list[0][0][0]
+                )
