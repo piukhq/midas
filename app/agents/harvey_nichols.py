@@ -65,7 +65,7 @@ class HarveyNichols(ApiMiner):
         try:
             self.token = self.token_store.get(self.scheme_id)
         except self.token_store.NoSuchToken:
-            if self.journey_type != JourneyTypes.JOIN.value:
+            if self.journey_type == JourneyTypes.LINK.value:
                 self.check_loyalty_account_valid(self.credentials)
                 sign_on_required = True
 
