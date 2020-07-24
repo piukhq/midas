@@ -528,4 +528,4 @@ class Wasabi(Acteol):
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
-    JOIN_WITH_BALANCE = True
+    # 'https://wasabiuat.wasabiworld.co.uk/'
