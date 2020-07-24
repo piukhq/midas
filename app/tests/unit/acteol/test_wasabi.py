@@ -7,7 +7,7 @@ from unittest.mock import patch
 import httpretty
 import pytest
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import END_SITE_DOWN, AgentError, LoginError
+from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
 
 
 class TestWasabi(unittest.TestCase):
@@ -614,7 +614,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
         "app.agents.acteol.Acteol._validate_member_number",
-        side_effect=AgentError(END_SITE_DOWN),
+        side_effect=LoginError(STATUS_LOGIN_FAILED),
     )
     def test_login_fail(self, mock_validate_member_number, mock_authenticate):
         """
