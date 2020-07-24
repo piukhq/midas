@@ -155,12 +155,13 @@ class Acteol(ApiMiner):
             raise AgentError(NO_SUCH_RECORD)
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
-
-        return {
+        balance = {
             "points": points,
             "value": points,
             "value_label": "",
         }
+
+        return balance
 
     @staticmethod
     def parse_transaction(row):
