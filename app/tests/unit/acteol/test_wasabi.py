@@ -3,6 +3,7 @@ import string
 import unittest
 from http import HTTPStatus
 from unittest.mock import patch
+from urllib.parse import urljoin
 
 import httpretty
 import pytest
@@ -30,6 +31,7 @@ class TestWasabi(unittest.TestCase):
                 },
             ]
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
+            cls.wasabi.base_url = "https://wasabiuat.wasabiworld.co.uk/"
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
@@ -206,9 +208,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        )
+        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.OK,
         )
@@ -230,9 +230,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        )
+        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
@@ -248,9 +246,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
-        )
+        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         httpretty.register_uri(
             httpretty.GET,
             api_url,
@@ -273,7 +269,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         expected_ctcid = "54321"
         httpretty.register_uri(
             httpretty.POST,
@@ -304,7 +300,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
         credentials = {
             "first_name": "Sarah",
@@ -326,7 +322,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         ctcid = "54321"
         expected_member_number = "987654321"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         response_data = {
             "Response": True,
             "MemberNumber": expected_member_number,
@@ -352,10 +348,14 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = urljoin(
+            self.wasabi.base_url,
+            (
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+            ),
         )
+
         expected_email = "doesnotexist@bink.com"
         expected_customer_id = 142163
         expected_current_member_number = "1048183413"
@@ -578,7 +578,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         ctcid = "54321"
         email_optin_pref = True
-        api_url = f"{self.wasabi.BASE_API_URL}/CommunicationPreference/Post"
+        api_url = urljoin(self.wasabi.base_url, "api/CommunicationPreference/Post")
         httpretty.register_uri(
             httpretty.POST, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
