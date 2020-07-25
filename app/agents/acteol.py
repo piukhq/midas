@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List
+from urllib.parse import urljoin
 
 import arrow
 from app.agents.base import ApiMiner
@@ -186,7 +187,9 @@ class Acteol(ApiMiner):
         # Add auth
         self.headers = self._make_headers(token=token["token"])
 
-        api_url = f"{self.BASE_API_URL}/Contact/GetContactIDsByEmail?Email={email}"
+        api_url = urljoin(
+            self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
+        )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp.raise_for_status()
         contact_ids_data = resp.json()
@@ -198,7 +201,8 @@ class Acteol(ApiMiner):
         token = self.authenticate()
         # Add auth
         self.headers = self._make_headers(token=token["token"])
-        api_url = f"{self.BASE_API_URL}/Contact/DeleteContact/{ctcid}"
+
+        api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
 
         return resp
@@ -235,9 +239,12 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = (
-            f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = urljoin(
+            self.base_url,
+            (
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+            ),
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
@@ -267,7 +274,7 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        api_url = urljoin(self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
@@ -295,7 +302,7 @@ class Acteol(ApiMiner):
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         :param credentials: dict of user's credentials
         """
-        api_url = f"{self.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.base_url, "api/Contact/PostContact")
         payload = {
             "OriginID": origin_id,
             "SourceID": "BinkPlatform",
@@ -330,7 +337,7 @@ class Acteol(ApiMiner):
 
         :param ctcid: ID returned from Acteol when creating the account
         """
-        api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
@@ -381,7 +388,7 @@ class Acteol(ApiMiner):
             "username": self.auth["username"],
             "password": self.auth["password"],
         }
-        token_url = f"{self.base_url}/token"
+        token_url = urljoin(self.base_url, "token")
         resp = self.make_request(
             token_url, method="post", timeout=self.API_TIMEOUT, data=payload
         )
@@ -425,7 +432,7 @@ class Acteol(ApiMiner):
         Condition: “EmailOptin” = true if Enrol user consent has been marked as true.
         :param email_optin_pref: boolean
         """
-        api_url = f"{self.BASE_API_URL}/CommunicationPreference/Post"
+        api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
         payload = {
             "CustomerID": ctcid,
             "EmailOptin": email_optin_pref,
@@ -471,7 +478,7 @@ class Acteol(ApiMiner):
         # Add auth for subsequent API calls
         self.headers = self._make_headers(token=token["token"])
 
-        api_url = f"{self.BASE_API_URL}/Contact/ValidateContactMemberNumber"
+        api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
         email = credentials["email"]
         payload = {
@@ -483,9 +490,7 @@ class Acteol(ApiMiner):
                 api_url, method="get", timeout=self.API_TIMEOUT, json=payload
             )
         except AgentError as ae:
-            logger.error(
-                f"Error while validating card_number/MemberNumber: {str(ae)}"
-            )
+            logger.error(f"Error while validating card_number/MemberNumber: {str(ae)}")
             raise LoginError(STATUS_LOGIN_FAILED) from ae
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
@@ -522,10 +527,8 @@ class Acteol(ApiMiner):
 
 
 class Wasabi(Acteol):
-    BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
-    # 'https://wasabiuat.wasabiworld.co.uk/'
