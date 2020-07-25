@@ -156,10 +156,18 @@ class Acteol(ApiMiner):
             raise AgentError(NO_SUCH_RECORD)
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
+        # CtcID aka Acteol's CustomerID, in Bink it's merchant_identifier
+        ctcid = self.credentials["merchant_identifier"]
+        vouchers: List = self._get_vouchers(ctcid=ctcid)
+        # Filter for BINK only vouchers
+        bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
+        #
+
         balance = {
             "points": points,
             "value": points,
             "value_label": "",
+            "vouchers": vouchers,
         }
 
         return balance
@@ -274,7 +282,9 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = urljoin(self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
+        api_url = urljoin(
+            self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
+        )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
@@ -512,18 +522,60 @@ class Acteol(ApiMiner):
 
         return
 
-    # def _make_balance_response(
-    #         self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: t.List[dict]
-    # ) -> dict:
-    #     return {
-    #         "points": value,
-    #         "value": value,
-    #         "value_label": "",
-    #         "vouchers": [
-    #             {"type": voucher_type.value, "value": value, "target_value": target_value},
-    #             *[self._make_issued_voucher(voucher_type, voucher, target_value) for voucher in issued_vouchers],
-    #         ],
-    #     }
+    def _get_vouchers(self, ctcid: str) -> List:
+        """
+        Get all vouchers for a CustomerID (aka CtcID) from Acteol
+        :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
+        :return: list of vouchers
+        """
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth
+        self.headers = self._make_headers(token=token["token"])
+
+        api_url = urljoin(
+            self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
+        )
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        response_json = resp.json()
+        vouchers: List = response_json["voucher"]
+
+        vouchers = []
+        # vouchers = [
+        #     {"type": voucher_type.value, "value": value, "target_value": target_value},
+        #     *[
+        #         self._make_issued_voucher(voucher_type, voucher, target_value)
+        #         for voucher in issued_vouchers
+        #     ],
+        # ]
+
+        return vouchers
+
+    def _filter_bink_vouchers(self, vouchers: List[Dict]) -> List[Dict]:
+        """
+        Filter for BINK only vouchers
+        :param vouchers: list of voucher dicts from Acteol
+        :return: only those voucher dicts whose CategoryName == "BINK"
+        """
+        bink_only_vouchers = [voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"]
+
+        return bink_only_vouchers
+
+    def _map_acteol_voucher_to_bink_struct(self, voucher: Dict) -> Dict:
+        """
+        Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state:
+
+        - Redeemed - if the agent returned a redeem date on the voucher then it's a redeemed voucher/there is a
+        boolean that will be true if the voucher has a redeemed date
+        - Issued - if the start date is set and the expiry date hasn't passed yet then it's issued,
+        - Expired - otherwise it's expired.
+        - Cancelled - there is a disabled flag, that if true means the voucher is cancelled and should not
+        be displayed, but should be saved for the the user
+        - In Progress
+          Acteol only issue vouchers once the stamp card is complete.
+        """
+
+        return voucher
 
 
 class Wasabi(Acteol):
