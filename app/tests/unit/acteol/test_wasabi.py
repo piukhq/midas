@@ -1,11 +1,12 @@
 import json
 import string
 import unittest
+from decimal import Decimal
 from http import HTTPStatus
 from unittest.mock import patch
 from urllib.parse import urljoin
-import arrow
 
+import arrow
 import httpretty
 import pytest
 from app.agents.acteol import Wasabi
@@ -443,11 +444,12 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert not customer_fields_are_present
 
-    # TODO: mock _get_vouchers()
-    @unittest.skip("skipped")
     @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._get_vouchers")
     @patch("app.agents.acteol.Acteol._get_customer_details")
-    def test_balance(self, mock_get_customer_details, mock_authenticate):
+    def test_balance(
+        self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
+    ):
         """
         Check that the call to balance() returns an expected dict
         """
@@ -457,10 +459,18 @@ class TestWasabi(unittest.TestCase):
 
         mock_points = 7
         expected_points = 7
+        # Assume we only have a single in-progress voucher
+        mock_get_vouchers.return_value = []
         expected_balance = {
-            "points": expected_points,
-            "value": expected_points,
+            "points": Decimal(expected_points),
+            "value": Decimal(expected_points),
             "value_label": "",
+            "vouchers": [
+                {
+                    "state": "inprogress",
+                    "earn": {"target_value": expected_points, "value": Decimal(expected_points)},
+                }
+            ],
         }
         customer_details = {
             "Firstname": "David",
@@ -866,14 +876,8 @@ class TestWasabi(unittest.TestCase):
             "Disabled": False,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
-            "WeekDays": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
-            "DayHours": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
+            "WeekDays": [],
+            "DayHours": [],
             "RandomID": "sample string 13",
             "VoucherCode": "sample string 14",
             "SmallImage": "sample string 15",
@@ -934,14 +938,8 @@ class TestWasabi(unittest.TestCase):
             "Disabled": True,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
-            "WeekDays": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
-            "DayHours": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
+            "WeekDays": [],
+            "DayHours": [],
             "RandomID": "sample string 13",
             "VoucherCode": "sample string 14",
             "SmallImage": "sample string 15",
@@ -1011,14 +1009,8 @@ class TestWasabi(unittest.TestCase):
             "Disabled": False,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
-            "WeekDays": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
-            "DayHours": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
+            "WeekDays": [],
+            "DayHours": [],
             "RandomID": "sample string 13",
             "VoucherCode": "VOUCH123CODE456",
             "SmallImage": "sample string 15",
@@ -1087,14 +1079,8 @@ class TestWasabi(unittest.TestCase):
             "Disabled": False,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
-            "WeekDays": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
-            "DayHours": [
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-            ],
+            "WeekDays": [],
+            "DayHours": [],
             "RandomID": "sample string 13",
             "VoucherCode": "VOUCH123CODE456",
             "SmallImage": "sample string 15",
@@ -1130,3 +1116,25 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert mapped_voucher == expected_mapped_voucher
+
+    def test_make_in_progress_voucher(self):
+        """
+            Test making an in-progress voucher dict
+            """
+        # GIVEN
+        points = Decimal(123)
+        expected_in_progress_voucher = {
+            "state": "inprogress",
+            "earn": {
+                "target_value": self.wasabi.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": points,
+            },
+        }
+
+        # WHEN
+        in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points)
+
+        # THEN
+        assert in_progress_voucher == expected_in_progress_voucher
+
+        return in_progress_voucher

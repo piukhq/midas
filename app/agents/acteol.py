@@ -161,17 +161,21 @@ class Acteol(ApiMiner):
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
-        mapped_vouchers = []
+        bink_mapped_vouchers = []
         for bink_only_voucher in bink_only_vouchers:
-            mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
+            bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
             )
+            bink_mapped_vouchers.append(bink_mapped_voucher)
+        # Create an 'in-progress' voucher
+        in_progress_voucher = self._make_in_progress_voucher(points=points)
+        bink_mapped_vouchers.append(in_progress_voucher)
 
         balance = {
             "points": points,
             "value": points,
             "value_label": "",
-            "vouchers": vouchers,
+            "vouchers": bink_mapped_vouchers,
         }
 
         return balance
@@ -580,6 +584,9 @@ class Acteol(ApiMiner):
         be displayed, but should be saved for the the user
         - In Progress
           Acteol only issue vouchers once the stamp card is complete.
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of voucher data mapped for Bink
         """
 
         bink_voucher = {}
@@ -604,21 +611,20 @@ class Acteol(ApiMiner):
             bink_voucher = self._make_expired_voucher(voucher=voucher)
 
         if not bink_voucher:
-            pass
-            # Log it
+            logger.warning(
+                f'Acteol voucher did not match any of the Bink structure criteria, voucher id: {voucher["VoucherID"]}'
+            )
 
         return bink_voucher
 
     def _make_redeemed_voucher(self, voucher: Dict) -> Dict:
         """
-        Make a redeemed voucher dict:
-        vouchers.state = issued
-        vouchers.earn.target_value =  Use hardcoded target_value from Django
-        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
-        vouchers.date_issued= GetAllByCustomerID.voucher.StartDate
-        vouchers.date_redeemed = GetAllByCustomerID.voucher.RedemptionDate
-        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        Make a redeemed voucher dict
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of redeemed voucher data mapped for Bink
         """
+
         redeemed_voucher = {
             "state": "issued",
             "earn": {
@@ -634,16 +640,12 @@ class Acteol(ApiMiner):
 
     def _make_cancelled_voucher(self, voucher: Dict) -> Dict:
         """
-        Make a cancelled voucher dict:
-        These should be visible in Django but not in app
-        Bink API response has a voucher with voucher.state=cancelled for every voucher where
-        Acteol API response Disabled = true
-        vouchers.state = cancelled
-        vouchers.earn.target_value = Use hardcoded target_value from Django
-        vouchers.earn.value = Assumption that voucher met target value (use hardcoded target_value from Django)
-        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
-        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        Make a cancelled voucher dict
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of cancelled voucher data mapped for Bink
         """
+
         cancelled_voucher = {
             "state": "cancelled",
             "earn": {
@@ -658,15 +660,12 @@ class Acteol(ApiMiner):
 
     def _make_issued_voucher(self, voucher: Dict) -> Dict:
         """
-        Make an issued voucher dict:
-        Bink API response has a voucher with voucher.state=issued for every voucher in the Acteol API response with
-        ExpiryDate > CurrentDate && Redeemed = false &&  Disabled = false
-        vouchers.earn.target_value =  Use hardcoded target_value from Django
-        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
-        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
-        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
-        voucher.code = GetAllByCustomerID.voucher.VoucherCode
+        Make an issued voucher dict
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of issued voucher data mapped for Bink
         """
+
         issued_voucher = {
             "state": "issued",
             "code": voucher["VoucherCode"],
@@ -682,13 +681,12 @@ class Acteol(ApiMiner):
 
     def _make_expired_voucher(self, voucher: Dict) -> Dict:
         """
-        Make an expired voucher dict:
-        state = "expired"
-        vouchers.earn.target_value = Use hardcoded target_value from Django
-        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
-        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
-        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        Make an expired voucher dict
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of expired voucher data mapped for Bink
         """
+
         expired_voucher = {
             "state": "expired",
             "earn": {
@@ -700,6 +698,24 @@ class Acteol(ApiMiner):
         }
 
         return expired_voucher
+
+    def _make_in_progress_voucher(self, points: Decimal) -> Dict:
+        """
+        Make an in-progress voucher dict
+
+        :param points: LoyaltyPointsBalance field in the Acteol voucher data
+        :return: dict of in-progress voucher data mapped for Bink
+        """
+        in_progress_voucher = {
+            "state": "inprogress",
+            "earn": {
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": points,
+            },
+        }
+
+        return in_progress_voucher
+
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
