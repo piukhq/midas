@@ -37,7 +37,8 @@ class HarveyNichols(ApiMiner):
         headers = {"Accept": "application/json"}
         response = self.make_request(
             self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)
-        if response.json()["auth_resp"]["message"] != "OK":
+        message = response.json()["auth_resp"]["message"]
+        if message != 'OK':
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
@@ -45,7 +46,6 @@ class HarveyNichols(ApiMiner):
         self.identifier_type = "card_number"
 
         if self.journey_type == JourneyTypes.LINK.value:
-            self.check_loyalty_account_valid(credentials)
             self.errors = {
                 STATUS_LOGIN_FAILED: ["NoSuchRecord", "Invalid", "AuthFailed"],
                 UNKNOWN: ["Fail"],
@@ -57,11 +57,24 @@ class HarveyNichols(ApiMiner):
                 UNKNOWN: ["Fail"],
             }
 
-        # get token from redis if we have one, otherwise login to get one
+        # For non-JOIN journeys we should check to see if we should login by
+        # checking the web only endpoint (MER-317) and stop if it's a Web-only
+        # account. If there's a token in redis, we have previously logged in and
+        # so should be able to login again.
+        sign_on_required = False
+        try:
+            self.token = self.token_store.get(self.scheme_id)
+        except self.token_store.NoSuchToken:
+            if self.journey_type == JourneyTypes.LINK.value:
+                self.check_loyalty_account_valid(self.credentials)
+                sign_on_required = True
+
         try:
             self.customer_number = credentials[self.identifier_type]
-            self.token = self.token_store.get(self.scheme_id)
-        except (KeyError, self.token_store.NoSuchToken):
+        except KeyError:
+            sign_on_required = True
+
+        if sign_on_required:
             self._login(credentials)
 
     def call_balance_url(self):
