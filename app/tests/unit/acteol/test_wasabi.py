@@ -4,6 +4,7 @@ import unittest
 from http import HTTPStatus
 from unittest.mock import patch
 from urllib.parse import urljoin
+import arrow
 
 import httpretty
 import pytest
@@ -841,3 +842,291 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert len(bink_only_vouchers) == 1
+
+    def test_map_redeemed_voucher_to_bink_struct(self):
+        # GIVEN
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+            "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": True,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "DayHours": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "RandomID": "sample string 13",
+            "VoucherCode": "sample string 14",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "state": "issued",
+            "earn": {
+                "target_value": self.wasabi.POINTS_TARGET_VALUE,
+                "value": self.wasabi.POINTS_TARGET_VALUE,
+            },
+            "date_issued": 1595432679,  # voucher StartDate as timestamp
+            "date_redeemed": 1595432679,  # voucher RedemptionDate as timestamp
+            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_cancelled_voucher_to_bink_struct(self):
+        # GIVEN
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+            "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "",
+            "Location": "sample string 9",
+            "RedemptionDate": None,
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": True,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "DayHours": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "RandomID": "sample string 13",
+            "VoucherCode": "sample string 14",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "state": "cancelled",
+            "earn": {
+                "target_value": self.wasabi.POINTS_TARGET_VALUE,
+                "value": self.wasabi.POINTS_TARGET_VALUE,
+            },
+            "date_issued": 1595432679,  # voucher StartDate as timestamp
+            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_issued_voucher_to_bink_struct(self):
+        """
+        # Test for issued voucher. Conditions are:
+        # vouchers.state = GetAllByCustomerID.voucher.ExpiryDate >= CurrentDate
+        # && GetAllByCustomerID.voucher.Redeemed = false
+        # && GetAllByCustomerID.voucher.Disabled = false
+        """
+        # GIVEN
+        now = arrow.now()
+        one_month_from_now = arrow.now().shift(months=1)
+        one_month_from_now_timestamp = one_month_from_now.timestamp
+
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": str(now),
+            "ExpiryDate": str(one_month_from_now),
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "DayHours": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "RandomID": "sample string 13",
+            "VoucherCode": "VOUCH123CODE456",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "state": "issued",
+            "code": voucher["VoucherCode"],
+            "earn": {
+                "target_value": self.wasabi.POINTS_TARGET_VALUE,
+                "value": self.wasabi.POINTS_TARGET_VALUE,
+            },
+            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "expiry_date": one_month_from_now_timestamp,
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_expired_voucher_to_bink_struct(self):
+        """
+        # Test for expired voucher. Conditions are:
+        # vouchers.state = GetAllByCustomerID.voucher.ExpiryDate < CurrentDate
+        """
+        # GIVEN
+        now = arrow.now()
+        one_month_ago = arrow.now().shift(months=-1)
+        one_month_ago_timestamp = one_month_ago.timestamp
+
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": str(now),
+            "ExpiryDate": str(one_month_ago),
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "DayHours": [
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+            ],
+            "RandomID": "sample string 13",
+            "VoucherCode": "VOUCH123CODE456",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "state": "expired",
+            "earn": {
+                "target_value": self.wasabi.POINTS_TARGET_VALUE,
+                "value": self.wasabi.POINTS_TARGET_VALUE,
+            },
+            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "expiry_date": one_month_ago_timestamp,
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher

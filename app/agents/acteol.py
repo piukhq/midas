@@ -161,7 +161,11 @@ class Acteol(ApiMiner):
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
-        #
+        mapped_vouchers = []
+        for bink_only_voucher in bink_only_vouchers:
+            mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
+                voucher=bink_only_voucher
+            )
 
         balance = {
             "points": points,
@@ -557,13 +561,16 @@ class Acteol(ApiMiner):
         :param vouchers: list of voucher dicts from Acteol
         :return: only those voucher dicts whose CategoryName == "BINK"
         """
-        bink_only_vouchers = [voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"]
+        bink_only_vouchers = [
+            voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"
+        ]
 
         return bink_only_vouchers
 
     def _map_acteol_voucher_to_bink_struct(self, voucher: Dict) -> Dict:
         """
-        Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state:
+        Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state.
+        These are mutually exclusive states, the voucher should never be in more than one at any time:
 
         - Redeemed - if the agent returned a redeem date on the voucher then it's a redeemed voucher/there is a
         boolean that will be true if the voucher has a redeemed date
@@ -575,8 +582,124 @@ class Acteol(ApiMiner):
           Acteol only issue vouchers once the stamp card is complete.
         """
 
-        return voucher
+        bink_voucher = {}
+        current_datetime = arrow.now()
 
+        # Is it a redeemed voucher?
+        if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
+            bink_voucher = self._make_redeemed_voucher(voucher=voucher)
+        # Is it a cancelled voucher?
+        elif voucher.get("Disabled"):
+            bink_voucher = self._make_cancelled_voucher(voucher=voucher)
+        # Is it an issued voucher?
+        elif (
+            voucher.get("StartDate")
+            and (arrow.get(voucher.get("ExpiryDate")) >= current_datetime)
+            and not voucher.get("Redeemed")
+            and not voucher.get("Disabled")
+        ):
+            bink_voucher = self._make_issued_voucher(voucher=voucher)
+        # Is it expired?
+        elif arrow.get(voucher.get("ExpiryDate")) < current_datetime:
+            bink_voucher = self._make_expired_voucher(voucher=voucher)
+
+        if not bink_voucher:
+            pass
+            # Log it
+
+        return bink_voucher
+
+    def _make_redeemed_voucher(self, voucher: Dict) -> Dict:
+        """
+        Make a redeemed voucher dict:
+        vouchers.state = issued
+        vouchers.earn.target_value =  Use hardcoded target_value from Django
+        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
+        vouchers.date_issued= GetAllByCustomerID.voucher.StartDate
+        vouchers.date_redeemed = GetAllByCustomerID.voucher.RedemptionDate
+        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        """
+        redeemed_voucher = {
+            "state": "issued",
+            "earn": {
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            },
+            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+            "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
+            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+        }
+
+        return redeemed_voucher
+
+    def _make_cancelled_voucher(self, voucher: Dict) -> Dict:
+        """
+        Make a cancelled voucher dict:
+        These should be visible in Django but not in app
+        Bink API response has a voucher with voucher.state=cancelled for every voucher where
+        Acteol API response Disabled = true
+        vouchers.state = cancelled
+        vouchers.earn.target_value = Use hardcoded target_value from Django
+        vouchers.earn.value = Assumption that voucher met target value (use hardcoded target_value from Django)
+        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
+        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        """
+        cancelled_voucher = {
+            "state": "cancelled",
+            "earn": {
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            },
+            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+        }
+
+        return cancelled_voucher
+
+    def _make_issued_voucher(self, voucher: Dict) -> Dict:
+        """
+        Make an issued voucher dict:
+        Bink API response has a voucher with voucher.state=issued for every voucher in the Acteol API response with
+        ExpiryDate > CurrentDate && Redeemed = false &&  Disabled = false
+        vouchers.earn.target_value =  Use hardcoded target_value from Django
+        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
+        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
+        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        voucher.code = GetAllByCustomerID.voucher.VoucherCode
+        """
+        issued_voucher = {
+            "state": "issued",
+            "code": voucher["VoucherCode"],
+            "earn": {
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            },
+            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+        }
+
+        return issued_voucher
+
+    def _make_expired_voucher(self, voucher: Dict) -> Dict:
+        """
+        Make an expired voucher dict:
+        state = "expired"
+        vouchers.earn.target_value = Use hardcoded target_value from Django
+        vouchers.earn.value = Assumption that voucher met target value ( use hardcoded target_value from Django)
+        vouchers.date_issued = GetAllByCustomerID.voucher.StartDate
+        vouchers.expiry_date = GetAllByCustomerID.voucher.ExpiryDate
+        """
+        expired_voucher = {
+            "state": "expired",
+            "earn": {
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            },
+            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+        }
+
+        return expired_voucher
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
