@@ -77,6 +77,19 @@ class TestWasabi:
         # Clean up after ourselves
         clean_up_user(wasabi=wasabi, email=email)
 
+    def test_login(self, wasabi, clean_up_user):
+        # GIVEN
+        email = "doesnotexist@bink.com"
+        clean_up_user(wasabi=wasabi, email=email)
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        wasabi.login(credentials=credentials)
+        clean_up_user(wasabi=wasabi, email=email)
+
 
 if __name__ == "__main__":
     pytest.main()

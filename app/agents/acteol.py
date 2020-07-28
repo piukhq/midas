@@ -9,7 +9,10 @@ from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     JOIN_ERROR,
     NO_SUCH_RECORD,
+    STATUS_LOGIN_FAILED,
+    VALIDATION,
     AgentError,
+    LoginError,
     RegistrationError,
 )
 from app.configuration import Configuration
@@ -203,6 +206,28 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
+        # If we are on an add journey, then we will need to verify the supplied email against the card number
+        if credentials["card_number"] and not self.user_info.get("from_register"):
+            # Get a valid API token
+            token = self.authenticate()
+            # Add auth for subsequent API calls
+            self.headers = self._make_headers(token=token["token"])
+            # Don't go any further unless the account is valid
+            try:
+                self._validate_member_number(credentials)
+            except (AgentError, LoginError) as e:
+                logger.error(
+                    f"Error while validating card_number/MemberNumber: {str(e)}"
+                )
+                raise LoginError(STATUS_LOGIN_FAILED) from e
+            except Exception as e:  # Catch-all: we can't continue if there's any exception
+                logger.exception(str(e))
+                raise LoginError(STATUS_LOGIN_FAILED) from e
+            else:
+                self.identifier_type = (
+                    "card_number"  # Not sure this is needed but the base class has one
+                )
+
         # Ensure credentials are available via the instance
         self.credentials = credentials
 
@@ -324,7 +349,7 @@ class Acteol(ApiMiner):
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        member_number = resp.json().get("MemberNumber")
+        member_number = resp.json()["MemberNumber"]
 
         return member_number
 
@@ -439,6 +464,46 @@ class Acteol(ApiMiner):
 
         return False
 
+    def _validate_member_number(self, credentials):
+        """
+        Checks with Acteol to verify whether a loyalty account exists for this email and card number
+
+        Invalid Card Number
+            "IsValid": false AND "ValidationMsg": "Invalid Member Number" OR "Invalid Email"
+            Action - membership_card Status=? Add data rejected by merchant, State=Failed and Reason Code=X102
+            (for the front-end to handle) i.e. raise a VALIDATION exception
+
+        Credentials do not match
+            "IsValid": false AND "ValidationMsg": "Email and Member number mismatch"
+            Action - membership_card Status=403 Invalid credentials, State=Failed and Reason Code=X303
+            (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
+        """
+        api_url = f"{self.BASE_API_URL}/Contact/ValidateContactMemberNumber"
+        member_number = credentials["card_number"]
+        email = credentials["email"]
+        payload = {
+            "MemberNumber": member_number,
+            "Email": email,
+        }
+        resp = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+        )
+
+        # It's possible for validation to fail but still return a 200 OK response status
+        resp_json = resp.json()
+        validation_error_types = {
+            "Invalid Email": VALIDATION,
+            "Invalid Member Number": VALIDATION,
+            "Email and Member number mismatch": STATUS_LOGIN_FAILED,
+        }
+
+        validation_msg = resp_json.get("ValidationMsg")
+        error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
+        logger.error(
+            f"Failed login validation for member number {member_number}: {validation_msg}"
+        )
+        raise LoginError(error_type)
+
 
 class Wasabi(Acteol):
     BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
@@ -447,3 +512,4 @@ class Wasabi(Acteol):
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
+    JOIN_WITH_BALANCE = True
