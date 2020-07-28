@@ -188,7 +188,9 @@ class Acteol(ApiMiner):
             )
             bink_mapped_vouchers.append(bink_mapped_voucher)
         # Create an 'in-progress' voucher
-        in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
+        in_progress_voucher = self._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
         bink_mapped_vouchers.append(in_progress_voucher)
 
         balance = {
@@ -605,10 +607,14 @@ class Acteol(ApiMiner):
 
         # Is it a redeemed voucher?
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
-            bink_voucher = self._make_redeemed_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
+            bink_voucher = self._make_redeemed_voucher(
+                voucher=voucher, voucher_type=VoucherType.STAMPS
+            )
         # Is it a cancelled voucher?
         elif voucher.get("Disabled"):
-            bink_voucher = self._make_cancelled_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
+            bink_voucher = self._make_cancelled_voucher(
+                voucher=voucher, voucher_type=VoucherType.STAMPS
+            )
         # Is it an issued voucher?
         elif (
             voucher.get("StartDate")
@@ -616,10 +622,14 @@ class Acteol(ApiMiner):
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
         ):
-            bink_voucher = self._make_issued_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
+            bink_voucher = self._make_issued_voucher(
+                voucher=voucher, voucher_type=VoucherType.STAMPS
+            )
         # Is it expired?
         elif arrow.get(voucher.get("ExpiryDate")) < current_datetime:
-            bink_voucher = self._make_expired_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
+            bink_voucher = self._make_expired_voucher(
+                voucher=voucher, voucher_type=VoucherType.STAMPS
+            )
 
         if not bink_voucher:
             logger.warning(
