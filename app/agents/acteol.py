@@ -1,3 +1,4 @@
+import enum
 import json
 from decimal import Decimal
 from http import HTTPStatus
@@ -23,6 +24,13 @@ from settings import REDIS_URL, logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
+
+
+@enum.unique
+class VoucherType(enum.Enum):
+    JOIN = 0
+    ACCUMULATOR = 1
+    STAMPS = 2
 
 
 class Acteol(ApiMiner):
@@ -132,7 +140,17 @@ class Acteol(ApiMiner):
 
     def balance(self) -> Dict:
         """
-        Get the balance from the Acteol API, return the expected format
+        Get the balance from the Acteol API, return the expected format. For the vouchers element, these fields are
+        expected by hermes:
+        * issue_date: int, optional
+        * redeem_date: int, optional
+        * expiry_date: int, optional
+        * code: str, optional
+        * type: int, required
+        * value: Decimal, optional
+        * target_value: Decimal, optional
+
+        :return: balance data including vouchers
         """
         # Get a valid API token
         token = self.authenticate()
@@ -158,6 +176,8 @@ class Acteol(ApiMiner):
         points = Decimal(customer_details["LoyaltyPointsBalance"])
         # CtcID aka Acteol's CustomerID, in Bink it's merchant_identifier
         ctcid = self.credentials["merchant_identifier"]
+
+        # Vouchers.
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
@@ -168,7 +188,7 @@ class Acteol(ApiMiner):
             )
             bink_mapped_vouchers.append(bink_mapped_voucher)
         # Create an 'in-progress' voucher
-        in_progress_voucher = self._make_in_progress_voucher(points=points)
+        in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
         bink_mapped_vouchers.append(in_progress_voucher)
 
         balance = {
@@ -548,15 +568,6 @@ class Acteol(ApiMiner):
         response_json = resp.json()
         vouchers: List = response_json["voucher"]
 
-        vouchers = []
-        # vouchers = [
-        #     {"type": voucher_type.value, "value": value, "target_value": target_value},
-        #     *[
-        #         self._make_issued_voucher(voucher_type, voucher, target_value)
-        #         for voucher in issued_vouchers
-        #     ],
-        # ]
-
         return vouchers
 
     def _filter_bink_vouchers(self, vouchers: List[Dict]) -> List[Dict]:
@@ -594,10 +605,10 @@ class Acteol(ApiMiner):
 
         # Is it a redeemed voucher?
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
-            bink_voucher = self._make_redeemed_voucher(voucher=voucher)
+            bink_voucher = self._make_redeemed_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
         # Is it a cancelled voucher?
         elif voucher.get("Disabled"):
-            bink_voucher = self._make_cancelled_voucher(voucher=voucher)
+            bink_voucher = self._make_cancelled_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
         # Is it an issued voucher?
         elif (
             voucher.get("StartDate")
@@ -605,10 +616,10 @@ class Acteol(ApiMiner):
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
         ):
-            bink_voucher = self._make_issued_voucher(voucher=voucher)
+            bink_voucher = self._make_issued_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
         # Is it expired?
         elif arrow.get(voucher.get("ExpiryDate")) < current_datetime:
-            bink_voucher = self._make_expired_voucher(voucher=voucher)
+            bink_voucher = self._make_expired_voucher(voucher=voucher, voucher_type=VoucherType.STAMPS)
 
         if not bink_voucher:
             logger.warning(
@@ -617,7 +628,7 @@ class Acteol(ApiMiner):
 
         return bink_voucher
 
-    def _make_redeemed_voucher(self, voucher: Dict) -> Dict:
+    def _make_redeemed_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
         """
         Make a redeemed voucher dict
 
@@ -626,11 +637,9 @@ class Acteol(ApiMiner):
         """
 
         redeemed_voucher = {
-            "state": "issued",
-            "earn": {
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            },
+            "type": voucher_type.value,
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
             "date_issued": arrow.get(voucher["StartDate"]).timestamp,
             "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
             "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
@@ -638,7 +647,7 @@ class Acteol(ApiMiner):
 
         return redeemed_voucher
 
-    def _make_cancelled_voucher(self, voucher: Dict) -> Dict:
+    def _make_cancelled_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
         """
         Make a cancelled voucher dict
 
@@ -647,18 +656,16 @@ class Acteol(ApiMiner):
         """
 
         cancelled_voucher = {
-            "state": "cancelled",
-            "earn": {
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            },
+            "type": voucher_type.value,
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
             "date_issued": arrow.get(voucher["StartDate"]).timestamp,
             "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
         }
 
         return cancelled_voucher
 
-    def _make_issued_voucher(self, voucher: Dict) -> Dict:
+    def _make_issued_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
         """
         Make an issued voucher dict
 
@@ -667,19 +674,17 @@ class Acteol(ApiMiner):
         """
 
         issued_voucher = {
-            "state": "issued",
+            "type": voucher_type.value,
             "code": voucher["VoucherCode"],
-            "earn": {
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            },
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
             "date_issued": arrow.get(voucher["StartDate"]).timestamp,
             "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
         }
 
         return issued_voucher
 
-    def _make_expired_voucher(self, voucher: Dict) -> Dict:
+    def _make_expired_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
         """
         Make an expired voucher dict
 
@@ -688,18 +693,16 @@ class Acteol(ApiMiner):
         """
 
         expired_voucher = {
-            "state": "expired",
-            "earn": {
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            },
+            "type": voucher_type.value,
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
             "date_issued": arrow.get(voucher["StartDate"]).timestamp,
             "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
         }
 
         return expired_voucher
 
-    def _make_in_progress_voucher(self, points: Decimal) -> Dict:
+    def _make_in_progress_voucher(self, points: Decimal, voucher_type: enum) -> Dict:
         """
         Make an in-progress voucher dict
 
@@ -707,11 +710,9 @@ class Acteol(ApiMiner):
         :return: dict of in-progress voucher data mapped for Bink
         """
         in_progress_voucher = {
-            "state": "inprogress",
-            "earn": {
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": points,
-            },
+            "type": voucher_type.value,
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": points,
         }
 
         return in_progress_voucher

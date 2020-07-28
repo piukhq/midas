@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
-from app.agents.acteol import Wasabi
+from app.agents.acteol import VoucherType, Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
 
 
@@ -467,8 +467,9 @@ class TestWasabi(unittest.TestCase):
             "value_label": "",
             "vouchers": [
                 {
-                    "state": "inprogress",
-                    "earn": {"target_value": expected_points, "value": Decimal(expected_points)},
+                    "type": VoucherType.STAMPS.value,
+                    "target_value": expected_points,
+                    "value": Decimal(expected_points),
                 }
             ],
         }
@@ -899,11 +900,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
-            "state": "issued",
-            "earn": {
-                "target_value": self.wasabi.POINTS_TARGET_VALUE,
-                "value": self.wasabi.POINTS_TARGET_VALUE,
-            },
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
             "date_issued": 1595432679,  # voucher StartDate as timestamp
             "date_redeemed": 1595432679,  # voucher RedemptionDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
@@ -961,11 +960,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
-            "state": "cancelled",
-            "earn": {
-                "target_value": self.wasabi.POINTS_TARGET_VALUE,
-                "value": self.wasabi.POINTS_TARGET_VALUE,
-            },
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
             "date_issued": 1595432679,  # voucher StartDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
@@ -1032,12 +1029,10 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
-            "state": "issued",
+            "type": VoucherType.STAMPS.value,
             "code": voucher["VoucherCode"],
-            "earn": {
-                "target_value": self.wasabi.POINTS_TARGET_VALUE,
-                "value": self.wasabi.POINTS_TARGET_VALUE,
-            },
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
             "date_issued": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_from_now_timestamp,
         }
@@ -1102,11 +1097,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
-            "state": "expired",
-            "earn": {
-                "target_value": self.wasabi.POINTS_TARGET_VALUE,
-                "value": self.wasabi.POINTS_TARGET_VALUE,
-            },
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
             "date_issued": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_ago_timestamp,
         }
@@ -1124,15 +1117,15 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         points = Decimal(123)
         expected_in_progress_voucher = {
-            "state": "inprogress",
-            "earn": {
-                "target_value": self.wasabi.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": points,
-            },
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": points,
         }
 
         # WHEN
-        in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points)
+        in_progress_voucher = self.wasabi._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
 
         # THEN
         assert in_progress_voucher == expected_in_progress_voucher
