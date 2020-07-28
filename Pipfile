@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+name = "bypi"
+url = "https://269fdc63-af3d-4eca-8101-8bddc22d6f14:b694b5b1-f97e-49e4-959e-f3c202e3ab91@pypi.tools.bink.sh/simple"
+verify_ssl = true
+
 [packages]
 "aniso8601" = "*"
 apipkg = "*"
@@ -32,7 +37,6 @@ pycryptodome = "*"
 python-dateutil = "*"
 pytz = "*"
 redis = "*"
-requests = "*"
 requests-futures = "*"
 robobrowser = "*"
 selenium = "*"
@@ -51,7 +55,6 @@ pytest-xdist = "*"
 "psycopg2-binary" = "*"
 certifi = "*"
 celery = "*"
-gaia = {git = "ssh://git@git.bink.com/Olympus/gaia.git"}
 Flask = "*"
 Flask-Redis = "*"
 Flask-RESTful = "*"
@@ -65,9 +68,11 @@ Werkzeug = "==0.16.0"
 SQLAlchemy = "*"
 tenacity = "*"
 sentry-sdk = "*"
+requests = "*"
+gaia = "*"
 
 [dev-packages]
 coverage = "*"
 flake8 = "*"
-black = "==19.3b0"
 pytest-cov = "*"
+black = "==19.10b0"
