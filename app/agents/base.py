@@ -935,6 +935,8 @@ class MockedMiner(BaseMiner):
 
         if email == 'fail@unknown.com':
             raise RegistrationError(UNKNOWN)
+        elif email == 'slowjoin@testbink.com':
+            time.sleep(30)
 
         title = data.get("title").capitalize()
         if self.titles and title not in self.titles:
