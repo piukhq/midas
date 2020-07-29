@@ -1,27 +1,11 @@
-FROM python:3.7-alpine
+FROM binkhq/python:3.7
 
 WORKDIR /app
 ADD . .
 
-RUN apk add --no-cache --virtual build \
-      build-base \
-      libxslt-dev \
-      libc-dev \
-      openssh \
-      git && \
-    apk add --no-cache \
-      ca-certificates \
-      libxslt \
-      libc-dev \
-      binutils \
-      postgresql-dev && \
-    mkdir -p /root/.ssh && mv /app/deploy_key /root/.ssh/id_rsa && \
-    chmod 0600 /root/.ssh/id_rsa && \
-    ssh-keyscan git.bink.com > /root/.ssh/known_hosts && \
-    pip install pipenv gunicorn && \
+RUN pip install --no-cache-dir pipenv==2018.11.26 gunicorn && \
     pipenv install --system --deploy --ignore-pipfile && \
-    pip install pytest pytest-xdist && \
-    apk del --no-cache build && \
-    rm -rf /tmp/* /root/.ssh
+    pip uninstall -y pipenv
 
-CMD ["/usr/local/bin/gunicorn", "-c", "gunicorn.py", "wsgi:app"]
+CMD [ "gunicorn", "--workers=2", "--threads=2", "--error-logfile=-", \
+                  "--access-logfile=-", "--bind=0.0.0.0:9000", "wsgi:app" ]
