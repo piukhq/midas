@@ -203,17 +203,30 @@ class Acteol(ApiMiner):
         return balance
 
     @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(transaction):
         """
         Required to be implemented by the base class
         """
-        return row
+        return transaction
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> List:
         """
-        The resources endpoints/methods expect some implementation of scrape_transactions()
+        We're not scraping, we're calling the Acteol API
         """
-        return []
+        token = self.authenticate()
+        # Add auth
+        self.headers = self._make_headers(token=token["token"])
+
+        ctcid: str = self.credentials["merchant_identifier"]
+        n_records = 5  # Number of records to return
+        api_url = urljoin(
+            self.base_url, f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false"
+        )
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        transactions: List[Dict] = resp.json()
+
+        # TODO: will return list of dicts, each dict is a transaction to be parsed above
+        return transactions
 
     def get_contact_ids_by_email(self, email: str) -> Dict:
         """

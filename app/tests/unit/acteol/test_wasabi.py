@@ -1131,3 +1131,83 @@ class TestWasabi(unittest.TestCase):
         assert in_progress_voucher == expected_in_progress_voucher
 
         return in_progress_voucher
+
+    @httpretty.activate
+    def test_scrape_transactions(self):
+        # GIVEN
+        ctcid = "142321"
+        n_records = 5
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false"
+        )
+
+        # TODO: change all this!
+        expected_ctcid = "54321"
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps({"CtcID": expected_ctcid}))],
+            status=HTTPStatus.OK,
+        )
+        credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+        }
+
+        # WHEN
+        ctcid = self.wasabi._create_account(
+            origin_id=origin_id, credentials=credentials
+        )
+
+        # THEN
+        assert ctcid == expected_ctcid
+
+    def test_parse_transaction(self):
+        # GIVEN
+        transaction = {
+            "CustomerID": 1,
+            "OrderID": 2,
+            "LocationID": "sample string 3",
+            "LocationName": "sample string 4",
+            "OrderDate": "2020-07-28T17:55:35.6644044+01:00",
+            "OrderItems": [
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+            ],
+            "TotalCostExclTax": 5.1,
+            "TotalCost": 6.1,
+            "PointEarned": 7.1,
+            "AmountEarned": 8.1,
+            "SourceID": "sample string 9",
+            "VATNumber": "sample string 10",
+            "UsedToEarnPoint": True,
+        }
+
+        # WHEN
+        self.wasabi.parse_transaction(transaction=transaction)
+
+        # THEN
+        assert True
