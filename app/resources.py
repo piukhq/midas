@@ -500,10 +500,7 @@ def registration(scheme_slug, user_info, tid):
         status = SchemeAccountStatus.UNKNOWN_ERROR
         raise UnknownException(e)
     finally:
-        # MER-56: must set journey to "join-with-balance" to avoid a return call from hermes to get balance
-        # (which it will already have). This is ultimately to avoid verifying email/card_number in login()
-        journey = "join-with-balance" if agent_instance.JOIN_WITH_BALANCE else "join"
-        publish.status(user_info['scheme_account_id'], status, tid, user_info, journey=journey)
+        publish.status(user_info['scheme_account_id'], status, tid, user_info, journey='join')
         return True
 
 
