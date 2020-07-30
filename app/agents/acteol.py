@@ -43,6 +43,7 @@ class Acteol(ApiMiner):
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
+    # Public methods
     def authenticate(self) -> Dict:
         """
         Get an API token from redis if we have one, otherwise login to get one and store in cache.
@@ -54,7 +55,7 @@ class Acteol(ApiMiner):
         current_timestamp = arrow.utcnow().timestamp
         token = {}
         try:
-            token = json.loads(self.token_store.get(self.scheme_id))
+            token: Dict = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
                 if self._token_is_valid(
                     token=token, current_timestamp=current_timestamp
@@ -74,16 +75,16 @@ class Acteol(ApiMiner):
 
         return token
 
-    def register(self, credentials):
+    def register(self, credentials: Dict):
         """
         Register a new loyalty scheme member with Acteol. The steps are:
-        - Get API token
-        - Check if account already exists
-        - If not, create account
-        - Use the CtcID from create account to add member number in Acteol
-        - Get the customer details from Acteol
-        - Post user preferences (marketing email opt-in) to Acteol
-        - Use the customer details in Bink system
+        * Get API token
+        * Check if account already exists
+        * If not, create account
+        * Use the CtcID from create account to add member number in Acteol
+        * Get the customer details from Acteol
+        * Post user preferences (marketing email opt-in) to Acteol
+        * Use the customer details in Bink system
         """
         # Get a valid API token
         token = self.authenticate()
@@ -214,7 +215,6 @@ class Acteol(ApiMiner):
         :param transaction: a transaction record
         :return: transaction record in the format required by Bink
         """
-
         formatted_total_cost = self._format_money_value(
             money_value=transaction["TotalCost"]
         )
@@ -259,6 +259,7 @@ class Acteol(ApiMiner):
     def get_contact_ids_by_email(self, email: str) -> Dict:
         """
         Get dict of contact ids from Acteol by email
+
         :param email: user's email address
         """
         # Get a valid API token
@@ -276,6 +277,9 @@ class Acteol(ApiMiner):
         return contact_ids_data
 
     def delete_contact_by_ctcid(self, ctcid: str):
+        """
+        Delete a customer by their CtcID (aka CustomerID)
+        """
         # Get a valid API token
         token = self.authenticate()
         # Add auth
@@ -305,7 +309,6 @@ class Acteol(ApiMiner):
         return
 
     # Private methods
-
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -436,6 +439,7 @@ class Acteol(ApiMiner):
     def _create_origin_id(self, user_email: str, origin_root: str):
         """
         our origin id should be in the form of SHA1("Bink-company-user_email")
+
         :param user_email: our user's email
         :param origin_root: set in this class's subclass per the requirements of the API for each company
         """
@@ -510,7 +514,8 @@ class Acteol(ApiMiner):
     def _set_customer_preferences(self, ctcid: str, email_optin_pref: bool):
         """
         Set user's email opt-in preferences in Acteol
-        Condition: “EmailOptin” = true if Enrol user consent has been marked as true.
+        Condition: "EmailOptin" = true if Enrol user consent has been marked as true.
+
         :param email_optin_pref: boolean
         """
         api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
@@ -525,6 +530,7 @@ class Acteol(ApiMiner):
     def _get_email_optin_pref_from_consent(self, consents: List[Dict]) -> bool:
         """
         Find the dict (should only be one) with a key of EmailOptin that also has key of "value" set to True
+
         :param consents: the list of consents dicts from the user's credentials
         :return: bool True if at least one matching dict found
         """
@@ -596,6 +602,7 @@ class Acteol(ApiMiner):
     def _get_vouchers(self, ctcid: str) -> List:
         """
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
+
         :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
         :return: list of vouchers
         """
@@ -616,6 +623,7 @@ class Acteol(ApiMiner):
     def _filter_bink_vouchers(self, vouchers: List[Dict]) -> List[Dict]:
         """
         Filter for BINK only vouchers
+
         :param vouchers: list of voucher dicts from Acteol
         :return: only those voucher dicts whose CategoryName == "BINK"
         """
@@ -780,7 +788,7 @@ class Acteol(ApiMiner):
         self, location_name: str, formatted_total_cost: str
     ) -> str:
         """
-        e.g.
+        e.g. "Kensington High St £6.10"
         """
         description = f"{location_name} £{formatted_total_cost}"
 
