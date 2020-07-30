@@ -19,6 +19,7 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -289,10 +290,16 @@ class Acteol(ApiMiner):
         # If we are on an add journey, then we will need to verify the supplied email against the card number
         if credentials["card_number"] and not self.user_info.get("from_register"):
             # Don't go any further unless the account is valid
-            self._validate_member_number(credentials)
+            ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
+            # Set up attributes needed for the creation of an active membership card
+            self.identifier = {
+                "card_number": credentials["card_number"],
+                "merchant_identifier": ctcid,
+            }
+            credentials.update({"merchant_identifier": ctcid})
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -540,7 +547,7 @@ class Acteol(ApiMiner):
 
         return False
 
-    def _validate_member_number(self, credentials):
+    def _validate_member_number(self, credentials: Dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -553,16 +560,18 @@ class Acteol(ApiMiner):
             "IsValid": false AND "ValidationMsg": "Email and Member number mismatch"
             Action - membership_card Status=403 Invalid credentials, State=Failed and Reason Code=X303
             (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
+
+        :param credentials: dict of user's credentials, email etc
+        :return: ctcid (aka CustomerID or merchant_identifier in Bink)
         """
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
-        email = credentials["email"]
         payload = {
             "MemberNumber": member_number,
-            "Email": email,
+            "Email": credentials["email"],
         }
         try:
             resp = self.make_request(
@@ -589,7 +598,9 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
-        return
+        ctcid = str(resp_json["CtcID"])
+
+        return ctcid
 
     def _get_vouchers(self, ctcid: str) -> List:
         """
@@ -628,128 +639,136 @@ class Acteol(ApiMiner):
         Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state.
         These are mutually exclusive states, the voucher should never be in more than one at any time:
 
-        - Redeemed - if the agent returned a redeem date on the voucher then it's a redeemed voucher/there is a
+        * Redeemed - if the agent returned a redeem date on the voucher then it's a redeemed voucher/there is a
         boolean that will be true if the voucher has a redeemed date
-        - Issued - if the start date is set and the expiry date hasn't passed yet then it's issued,
-        - Expired - otherwise it's expired.
-        - Cancelled - there is a disabled flag, that if true means the voucher is cancelled and should not
+        * Issued - if the start date is set and the expiry date hasn't passed yet then it's issued,
+        * Expired - otherwise it's expired.
+        * Cancelled - there is a disabled flag, that if true means the voucher is cancelled and should not
         be displayed, but should be saved for the the user
-        - In Progress
+        * In Progress
           Acteol only issue vouchers once the stamp card is complete.
 
         :param voucher: dict of a single voucher's data from Acteol
         :return: dict of voucher data mapped for Bink
         """
 
-        bink_voucher = {}
         current_datetime = arrow.now()
 
         # Is it a redeemed voucher?
-        if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
-            bink_voucher = self._make_redeemed_voucher(
-                voucher=voucher, voucher_type=VoucherType.STAMPS
-            )
+        bink_voucher = self._make_redeemed_voucher(voucher=voucher)
+        if bink_voucher:
+            return bink_voucher
         # Is it a cancelled voucher?
-        elif voucher.get("Disabled"):
-            bink_voucher = self._make_cancelled_voucher(
-                voucher=voucher, voucher_type=VoucherType.STAMPS
-            )
+        bink_voucher = self._make_cancelled_voucher(voucher=voucher)
+        if bink_voucher:
+            return bink_voucher
         # Is it an issued voucher?
-        elif (
+        bink_voucher = self._make_issued_voucher(
+            voucher=voucher, current_datetime=current_datetime
+        )
+        if bink_voucher:
+            return bink_voucher
+        # Is it expired?
+        bink_voucher = self._make_expired_voucher(
+            voucher=voucher, current_datetime=current_datetime
+        )
+        if bink_voucher:
+            return bink_voucher
+
+        logger.warning(
+            f'Acteol voucher did not match any of the Bink structure criteria, voucher id: {voucher["VoucherID"]}'
+        )
+
+        return {}
+
+    def _make_redeemed_voucher(self, voucher: Dict) -> [Dict, None]:
+        """
+        Make a Bink redeemed voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of redeemed voucher data mapped for Bink, or None
+        """
+
+        if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_cancelled_voucher(self, voucher: Dict) -> [Dict, None]:
+        """
+        Make a Bink cancelled voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of cancelled voucher data mapped for Bink, or None
+        """
+
+        if voucher.get("Disabled"):
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_issued_voucher(
+        self, voucher: Dict, current_datetime: Arrow
+    ) -> [Dict, None]:
+        """
+        Make a Bink issued voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :param current_datetime: an Arrow datetime obj
+        :return: dict of issued voucher data mapped for Bink, or None
+        """
+
+        if (
             voucher.get("StartDate")
             and (arrow.get(voucher.get("ExpiryDate")) >= current_datetime)
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
         ):
-            bink_voucher = self._make_issued_voucher(
-                voucher=voucher, voucher_type=VoucherType.STAMPS
-            )
-        # Is it expired?
-        elif arrow.get(voucher.get("ExpiryDate")) < current_datetime:
-            bink_voucher = self._make_expired_voucher(
-                voucher=voucher, voucher_type=VoucherType.STAMPS
-            )
+            return {
+                "type": VoucherType.STAMPS.value,
+                "code": voucher["VoucherCode"],
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
 
-        if not bink_voucher:
-            logger.warning(
-                f'Acteol voucher did not match any of the Bink structure criteria, voucher id: {voucher["VoucherID"]}'
-            )
+        return None
 
-        return bink_voucher
-
-    def _make_redeemed_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
+    def _make_expired_voucher(
+        self, voucher: Dict, current_datetime: Arrow
+    ) -> [Dict, None]:
         """
-        Make a redeemed voucher dict
+        Make a Bink expired voucher dict if the Acteol voucher is of that type
 
         :param voucher: dict of a single voucher's data from Acteol
-        :return: dict of redeemed voucher data mapped for Bink
+        :param current_datetime: an Arrow datetime obj
+        :return: dict of expired voucher data mapped for Bink, or None
         """
 
-        redeemed_voucher = {
-            "type": voucher_type.value,
-            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
-            "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
-            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
-        }
+        if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
 
-        return redeemed_voucher
-
-    def _make_cancelled_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
-        """
-        Make a cancelled voucher dict
-
-        :param voucher: dict of a single voucher's data from Acteol
-        :return: dict of cancelled voucher data mapped for Bink
-        """
-
-        cancelled_voucher = {
-            "type": voucher_type.value,
-            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
-            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
-        }
-
-        return cancelled_voucher
-
-    def _make_issued_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
-        """
-        Make an issued voucher dict
-
-        :param voucher: dict of a single voucher's data from Acteol
-        :return: dict of issued voucher data mapped for Bink
-        """
-
-        issued_voucher = {
-            "type": voucher_type.value,
-            "code": voucher["VoucherCode"],
-            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
-            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
-        }
-
-        return issued_voucher
-
-    def _make_expired_voucher(self, voucher: Dict, voucher_type: enum) -> Dict:
-        """
-        Make an expired voucher dict
-
-        :param voucher: dict of a single voucher's data from Acteol
-        :return: dict of expired voucher data mapped for Bink
-        """
-
-        expired_voucher = {
-            "type": voucher_type.value,
-            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-            "date_issued": arrow.get(voucher["StartDate"]).timestamp,
-            "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
-        }
-
-        return expired_voucher
+        return None
 
     def _make_in_progress_voucher(self, points: Decimal, voucher_type: enum) -> Dict:
         """
