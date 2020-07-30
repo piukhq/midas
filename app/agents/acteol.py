@@ -89,7 +89,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
         origin_id = self._create_origin_id(
@@ -156,7 +156,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(
@@ -244,7 +244,7 @@ class Acteol(ApiMiner):
         """
         token = self.authenticate()
         # Add auth
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
         ctcid: str = self.credentials["merchant_identifier"]
         api_url = urljoin(
@@ -265,7 +265,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
         api_url = urljoin(
             self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
@@ -283,7 +283,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
@@ -489,7 +489,7 @@ class Acteol(ApiMiner):
         :param current_timestamp: Timestamp (Arrow) of the current UTC time
         :return: The created token dict
         """
-        token = {"token": acteol_access_token, "timestamp": current_timestamp}
+        token = {"acteol_access_token": acteol_access_token, "timestamp": current_timestamp}
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
 
         return token
@@ -563,7 +563,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
@@ -609,7 +609,7 @@ class Acteol(ApiMiner):
         # Get a valid API token
         token = self.authenticate()
         # Add auth
-        self.headers = self._make_headers(token=token["token"])
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
         api_url = urljoin(
             self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"

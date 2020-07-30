@@ -19,7 +19,7 @@ class TestWasabi(unittest.TestCase):
     def setUpClass(cls):
         with unittest.mock.patch("app.agents.acteol.Configuration"):
             cls.mock_token = {
-                "token": "abcde12345fghij",
+                "acteol_access_token": "abcde12345fghij",
                 "timestamp": 123456789,
             }
 
@@ -91,7 +91,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 100,  # an easy number to work with to get 75600
         }
 
@@ -113,7 +113,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 10,  # an easy number to work with to exceed the timout setting
         }
 
@@ -135,7 +135,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 450,  # an easy number to work with to stay within validity range
         }
 
@@ -155,7 +155,7 @@ class TestWasabi(unittest.TestCase):
         mock_acteol_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
         expected_token = {
-            "token": mock_acteol_access_token,
+            "acteol_access_token": mock_acteol_access_token,
             "timestamp": mock_current_timestamp,
         }
 
