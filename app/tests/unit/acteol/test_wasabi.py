@@ -1208,17 +1208,24 @@ class TestWasabi(unittest.TestCase):
         money_value4 = 6000.100
 
         # WHEN
-        formatted_money_value1 = self.wasabi._format_money_value(money_value=money_value1)
-        formatted_money_value2 = self.wasabi._format_money_value(money_value=money_value2)
-        formatted_money_value3 = self.wasabi._format_money_value(money_value=money_value3)
-        formatted_money_value4 = self.wasabi._format_money_value(money_value=money_value4)
+        formatted_money_value1 = self.wasabi._format_money_value(
+            money_value=money_value1
+        )
+        formatted_money_value2 = self.wasabi._format_money_value(
+            money_value=money_value2
+        )
+        formatted_money_value3 = self.wasabi._format_money_value(
+            money_value=money_value3
+        )
+        formatted_money_value4 = self.wasabi._format_money_value(
+            money_value=money_value4
+        )
 
         # THEN
         assert formatted_money_value1 == "6.10"
         assert formatted_money_value2 == "6.10"
         assert formatted_money_value3 == "600.10"
         assert formatted_money_value4 == "6000.10"
-
 
     def test_parse_transaction(self):
         # GIVEN
@@ -1270,8 +1277,7 @@ class TestWasabi(unittest.TestCase):
         # AND
         formatted_total_cost = self.wasabi._format_money_value(money_value=total_cost)
         description = self.wasabi._make_transaction_description(
-            location_name=location_name,
-            formatted_total_cost=formatted_total_cost,
+            location_name=location_name, formatted_total_cost=formatted_total_cost,
         )
 
         # THEN
@@ -1279,4 +1285,3 @@ class TestWasabi(unittest.TestCase):
         assert parsed_transaction["description"] == description
         assert parsed_transaction["location"] == location_name
         assert parsed_transaction["points"] == expected_points
-
