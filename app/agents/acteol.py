@@ -202,30 +202,53 @@ class Acteol(ApiMiner):
 
         return balance
 
-    @staticmethod
-    def parse_transaction(transaction):
+    def parse_transaction(self, transaction: Dict) -> Dict:
         """
-        Required to be implemented by the base class
-        """
-        return transaction
+        Convert an individual transaction record from Acteol's system to the format expected by Bink
 
-    def scrape_transactions(self) -> List:
+        :param transaction: a transaction record
+        :return: transaction record in the format required by Bink
+        """
+
+        formatted_total_cost = self._format_money_value(
+            money_value=transaction["TotalCost"]
+        )
+
+        order_date = arrow.get(transaction["OrderDate"])
+        points = int(transaction["PointEarned"])
+        description = self._make_transaction_description(
+            location_name=transaction["LocationName"],
+            formatted_total_cost=formatted_total_cost,
+        )
+        location = transaction["LocationName"]
+
+        parsed_transaction = {
+            "date": order_date,
+            "description": description,
+            "points": points,
+            "location": location,
+        }
+
+        return parsed_transaction
+
+    def scrape_transactions(self) -> List[Dict]:
         """
         We're not scraping, we're calling the Acteol API
+
+        :return: list of transaction dicts from Acteol's API
         """
         token = self.authenticate()
         # Add auth
         self.headers = self._make_headers(token=token["token"])
 
         ctcid: str = self.credentials["merchant_identifier"]
-        n_records = 5  # Number of records to return
         api_url = urljoin(
-            self.base_url, f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false"
+            self.base_url,
+            f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={self.N_TRANSACTIONS}&IncludeOrderDetails=false",
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         transactions: List[Dict] = resp.json()
 
-        # TODO: will return list of dicts, each dict is a transaction to be parsed above
         return transactions
 
     def get_contact_ids_by_email(self, email: str) -> Dict:
@@ -740,6 +763,24 @@ class Acteol(ApiMiner):
 
         return in_progress_voucher
 
+    def _format_money_value(self, money_value: [float, int]) -> str:
+        """
+        Pad to 2 decimal places
+        """
+        money_value = f"{money_value:.2f}"
+
+        return money_value
+
+    def _make_transaction_description(
+        self, location_name: str, formatted_total_cost: str
+    ) -> str:
+        """
+        e.g.
+        """
+        description = f"{location_name} £{formatted_total_cost}"
+
+        return description
+
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
@@ -747,3 +788,4 @@ class Wasabi(Acteol):
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
+    N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API
