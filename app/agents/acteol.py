@@ -174,20 +174,25 @@ class Acteol(ApiMiner):
             raise AgentError(NO_SUCH_RECORD)
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
-        # CtcID aka Acteol's CustomerID, in Bink it's merchant_identifier
-        ctcid = self.credentials["merchant_identifier"]
 
-        # Vouchers.
+        # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
+        # data from Acteol. If it's not already present in the credentials then populate that field from
+        # the customer_details - do this so that we have a full record of credentials for anything else that might
+        # rely on it.
+        if not self.credentials.get("merchant_identifier"):
+            self.credentials["merchant_identifier"] = customer_details["CustomerID"]
+        ctcid = self.credentials["merchant_identifier"]
+        # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
-        bink_mapped_vouchers = []
+        bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
         for bink_only_voucher in bink_only_vouchers:
             bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
             )
             bink_mapped_vouchers.append(bink_mapped_voucher)
-        # Create an 'in-progress' voucher
+        # Lastly, create an 'in-progress' voucher - the current, incomplete voucher
         in_progress_voucher = self._make_in_progress_voucher(
             points=points, voucher_type=VoucherType.STAMPS
         )
