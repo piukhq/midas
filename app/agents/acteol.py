@@ -86,10 +86,8 @@ class Acteol(ApiMiner):
         * Post user preferences (marketing email opt-in) to Acteol
         * Use the customer details in Bink system
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
         origin_id = self._create_origin_id(
@@ -153,10 +151,8 @@ class Acteol(ApiMiner):
 
         :return: balance data including vouchers
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(
@@ -242,9 +238,8 @@ class Acteol(ApiMiner):
 
         :return: list of transaction dicts from Acteol's API
         """
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
         ctcid: str = self.credentials["merchant_identifier"]
         api_url = urljoin(
@@ -262,10 +257,8 @@ class Acteol(ApiMiner):
 
         :param email: user's email address
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(
             self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
@@ -280,10 +273,8 @@ class Acteol(ApiMiner):
         """
         Delete a customer by their CtcID (aka CustomerID)
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
@@ -489,7 +480,10 @@ class Acteol(ApiMiner):
         :param current_timestamp: Timestamp (Arrow) of the current UTC time
         :return: The created token dict
         """
-        token = {"acteol_access_token": acteol_access_token, "timestamp": current_timestamp}
+        token = {
+            "acteol_access_token": acteol_access_token,
+            "timestamp": current_timestamp,
+        }
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
 
         return token
@@ -560,10 +554,8 @@ class Acteol(ApiMiner):
             Action - membership_card Status=403 Invalid credentials, State=Failed and Reason Code=X303
             (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
@@ -606,10 +598,8 @@ class Acteol(ApiMiner):
         :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
         :return: list of vouchers
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(
             self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
@@ -793,6 +783,15 @@ class Acteol(ApiMiner):
         description = f"{location_name} £{formatted_total_cost}"
 
         return description
+
+    def _get_valid_api_token_and_make_headers(self):
+        """
+        Ensure our Acteol API token is valid and use to create headers for requests
+        """
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth for subsequent API calls
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
 
 class Wasabi(Acteol):
