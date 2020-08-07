@@ -1,7 +1,9 @@
+import enum
 import json
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List
+from urllib.parse import urljoin
 
 import arrow
 from app.agents.base import ApiMiner
@@ -17,11 +19,19 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
+
+
+@enum.unique
+class VoucherType(enum.Enum):
+    JOIN = 0
+    ACCUMULATOR = 1
+    STAMPS = 2
 
 
 class Acteol(ApiMiner):
@@ -34,6 +44,7 @@ class Acteol(ApiMiner):
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
+    # Public methods
     def authenticate(self) -> Dict:
         """
         Get an API token from redis if we have one, otherwise login to get one and store in cache.
@@ -45,7 +56,7 @@ class Acteol(ApiMiner):
         current_timestamp = arrow.utcnow().timestamp
         token = {}
         try:
-            token = json.loads(self.token_store.get(self.scheme_id))
+            token: Dict = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
                 if self._token_is_valid(
                     token=token, current_timestamp=current_timestamp
@@ -65,21 +76,19 @@ class Acteol(ApiMiner):
 
         return token
 
-    def register(self, credentials):
+    def register(self, credentials: Dict):
         """
         Register a new loyalty scheme member with Acteol. The steps are:
-        - Get API token
-        - Check if account already exists
-        - If not, create account
-        - Use the CtcID from create account to add member number in Acteol
-        - Get the customer details from Acteol
-        - Post user preferences (marketing email opt-in) to Acteol
-        - Use the customer details in Bink system
+        * Get API token
+        * Check if account already exists
+        * If not, create account
+        * Use the CtcID from create account to add member number in Acteol
+        * Get the customer details from Acteol
+        * Post user preferences (marketing email opt-in) to Acteol
+        * Use the customer details in Bink system
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
         origin_id = self._create_origin_id(
@@ -112,6 +121,7 @@ class Acteol(ApiMiner):
         email_optin_pref: bool = self._get_email_optin_pref_from_consent(
             consents=credentials.get("consents", [{}])
         )
+        # Not a fatal error if we can't register i.e. don't kill the join process, just log
         try:
             self._set_customer_preferences(
                 ctcid=ctcid, email_optin_pref=email_optin_pref
@@ -130,12 +140,20 @@ class Acteol(ApiMiner):
 
     def balance(self) -> Dict:
         """
-        Get the balance from the Acteol API, return the expected format
+        Get the balance from the Acteol API, return the expected format. For the vouchers element, these fields are
+        expected by hermes:
+        * issue_date: int, optional
+        * redeem_date: int, optional
+        * expiry_date: int, optional
+        * code: str, optional
+        * type: int, required
+        * value: Decimal, optional
+        * target_value: Decimal, optional
+
+        :return: balance data including vouchers
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(
@@ -155,36 +173,97 @@ class Acteol(ApiMiner):
 
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
-        return {
+        # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
+        # data from Acteol. If it's not already present in the credentials then populate that field from
+        # the customer_details - do this so that we have a full record of credentials for anything else that might
+        # rely on it.
+        if not self.credentials.get("merchant_identifier"):
+            self.credentials["merchant_identifier"] = customer_details["CustomerID"]
+        ctcid = self.credentials["merchant_identifier"]
+        # Get all vouchers for this customer
+        vouchers: List = self._get_vouchers(ctcid=ctcid)
+        # Filter for BINK only vouchers
+        bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
+        bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
+        for bink_only_voucher in bink_only_vouchers:
+            bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
+                voucher=bink_only_voucher
+            )
+            bink_mapped_vouchers.append(bink_mapped_voucher)
+        # Lastly, create an 'in-progress' voucher - the current, incomplete voucher
+        in_progress_voucher = self._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
+        bink_mapped_vouchers.append(in_progress_voucher)
+
+        balance = {
             "points": points,
             "value": points,
             "value_label": "",
+            "vouchers": bink_mapped_vouchers,
         }
 
-    @staticmethod
-    def parse_transaction(row):
-        """
-        Required to be implemented by the base class
-        """
-        return row
+        return balance
 
-    def scrape_transactions(self):
+    def parse_transaction(self, transaction: Dict) -> Dict:
         """
-        The resources endpoints/methods expect some implementation of scrape_transactions()
+        Convert an individual transaction record from Acteol's system to the format expected by Bink
+
+        :param transaction: a transaction record
+        :return: transaction record in the format required by Bink
         """
-        return []
+        formatted_total_cost = self._format_money_value(
+            money_value=transaction["TotalCost"]
+        )
+
+        order_date = arrow.get(transaction["OrderDate"])
+        points = int(transaction["PointEarned"])
+        description = self._make_transaction_description(
+            location_name=transaction["LocationName"],
+            formatted_total_cost=formatted_total_cost,
+        )
+        location = transaction["LocationName"]
+
+        parsed_transaction = {
+            "date": order_date,
+            "description": description,
+            "points": points,
+            "location": location,
+        }
+
+        return parsed_transaction
+
+    def scrape_transactions(self) -> List[Dict]:
+        """
+        We're not scraping, we're calling the Acteol API
+
+        :return: list of transaction dicts from Acteol's API
+        """
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
+
+        ctcid: str = self.credentials["merchant_identifier"]
+        api_url = urljoin(
+            self.base_url,
+            f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={self.N_TRANSACTIONS}&IncludeOrderDetails=false",
+        )
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        transactions: List[Dict] = resp.json()
+
+        return transactions
 
     def get_contact_ids_by_email(self, email: str) -> Dict:
         """
         Get dict of contact ids from Acteol by email
+
         :param email: user's email address
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["token"])
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
 
-        api_url = f"{self.BASE_API_URL}/Contact/GetContactIDsByEmail?Email={email}"
+        api_url = urljoin(
+            self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
+        )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp.raise_for_status()
         contact_ids_data = resp.json()
@@ -192,11 +271,13 @@ class Acteol(ApiMiner):
         return contact_ids_data
 
     def delete_contact_by_ctcid(self, ctcid: str):
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth
-        self.headers = self._make_headers(token=token["token"])
-        api_url = f"{self.BASE_API_URL}/Contact/DeleteContact/{ctcid}"
+        """
+        Delete a customer by their CtcID (aka CustomerID)
+        """
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
+
+        api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
 
         return resp
@@ -208,25 +289,17 @@ class Acteol(ApiMiner):
         """
         # If we are on an add journey, then we will need to verify the supplied email against the card number
         if credentials["card_number"] and not self.user_info.get("from_register"):
-            # Get a valid API token
-            token = self.authenticate()
-            # Add auth for subsequent API calls
-            self.headers = self._make_headers(token=token["token"])
             # Don't go any further unless the account is valid
-            try:
-                self._validate_member_number(credentials)
-            except (AgentError, LoginError) as e:
-                logger.error(
-                    f"Error while validating card_number/MemberNumber: {str(e)}"
-                )
-                raise LoginError(STATUS_LOGIN_FAILED) from e
-            except Exception as e:  # Catch-all: we can't continue if there's any exception
-                logger.exception(str(e))
-                raise LoginError(STATUS_LOGIN_FAILED) from e
-            else:
-                self.identifier_type = (
-                    "card_number"  # Not sure this is needed but the base class has one
-                )
+            ctcid = self._validate_member_number(credentials)
+            self.identifier_type = (
+                "card_number"  # Not sure this is needed but the base class has one
+            )
+            # Set up attributes needed for the creation of an active membership card
+            self.identifier = {
+                "card_number": credentials["card_number"],
+                "merchant_identifier": ctcid,
+            }
+            credentials.update({"merchant_identifier": ctcid})
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -234,7 +307,6 @@ class Acteol(ApiMiner):
         return
 
     # Private methods
-
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -247,9 +319,12 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = (
-            f"{self.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = urljoin(
+            self.base_url,
+            (
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+            ),
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
@@ -279,7 +354,9 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = f"{self.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        api_url = urljoin(
+            self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
+        )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
@@ -307,7 +384,7 @@ class Acteol(ApiMiner):
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         :param credentials: dict of user's credentials
         """
-        api_url = f"{self.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.base_url, "api/Contact/PostContact")
         payload = {
             "OriginID": origin_id,
             "SourceID": "BinkPlatform",
@@ -342,7 +419,7 @@ class Acteol(ApiMiner):
 
         :param ctcid: ID returned from Acteol when creating the account
         """
-        api_url = f"{self.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
@@ -360,6 +437,7 @@ class Acteol(ApiMiner):
     def _create_origin_id(self, user_email: str, origin_root: str):
         """
         our origin id should be in the form of SHA1("Bink-company-user_email")
+
         :param user_email: our user's email
         :param origin_root: set in this class's subclass per the requirements of the API for each company
         """
@@ -393,7 +471,7 @@ class Acteol(ApiMiner):
             "username": self.auth["username"],
             "password": self.auth["password"],
         }
-        token_url = f"{self.base_url}/token"
+        token_url = urljoin(self.base_url, "token")
         resp = self.make_request(
             token_url, method="post", timeout=self.API_TIMEOUT, data=payload
         )
@@ -409,7 +487,10 @@ class Acteol(ApiMiner):
         :param current_timestamp: Timestamp (Arrow) of the current UTC time
         :return: The created token dict
         """
-        token = {"token": acteol_access_token, "timestamp": current_timestamp}
+        token = {
+            "acteol_access_token": acteol_access_token,
+            "timestamp": current_timestamp,
+        }
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
 
         return token
@@ -434,10 +515,11 @@ class Acteol(ApiMiner):
     def _set_customer_preferences(self, ctcid: str, email_optin_pref: bool):
         """
         Set user's email opt-in preferences in Acteol
-        Condition: “EmailOptin” = true if Enrol user consent has been marked as true.
+        Condition: "EmailOptin" = true if Enrol user consent has been marked as true.
+
         :param email_optin_pref: boolean
         """
-        api_url = f"{self.BASE_API_URL}/CommunicationPreference/Post"
+        api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
         payload = {
             "CustomerID": ctcid,
             "EmailOptin": email_optin_pref,
@@ -449,6 +531,7 @@ class Acteol(ApiMiner):
     def _get_email_optin_pref_from_consent(self, consents: List[Dict]) -> bool:
         """
         Find the dict (should only be one) with a key of EmailOptin that also has key of "value" set to True
+
         :param consents: the list of consents dicts from the user's credentials
         :return: bool True if at least one matching dict found
         """
@@ -464,7 +547,7 @@ class Acteol(ApiMiner):
 
         return False
 
-    def _validate_member_number(self, credentials):
+    def _validate_member_number(self, credentials: Dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -477,38 +560,263 @@ class Acteol(ApiMiner):
             "IsValid": false AND "ValidationMsg": "Email and Member number mismatch"
             Action - membership_card Status=403 Invalid credentials, State=Failed and Reason Code=X303
             (for the front-end to handle i.e. raise a STATUS_LOGIN_FAILED exception
+
+        :param credentials: dict of user's credentials, email etc
+        :return: ctcid (aka CustomerID or merchant_identifier in Bink)
         """
-        api_url = f"{self.BASE_API_URL}/Contact/ValidateContactMemberNumber"
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
+
+        api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
-        email = credentials["email"]
         payload = {
             "MemberNumber": member_number,
-            "Email": email,
+            "Email": credentials["email"],
         }
-        resp = self.make_request(
-            api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-        )
+        try:
+            resp = self.make_request(
+                api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+            )
+        except AgentError as ae:
+            logger.error(f"Error while validating card_number/MemberNumber: {str(ae)}")
+            raise LoginError(STATUS_LOGIN_FAILED) from ae
 
-        # It's possible for validation to fail but still return a 200 OK response status
+        # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
-        validation_error_types = {
-            "Invalid Email": VALIDATION,
-            "Invalid Member Number": VALIDATION,
-            "Email and Member number mismatch": STATUS_LOGIN_FAILED,
+        validation_msg = resp_json.get("ValidationMsg")
+        is_valid = resp_json.get("IsValid")
+        if not is_valid:
+            validation_error_types = {
+                "Invalid Email": VALIDATION,
+                "Invalid Member Number": VALIDATION,
+                "Email and Member number mismatch": STATUS_LOGIN_FAILED,
+            }
+
+            error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
+            logger.error(
+                f"Failed login validation for member number {member_number}: {validation_msg}"
+            )
+            raise LoginError(error_type)
+
+        ctcid = str(resp_json["CtcID"])
+
+        return ctcid
+
+    def _get_vouchers(self, ctcid: str) -> List:
+        """
+        Get all vouchers for a CustomerID (aka CtcID) from Acteol
+
+        :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
+        :return: list of vouchers
+        """
+        # Ensure a valid API token
+        self._get_valid_api_token_and_make_headers()
+
+        api_url = urljoin(
+            self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
+        )
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        response_json = resp.json()
+        vouchers: List = response_json["voucher"]
+
+        return vouchers
+
+    def _filter_bink_vouchers(self, vouchers: List[Dict]) -> List[Dict]:
+        """
+        Filter for BINK only vouchers
+
+        :param vouchers: list of voucher dicts from Acteol
+        :return: only those voucher dicts whose CategoryName == "BINK"
+        """
+        bink_only_vouchers = [
+            voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"
+        ]
+
+        return bink_only_vouchers
+
+    def _map_acteol_voucher_to_bink_struct(self, voucher: Dict) -> Dict:
+        """
+        Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state.
+        These are mutually exclusive states, the voucher should never be in more than one at any time:
+
+        * Redeemed - if the agent returned a redeem date on the voucher then it's a redeemed voucher/there is a
+        boolean that will be true if the voucher has a redeemed date
+        * Issued - if the start date is set and the expiry date hasn't passed yet then it's issued,
+        * Expired - otherwise it's expired.
+        * Cancelled - there is a disabled flag, that if true means the voucher is cancelled and should not
+        be displayed, but should be saved for the the user
+        * In Progress
+          Acteol only issue vouchers once the stamp card is complete.
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of voucher data mapped for Bink
+        """
+
+        current_datetime = arrow.now()
+
+        # Is it a redeemed voucher?
+        bink_voucher = self._make_redeemed_voucher(voucher=voucher)
+        if bink_voucher:
+            return bink_voucher
+        # Is it a cancelled voucher?
+        bink_voucher = self._make_cancelled_voucher(voucher=voucher)
+        if bink_voucher:
+            return bink_voucher
+        # Is it an issued voucher?
+        bink_voucher = self._make_issued_voucher(
+            voucher=voucher, current_datetime=current_datetime
+        )
+        if bink_voucher:
+            return bink_voucher
+        # Is it expired?
+        bink_voucher = self._make_expired_voucher(
+            voucher=voucher, current_datetime=current_datetime
+        )
+        if bink_voucher:
+            return bink_voucher
+
+        logger.warning(
+            f'Acteol voucher did not match any of the Bink structure criteria, voucher id: {voucher["VoucherID"]}'
+        )
+
+        return {}
+
+    def _make_redeemed_voucher(self, voucher: Dict) -> [Dict, None]:
+        """
+        Make a Bink redeemed voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of redeemed voucher data mapped for Bink, or None
+        """
+
+        if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_cancelled_voucher(self, voucher: Dict) -> [Dict, None]:
+        """
+        Make a Bink cancelled voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :return: dict of cancelled voucher data mapped for Bink, or None
+        """
+
+        if voucher.get("Disabled"):
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_issued_voucher(
+        self, voucher: Dict, current_datetime: Arrow
+    ) -> [Dict, None]:
+        """
+        Make a Bink issued voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :param current_datetime: an Arrow datetime obj
+        :return: dict of issued voucher data mapped for Bink, or None
+        """
+
+        if (
+            voucher.get("StartDate")
+            and (arrow.get(voucher.get("ExpiryDate")) >= current_datetime)
+            and not voucher.get("Redeemed")
+            and not voucher.get("Disabled")
+        ):
+            return {
+                "type": VoucherType.STAMPS.value,
+                "code": voucher["VoucherCode"],
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_expired_voucher(
+        self, voucher: Dict, current_datetime: Arrow
+    ) -> [Dict, None]:
+        """
+        Make a Bink expired voucher dict if the Acteol voucher is of that type
+
+        :param voucher: dict of a single voucher's data from Acteol
+        :param current_datetime: an Arrow datetime obj
+        :return: dict of expired voucher data mapped for Bink, or None
+        """
+
+        if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
+            return {
+                "type": VoucherType.STAMPS.value,
+                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+            }
+
+        return None
+
+    def _make_in_progress_voucher(self, points: Decimal, voucher_type: enum) -> Dict:
+        """
+        Make an in-progress voucher dict
+
+        :param points: LoyaltyPointsBalance field in the Acteol voucher data
+        :return: dict of in-progress voucher data mapped for Bink
+        """
+        in_progress_voucher = {
+            "type": voucher_type.value,
+            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "value": points,
         }
 
-        validation_msg = resp_json.get("ValidationMsg")
-        error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
-        logger.error(
-            f"Failed login validation for member number {member_number}: {validation_msg}"
-        )
-        raise LoginError(error_type)
+        return in_progress_voucher
+
+    def _format_money_value(self, money_value: [float, int]) -> str:
+        """
+        Pad to 2 decimal places
+        """
+        money_value = f"{money_value:.2f}"
+
+        return money_value
+
+    def _make_transaction_description(
+        self, location_name: str, formatted_total_cost: str
+    ) -> str:
+        """
+        e.g. "Kensington High St £6.10"
+        """
+        description = f"{location_name} £{formatted_total_cost}"
+
+        return description
+
+    def _get_valid_api_token_and_make_headers(self):
+        """
+        Ensure our Acteol API token is valid and use to create headers for requests
+        """
+        # Get a valid API token
+        token = self.authenticate()
+        # Add auth for subsequent API calls
+        self.headers = self._make_headers(token=token["acteol_access_token"])
 
 
 class Wasabi(Acteol):
-    BASE_API_URL = "https://wasabiuat.wasabiworld.co.uk/api"
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
+    N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API

@@ -1,13 +1,17 @@
 import json
 import string
 import unittest
+from decimal import Decimal
 from http import HTTPStatus
 from unittest.mock import patch
+from urllib.parse import urljoin
 
+import arrow
 import httpretty
 import pytest
-from app.agents.acteol import Wasabi
-from app.agents.exceptions import END_SITE_DOWN, AgentError, LoginError
+from app.agents.acteol import VoucherType, Wasabi
+from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
+from arrow import Arrow
 
 
 class TestWasabi(unittest.TestCase):
@@ -15,7 +19,7 @@ class TestWasabi(unittest.TestCase):
     def setUpClass(cls):
         with unittest.mock.patch("app.agents.acteol.Configuration"):
             cls.mock_token = {
-                "token": "abcde12345fghij",
+                "acteol_access_token": "abcde12345fghij",
                 "timestamp": 123456789,
             }
 
@@ -30,6 +34,7 @@ class TestWasabi(unittest.TestCase):
                 },
             ]
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
+            cls.wasabi.base_url = "https://wasabiuat.wasabiworld.co.uk/"
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
@@ -86,7 +91,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 100,  # an easy number to work with to get 75600
         }
 
@@ -108,7 +113,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 10,  # an easy number to work with to exceed the timout setting
         }
 
@@ -130,7 +135,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 450,  # an easy number to work with to stay within validity range
         }
 
@@ -150,7 +155,7 @@ class TestWasabi(unittest.TestCase):
         mock_acteol_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
         expected_token = {
-            "token": mock_acteol_access_token,
+            "acteol_access_token": mock_acteol_access_token,
             "timestamp": mock_current_timestamp,
         }
 
@@ -206,8 +211,8 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
         )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.OK,
@@ -230,8 +235,8 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
         )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
@@ -248,8 +253,8 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Contact/FindByOriginID?OriginID={origin_id}"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
         )
         httpretty.register_uri(
             httpretty.GET,
@@ -273,7 +278,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         expected_ctcid = "54321"
         httpretty.register_uri(
             httpretty.POST,
@@ -304,7 +309,7 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/PostContact"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
         credentials = {
             "first_name": "Sarah",
@@ -326,7 +331,9 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         ctcid = "54321"
         expected_member_number = "987654321"
-        api_url = f"{self.wasabi.BASE_API_URL}/Contact/AddMemberNumber?CtcID={ctcid}"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}"
+        )
         response_data = {
             "Response": True,
             "MemberNumber": expected_member_number,
@@ -352,10 +359,14 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = (
-            f"{self.wasabi.BASE_API_URL}/Loyalty/GetCustomerDetailsByExternalCustomerID"
-            f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+        api_url = urljoin(
+            self.wasabi.base_url,
+            (
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+            ),
         )
+
         expected_email = "doesnotexist@bink.com"
         expected_customer_id = 142163
         expected_current_member_number = "1048183413"
@@ -435,8 +446,11 @@ class TestWasabi(unittest.TestCase):
         assert not customer_fields_are_present
 
     @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._get_vouchers")
     @patch("app.agents.acteol.Acteol._get_customer_details")
-    def test_balance(self, mock_get_customer_details, mock_authenticate):
+    def test_balance(
+        self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
+    ):
         """
         Check that the call to balance() returns an expected dict
         """
@@ -446,10 +460,19 @@ class TestWasabi(unittest.TestCase):
 
         mock_points = 7
         expected_points = 7
+        # Assume we only have a single in-progress voucher
+        mock_get_vouchers.return_value = []
         expected_balance = {
-            "points": expected_points,
-            "value": expected_points,
+            "points": Decimal(expected_points),
+            "value": Decimal(expected_points),
             "value_label": "",
+            "vouchers": [
+                {
+                    "type": VoucherType.STAMPS.value,
+                    "target_value": expected_points,
+                    "value": Decimal(expected_points),
+                }
+            ],
         }
         customer_details = {
             "Firstname": "David",
@@ -483,6 +506,8 @@ class TestWasabi(unittest.TestCase):
             "email": "testperson@bink.com",
             "phone": "08765543210",
             "postcode": "BN77UU",
+            "card_number": "1048183413",
+            "merchant_identifier": 142163,
         }
 
         # WHEN
@@ -578,7 +603,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         ctcid = "54321"
         email_optin_pref = True
-        api_url = f"{self.wasabi.BASE_API_URL}/CommunicationPreference/Post"
+        api_url = urljoin(self.wasabi.base_url, "api/CommunicationPreference/Post")
         httpretty.register_uri(
             httpretty.POST, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
@@ -614,7 +639,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
         "app.agents.acteol.Acteol._validate_member_number",
-        side_effect=AgentError(END_SITE_DOWN),
+        side_effect=LoginError(STATUS_LOGIN_FAILED),
     )
     def test_login_fail(self, mock_validate_member_number, mock_authenticate):
         """
@@ -679,3 +704,584 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert mock_validate_member_number.called_once()
+
+    def test_filter_bink_vouchers(self):
+        """
+        Test filtering by voucher["CategoryName"] == "BINK"
+        """
+        # GIVEN
+        vouchers = [
+            {
+                "VoucherID": 1,
+                "OfferID": 1,
+                "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+                "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+                "Conditions": "sample string 1",
+                "Message": "sample string 2",
+                "CategoryID": 3,
+                "CategoryName": "Not BINK",
+                "SubCategoryName": "sample string 5",
+                "Description": "sample string 6",
+                "CtcID": 1,
+                "CustomerName": "sample string 7",
+                "Redeemed": True,
+                "RedeemedBy": "sample string 8",
+                "Location": "sample string 9",
+                "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+                "URD": "2020-07-22T16:44:39.8253129+01:00",
+                "Disabled": True,
+                "Notes": "sample string 11",
+                "ReactivationComment": "sample string 12",
+                "WeekDays": [
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                ],
+                "DayHours": [
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                ],
+                "RandomID": "sample string 13",
+                "VoucherCode": "sample string 14",
+                "SmallImage": "sample string 15",
+                "MediumImage": "sample string 16",
+                "LargeImage": "sample string 17",
+                "VoucherTypeName": "sample string 18",
+                "Value": 1.1,
+                "Products": ["sample string 1", "sample string 2"],
+                "DiscountType": "sample string 19",
+                "DiscountAmount": 20.1,
+                "DiscountPercentage": 21.1,
+                "QualifiedBasketAmount": 22.1,
+                "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+                "ProductKey": "sample string 23",
+                "Source": "sample string 24",
+                "InterestNodeCode": 25,
+                "ActiveOffer": True,
+                "BrandID": 1,
+            },
+            {
+                "VoucherID": 2,
+                "OfferID": 2,
+                "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+                "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+                "Conditions": "sample string 1",
+                "Message": "sample string 2",
+                "CategoryID": 3,
+                "CategoryName": "BINK",
+                "SubCategoryName": "sample string 5",
+                "Description": "sample string 6",
+                "CtcID": 1,
+                "CustomerName": "sample string 7",
+                "Redeemed": True,
+                "RedeemedBy": "sample string 8",
+                "Location": "sample string 9",
+                "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+                "URD": "2020-07-22T16:44:39.8253129+01:00",
+                "Disabled": True,
+                "Notes": "sample string 11",
+                "ReactivationComment": "sample string 12",
+                "WeekDays": [
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                ],
+                "DayHours": [
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                ],
+                "RandomID": "sample string 13",
+                "VoucherCode": "sample string 14",
+                "SmallImage": "sample string 15",
+                "MediumImage": "sample string 16",
+                "LargeImage": "sample string 17",
+                "VoucherTypeName": "sample string 18",
+                "Value": 1.1,
+                "Products": ["sample string 1", "sample string 2"],
+                "DiscountType": "sample string 19",
+                "DiscountAmount": 20.1,
+                "DiscountPercentage": 21.1,
+                "QualifiedBasketAmount": 22.1,
+                "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+                "ProductKey": "sample string 23",
+                "Source": "sample string 24",
+                "InterestNodeCode": 25,
+                "ActiveOffer": True,
+                "BrandID": 1,
+            },
+        ]
+
+        # WHEN
+        bink_only_vouchers = self.wasabi._filter_bink_vouchers(vouchers=vouchers)
+
+        # THEN
+        assert len(bink_only_vouchers) == 1
+
+    def test_map_redeemed_voucher_to_bink_struct(self):
+        # GIVEN
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+            "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": True,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [],
+            "DayHours": [],
+            "RandomID": "sample string 13",
+            "VoucherCode": "sample string 14",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "date_issued": 1595432679,  # voucher StartDate as timestamp
+            "date_redeemed": 1595432679,  # voucher RedemptionDate as timestamp
+            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_cancelled_voucher_to_bink_struct(self):
+        # GIVEN
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
+            "ExpiryDate": "2020-07-22T16:44:39.8253129+01:00",
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "",
+            "Location": "sample string 9",
+            "RedemptionDate": None,
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": True,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [],
+            "DayHours": [],
+            "RandomID": "sample string 13",
+            "VoucherCode": "sample string 14",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "date_issued": 1595432679,  # voucher StartDate as timestamp
+            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_issued_voucher_to_bink_struct(self):
+        """
+        # Test for issued voucher. Conditions are:
+        # vouchers.state = GetAllByCustomerID.voucher.ExpiryDate >= CurrentDate
+        # && GetAllByCustomerID.voucher.Redeemed = false
+        # && GetAllByCustomerID.voucher.Disabled = false
+        """
+        # GIVEN
+        now = arrow.now()
+        one_month_from_now = arrow.now().shift(months=1)
+        one_month_from_now_timestamp = one_month_from_now.timestamp
+
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": str(now),
+            "ExpiryDate": str(one_month_from_now),
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [],
+            "DayHours": [],
+            "RandomID": "sample string 13",
+            "VoucherCode": "VOUCH123CODE456",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "type": VoucherType.STAMPS.value,
+            "code": voucher["VoucherCode"],
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "expiry_date": one_month_from_now_timestamp,
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_map_expired_voucher_to_bink_struct(self):
+        """
+        # Test for expired voucher. Conditions are:
+        # vouchers.state = GetAllByCustomerID.voucher.ExpiryDate < CurrentDate
+        """
+        # GIVEN
+        now = arrow.now()
+        one_month_ago = arrow.now().shift(months=-1)
+        one_month_ago_timestamp = one_month_ago.timestamp
+
+        voucher = {
+            "VoucherID": 1,
+            "OfferID": 1,
+            "StartDate": str(now),
+            "ExpiryDate": str(one_month_ago),
+            "Conditions": "sample string 1",
+            "Message": "sample string 2",
+            "CategoryID": 3,
+            "CategoryName": "BINK",
+            "SubCategoryName": "sample string 5",
+            "Description": "sample string 6",
+            "CtcID": 1,
+            "CustomerName": "sample string 7",
+            "Redeemed": False,
+            "RedeemedBy": "sample string 8",
+            "Location": "sample string 9",
+            "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "Disabled": False,
+            "Notes": "sample string 11",
+            "ReactivationComment": "sample string 12",
+            "WeekDays": [],
+            "DayHours": [],
+            "RandomID": "sample string 13",
+            "VoucherCode": "VOUCH123CODE456",
+            "SmallImage": "sample string 15",
+            "MediumImage": "sample string 16",
+            "LargeImage": "sample string 17",
+            "VoucherTypeName": "sample string 18",
+            "Value": 1.1,
+            "Products": ["sample string 1", "sample string 2"],
+            "DiscountType": "sample string 19",
+            "DiscountAmount": 20.1,
+            "DiscountPercentage": 21.1,
+            "QualifiedBasketAmount": 22.1,
+            "QualifiedBasketProducts": ["sample string 1", "sample string 2"],
+            "ProductKey": "sample string 23",
+            "Source": "sample string 24",
+            "InterestNodeCode": 25,
+            "ActiveOffer": True,
+            "BrandID": 1,
+        }
+
+        expected_mapped_voucher = {
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "expiry_date": one_month_ago_timestamp,
+        }
+
+        # WHEN
+        mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
+
+        # THEN
+        assert mapped_voucher == expected_mapped_voucher
+
+    def test_make_in_progress_voucher(self):
+        """
+            Test making an in-progress voucher dict
+            """
+        # GIVEN
+        points = Decimal(123)
+        expected_in_progress_voucher = {
+            "type": VoucherType.STAMPS.value,
+            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "value": points,
+        }
+
+        # WHEN
+        in_progress_voucher = self.wasabi._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
+
+        # THEN
+        assert in_progress_voucher == expected_in_progress_voucher
+
+        return in_progress_voucher
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_scrape_transactions(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        ctcid = 666999
+        n_records = 5
+        api_url = urljoin(
+            self.wasabi.base_url,
+            f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false",
+        )
+        mock_transactions = [
+            {
+                "CustomerID": ctcid,
+                "OrderID": 18355,
+                "LocationID": "66",
+                "LocationName": "Kimchee Pancras Square",
+                "OrderDate": "2020-06-17T10:56:38.36",
+                "OrderItems": None,
+                "TotalCostExclTax": 0.0,
+                "TotalCost": 72.5,
+                "PointEarned": 1.0,
+                "AmountEarned": 0.0,
+                "SourceID": None,
+                "VATNumber": "198",
+                "UsedToEarnPoint": False,
+            },
+            {
+                "CustomerID": ctcid,
+                "OrderID": 18631,
+                "LocationID": "66",
+                "LocationName": "Kimchee Pancras Square",
+                "OrderDate": "2020-06-17T10:56:38.36",
+                "OrderItems": None,
+                "TotalCostExclTax": 0.0,
+                "TotalCost": 0.0,
+                "PointEarned": 1.0,
+                "AmountEarned": 0.0,
+                "SourceID": None,
+                "VATNumber": "513",
+                "UsedToEarnPoint": False,
+            },
+        ]
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(mock_transactions))],
+            status=HTTPStatus.OK,
+        )
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+            "card_number": "1048183413",
+            "merchant_identifier": ctcid,
+        }
+
+        # WHEN
+        transactions = self.wasabi.scrape_transactions()
+
+        # THEN
+        assert transactions == mock_transactions
+
+    def test_format_money_value(self):
+        # GIVEN
+        money_value1 = 6.1
+        money_value2 = 06.1
+        money_value3 = 600.1
+        money_value4 = 6000.100
+
+        # WHEN
+        formatted_money_value1 = self.wasabi._format_money_value(
+            money_value=money_value1
+        )
+        formatted_money_value2 = self.wasabi._format_money_value(
+            money_value=money_value2
+        )
+        formatted_money_value3 = self.wasabi._format_money_value(
+            money_value=money_value3
+        )
+        formatted_money_value4 = self.wasabi._format_money_value(
+            money_value=money_value4
+        )
+
+        # THEN
+        assert formatted_money_value1 == "6.10"
+        assert formatted_money_value2 == "6.10"
+        assert formatted_money_value3 == "600.10"
+        assert formatted_money_value4 == "6000.10"
+
+    def test_parse_transaction(self):
+        # GIVEN
+        ctcid = 666999
+        location_name = "Kimchee Pancras Square"
+        expected_points = 7
+        total_cost = 6.1
+        transaction = {
+            "CustomerID": ctcid,
+            "OrderID": 2,
+            "LocationID": "66",
+            "LocationName": location_name,
+            "OrderDate": "2020-07-28T17:55:35.6644044+01:00",
+            "OrderItems": [
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+            ],
+            "TotalCostExclTax": 5.1,
+            "TotalCost": total_cost,
+            "PointEarned": 7.1,
+            "AmountEarned": 8.1,
+            "SourceID": "sample string 9",
+            "VATNumber": "sample string 10",
+            "UsedToEarnPoint": True,
+        }
+
+        # WHEN
+        parsed_transaction = self.wasabi.parse_transaction(transaction=transaction)
+        # AND
+        formatted_total_cost = self.wasabi._format_money_value(money_value=total_cost)
+        description = self.wasabi._make_transaction_description(
+            location_name=location_name, formatted_total_cost=formatted_total_cost,
+        )
+
+        # THEN
+        assert isinstance(parsed_transaction["date"], Arrow)
+        assert parsed_transaction["description"] == description
+        assert parsed_transaction["location"] == location_name
+        assert parsed_transaction["points"] == expected_points
