@@ -14,7 +14,7 @@ class TestWasabi:
 
         # THEN
         assert isinstance(token, dict)
-        assert "token" in token
+        assert "acteol_access_token" in token
         assert "timestamp" in token
 
     def test_refreshes_token(self, wasabi):
