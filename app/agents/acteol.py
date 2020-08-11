@@ -1,5 +1,6 @@
 import enum
 import json
+from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List
 from urllib.parse import urljoin
@@ -170,7 +171,7 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
-        points = int(customer_details["LoyaltyPointsBalance"])
+        points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
         # data from Acteol. If it's not already present in the credentials then populate that field from
