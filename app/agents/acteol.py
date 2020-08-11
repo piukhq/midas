@@ -694,8 +694,8 @@ class Acteol(ApiMiner):
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
-                "date_redeemed": arrow.get(voucher["RedemptionDate"]).timestamp,
+                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
+                "redeem_date": arrow.get(voucher["RedemptionDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
@@ -714,7 +714,7 @@ class Acteol(ApiMiner):
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
@@ -742,7 +742,7 @@ class Acteol(ApiMiner):
                 "code": voucher["VoucherCode"],
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
@@ -764,7 +764,7 @@ class Acteol(ApiMiner):
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "date_issued": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
