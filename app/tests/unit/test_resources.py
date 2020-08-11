@@ -281,7 +281,8 @@ class TestResources(TestCase):
             "user_id": 4,
             "credentials": credentials,
             'status': 0,
-            'journey_type': 0
+            'journey_type': 0,
+            'channel': 'com.bink.wallet'
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
