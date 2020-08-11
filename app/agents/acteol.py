@@ -216,8 +216,8 @@ class Acteol(ApiMiner):
             money_value=transaction["TotalCost"]
         )
 
-        order_date = arrow.get(transaction["OrderDate"])
-        points = int(transaction["PointEarned"])
+        order_date = arrow.get(transaction["OrderDate"]).timestamp
+        points = Decimal(transaction["PointEarned"])
         description = self._make_transaction_description(
             location_name=transaction["LocationName"],
             formatted_total_cost=formatted_total_cost,
