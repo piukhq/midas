@@ -11,6 +11,7 @@ import httpretty
 import pytest
 from app.agents.acteol import VoucherType, Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
+from arrow import Arrow
 
 
 class TestWasabi(unittest.TestCase):
@@ -18,7 +19,7 @@ class TestWasabi(unittest.TestCase):
     def setUpClass(cls):
         with unittest.mock.patch("app.agents.acteol.Configuration"):
             cls.mock_token = {
-                "token": "abcde12345fghij",
+                "acteol_access_token": "abcde12345fghij",
                 "timestamp": 123456789,
             }
 
@@ -90,7 +91,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 100,  # an easy number to work with to get 75600
         }
 
@@ -112,7 +113,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 10,  # an easy number to work with to exceed the timout setting
         }
 
@@ -134,7 +135,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
         self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
         mock_token = {
-            "token": "abcde12345fghij",
+            "acteol_access_token": "abcde12345fghij",
             "timestamp": 450,  # an easy number to work with to stay within validity range
         }
 
@@ -154,7 +155,7 @@ class TestWasabi(unittest.TestCase):
         mock_acteol_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
         expected_token = {
-            "token": mock_acteol_access_token,
+            "acteol_access_token": mock_acteol_access_token,
             "timestamp": mock_current_timestamp,
         }
 
@@ -1131,3 +1132,156 @@ class TestWasabi(unittest.TestCase):
         assert in_progress_voucher == expected_in_progress_voucher
 
         return in_progress_voucher
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_scrape_transactions(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        ctcid = 666999
+        n_records = 5
+        api_url = urljoin(
+            self.wasabi.base_url,
+            f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false",
+        )
+        mock_transactions = [
+            {
+                "CustomerID": ctcid,
+                "OrderID": 18355,
+                "LocationID": "66",
+                "LocationName": "Kimchee Pancras Square",
+                "OrderDate": "2020-06-17T10:56:38.36",
+                "OrderItems": None,
+                "TotalCostExclTax": 0.0,
+                "TotalCost": 72.5,
+                "PointEarned": 1.0,
+                "AmountEarned": 0.0,
+                "SourceID": None,
+                "VATNumber": "198",
+                "UsedToEarnPoint": False,
+            },
+            {
+                "CustomerID": ctcid,
+                "OrderID": 18631,
+                "LocationID": "66",
+                "LocationName": "Kimchee Pancras Square",
+                "OrderDate": "2020-06-17T10:56:38.36",
+                "OrderItems": None,
+                "TotalCostExclTax": 0.0,
+                "TotalCost": 0.0,
+                "PointEarned": 1.0,
+                "AmountEarned": 0.0,
+                "SourceID": None,
+                "VATNumber": "513",
+                "UsedToEarnPoint": False,
+            },
+        ]
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(mock_transactions))],
+            status=HTTPStatus.OK,
+        )
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "phone": "08765543210",
+            "postcode": "BN77UU",
+            "card_number": "1048183413",
+            "merchant_identifier": ctcid,
+        }
+
+        # WHEN
+        transactions = self.wasabi.scrape_transactions()
+
+        # THEN
+        assert transactions == mock_transactions
+
+    def test_format_money_value(self):
+        # GIVEN
+        money_value1 = 6.1
+        money_value2 = 06.1
+        money_value3 = 600.1
+        money_value4 = 6000.100
+
+        # WHEN
+        formatted_money_value1 = self.wasabi._format_money_value(
+            money_value=money_value1
+        )
+        formatted_money_value2 = self.wasabi._format_money_value(
+            money_value=money_value2
+        )
+        formatted_money_value3 = self.wasabi._format_money_value(
+            money_value=money_value3
+        )
+        formatted_money_value4 = self.wasabi._format_money_value(
+            money_value=money_value4
+        )
+
+        # THEN
+        assert formatted_money_value1 == "6.10"
+        assert formatted_money_value2 == "6.10"
+        assert formatted_money_value3 == "600.10"
+        assert formatted_money_value4 == "6000.10"
+
+    def test_parse_transaction(self):
+        # GIVEN
+        ctcid = 666999
+        location_name = "Kimchee Pancras Square"
+        expected_points = 7
+        total_cost = 6.1
+        transaction = {
+            "CustomerID": ctcid,
+            "OrderID": 2,
+            "LocationID": "66",
+            "LocationName": location_name,
+            "OrderDate": "2020-07-28T17:55:35.6644044+01:00",
+            "OrderItems": [
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+                {
+                    "ItemID": 1,
+                    "Name": "sample string 2",
+                    "ProductCode": "sample string 3",
+                    "Quantity": 4,
+                    "UnitPrice": 5.1,
+                    "DiscountAmount": 6.1,
+                    "TotalAmountExclTax": 7.1,
+                    "TotalAmount": 8.1,
+                    "CustomerID": 9,
+                },
+            ],
+            "TotalCostExclTax": 5.1,
+            "TotalCost": total_cost,
+            "PointEarned": 7.1,
+            "AmountEarned": 8.1,
+            "SourceID": "sample string 9",
+            "VATNumber": "sample string 10",
+            "UsedToEarnPoint": True,
+        }
+
+        # WHEN
+        parsed_transaction = self.wasabi.parse_transaction(transaction=transaction)
+        # AND
+        formatted_total_cost = self.wasabi._format_money_value(money_value=total_cost)
+        description = self.wasabi._make_transaction_description(
+            location_name=location_name, formatted_total_cost=formatted_total_cost,
+        )
+
+        # THEN
+        assert isinstance(parsed_transaction["date"], Arrow)
+        assert parsed_transaction["description"] == description
+        assert parsed_transaction["location"] == location_name
+        assert parsed_transaction["points"] == expected_points
