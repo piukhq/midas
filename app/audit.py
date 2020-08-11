@@ -109,7 +109,7 @@ class AuditLogger:
 
         logger.info(payload)
         try:
-            resp = requests.post(f"{ATLAS_URL}/member/audit/request_audit", headers=headers, json=payload)
+            resp = requests.post(f"{ATLAS_URL}/audit/member/request_audit", headers=headers, json=payload)
             if resp.ok:
                 logger.info("Successfully sent audit logs to Atlas")
                 self.audit_logs.clear()
