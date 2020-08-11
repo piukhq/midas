@@ -904,8 +904,8 @@ class TestWasabi(unittest.TestCase):
             "type": VoucherType.STAMPS.value,
             "target_value": self.wasabi.POINTS_TARGET_VALUE,
             "value": self.wasabi.POINTS_TARGET_VALUE,
-            "date_issued": 1595432679,  # voucher StartDate as timestamp
-            "date_redeemed": 1595432679,  # voucher RedemptionDate as timestamp
+            "issue_date": 1595432679,  # voucher StartDate as timestamp
+            "redeem_date": 1595432679,  # voucher RedemptionDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
 
@@ -964,7 +964,7 @@ class TestWasabi(unittest.TestCase):
             "type": VoucherType.STAMPS.value,
             "target_value": self.wasabi.POINTS_TARGET_VALUE,
             "value": self.wasabi.POINTS_TARGET_VALUE,
-            "date_issued": 1595432679,  # voucher StartDate as timestamp
+            "issue_date": 1595432679,  # voucher StartDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
 
@@ -1034,7 +1034,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": self.wasabi.POINTS_TARGET_VALUE,
             "value": self.wasabi.POINTS_TARGET_VALUE,
-            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "issue_date": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_from_now_timestamp,
         }
 
@@ -1101,7 +1101,7 @@ class TestWasabi(unittest.TestCase):
             "type": VoucherType.STAMPS.value,
             "target_value": self.wasabi.POINTS_TARGET_VALUE,
             "value": self.wasabi.POINTS_TARGET_VALUE,
-            "date_issued": now.timestamp,  # voucher StartDate as timestamp
+            "issue_date": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_ago_timestamp,
         }
 
