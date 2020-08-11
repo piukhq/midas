@@ -19,6 +19,7 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from app.utils import TWO_PLACES
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
@@ -217,7 +218,7 @@ class Acteol(ApiMiner):
         )
 
         order_date = arrow.get(transaction["OrderDate"]).timestamp
-        points = Decimal(transaction["PointEarned"])
+        points = self._decimalise_to_two_places(transaction["PointEarned"])
         description = self._make_transaction_description(
             location_name=transaction["LocationName"],
             formatted_total_cost=formatted_total_cost,
@@ -787,11 +788,19 @@ class Acteol(ApiMiner):
 
     def _format_money_value(self, money_value: [float, int]) -> str:
         """
-        Pad to 2 decimal places
+        Pad to 2 decimal places and stringify
         """
-        money_value = f"{money_value:.2f}"
+        money_value = self._decimalise_to_two_places(value=money_value)
 
-        return money_value
+        return str(money_value)
+
+    def _decimalise_to_two_places(self, value: [float, int]) -> Decimal:
+        """
+        Round to 2 dp e.g. 7.899 -> 7.90 as Decimal
+        """
+        decimalised = Decimal(value).quantize(TWO_PLACES)
+
+        return decimalised
 
     def _make_transaction_description(
         self, location_name: str, formatted_total_cost: str
