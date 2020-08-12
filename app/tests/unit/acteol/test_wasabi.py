@@ -11,7 +11,6 @@ import httpretty
 import pytest
 from app.agents.acteol import VoucherType, Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
-from arrow import Arrow
 
 
 class TestWasabi(unittest.TestCase):
@@ -1227,11 +1226,33 @@ class TestWasabi(unittest.TestCase):
         assert formatted_money_value3 == "600.10"
         assert formatted_money_value4 == "6000.10"
 
+    def test_decimalise_to_two_places(self):
+        # GIVEN
+        value1 = 6.1
+        value2 = 06.1
+        value3 = 600.1
+        value4 = 6000.100
+        value5 = 6
+
+        # WHEN
+        decimalised1 = self.wasabi._decimalise_to_two_places(value=value1)
+        decimalised2 = self.wasabi._decimalise_to_two_places(value=value2)
+        decimalised3 = self.wasabi._decimalise_to_two_places(value=value3)
+        decimalised4 = self.wasabi._decimalise_to_two_places(value=value4)
+        decimalised5 = self.wasabi._decimalise_to_two_places(value=value5)
+
+        # THEN
+        assert decimalised1 == Decimal("6.10")
+        assert decimalised2 == Decimal("6.10")
+        assert decimalised3 == Decimal("600.10")
+        assert decimalised4 == Decimal("6000.10")
+        assert decimalised5 == Decimal("6.00")
+
     def test_parse_transaction(self):
         # GIVEN
         ctcid = 666999
         location_name = "Kimchee Pancras Square"
-        expected_points = 7
+        expected_points = self.wasabi._decimalise_to_two_places(7.1)
         total_cost = 6.1
         transaction = {
             "CustomerID": ctcid,
@@ -1281,7 +1302,8 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        assert isinstance(parsed_transaction["date"], Arrow)
+        assert isinstance(parsed_transaction["date"], int)  # Is a timestamp
         assert parsed_transaction["description"] == description
         assert parsed_transaction["location"] == location_name
+        assert isinstance(parsed_transaction["points"], Decimal)
         assert parsed_transaction["points"] == expected_points
