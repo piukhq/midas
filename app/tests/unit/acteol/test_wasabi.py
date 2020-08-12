@@ -11,7 +11,6 @@ import httpretty
 import pytest
 from app.agents.acteol import VoucherType, Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
-from arrow import Arrow
 
 
 class TestWasabi(unittest.TestCase):
@@ -1236,21 +1235,11 @@ class TestWasabi(unittest.TestCase):
         value5 = 6
 
         # WHEN
-        decimalised1 = self.wasabi._decimalise_to_two_places(
-            value=value1
-        )
-        decimalised2 = self.wasabi._decimalise_to_two_places(
-            value=value2
-        )
-        decimalised3 = self.wasabi._decimalise_to_two_places(
-            value=value3
-        )
-        decimalised4 = self.wasabi._decimalise_to_two_places(
-            value=value4
-        )
-        decimalised5 = self.wasabi._decimalise_to_two_places(
-            value=value5
-        )
+        decimalised1 = self.wasabi._decimalise_to_two_places(value=value1)
+        decimalised2 = self.wasabi._decimalise_to_two_places(value=value2)
+        decimalised3 = self.wasabi._decimalise_to_two_places(value=value3)
+        decimalised4 = self.wasabi._decimalise_to_two_places(value=value4)
+        decimalised5 = self.wasabi._decimalise_to_two_places(value=value5)
 
         # THEN
         assert decimalised1 == Decimal("6.10")
