@@ -693,8 +693,8 @@ class Acteol(ApiMiner):
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
             return {
                 "type": VoucherType.STAMPS.value,
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "target_value": None,  # None == will be set to Earn Target Value in Hermes
+                "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "redeem_date": arrow.get(voucher["RedemptionDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
@@ -713,8 +713,8 @@ class Acteol(ApiMiner):
         if voucher.get("Disabled"):
             return {
                 "type": VoucherType.STAMPS.value,
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "target_value": None,  # None == will be set to Earn Target Value in Hermes
+                "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
@@ -741,8 +741,8 @@ class Acteol(ApiMiner):
             return {
                 "type": VoucherType.STAMPS.value,
                 "code": voucher["VoucherCode"],
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "target_value": None,  # None == will be set to Earn Target Value in Hermes
+                "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
@@ -763,15 +763,15 @@ class Acteol(ApiMiner):
         if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
             return {
                 "type": VoucherType.STAMPS.value,
-                "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
-                "value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+                "target_value": None,  # None == will be set to Earn Target Value in Hermes
+                "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
         return None
 
-    def _make_in_progress_voucher(self, points: Decimal, voucher_type: enum) -> Dict:
+    def _make_in_progress_voucher(self, points: int, voucher_type: enum) -> Dict:
         """
         Make an in-progress voucher dict
 
@@ -780,7 +780,7 @@ class Acteol(ApiMiner):
         """
         in_progress_voucher = {
             "type": voucher_type.value,
-            "target_value": self.POINTS_TARGET_VALUE,  # Should come from Django config
+            "target_value": None,  # None == will be set to Earn Target Value in Hermes
             "value": points,
         }
 
@@ -827,5 +827,4 @@ class Wasabi(Acteol):
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
-    POINTS_TARGET_VALUE = 7  # Hardcoded for now, but must come out of Django config
     N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API

@@ -468,7 +468,7 @@ class TestWasabi(unittest.TestCase):
             "vouchers": [
                 {
                     "type": VoucherType.STAMPS.value,
-                    "target_value": expected_points,
+                    "target_value": None,
                     "value": Decimal(expected_points),
                 }
             ],
@@ -901,8 +901,8 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = {
             "type": VoucherType.STAMPS.value,
-            "target_value": self.wasabi.POINTS_TARGET_VALUE,
-            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "target_value": None,
+            "value": None,
             "issue_date": 1595432679,  # voucher StartDate as timestamp
             "redeem_date": 1595432679,  # voucher RedemptionDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
@@ -961,8 +961,8 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = {
             "type": VoucherType.STAMPS.value,
-            "target_value": self.wasabi.POINTS_TARGET_VALUE,
-            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "target_value": None,
+            "value": None,
             "issue_date": 1595432679,  # voucher StartDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
@@ -1031,8 +1031,8 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "type": VoucherType.STAMPS.value,
             "code": voucher["VoucherCode"],
-            "target_value": self.wasabi.POINTS_TARGET_VALUE,
-            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "target_value": None,
+            "value": None,
             "issue_date": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_from_now_timestamp,
         }
@@ -1098,8 +1098,8 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = {
             "type": VoucherType.STAMPS.value,
-            "target_value": self.wasabi.POINTS_TARGET_VALUE,
-            "value": self.wasabi.POINTS_TARGET_VALUE,
+            "target_value": None,
+            "value": None,
             "issue_date": now.timestamp,  # voucher StartDate as timestamp
             "expiry_date": one_month_ago_timestamp,
         }
@@ -1118,7 +1118,7 @@ class TestWasabi(unittest.TestCase):
         points = Decimal(123)
         expected_in_progress_voucher = {
             "type": VoucherType.STAMPS.value,
-            "target_value": self.wasabi.POINTS_TARGET_VALUE,
+            "target_value": None,
             "value": points,
         }
 
