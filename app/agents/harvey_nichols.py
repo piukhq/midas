@@ -57,7 +57,7 @@ class HarveyNichols(ApiMiner):
                 UNKNOWN: ["Fail"],
             }
 
-        # For non-JOIN journeys we should check to see if we should login by
+        # For LINK journeys we should check to see if we can login by
         # checking the web only endpoint (MER-317) and stop if it's a Web-only
         # account. If there's a token in redis, we have previously logged in and
         # so should be able to login again.
@@ -65,9 +65,9 @@ class HarveyNichols(ApiMiner):
         try:
             self.token = self.token_store.get(self.scheme_id)
         except self.token_store.NoSuchToken:
+            sign_on_required = True
             if self.journey_type == JourneyTypes.LINK.value:
                 self.check_loyalty_account_valid(self.credentials)
-                sign_on_required = True
 
         try:
             self.customer_number = credentials[self.identifier_type]

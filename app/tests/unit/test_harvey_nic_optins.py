@@ -312,6 +312,30 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
     @mock.patch('app.tasks.resend_consents.send_consents')
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
+    def test_login_update_journey(self, mock_make_request, mock_send_consents):
+        credentials = self.credentials.copy()
+        credentials['card_number'] = 'card number'
+        self.hn.scheme_id = 101
+        self.hn.journey_type = JourneyTypes.UPDATE.value
+        mock_make_request.side_effect = [
+            MockResponse({
+                'CustomerSignOnResult': {
+                    'outcome': 'Success',
+                    'customerNumber': '2601507998647',
+                    'token': '1234'
+                }
+            }, 200)
+        ]
+
+        self.hn.login(credentials)
+        self.assertEqual(
+            'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
+            mock_make_request.call_args_list[0][0][0]
+        )
+        self.assertEqual('1234', self.hn.token)
+
+    @mock.patch('app.tasks.resend_consents.send_consents')
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request')
     def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.token_store = MockStore()
