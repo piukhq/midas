@@ -38,7 +38,9 @@ mock_configuration.country = 'GB'
 
 json_data = json.dumps({'message_uid': '123-123-123-123',
                         'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',  # hash for a scheme account id of 1
-                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'})
+                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                        'channel': 'com.bink.wallet'
+                        })
 
 
 class TestMerchantApi(FlaskTestCase):
@@ -1290,7 +1292,8 @@ class TestOAuth(TestCase):
             'json': {
                 'message_uid': '123-123-123-123',
                 'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
-                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'
+                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                'channel': 'com.bink.wallet',
             }
         }
 
