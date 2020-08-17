@@ -23,7 +23,7 @@ def test():
     """Run the tests."""
     import pytest
 
-    params = [UNIT_TEST_PATH, '--verbose', ]
+    params = [UNIT_TEST_PATH, '--verbose', '-s']
     exit_code = pytest.main(params)
     return exit_code
 

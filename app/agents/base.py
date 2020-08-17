@@ -422,6 +422,7 @@ class MerchantApi(BaseMiner):
         self.config = config
         self.consents_data = consents_data
 
+        self.message_uid = None
         self.record_uid = None
         self.request = None
         self.result = None

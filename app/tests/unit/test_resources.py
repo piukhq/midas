@@ -362,7 +362,8 @@ class TestResources(TestCase):
         user_info = {
             'credentials': {},
             'scheme_account_id': 2,
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
 
         with self.assertRaises(AgentException):

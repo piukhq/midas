@@ -173,6 +173,7 @@ class TestMerchantApi(FlaskTestCase):
             'user_id': 'test user id',
             'credentials': {},
             'scheme_account_id': 2,
+            'channel': 'com.bink.wallet'
         }
 
         register_data = agent_register(MerchantApi, user_info, {}, 1)

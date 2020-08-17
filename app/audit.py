@@ -105,7 +105,7 @@ class AuditLogger:
         headers = get_headers(tid=str(uuid4()))
 
         self.filter_fields()
-        payload = [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]
+        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
 
         logger.info(payload)
         try:
