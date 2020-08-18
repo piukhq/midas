@@ -724,6 +724,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[1],
             integration_service=self.config.integration_service,
             status_code=status,
+            response_body=response.text,
         )
         self.audit_logger.send_to_atlas()
 

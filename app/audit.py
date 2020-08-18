@@ -83,6 +83,7 @@ class AuditLogger:
         status_code: int,
         message_uid: str,
         record_uid: str,
+        response_body: str,
     ) -> None:
 
         try:
@@ -108,8 +109,9 @@ class AuditLogger:
         payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
 
         logger.info(payload)
+
         try:
-            resp = requests.post(f"{ATLAS_URL}/audit/member/request_audit", headers=headers, json=payload)
+            resp = requests.post(f"{ATLAS_URL}/audit/enrol/enrol-audit", headers=headers, json=payload)
             if resp.ok:
                 logger.info("Successfully sent audit logs to Atlas")
                 self.audit_logs.clear()
