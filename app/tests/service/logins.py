@@ -16,6 +16,7 @@ AGENT_CLASS_ARGUMENTS = [
         'user_set': '1,2',
         'journey_type': None,
         'credentials': {},
+        'channel': 'com.bink.wallet'
     }
 ]
 

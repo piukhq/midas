@@ -83,6 +83,13 @@ def mock_harvey_nick_post(*args, **kwargs):
                                                   }}, 200)
 
 
+def mock_harvey_nick_register(*args, **kwargs):
+    return MockResponse({'CustomerSignUpResult': {'outcome': 'Success',
+                                                  'customerNumber': '2601507998647',
+                                                  'token': '1234'
+                                                  }}, 200)
+
+
 class TestUserConsents(unittest.TestCase):
 
     def setUp(self):
@@ -90,6 +97,31 @@ class TestUserConsents(unittest.TestCase):
 
     def tearDown(self):
         settings.CELERY_ALWAYS_EAGER = False
+
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_register)
+    @mock.patch('app.audit.AuditLogger.send_to_atlas')
+    def test_harvey_nick_mock_register(self, mock_make_request, mock_atlas):
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
+        }
+        hn = HarveyNichols(retry_count=1, user_info=user_info)
+        hn.AGENT_TRIES = 1
+        hn.HERMES_CONFIRMATION_TRIES = 1
+        hn.scheme_id = 123
+        hn.token_store = MockStore()
+        credentials = {
+            'email': 'test@user.email',
+            'password': 'testPassword',
+            'title': 'Dr',
+            'first_name': 'test',
+            'last_name': 'user',
+        }
+        response = hn.register(credentials)
+
+        self.assertEqual(response, {"message": "success"})
+        self.assertTrue(mock_atlas)
 
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_400)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_400)
