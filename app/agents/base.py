@@ -277,6 +277,7 @@ class ApiMiner(BaseMiner):
         self.retry_count = retry_count
         self.errors = {}
         self.user_info = user_info
+        self.audit_logger = AuditLogger(channel=user_info['channel'])
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.

@@ -97,7 +97,8 @@ class TestUserConsents(unittest.TestCase):
     def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -130,7 +131,8 @@ class TestUserConsents(unittest.TestCase):
     def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -165,7 +167,8 @@ class TestUserConsents(unittest.TestCase):
         global saved_consents_data
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         saved_consents_data = {}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
@@ -220,7 +223,8 @@ class TestUserConsents(unittest.TestCase):
     def test_harvey_nick_mock_login_agent_fails(self, mock_login, mock_post, mock_put, mock_retry):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 3
@@ -284,7 +288,8 @@ class TestLoginJourneyTypes(unittest.TestCase):
         }
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
         self.hn.token_store = MockStore()

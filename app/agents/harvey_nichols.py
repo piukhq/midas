@@ -169,7 +169,29 @@ class HarveyNichols(ApiMiner):
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
+        self.audit_logger.add_request(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            message_uid=None,
+            record_uid=None,
+            handler_type=None,
+            integration_service=None
+        )
+
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
+
+        self.audit_logger.add_response(
+            response=self.register_response,
+            message_uid=None,
+            record_uid=None,
+            scheme_slug=self.scheme_slug,
+            handler_type=None,
+            integration_service=None,
+            status_code=self.register_response.status_code,
+            response_body=self.register_response.text,
+        )
+        self.audit_logger.send_to_atlas()
+
         message = self.register_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
