@@ -40,6 +40,12 @@ sudo docker-compose run --service-ports redis
 - `ENABLE_ICELAND_VALIDATE`
   - Boolean Value, allows Iceland validate calls for non-active scheme accounts.
   See `request_balance` function in `resources.py`
+
+- `ATLAS_URL`
+  - String Value, URL for ATLAS
+- `KEY`
+  - String Value, KEY to encrypt password that is sent to atlas
+  See https://cryptography.io/en/latest/ on how to generate a key using `cryptography.fernet`
     
 
 ### Use consents retry mechanism as explained in 

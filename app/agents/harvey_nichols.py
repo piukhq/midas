@@ -1,4 +1,7 @@
 from decimal import Decimal
+
+from cryptography.fernet import Fernet
+
 from app.agents.exceptions import (
     LoginError, RegistrationError,
     STATUS_REGISTRATION_FAILED,
@@ -10,7 +13,7 @@ from app.agents.exceptions import (
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL
+from settings import REDIS_URL, KEY
 from app.tasks.resend_consents import send_consents
 import arrow
 import json
@@ -26,6 +29,8 @@ class HarveyNichols(ApiMiner):
     HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents
     token_store = UserTokenStore(REDIS_URL)
     retry_limit = 9  # tries 10 times overall
+
+    encryption_key = Fernet(KEY)
 
     def check_loyalty_account_valid(self, credentials):
         """
@@ -168,6 +173,9 @@ class HarveyNichols(ApiMiner):
         }
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
+
+        payload = data.copy()
+        payload['password'] = self.encryption_key.encrypt(payload['password'].encode())
 
         self.audit_logger.add_request(
             payload=data,
