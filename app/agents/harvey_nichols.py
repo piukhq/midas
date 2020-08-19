@@ -175,7 +175,8 @@ class HarveyNichols(ApiMiner):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
         payload = data.copy()
-        payload['password'] = self.encryption_key.encrypt(payload['password'].encode())
+        payload['CustomerSignUpRequest']['password'] = self.encryption_key.encrypt(
+            payload['CustomerSignUpRequest']['password'].encode())
 
         self.audit_logger.add_request(
             payload=data,

@@ -1,6 +1,7 @@
 import logging
 import os
 
+from cryptography.fernet import Fernet
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
@@ -127,4 +128,4 @@ ENABLE_ICELAND_VALIDATE = env_var('ENABLE_ICELAND_VALIDATE', False)
 
 BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
 
-KEY = env_var('FERNET_KEY', '')
+KEY = env_var('FERNET_KEY', Fernet.generate_key())
