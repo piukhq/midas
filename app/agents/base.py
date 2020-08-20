@@ -712,7 +712,7 @@ class MerchantApi(BaseMiner):
             integration_service=self.config.integration_service
         )
 
-        response = requests.post(f"{self.config.merchant_url}/", **self.request)
+        response = requests.post(f"{self.config.merchant_url}", **self.request)
         status = response.status_code
 
         logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
