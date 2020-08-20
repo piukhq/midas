@@ -1,3 +1,4 @@
+from uuid import uuid1
 from decimal import Decimal
 
 from cryptography.fernet import Fernet
@@ -158,6 +159,7 @@ class HarveyNichols(ApiMiner):
         return sorted_transactions
 
     def register(self, credentials):
+        message_uid = str(uuid1())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.BASE_URL + "/SignUp"
         data = {
@@ -181,7 +183,7 @@ class HarveyNichols(ApiMiner):
         self.audit_logger.add_request(
             payload=data,
             scheme_slug=self.scheme_slug,
-            message_uid=None,
+            message_uid=message_uid,
             record_uid=None,
             handler_type=None,
             integration_service=None
@@ -191,7 +193,7 @@ class HarveyNichols(ApiMiner):
 
         self.audit_logger.add_response(
             response=self.register_response,
-            message_uid=None,
+            message_uid=message_uid,
             record_uid=None,
             scheme_slug=self.scheme_slug,
             handler_type=None,
