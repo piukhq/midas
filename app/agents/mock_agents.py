@@ -248,3 +248,94 @@ class MockAgentCoop(MockedMiner):
             self.identifier['merchant_identifier'] = '4000000000001'
         if not credentials.get('card_number'):
             self.identifier['card_number'] = card_number
+
+
+class MockAgentWHS(MockedMiner):
+    add_error_credentials = {
+        'email': {
+            'endsitedown@testbink.com': END_SITE_DOWN,
+        },
+    }
+    existing_card_numbers = card_numbers.HARVEY_NICHOLS
+    join_fields = {
+        "email",
+        "title",
+        "first_name",
+        "last_name",
+        "phone",
+        "address_1",
+        "town_city",
+        "postcode",
+    }
+
+    join_prefix = '911'
+    titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prefer not to say']
+
+    def login(self, credentials):
+        self.check_and_raise_error_credentials(credentials)
+
+        # if join request, assign new user rather than check credentials
+        if self.join_fields.issubset(credentials.keys()):
+            self.user_info = USER_STORE['000000']
+            card_suffix = random.randint(0, 9999999999)
+            self.identifier = {
+                'card_number': f'{self.join_prefix}{card_suffix:010d}'
+            }
+            return
+
+        card_number = credentials.get('card_number')
+        # if created from join, dont check credentials on balance updates
+        if card_number and card_number.startswith(self.join_prefix):
+            self.user_info = USER_STORE['000000']
+            return
+
+        # if none of the above, do the normal login checks
+        login_credentials = (credentials['email'].lower(), credentials['password'])
+        for user, info in USER_STORE.items():
+            try:
+                auth_check = (info['credentials']['email'], info['credentials']['password'])
+            except KeyError:
+                continue
+
+            if login_credentials == auth_check:
+                self.user_info = info
+                user_id = user
+                break
+
+        else:
+            raise LoginError(STATUS_LOGIN_FAILED)
+
+        self.customer_number = card_numbers.HARVEY_NICHOLS[user_id]
+        if credentials.get('card_number') != self.customer_number:
+            self.identifier = {'card_number': self.customer_number}
+
+            self.identifier = {"merchant_identifier": membership_data["uuid"]}
+
+        return
+
+    def balance(self):
+        return {
+            'points': self.user_info['points'],
+            'value': Decimal(0),
+            'value_label': '',
+            'reward_tier': 1
+        }
+
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def scrape_transactions(self):
+        max_transactions = self.user_info['len_transactions']
+        return transactions[:max_transactions]
+
+    def register(self, credentials):
+        self._validate_join_credentials(credentials)
+        return {"message": "success"}
+
+    def _validate_join_credentials(self, data):
+        if len(data['password']) < 6:
+            raise RegistrationError(STATUS_REGISTRATION_FAILED)
+
+        return super()._validate_join_credentials(data)
+
