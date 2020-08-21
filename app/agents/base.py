@@ -430,7 +430,7 @@ class MerchantApi(BaseMiner):
             NOT_SENT: ['NOT_SENT'],
             NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
             STATUS_LOGIN_FAILED: ['VALIDATION'],
-            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED'],
+            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED', 'ACCOUNT_ALREADY_EXISTS'],
             PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
             UNKNOWN: ['UNKNOWN'],
             # additional mappings for iceland
