@@ -186,7 +186,7 @@ class Acteol(ApiMiner):
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
-        # Lastly, create an 'in-progress' voucher - the current, incomplete voucher
+        # Create an 'in-progress' voucher - the current, incomplete voucher
         in_progress_voucher = self._make_in_progress_voucher(
             points=points, voucher_type=VoucherType.STAMPS
         )
