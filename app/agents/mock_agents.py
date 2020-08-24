@@ -1,11 +1,15 @@
-from decimal import Decimal
 import random
+import uuid
+from decimal import Decimal
 from time import sleep
 
 from app.agents.base import MockedMiner
-from app.agents.exceptions import (LoginError, STATUS_LOGIN_FAILED, RegistrationError, STATUS_REGISTRATION_FAILED,
-                                   UNKNOWN, CARD_NUMBER_ERROR, END_SITE_DOWN)
+from app.agents.exceptions import (
+    CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
+    LoginError, RegistrationError)
 from app.mocks import card_numbers
+from app.mocks.ecribo.card_numbers import WHSMITH as whsmith_card_numbers
+from app.mocks.ecribo.users import USER_STORE as ecribo_user_store
 from app.mocks.users import USER_STORE, transactions
 
 JOIN_FAIL_POSTCODES = ['fail', 'fa1 1fa']
@@ -251,12 +255,7 @@ class MockAgentCoop(MockedMiner):
 
 
 class MockAgentWHS(MockedMiner):
-    add_error_credentials = {
-        'email': {
-            'endsitedown@testbink.com': END_SITE_DOWN,
-        },
-    }
-    existing_card_numbers = card_numbers.HARVEY_NICHOLS
+    existing_card_numbers = whsmith_card_numbers
     join_fields = {
         "email",
         "title",
@@ -268,48 +267,37 @@ class MockAgentWHS(MockedMiner):
         "postcode",
     }
 
-    join_prefix = '911'
     titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prefer not to say']
 
     def login(self, credentials):
         self.check_and_raise_error_credentials(credentials)
 
-        # if join request, assign new user rather than check credentials
+        # if join request, assign new user with zero balance and no vouchers
         if self.join_fields.issubset(credentials.keys()):
-            self.user_info = USER_STORE['000000']
-            card_suffix = random.randint(0, 9999999999)
+            merchant_identifier = uuid.uuid4()
+            self.user_info = ecribo_user_store["whsmith"]['0000001']
             self.identifier = {
-                'card_number': f'{self.join_prefix}{card_suffix:010d}'
+                "card_number": self.user_info["card_number"],
+                "merchant_identifier": merchant_identifier
             }
+            self.user_info["credentials"].update(self.identifier)
+
             return
 
+        # Assume we're on an add journey from here on
         card_number = credentials.get('card_number')
-        # if created from join, dont check credentials on balance updates
-        if card_number and card_number.startswith(self.join_prefix):
-            self.user_info = USER_STORE['000000']
-            return
-
-        # if none of the above, do the normal login checks
-        login_credentials = (credentials['email'].lower(), credentials['password'])
-        for user, info in USER_STORE.items():
-            try:
-                auth_check = (info['credentials']['email'], info['credentials']['password'])
-            except KeyError:
-                continue
-
-            if login_credentials == auth_check:
-                self.user_info = info
-                user_id = user
-                break
-
-        else:
+        # Does it match one of our test ones?
+        try:
+            whsmith_card_numbers[card_number]
+        except (KeyError, TypeError):
             raise LoginError(STATUS_LOGIN_FAILED)
 
-        self.customer_number = card_numbers.HARVEY_NICHOLS[user_id]
-        if credentials.get('card_number') != self.customer_number:
-            self.identifier = {'card_number': self.customer_number}
-
-            self.identifier = {"merchant_identifier": membership_data["uuid"]}
+        merchant_identifier = uuid.uuid4()
+        self.identifier = {
+            "card_number": self.user_info["card_number"],
+            "merchant_identifier": merchant_identifier
+        }
+        self.user_info["credentials"].update(self.identifier)
 
         return
 
@@ -326,16 +314,8 @@ class MockAgentWHS(MockedMiner):
         return row
 
     def scrape_transactions(self):
-        max_transactions = self.user_info['len_transactions']
-        return transactions[:max_transactions]
+        return []
 
     def register(self, credentials):
-        self._validate_join_credentials(credentials)
+        self._validate_join_credentials(data=credentials)
         return {"message": "success"}
-
-    def _validate_join_credentials(self, data):
-        if len(data['password']) < 6:
-            raise RegistrationError(STATUS_REGISTRATION_FAILED)
-
-        return super()._validate_join_credentials(data)
-
