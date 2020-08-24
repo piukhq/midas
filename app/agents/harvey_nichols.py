@@ -14,7 +14,7 @@ from app.agents.exceptions import (
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, KEY
+from settings import REDIS_URL, ATLAS_CREDENTIAL_KEY
 from app.tasks.resend_consents import send_consents
 import arrow
 import json
@@ -31,7 +31,7 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
     retry_limit = 9  # tries 10 times overall
 
-    encryption_key = Fernet(KEY)
+    encryption_key = Fernet(ATLAS_CREDENTIAL_KEY)
 
     def check_loyalty_account_valid(self, credentials):
         """

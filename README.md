@@ -43,7 +43,7 @@ sudo docker-compose run --service-ports redis
 
 - `ATLAS_URL`
   - String Value, URL for ATLAS
-- `KEY`
+- `ATLAS_CREDENTIAL_KEY`
   - String Value, KEY to encrypt password that is sent to atlas
   See https://cryptography.io/en/latest/ on how to generate a key using `cryptography.fernet`
     
