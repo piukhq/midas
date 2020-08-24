@@ -186,16 +186,17 @@ class Acteol(ApiMiner):
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
+        # Create an 'in-progress' voucher - the current, incomplete voucher
+        in_progress_voucher = self._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
+        bink_mapped_vouchers.append(in_progress_voucher)
+
         for bink_only_voucher in bink_only_vouchers:
             bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
             )
             bink_mapped_vouchers.append(bink_mapped_voucher)
-        # Lastly, create an 'in-progress' voucher - the current, incomplete voucher
-        in_progress_voucher = self._make_in_progress_voucher(
-            points=points, voucher_type=VoucherType.STAMPS
-        )
-        bink_mapped_vouchers.append(in_progress_voucher)
 
         balance = {
             "points": points,
