@@ -421,7 +421,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
         try:
             self.hn.login(self.credentials)
         except LoginError:
-            self.fail(f'Unexpected LoginError (JourneyType: LINK)')
+            self.fail('Unexpected LoginError (JourneyType: LINK)')
 
         self.assertEqual(
             'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',
