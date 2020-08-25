@@ -309,6 +309,10 @@ class MockAgentWHS(MockedMiner):
             'reward_tier': 1
         }
 
+    {'points': Decimal('0'), 'value': Decimal('0'), 'value_label': '',
+     'vouchers': [{'type': 2, 'value': Decimal('0'), 'target_value': Decimal('5')}], 'scheme_account_id': 29732,
+     'user_set': '34143', 'points_label': '0', 'reward_tier': 0}
+
     @staticmethod
     def parse_transaction(row):
         return row
