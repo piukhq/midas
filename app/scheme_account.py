@@ -42,8 +42,9 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
         'metadata': {'scheme': scheme_slug},
         'user_info': user_info
     }
-    requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
-                  data=json.dumps(data, cls=JsonEncoder), headers=headers)
+    response = requests.post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
+                             data=json.dumps(data, cls=JsonEncoder), headers=headers)
+    logger.debug('hermes status update response: {}'.format(response.json()))
 
     remove_pending_consents(consent_ids, headers)
 
