@@ -4,6 +4,7 @@ from decimal import Decimal
 from time import sleep
 
 from app.agents.base import MockedMiner
+from app.agents.ecrebo import Ecrebo, VoucherType
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
     LoginError, RegistrationError)
@@ -254,7 +255,7 @@ class MockAgentCoop(MockedMiner):
             self.identifier['card_number'] = card_number
 
 
-class MockAgentWHS(MockedMiner):
+class MockAgentWHS(MockedMiner, Ecrebo):
     existing_card_numbers = whsmith_card_numbers
     join_fields = {
         "email",
@@ -302,16 +303,21 @@ class MockAgentWHS(MockedMiner):
         return
 
     def balance(self):
-        return {
-            'points': self.user_info['points'],
-            'value': Decimal(0),
-            'value_label': '',
-            'reward_tier': 1
-        }
+        # For each voucher in the mock user store, you have to create a dict:
+        # dict must have:
+        # ["issued"] (use today's date), ["code"] and ["expiry_date"] (get these from the user_info for each of the
+        # types i.e. earned, expired, redeemd. Redeemed must also have a redeemed date (just make this yesterday)
+        # Pass this list of voucher dicts to _make_balance_response as 'issued_vouchers'
 
-    {'points': Decimal('0'), 'value': Decimal('0'), 'value_label': '',
-     'vouchers': [{'type': 2, 'value': Decimal('0'), 'target_value': Decimal('5')}], 'scheme_account_id': 29732,
-     'user_set': '34143', 'points_label': '0', 'reward_tier': 0}
+        issued_vouchers = []
+
+        balance_response = self._make_balance_response(voucher_type=VoucherType.STAMPS, value=self.user_info['points'],
+                                                       target_value=Decimal('5'), issued_vouchers=issued_vouchers)
+
+
+    # {'points': Decimal('0'), 'value': Decimal('0'), 'value_label': '',
+    #  'vouchers': [{'type': 2, 'value': Decimal('0'), 'target_value': Decimal('5')}], 'scheme_account_id': 29732,
+    #  'user_set': '34143', 'points_label': '0', 'reward_tier': 0}
 
     @staticmethod
     def parse_transaction(row):
