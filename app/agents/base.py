@@ -641,7 +641,7 @@ class MerchantApi(BaseMiner):
         try:
             response = self.process_join_response()
         except AgentError as e:
-            update_pending_join_account(self.user_info, e.message, self.message_uid, raise_exception=False)
+            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
             raise
 
         return response

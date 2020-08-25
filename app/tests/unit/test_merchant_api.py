@@ -24,7 +24,7 @@ from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
-from app.utils import JourneyTypes
+from app.utils import JourneyTypes, SchemeAccountStatus
 
 mock_configuration = MagicMock()
 mock_configuration.scheme_slug = 'id'
@@ -371,6 +371,29 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_consents.called)
         self.assertIn('status', mock_requests.post.call_args[0][0])
+        self.assertEqual(SchemeAccountStatus.ENROL_FAILED,
+                         json.loads(mock_requests.post.call_args[1]['data'])['status'])
+
+    @mock.patch('app.agents.base.send_consent_status', autospec=True)
+    @mock.patch('app.agents.base.logger', autospec=True)
+    @mock.patch('app.scheme_account.requests', autospec=True)
+    def test_async_inbound_error_account_already_exists_updates_status(self, mock_requests, mock_logger, mock_consents):
+        self.m.record_uid = self.m.scheme_id
+        self.m.config = self.config
+        self.m.consents_data = []
+        data = json.loads(self.json_data)
+        data['error_codes'] = [{
+            "code": "ACCOUNT_ALREADY_EXISTS",
+            "description": 'An account with this username/email already exists'
+        }]
+
+        with self.assertRaises(AgentError):
+            self.m._inbound_handler(data, '')
+        self.assertTrue(mock_logger.warning.called)
+        self.assertTrue(mock_consents.called)
+        self.assertIn('status', mock_requests.post.call_args[0][0])
+        self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS,
+                         json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
     @mock.patch.object(MerchantApi, 'consent_confirmation')
     def test_process_join_handles_errors(self, mock_consent_confirmation):
