@@ -288,14 +288,17 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             card_number = credentials.get('card_number')
             # Validation: does the incoming card match one of our test ones?
             try:
-                whsmith_card_numbers[card_number]
+                user_id = whsmith_card_numbers[card_number]
             except (KeyError, TypeError):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
+            self.user_info = ecribo_user_store["whsmith"][user_id]
+            merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
             self.identifier = {
                 "card_number": credentials["card_number"],
-                "merchant_identifier": credentials["merchant_identifier"]
+                "merchant_identifier": merchant_identifier
             }
+            self.user_info["credentials"].update(self.identifier)
 
         return
 
@@ -303,39 +306,35 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         """
         For each voucher in the mock user store, a mock voucher dict must be created.
         Each dict must have: "issued" (use today's date - 2 days), "code" and "expiry_date", which come from
-        the mock user store for each of the voucher states i.e. earned, expired and redeemd.
+        the mock user store for each of the voucher states i.e. earned, expired and redeemed.
         Redeemed vouchers (in order to be seen as such by Hermes) must also have a "redeem date"
         (just make this yesterday).
         Pass this list of voucher dicts to _make_balance_response as 'issued_vouchers' to mock ecrebo's real
         balance() method
         """
         issued_vouchers = []
-        issue_date = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
-        redeem_date = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
+        issued = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
+        redeemed = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
         for earned_voucher in self.user_info["earned_vouchers"]:
             mock_voucher = self._make_mock_voucher(code=earned_voucher[0], expiry_date=earned_voucher[1],
-                                                   issue_date=issue_date)
+                                                   issued=issued)
             issued_vouchers.append(mock_voucher)
 
         for expired_voucher in self.user_info["expired_vouchers"]:
             mock_voucher = self._make_mock_voucher(code=expired_voucher[0], expiry_date=expired_voucher[1],
-                                                   issue_date=issue_date)
+                                                   issued=issued)
             issued_vouchers.append(mock_voucher)
 
         for redeemed_voucher in self.user_info["redeemed_vouchers"]:
             mock_voucher = self._make_mock_voucher(code=redeemed_voucher[0], expiry_date=redeemed_voucher[1],
-                                                   issue_date=issue_date)
-            mock_voucher["redeem_date"] = redeem_date
+                                                   issued=issued)
+            mock_voucher["redeemed"] = redeemed
             issued_vouchers.append(mock_voucher)
 
         balance_response = self._make_balance_response(voucher_type=VoucherType.STAMPS, value=self.user_info['points'],
                                                        target_value=Decimal('5'), issued_vouchers=issued_vouchers)
 
         return balance_response
-
-    # {'points': Decimal('0'), 'value': Decimal('0'), 'value_label': '',
-    #  'vouchers': [{'type': 2, 'value': Decimal('0'), 'target_value': Decimal('5')}], 'scheme_account_id': 29732,
-    #  'user_set': '34143', 'points_label': '0', 'reward_tier': 0}
 
     @staticmethod
     def parse_transaction(row):
@@ -349,11 +348,11 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         return {"message": "success"}
 
     @staticmethod
-    def _make_mock_voucher(code: str, expiry_date: str, issue_date: str):
+    def _make_mock_voucher(code: str, expiry_date: str, issued: str):
         mock_voucher = {
             "code": code,
             "expiry_date": expiry_date,
-            "issue_date": issue_date,
+            "issued": issued,
         }
 
         return mock_voucher

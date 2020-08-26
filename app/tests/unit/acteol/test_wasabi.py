@@ -243,9 +243,8 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         with pytest.raises(AgentError):
-            WHS00000000000001           self.wasabi._account_already_exists(origin_id=origin_id)
+            self.wasabi._account_already_exists(origin_id=origin_id)
 
-    WHS00000000000001
     @httpretty.activate
     def test_account_does_not_exist(self):
         """
@@ -303,8 +302,7 @@ class TestWasabi(unittest.TestCase):
         assert ctcid == expected_ctcid
 
     @httpretty.activate
-
-    WHS0000000000WHS0000000000000WHS0000000000000110001   def test_create_account_raises(self):
+    def test_create_account_raises(self):
         """
         Test creating an account raises an exception from base class's make_request()
         """
