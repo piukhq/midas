@@ -843,6 +843,7 @@ class Acteol(ApiMiner):
             )
             raise AgentError(END_SITE_DOWN)
 
+
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
