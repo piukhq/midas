@@ -16,6 +16,7 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
     RegistrationError,
+    END_SITE_DOWN,
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
@@ -330,13 +331,14 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
+        customer_details_data = resp.json()
+        self._check_internal_error(resp_json=customer_details_data)
+
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while fetching customer details, reason: {resp.reason}"
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
-
-        customer_details_data = resp.json()
 
         return customer_details_data
 
@@ -361,13 +363,15 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
+        response_json = resp.json()
+        self._check_internal_error(resp_json=response_json)
+
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while checking for existing account, reason: {resp.reason}"
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        response_json = resp.json()
         if response_json:
             return True
 
@@ -400,11 +404,13 @@ class Acteol(ApiMiner):
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
 
+        response_json = resp.json()
+        self._check_internal_error(resp_json=response_json)
+
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while creating new account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        response_json = resp.json()
         ctcid = response_json["CtcID"]
 
         return ctcid
@@ -423,6 +429,9 @@ class Acteol(ApiMiner):
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+
+        resp_json = resp.json()
+        self._check_internal_error(resp_json)
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
@@ -822,6 +831,17 @@ class Acteol(ApiMiner):
         # Add auth for subsequent API calls
         self.headers = self._make_headers(token=token["acteol_access_token"])
 
+    def _check_internal_error(self, resp_json: Dict):
+        """
+        Handle an Internal Exception error
+        """
+
+        error_msg = resp_json.get("Error")
+        if error_msg:
+            logger.error(
+                f"End Site Down Error: {error_msg}"
+            )
+            raise AgentError(END_SITE_DOWN)
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"

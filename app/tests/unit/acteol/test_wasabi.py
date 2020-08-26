@@ -1307,3 +1307,17 @@ class TestWasabi(unittest.TestCase):
         assert parsed_transaction["location"] == location_name
         assert isinstance(parsed_transaction["points"], Decimal)
         assert parsed_transaction["points"] == expected_points
+
+    def test_check_internal_error(self):
+        """
+        Test handling 'Internal Exception error'
+        """
+        # GIVEN
+        resp_json = {
+            "Response": False,
+            "Error": "Internal Exception"
+        }
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._check_internal_error(resp_json)
