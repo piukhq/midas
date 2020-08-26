@@ -363,15 +363,13 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        response_json = resp.json()
-        self._check_internal_error(resp_json=response_json)
-
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while checking for existing account, reason: {resp.reason}"
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
+        response_json = resp.json()
         if response_json:
             return True
 
