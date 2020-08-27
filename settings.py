@@ -116,7 +116,7 @@ CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
 VAULT_URL = env_var('VAULT_URL', 'http://localhost:8200')
-VAULT_SECRETS_PATH = env_var('VAULT_SECRETS_PATH', '')
+VAULT_SECRETS_PATH = env_var("VAULT_SECRETS_PATH", "/v1/secret")
 # Vault settings for merchant api security credential storage
 VAULT_TOKEN = env_var('VAULT_TOKEN', 'myroot')
 
