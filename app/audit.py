@@ -5,6 +5,8 @@ from uuid import uuid4
 
 import arrow
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from requests import Response
 
 from app.utils import get_headers
@@ -59,6 +61,7 @@ class AuditLogger:
     ) -> None:
         self.audit_logs = []
         self.channel = channel
+        self.session = requests.Session()
 
     def add_request(
         self,
@@ -97,6 +100,19 @@ class AuditLogger:
             status_code=status_code,
         )
 
+    def retry_session(self, backoff_factor: float = 0.3) -> requests.Session:
+        session = requests.Session()
+        retry = Retry(
+            total=3,
+            backoff_factor=backoff_factor,
+            method_whitelist=False,
+            status_forcelist=[500, 502, 503, 504]
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        return session
+
     # @celery.task
     def send_to_atlas(self):
         if not self.audit_logs:
@@ -111,14 +127,14 @@ class AuditLogger:
         logger.info(payload)
 
         try:
-            resp = requests.post(f"{ATLAS_URL}/audit/membership/", headers=headers, json=payload)
+            resp = self.session.post(f"{ATLAS_URL}/audit/membership/", headers=headers, json=payload)
             if resp.ok:
                 logger.info("Successfully sent audit logs to Atlas")
                 self.audit_logs.clear()
             else:
                 logger.error(f"Error response from Atlas when sending audit logs - response: {resp.content}")
-        except requests.exceptions.RequestException:
-            logger.exception("Error sending audit logs to Atlas")
+        except requests.exceptions.RequestException as e:
+            logger.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
     def filter_fields(self) -> Iterable[RequestAuditLog]:
         """Override per merchant to modify which fields are omitted/encrypted"""
