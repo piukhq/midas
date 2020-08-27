@@ -38,23 +38,31 @@ mock_configuration.country = 'GB'
 
 json_data = json.dumps({'message_uid': '123-123-123-123',
                         'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',  # hash for a scheme account id of 1
-                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'})
+                        'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                        'channel': 'com.bink.wallet'
+                        })
 
 
 class TestMerchantApi(FlaskTestCase):
     TESTING = True
 
-    user_info = {'scheme_account_id': 1,
-                 'status': '',
-                 'user_set': '1',
-                 'journey_type': JourneyTypes.LINK.value,
-                 'credentials': {}}
+    user_info = {
+        'scheme_account_id': 1,
+        'status': '',
+        'user_set': '1',
+        'journey_type': JourneyTypes.LINK.value,
+        'channel': 'com.bink.wallet',
+        'credentials': {}
+    }
 
-    user_info_user_set = {'scheme_account_id': 1,
-                          'status': '',
-                          'user_set': '1,2',
-                          'journey_type': JourneyTypes.LINK.value,
-                          'credentials': {}}
+    user_info_user_set = {
+        'scheme_account_id': 1,
+        'status': '',
+        'user_set': '1,2',
+        'journey_type': JourneyTypes.LINK.value,
+        'channel': 'com.bink.wallet',
+        'credentials': {}
+    }
 
     json_data = json_data
 
@@ -167,6 +175,7 @@ class TestMerchantApi(FlaskTestCase):
             'user_id': 'test user id',
             'credentials': {},
             'scheme_account_id': 2,
+            'channel': 'com.bink.wallet'
         }
 
         register_data = agent_register(MerchantApi, user_info, {}, 1)
@@ -197,6 +206,55 @@ class TestMerchantApi(FlaskTestCase):
         resp = self.m._sync_outbound(self.json_data)
 
         self.assertEqual(resp, self.json_data)
+
+    @mock.patch.object(RSA, 'decode', autospec=True)
+    @mock.patch.object(RSA, 'encode', autospec=True)
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
+    @mock.patch('requests.post', autospec=True)
+    def test_sync_outbound_audit_logs(self, mock_request, mock_back_off, mock_encode, mock_decode):
+        msg_uid = '51bc9486-db0c-11ea-b8e5-acde48001122'
+        record_uid = 'pym1834v0zrqxnrz5e3wjdglepko5972'
+
+        self.m.message_uid = msg_uid
+        self.m.record_uid = record_uid
+
+        mock_json_data = {
+            'title': 'Mr',
+            'first_name': 'Bonky',
+            'last_name': 'Bonk',
+            'email': 'kaziz2@binktest.com',
+            'postcode': 'SL56RE',
+            'address_1': '8',
+            'address_2': 'Street',
+            'town_city': 'Rapture',
+            'county': 'County',
+            'record_uid': record_uid,
+            'country': 'GB',
+            'message_uid': msg_uid,
+            'callback_url': 'http://localhost:8000/join/merchant/iceland-bonus-card',
+            'marketing_opt_in': True,
+            'marketing_opt_in_thirdparty': False,
+            'merchant_scheme_id1': 'oydgerxzp4k97w0pql2n0q2lo183j5mv',
+            'merchant_scheme_id2': None,
+            'dob': '2000-12-12',
+            'phone1': '02084444444'
+        }
+        mock_encode.return_value = {'json': mock_json_data}
+        mock_decode.return_value = mock_json_data
+
+        response = MagicMock()
+        response.json.return_value = mock_json_data
+        response.content = json.dumps(mock_json_data)
+        response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
+        response.status_code = 200
+        response.history = None
+
+        mock_request.return_value = response
+        mock_back_off.return_value.is_on_cooldown.return_value = False
+
+        resp = self.m._sync_outbound(mock_json_data)
+
+        self.assertEqual(resp, mock_json_data)
 
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
@@ -1054,10 +1112,10 @@ class TestMerchantApi(FlaskTestCase):
 
     def test_credential_mapping(self):
         self.m.credential_mapping = {'barcode': 'customer_number', 'date_of_birth': 'dob'}
-        json_credentials = json.dumps({'barcode': '12345', 'date_of_birth': '01/01/2001'})
+        credentials = {'barcode': '12345', 'date_of_birth': '01/01/2001'}
 
-        mapped_credentials = self.m.map_credentials_to_request(json_credentials)
-        expected_credentials = json.dumps({'customer_number': '12345', 'dob': '01/01/2001'})
+        mapped_credentials = self.m.map_credentials_to_request(credentials)
+        expected_credentials = {'customer_number': '12345', 'dob': '01/01/2001'}
 
         self.assertEqual(mapped_credentials, expected_credentials)
 
@@ -1257,7 +1315,8 @@ class TestOAuth(TestCase):
             'json': {
                 'message_uid': '123-123-123-123',
                 'merchant_scheme_id1': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
-                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092'
+                'record_uid': '7gl82g4y5pvzx1wj5noqrj3dke7m9092',
+                'channel': 'com.bink.wallet',
             }
         }
 

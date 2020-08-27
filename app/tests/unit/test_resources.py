@@ -45,7 +45,8 @@ class TestResources(TestCase):
                         'email': 'test@email.com'},
         'status': SchemeAccountStatus.WALLET_ONLY,
         'scheme_account_id': 123,
-        'pending': True
+        'pending': True,
+        'channel': 'com.bink.wallet'
     }
 
     class Agent(BaseMiner):
@@ -281,7 +282,8 @@ class TestResources(TestCase):
             "user_id": 4,
             "credentials": credentials,
             'status': 0,
-            'journey_type': 0
+            'journey_type': 0,
+            'channel': 'com.bink.wallet'
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
@@ -298,7 +300,8 @@ class TestResources(TestCase):
             'user_id': 'test user id',
             'credentials': {},
             'scheme_account_id': 2,
-            'status': SchemeAccountStatus.PENDING
+            'status': SchemeAccountStatus.PENDING,
+            'channel': 'com.bink.wallet',
         }
 
         result = agent_register(HarveyNichols, user_info, {}, 1)
@@ -326,7 +329,8 @@ class TestResources(TestCase):
                 ]
             },
             'scheme_account_id': 2,
-            'status': SchemeAccountStatus.PENDING
+            'status': SchemeAccountStatus.PENDING,
+            'channel': 'com.bink.wallet'
         }
 
         with self.assertRaises(AgentException):
@@ -344,7 +348,8 @@ class TestResources(TestCase):
         user_info = {
             'credentials': {},
             'scheme_account_id': 2,
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
         result = agent_register(HarveyNichols, user_info, {}, '')
 
@@ -361,7 +366,8 @@ class TestResources(TestCase):
         user_info = {
             'credentials': {},
             'scheme_account_id': 2,
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
 
         with self.assertRaises(AgentException):
@@ -380,7 +386,7 @@ class TestResources(TestCase):
                           mock_publish_transaction, mock_publish_status, mock_publish_balance):
         scheme_slug = "harvey-nichols"
         mock_agent_register.return_value = {
-            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None}),
+            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None, 'channel': 'com.bink.wallet'}),
             'error': None
         }
         user_info = {
@@ -390,7 +396,8 @@ class TestResources(TestCase):
             },
             'user_set': '4',
             'scheme_account_id': 2,
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
 
         result = registration(scheme_slug, user_info, tid=None)
@@ -410,7 +417,7 @@ class TestResources(TestCase):
     def test_registration_already_exists_fail(self, mock_agent_login, mock_agent_register,
                                               mock_update_pending_join_account):
         mock_agent_register.return_value = {
-            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None}),
+            'agent': HarveyNichols(0, {'scheme_account_id': '1', 'status': None, 'channel': 'com.bink.wallet'}),
             'error': ACCOUNT_ALREADY_EXISTS
         }
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
@@ -422,7 +429,8 @@ class TestResources(TestCase):
             },
             'user_set': '4',
             'scheme_account_id': 2,
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
 
         result = registration(scheme_slug, user_info, tid=None)
@@ -437,7 +445,9 @@ class TestResources(TestCase):
         mock_login.return_value = {'message': 'success'}
 
         agent_login(HarveyNichols,
-                    {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}}, "harvey-nichols")
+                    {
+                        'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE,
+                        'credentials': {}, 'channel': 'com.bink.wallet'}, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
     @mock.patch('app.resources.retry', autospec=True)
@@ -447,7 +457,8 @@ class TestResources(TestCase):
         user_info = {
             'scheme_account_id': 1,
             'credentials': {},
-            'status': ''
+            'status': '',
+            'channel': 'com.bink.wallet'
         }
         with self.assertRaises(AgentError):
             agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_register=True)

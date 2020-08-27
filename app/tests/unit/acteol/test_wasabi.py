@@ -30,6 +30,7 @@ class TestWasabi(unittest.TestCase):
                     "user_set": "1,2",
                     "journey_type": None,
                     "credentials": {},
+                    "channel": "com.bink.wallet"
                 },
             ]
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
