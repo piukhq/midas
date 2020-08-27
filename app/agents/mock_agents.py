@@ -10,8 +10,8 @@ from app.agents.exceptions import (
     CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
     LoginError, RegistrationError)
 from app.mocks import card_numbers
-from app.mocks.ecribo.card_numbers import WHSMITH as whsmith_card_numbers
-from app.mocks.ecribo.users import USER_STORE as ecribo_user_store
+from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
+from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
 from app.mocks.users import USER_STORE, transactions
 
 JOIN_FAIL_POSTCODES = ['fail', 'fa1 1fa']
@@ -277,7 +277,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         # if join request, assign new user with zero balance and no vouchers
         if self.join_fields.issubset(credentials.keys()):
             merchant_identifier = str(uuid.uuid4())
-            self.user_info = ecribo_user_store["whsmith"]['0000001']
+            self.user_info = ecrebo_user_store["whsmith"]['0000001']
             self.identifier = {
                 "card_number": self.user_info["card_number"],
                 "merchant_identifier": merchant_identifier
@@ -292,7 +292,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             except (KeyError, TypeError):
                 raise LoginError(STATUS_LOGIN_FAILED)
 
-            self.user_info = ecribo_user_store["whsmith"][user_id]
+            self.user_info = ecrebo_user_store["whsmith"][user_id]
             merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
             self.identifier = {
                 "card_number": credentials["card_number"],
