@@ -21,8 +21,8 @@ class RequestAuditLog(NamedTuple):
     channel: str
     membership_plan_slug: str
     handler_type: str
-    bink_message_uid: str
-    bink_record_uid: str
+    message_uid: str
+    record_uid: str
     timestamp: int
     integration_service: str
     payload: dict
@@ -38,8 +38,8 @@ class ResponseAuditLog(NamedTuple):
     channel: str
     membership_plan_slug: str
     handler_type: str
-    bink_message_uid: str
-    bink_record_uid: str
+    message_uid: str
+    record_uid: str
     timestamp: int
     integration_service: str
     payload: Union[dict, str]
@@ -179,8 +179,8 @@ class AuditLogger:
                 channel=self.channel,
                 membership_plan_slug=scheme_slug,
                 handler_type=handler_type,
-                bink_message_uid=message_uid,
-                bink_record_uid=record_uid,
+                message_uid=message_uid,
+                record_uid=record_uid,
                 timestamp=timestamp,
                 integration_service=integration_service,
                 payload=data
@@ -208,8 +208,8 @@ class AuditLogger:
                 channel=self.channel,
                 membership_plan_slug=scheme_slug,
                 handler_type=handler_type,
-                bink_message_uid=message_uid,
-                bink_record_uid=record_uid,
+                message_uid=message_uid,
+                record_uid=record_uid,
                 timestamp=timestamp,
                 integration_service=integration_service,
                 payload=data,
