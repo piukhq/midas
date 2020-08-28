@@ -230,7 +230,7 @@ class Register(Resource):
             'status': int(data['status']),
             'journey_type': int(data['journey_type']),
             'scheme_account_id': scheme_account_id,
-            'channel': data['channel']
+            'channel': data.get('channel', '')
         }
         tid = request.headers.get('transaction')
 
