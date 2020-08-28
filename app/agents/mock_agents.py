@@ -1,11 +1,17 @@
-from decimal import Decimal
 import random
+import uuid
+from decimal import Decimal
 from time import sleep
 
+import arrow
 from app.agents.base import MockedMiner
-from app.agents.exceptions import (LoginError, STATUS_LOGIN_FAILED, RegistrationError, STATUS_REGISTRATION_FAILED,
-                                   UNKNOWN, CARD_NUMBER_ERROR, END_SITE_DOWN)
+from app.agents.ecrebo import Ecrebo, VoucherType
+from app.agents.exceptions import (
+    CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
+    LoginError, RegistrationError)
 from app.mocks import card_numbers
+from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
+from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
 from app.mocks.users import USER_STORE, transactions
 
 JOIN_FAIL_POSTCODES = ['fail', 'fa1 1fa']
@@ -248,3 +254,105 @@ class MockAgentCoop(MockedMiner):
             self.identifier['merchant_identifier'] = '4000000000001'
         if not credentials.get('card_number'):
             self.identifier['card_number'] = card_number
+
+
+class MockAgentWHS(MockedMiner, Ecrebo):
+    existing_card_numbers = whsmith_card_numbers
+    join_fields = {
+        "email",
+        "title",
+        "first_name",
+        "last_name",
+        "phone",
+        "address_1",
+        "town_city",
+        "postcode",
+    }
+
+    titles = ['Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prefer not to say']
+
+    def login(self, credentials):
+        self.check_and_raise_error_credentials(credentials)
+
+        # if join request, assign new user with zero balance and no vouchers
+        if self.join_fields.issubset(credentials.keys()):
+            merchant_identifier = str(uuid.uuid4())
+            self.user_info = ecrebo_user_store["whsmith"]['0000001']
+            self.identifier = {
+                "card_number": self.user_info["card_number"],
+                "merchant_identifier": merchant_identifier
+            }
+            self.user_info["credentials"].update(self.identifier)
+        else:
+            # Assume we're on an add journey from here on
+            card_number = credentials.get('card_number')
+            # Validation: does the incoming card match one of our test ones?
+            try:
+                user_id = whsmith_card_numbers[card_number]
+            except (KeyError, TypeError):
+                raise LoginError(STATUS_LOGIN_FAILED)
+
+            self.user_info = ecrebo_user_store["whsmith"][user_id]
+            merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
+            self.identifier = {
+                "card_number": credentials["card_number"],
+                "merchant_identifier": merchant_identifier
+            }
+            self.user_info["credentials"].update(self.identifier)
+
+        return
+
+    def balance(self):
+        """
+        For each voucher in the mock user store, a mock voucher dict must be created.
+        Each dict must have: "issued" (use today's date - 2 days), "code" and "expiry_date", which come from
+        the mock user store for each of the voucher states i.e. earned, expired and redeemed.
+        Redeemed vouchers (in order to be seen as such by Hermes) must also have a "redeem date"
+        (just make this yesterday).
+        Pass this list of voucher dicts to _make_balance_response as 'issued_vouchers' to mock ecrebo's real
+        balance() method
+        """
+        issued_vouchers = []
+        issued = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
+        redeemed = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
+        for earned_voucher in self.user_info["earned_vouchers"]:
+            mock_voucher = self._make_mock_voucher(code=earned_voucher[0], expiry_date=earned_voucher[1],
+                                                   issued=issued)
+            issued_vouchers.append(mock_voucher)
+
+        for expired_voucher in self.user_info["expired_vouchers"]:
+            mock_voucher = self._make_mock_voucher(code=expired_voucher[0], expiry_date=expired_voucher[1],
+                                                   issued=issued)
+            issued_vouchers.append(mock_voucher)
+
+        for redeemed_voucher in self.user_info["redeemed_vouchers"]:
+            mock_voucher = self._make_mock_voucher(code=redeemed_voucher[0], expiry_date=redeemed_voucher[1],
+                                                   issued=issued)
+            mock_voucher["redeemed"] = redeemed
+            issued_vouchers.append(mock_voucher)
+
+        balance_response = self._make_balance_response(voucher_type=VoucherType.STAMPS, value=self.user_info['points'],
+                                                       target_value=Decimal('5'), issued_vouchers=issued_vouchers)
+
+        return balance_response
+
+    @staticmethod
+    def parse_transaction(row):
+        return row
+
+    def scrape_transactions(self):
+        return []
+
+    def register(self, credentials):
+        self._validate_join_credentials(data=credentials)
+        return {"message": "success"}
+
+    @staticmethod
+    def _make_mock_voucher(code: str, expiry_date: str, issued: str):
+        mock_voucher = {
+            "code": code,
+            "expiry_date": expiry_date,
+            "issued": issued,
+        }
+
+        return mock_voucher

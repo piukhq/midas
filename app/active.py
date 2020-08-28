@@ -139,5 +139,6 @@ AGENTS = {
     "fatface": "ecrebo.FatFace",
     "burger-king-rewards": "ecrebo.BurgerKing",
     "whsmith-rewards": "ecrebo.WhSmith",
+    'whsmith-rewards-mock': 'mock_agents.MockAgentWHS',
     "wasabi-club": "acteol.Wasabi",
 }
