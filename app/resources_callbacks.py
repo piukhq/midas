@@ -32,7 +32,6 @@ class JoinCallback(Resource):
                 'status': SchemeAccountStatus.PENDING,
                 'scheme_account_id': scheme_account_id[0],
                 'journey_type': JourneyTypes.JOIN.value,
-                'channel': data['channel']
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()

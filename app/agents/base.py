@@ -277,7 +277,8 @@ class ApiMiner(BaseMiner):
         self.retry_count = retry_count
         self.errors = {}
         self.user_info = user_info
-        self.audit_logger = AuditLogger(channel=user_info['channel'])
+        channel = user_info.get('channel', '')
+        self.audit_logger = AuditLogger(channel=channel)
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
@@ -427,7 +428,8 @@ class MerchantApi(BaseMiner):
         self.record_uid = None
         self.request = None
         self.result = None
-        self.audit_logger = AuditLogger(channel=user_info['channel'])
+        channel = user_info.get('channel', '')
+        self.audit_logger = AuditLogger(channel=channel)
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
