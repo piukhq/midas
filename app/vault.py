@@ -3,7 +3,7 @@ import settings
 
 
 def _azure_request(vault_name):
-    url = f"{settings.AZURE_VAULT_URL}{settings.VAULT_SECRETS_PATH}{vault_name}"
+    url = f"{settings.VAULT_URL}{settings.VAULT_SECRETS_PATH}{vault_name}"
     return requests.request('GET', url)
 
 
