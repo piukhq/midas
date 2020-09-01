@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple
+from typing import Union, Iterable, NamedTuple, List
 from uuid import uuid4
 
 import arrow
@@ -13,7 +13,7 @@ from app.utils import get_headers
 from settings import logger, ATLAS_URL
 
 
-class AuditLogType(Enum):
+class AuditLogType(str, Enum):
     REQUEST = "REQUEST"
     RESPONSE = "RESPONSE"
 
@@ -86,7 +86,6 @@ class AuditLogger:
         status_code: int,
         message_uid: str,
         record_uid: str,
-        response_body: str,
     ) -> None:
 
         try:
@@ -121,7 +120,7 @@ class AuditLogger:
 
         headers = get_headers(tid=str(uuid4()))
 
-        self.filter_fields()
+        self.audit_logs = self.filter_fields(self.audit_logs)
         payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
 
         logger.info(payload)
@@ -136,9 +135,19 @@ class AuditLogger:
         except requests.exceptions.RequestException as e:
             logger.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
-    def filter_fields(self) -> Iterable[RequestAuditLog]:
-        """Override per merchant to modify which fields are omitted/encrypted"""
-        pass
+    @staticmethod
+    def filter_fields(req_audit_logs: List[RequestAuditLog]) -> List[RequestAuditLog]:
+        """
+        Override per merchant to modify which fields are omitted/encrypted.
+
+        This should iterate over req_audit_logs and filter them all in one go as this
+        function is only called once before sending to atlas.
+
+        Audit objects may contain references to objects that are used elsewhere and so should
+        not be modified directly. Use a copy or deepcopy if modifying values e.g encrypting fields
+        in the payload.
+        """
+        return req_audit_logs
 
     def _add_audit_log(
         self,

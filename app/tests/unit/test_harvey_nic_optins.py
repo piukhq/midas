@@ -1,5 +1,10 @@
+from unittest.mock import MagicMock
+from uuid import uuid4
+
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
+from app.audit import AuditLogType
+from app.encryption import AESCipher
 from app.tasks.resend_consents import try_consents
 from app.utils import JourneyTypes
 from unittest import mock
@@ -121,7 +126,61 @@ class TestUserConsents(unittest.TestCase):
         response = hn.register(credentials)
 
         self.assertEqual(response, {"message": "success"})
-        self.assertTrue(mock_atlas)
+        self.assertTrue(mock_atlas.called)
+
+    @mock.patch('requests.Session.post')
+    def test_harvey_nick_send_to_atlas(self, mock_atlas_request):
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
+        }
+        hn = HarveyNichols(retry_count=1, user_info=user_info)
+        test_password = "testPassword"
+
+        message_uid = str(uuid4())
+        data = {
+            'CustomerSignUpRequest': {
+                'username': 'test@user.email',
+                'email': 'test@user.email',
+                'password': test_password,
+                'title': 'Dr',
+                'forename': 'test',
+                'surname': 'user',
+                'applicationId': 'BINK_APP'
+            }
+        }
+
+        hn.audit_logger.add_request(
+            payload=data,
+            scheme_slug=hn.scheme_slug,
+            message_uid=message_uid,
+            record_uid=None,
+            handler_type=None,
+            integration_service=None
+        )
+
+        hn.audit_logger.add_response(
+            response=mock_harvey_nick_register(),
+            message_uid=message_uid,
+            record_uid=None,
+            scheme_slug=hn.scheme_slug,
+            handler_type=None,
+            integration_service=None,
+            status_code=mock_harvey_nick_register().status_code
+        )
+
+        hn.audit_logger.send_to_atlas()
+
+        self.assertTrue(mock_atlas_request.called)
+        self.assertEqual(len(mock_atlas_request.call_args[1]["json"]["audit_logs"]), 2)
+
+        # Assert password is encrypted
+        aes = AESCipher(settings.AES_KEY.encode())
+        for log in mock_atlas_request.call_args[1]["json"]["audit_logs"]:
+            if log["audit_log_type"] == AuditLogType.REQUEST:
+                password = aes.decrypt(log["payload"]["CustomerSignUpRequest"]["password"])
+                self.assertEqual(password, test_password)
 
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_400)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_400)
