@@ -83,6 +83,13 @@ def mock_harvey_nick_post(*args, **kwargs):
                                                   }}, 200)
 
 
+def mock_harvey_nick_register(*args, **kwargs):
+    return MockResponse({'CustomerSignUpResult': {'outcome': 'Success',
+                                                  'customerNumber': '2601507998647',
+                                                  'token': '1234'
+                                                  }}, 200)
+
+
 class TestUserConsents(unittest.TestCase):
 
     def setUp(self):
@@ -91,13 +98,39 @@ class TestUserConsents(unittest.TestCase):
     def tearDown(self):
         settings.CELERY_ALWAYS_EAGER = False
 
+    @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_register)
+    @mock.patch('app.audit.AuditLogger.send_to_atlas')
+    def test_harvey_nick_mock_register(self, mock_make_request, mock_atlas):
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
+        }
+        hn = HarveyNichols(retry_count=1, user_info=user_info)
+        hn.AGENT_TRIES = 1
+        hn.HERMES_CONFIRMATION_TRIES = 1
+        hn.scheme_id = 123
+        hn.token_store = MockStore()
+        credentials = {
+            'email': 'test@user.email',
+            'password': 'testPassword',
+            'title': 'Dr',
+            'first_name': 'test',
+            'last_name': 'user',
+        }
+        response = hn.register(credentials)
+
+        self.assertEqual(response, {"message": "success"})
+        self.assertTrue(mock_atlas)
+
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_400)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_400)
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
     def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -130,7 +163,8 @@ class TestUserConsents(unittest.TestCase):
     def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -165,7 +199,8 @@ class TestUserConsents(unittest.TestCase):
         global saved_consents_data
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         saved_consents_data = {}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
@@ -220,7 +255,8 @@ class TestUserConsents(unittest.TestCase):
     def test_harvey_nick_mock_login_agent_fails(self, mock_login, mock_post, mock_put, mock_retry):
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 3
@@ -284,7 +320,8 @@ class TestLoginJourneyTypes(unittest.TestCase):
         }
         user_info = {
             'scheme_account_id': 123,
-            'status': 'pending'
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
         }
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
         self.hn.token_store = MockStore()
@@ -408,7 +445,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
         try:
             self.hn.login(self.credentials)
         except LoginError:
-            self.fail(f'Unexpected LoginError (JourneyType: LINK)')
+            self.fail('Unexpected LoginError (JourneyType: LINK)')
 
         self.assertEqual(
             'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn',

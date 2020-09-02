@@ -224,14 +224,13 @@ class Register(Resource):
     def post(self, scheme_slug):
         data = request.get_json()
         scheme_account_id = int(data['scheme_account_id'])
-        journey_type = data['journey_type']
-        status = int(data['status'])
         user_info = {
             'user_set': get_user_set_from_request(data),
             'credentials': decrypt_credentials(request.get_json()['credentials']),
-            'status': status,
-            'journey_type': int(journey_type),
+            'status': int(data['status']),
+            'journey_type': int(data['journey_type']),
             'scheme_account_id': scheme_account_id,
+            'channel': data.get('channel', '')
         }
         tid = request.headers.get('transaction')
 

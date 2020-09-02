@@ -131,7 +131,8 @@ class TestBase(TestCase):
     @mock.patch.object(ApiMiner, 'register')
     def test_attempt_register(self, mocked_register):
         user_info = {'scheme_account_id': 194,
-                     'status': ''}
+                     'status': '',
+                     'channel': 'com.bink.wallet'}
         m = ApiMiner(0, user_info)
 
         m.attempt_register(credentials={})

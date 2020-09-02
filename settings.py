@@ -1,12 +1,15 @@
 import logging
 import os
 
+from cryptography.fernet import Fernet
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 from app.exceptions import SENTRY_IGNORED_EXCEPTIONS
-from environment import env_var, read_env
+from app.vault import _get_secret
 from app.version import __version__
+from environment import env_var, read_env
+
 
 os.chdir(os.path.dirname(__file__))
 read_env()
@@ -64,6 +67,7 @@ HELIOS_URL = env_var('HELIOS_URL', 'https://api.bink-dev.xyz/dashboard')
 HEARTBEAT_URL = env_var('HEARTBEAT_URL', 'https://hchk.io/976b50d5-1616-4c7e-92ac-6e05e0916e82')
 CONFIG_SERVICE_URL = env_var('CONFIG_SERVICE_URL', '')
 MNEMOSYNE_URL = env_var('MNEMOSYNE_URL', 'mnemosyne')
+ATLAS_URL = env_var('ATLAS_URL', 'http://localhost:8100')
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
@@ -112,6 +116,7 @@ CREDENTIALS_LOCAL = env_var('CREDENTIALS_LOCAL', False)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
 VAULT_URL = env_var('VAULT_URL', 'http://localhost:8200')
+VAULT_SECRETS_PATH = env_var('VAULT_SECRETS_PATH', '')
 # Vault settings for merchant api security credential storage
 VAULT_TOKEN = env_var('VAULT_TOKEN', 'myroot')
 
@@ -125,3 +130,9 @@ HERMES_CONFIRMATION_TRIES = 10
 ENABLE_ICELAND_VALIDATE = env_var('ENABLE_ICELAND_VALIDATE', False)
 
 BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
+
+
+if VAULT_SECRETS_PATH:
+    ATLAS_CREDENTIAL_KEY = _get_secret('/atlas-credential-key')
+else:
+    ATLAS_CREDENTIAL_KEY = Fernet.generate_key()

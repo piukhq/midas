@@ -23,6 +23,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 from app import publish
+from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
@@ -276,6 +277,8 @@ class ApiMiner(BaseMiner):
         self.retry_count = retry_count
         self.errors = {}
         self.user_info = user_info
+        channel = user_info.get('channel', '')
+        self.audit_logger = AuditLogger(channel=channel)
 
     def make_request(self, url, method='get', timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
@@ -421,9 +424,12 @@ class MerchantApi(BaseMiner):
         self.config = config
         self.consents_data = consents_data
 
+        self.message_uid = None
         self.record_uid = None
         self.request = None
         self.result = None
+        channel = user_info.get('channel', '')
+        self.audit_logger = AuditLogger(channel=channel)
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
@@ -580,6 +586,7 @@ class MerchantApi(BaseMiner):
         merchant_scheme_ids = self.get_merchant_ids(data)
         data.update(merchant_scheme_ids)
 
+        data = self.map_credentials_to_request(data)
         payload = json.dumps(data)
 
         # data without encrypted credentials for logging only
@@ -610,6 +617,8 @@ class MerchantApi(BaseMiner):
             else:
                 logger.info(json.dumps(logging_info))
 
+        self.audit_logger.send_to_atlas()
+        # self.audit_logger.send_to_atlas.delay()
         return response_data
 
     def _inbound_handler(self, data, scheme_slug):
@@ -658,8 +667,6 @@ class MerchantApi(BaseMiner):
         :param json_data: JSON string of payload to send to merchant
         :return: Response payload
         """
-        json_data = self.map_credentials_to_request(json_data)
-
         def apply_security_measures(retry_state):
             return self.apply_security_measures(json_data,
                                                 self.config.security_credentials['outbound']['service'],
@@ -698,10 +705,31 @@ class MerchantApi(BaseMiner):
         return response_json
 
     def _send_request(self):
-        response = requests.post(self.config.merchant_url, **self.request)
+        self.audit_logger.add_request(
+            payload=self.request["json"],
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
+            scheme_slug=self.config.scheme_slug,
+            handler_type=self.config.handler_type[1],
+            integration_service=self.config.integration_service
+        )
+
+        response = requests.post(f"{self.config.merchant_url}", **self.request)
         status = response.status_code
 
         logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
+
+        self.audit_logger.add_response(
+            response=response,
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
+            scheme_slug=self.config.scheme_slug,
+            handler_type=self.config.handler_type[1],
+            integration_service=self.config.integration_service,
+            status_code=status,
+            response_body=response.text,
+        )
+        self.audit_logger.send_to_atlas()
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
@@ -786,15 +814,13 @@ class MerchantApi(BaseMiner):
         """
         Converts credential keys to correct JSON keys in merchant request.
         Agents will override the credential_mapping class attribute to define the changes.
-        :param data: JSON object of credentials being sent to merchant.
-        :return: JSON object of credentials with keys converted into the JSON keys to be sent to a merchant.
+        :param data: dict of credentials being sent to merchant.
+        :return: dict of credentials with keys converted into the keys to be sent to a merchant.
         """
-        data = json.loads(data)
         for key, value in self.credential_mapping.items():
             if key in data:
                 data[value] = data.pop(key)
-
-        return json.dumps(data)
+        return data
 
     def _check_for_error_response(self, response):
         error = None

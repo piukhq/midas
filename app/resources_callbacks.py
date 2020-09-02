@@ -31,7 +31,7 @@ class JoinCallback(Resource):
                 'credentials': self._collect_credentials(scheme_account_id[0]),
                 'status': SchemeAccountStatus.PENDING,
                 'scheme_account_id': scheme_account_id[0],
-                'journey_type': JourneyTypes.JOIN.value
+                'journey_type': JourneyTypes.JOIN.value,
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
@@ -46,7 +46,6 @@ class JoinCallback(Resource):
             update_pending_join_account(user_info, exception.args[0], message_uid, scheme_slug=scheme_slug,
                                         consent_ids=consent_ids, raise_exception=False)
             sentry_sdk.capture_exception()
-
         try:
             agent_class = get_agent_class(scheme_slug)
 

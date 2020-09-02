@@ -1,4 +1,8 @@
+from uuid import uuid1
 from decimal import Decimal
+
+from cryptography.fernet import Fernet
+
 from app.agents.exceptions import (
     LoginError, RegistrationError,
     STATUS_REGISTRATION_FAILED,
@@ -10,7 +14,7 @@ from app.agents.exceptions import (
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL
+from settings import REDIS_URL, ATLAS_CREDENTIAL_KEY
 from app.tasks.resend_consents import send_consents
 import arrow
 import json
@@ -26,6 +30,8 @@ class HarveyNichols(ApiMiner):
     HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents
     token_store = UserTokenStore(REDIS_URL)
     retry_limit = 9  # tries 10 times overall
+
+    encryption_key = Fernet(ATLAS_CREDENTIAL_KEY)
 
     def check_loyalty_account_valid(self, credentials):
         """
@@ -153,6 +159,7 @@ class HarveyNichols(ApiMiner):
         return sorted_transactions
 
     def register(self, credentials):
+        message_uid = str(uuid1())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.BASE_URL + "/SignUp"
         data = {
@@ -169,7 +176,33 @@ class HarveyNichols(ApiMiner):
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
+        payload = data.copy()
+        payload['CustomerSignUpRequest']['password'] = self.encryption_key.encrypt(
+            payload['CustomerSignUpRequest']['password'].encode())
+
+        self.audit_logger.add_request(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            message_uid=message_uid,
+            record_uid=None,
+            handler_type=None,
+            integration_service=None
+        )
+
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
+
+        self.audit_logger.add_response(
+            response=self.register_response,
+            message_uid=message_uid,
+            record_uid=None,
+            scheme_slug=self.scheme_slug,
+            handler_type=None,
+            integration_service=None,
+            status_code=self.register_response.status_code,
+            response_body=self.register_response.text,
+        )
+        self.audit_logger.send_to_atlas()
+
         message = self.register_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
