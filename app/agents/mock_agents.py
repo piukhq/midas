@@ -2,13 +2,14 @@ import random
 import uuid
 from decimal import Decimal
 from time import sleep
+from typing import Dict, List
 
 import arrow
 from app.agents.base import MockedMiner
 from app.agents.ecrebo import Ecrebo, VoucherType
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
-    LoginError, RegistrationError)
+    LoginError, RegistrationError, UnauthorisedError)
 from app.mocks import card_numbers
 from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
 from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
@@ -286,11 +287,15 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         else:
             # Assume we're on an add journey from here on
             card_number = credentials.get('card_number')
-            # Validation: does the incoming card match one of our test ones?
-            try:
-                user_id = whsmith_card_numbers[card_number]
-            except (KeyError, TypeError):
-                raise LoginError(STATUS_LOGIN_FAILED)
+            user_id = self._validate_card_number(
+                card_numbers=whsmith_card_numbers,
+                card_number=card_number
+            )
+            self._check_for_and_raise_exceptions(
+                users=ecrebo_user_store["whsmith"],
+                card_numbers=whsmith_card_numbers,
+                card_number=card_number
+            )
 
             self.user_info = ecrebo_user_store["whsmith"][user_id]
             merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
@@ -356,3 +361,38 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         }
 
         return mock_voucher
+
+    def _validate_card_number(self, card_numbers: List, card_number: str):
+        """
+        Validation: does the incoming card match one of our test ones?
+        """
+        try:
+            user_id = card_numbers[card_number]
+        except (KeyError, TypeError):
+            raise LoginError(CARD_NUMBER_ERROR)
+        else:
+            return user_id
+
+    def _check_for_and_raise_exceptions(self, users: Dict, card_numbers: List, card_number: str):
+        """
+        Check against users dicts and raise the expected error for that card number, if there is one
+        """
+        user_id = card_numbers[card_number]
+        user_record = users[user_id]
+        code_to_return = user_record.get("code_to_return")
+        if code_to_return:
+            error = code_to_return[1]
+            if error:
+                if isinstance(error, str):
+                    # Is an error constant
+                    raise LoginError(error)
+                else:  # Is an error class
+                    raise error
+            elif error is None:
+                # This is to force a PENDING status for these cards. See MER-432
+                sleep(20)
+
+
+
+
+
