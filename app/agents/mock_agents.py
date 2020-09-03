@@ -9,7 +9,7 @@ from app.agents.base import MockedMiner
 from app.agents.ecrebo import Ecrebo, VoucherType
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR, END_SITE_DOWN, STATUS_LOGIN_FAILED, STATUS_REGISTRATION_FAILED, UNKNOWN,
-    LoginError, RegistrationError, UnauthorisedError)
+    LoginError, RegistrationError)
 from app.mocks import card_numbers
 from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
 from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
@@ -391,8 +391,3 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             elif error is None:
                 # This is to force a PENDING status for these cards. See MER-432
                 sleep(20)
-
-
-
-
-
