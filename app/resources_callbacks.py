@@ -21,6 +21,13 @@ class JoinCallback(Resource):
 
     @authorise(Configuration.JOIN_HANDLER)
     def post(self, scheme_slug, data, config):
+        def update_failed_scheme_account(exception):
+            consents = user_info['credentials'].get('consents', [])
+            consent_ids = (consent['id'] for consent in consents)
+            update_pending_join_account(user_info, exception.args[0], message_uid, scheme_slug=scheme_slug,
+                                        consent_ids=consent_ids, raise_exception=False)
+            sentry_sdk.capture_exception()
+
         try:
             message_uid = data['message_uid']
             scheme_account_id = hash_ids.decode(data['record_uid'])
@@ -40,12 +47,6 @@ class JoinCallback(Resource):
             sentry_sdk.capture_exception()
             raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
 
-        def update_failed_scheme_account(exception):
-            consents = user_info['credentials'].get('consents', [])
-            consent_ids = (consent['id'] for consent in consents)
-            update_pending_join_account(user_info, exception.args[0], message_uid, scheme_slug=scheme_slug,
-                                        consent_ids=consent_ids, raise_exception=False)
-            sentry_sdk.capture_exception()
         try:
             agent_class = get_agent_class(scheme_slug)
 

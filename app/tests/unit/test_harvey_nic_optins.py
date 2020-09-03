@@ -1,10 +1,10 @@
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.audit import AuditLogType
-from app.encryption import AESCipher
+from app.configuration import Configuration
+from app.encryption import AESCipher, hash_ids
 from app.tasks.resend_consents import try_consents
 from app.utils import JourneyTypes
 from unittest import mock
@@ -128,22 +128,16 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual(response, {"message": "success"})
         self.assertTrue(mock_atlas.called)
 
-    @mock.patch('requests.Session.post')
-    def test_harvey_nick_send_to_atlas(self, mock_atlas_request):
-        user_info = {
-            'scheme_account_id': 123,
-            'status': 'pending',
-            'channel': 'com.bink.wallet'
-        }
-        hn = HarveyNichols(retry_count=1, user_info=user_info)
-        test_password = "testPassword"
-
+    @staticmethod
+    def add_audit_logs(hn: HarveyNichols) -> None:
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        handler_type = (Configuration.JOIN_HANDLER, Configuration.handler_type_as_str(Configuration.JOIN_HANDLER))
         message_uid = str(uuid4())
         data = {
             'CustomerSignUpRequest': {
                 'username': 'test@user.email',
                 'email': 'test@user.email',
-                'password': test_password,
+                'password': "testPassword",
                 'title': 'Dr',
                 'forename': 'test',
                 'surname': 'user',
@@ -151,24 +145,35 @@ class TestUserConsents(unittest.TestCase):
             }
         }
 
+        record_uid = hash_ids.encode(123)
         hn.audit_logger.add_request(
             payload=data,
             scheme_slug=hn.scheme_slug,
             message_uid=message_uid,
-            record_uid=None,
-            handler_type=None,
-            integration_service=None
+            record_uid=record_uid,
+            handler_type=handler_type,
+            integration_service=integration_service,
         )
 
         hn.audit_logger.add_response(
             response=mock_harvey_nick_register(),
             message_uid=message_uid,
-            record_uid=None,
+            record_uid=record_uid,
             scheme_slug=hn.scheme_slug,
-            handler_type=None,
-            integration_service=None,
-            status_code=mock_harvey_nick_register().status_code
+            handler_type=handler_type,
+            integration_service=integration_service,
+            status_code=mock_harvey_nick_register().status_code,
         )
+
+    @mock.patch('requests.Session.post')
+    def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request):
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
+        }
+        hn = HarveyNichols(retry_count=1, user_info=user_info, scheme_slug="harvey-nichols")
+        self.add_audit_logs(hn)
 
         hn.audit_logger.send_to_atlas()
 
@@ -180,7 +185,30 @@ class TestUserConsents(unittest.TestCase):
         for log in mock_atlas_request.call_args[1]["json"]["audit_logs"]:
             if log["audit_log_type"] == AuditLogType.REQUEST:
                 password = aes.decrypt(log["payload"]["CustomerSignUpRequest"]["password"])
-                self.assertEqual(password, test_password)
+                self.assertEqual(password, "testPassword")
+
+    @mock.patch('requests.Session.post')
+    def test_harvey_nick_send_to_atlas_only_sends_for_specified_journeys(self, mock_atlas_request):
+        user_info = {
+            'scheme_account_id': 123,
+            'status': 'pending',
+            'channel': 'com.bink.wallet'
+        }
+        hn = HarveyNichols(retry_count=1, user_info=user_info)
+
+        hn.audit_logger.journeys = (Configuration.UPDATE_HANDLER, )
+        self.add_audit_logs(hn)
+        self.assertEqual(len(hn.audit_logger.audit_logs), 0)
+
+        hn.audit_logger.send_to_atlas()
+        self.assertFalse(mock_atlas_request.called)
+
+        hn.audit_logger.journeys = (Configuration.JOIN_HANDLER, )
+        self.add_audit_logs(hn)
+        self.assertEqual(len(hn.audit_logger.audit_logs), 2)
+
+        hn.audit_logger.send_to_atlas()
+        self.assertTrue(mock_atlas_request.called)
 
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_400)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_400)

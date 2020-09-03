@@ -5,7 +5,6 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 from app.exceptions import SENTRY_IGNORED_EXCEPTIONS
-from app.vault import _get_secret
 from app.version import __version__
 from environment import env_var, read_env
 

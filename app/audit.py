@@ -84,7 +84,7 @@ class AuditLogger:
 
     def add_response(
         self,
-        response: Response,
+        response: Union[str, Response],
         scheme_slug: str,
         handler_type: Tuple[int, str],
         integration_service: str,
@@ -92,11 +92,13 @@ class AuditLogger:
         message_uid: str,
         record_uid: str,
     ) -> None:
-
-        try:
-            data = response.json()
-        except json.decoder.JSONDecodeError:
-            data = response.text
+        if isinstance(response, str):
+            data = response
+        else:
+            try:
+                data = response.json()
+            except (json.decoder.JSONDecodeError, TypeError):
+                data = response.text
 
         self._add_audit_log(
             data, scheme_slug, handler_type, integration_service, message_uid, record_uid,
@@ -125,9 +127,12 @@ class AuditLogger:
 
         headers = get_headers(tid=str(uuid4()))
 
-        self.audit_logs = self.filter_fields(self.audit_logs)
-        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
+        try:
+            self.audit_logs = self.filter_fields(self.audit_logs)
+        except Exception:
+            logger.exception(f"Error when filtering fields for atlas audit")
 
+        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
         logger.info(payload)
 
         try:

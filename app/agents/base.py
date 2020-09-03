@@ -618,7 +618,6 @@ class MerchantApi(BaseMiner):
                 logger.info(json.dumps(logging_info))
 
         self.audit_logger.send_to_atlas()
-        # self.audit_logger.send_to_atlas.delay()
         return response_data
 
     def _inbound_handler(self, data, scheme_slug):
@@ -640,6 +639,17 @@ class MerchantApi(BaseMiner):
             'ASYNC',
             'INBOUND'
         )
+
+        self.audit_logger.add_response(
+            response=json.dumps(data),
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=self.config.handler_type,
+            integration_service=self.config.integration_service,
+            status_code=0    # Doesn't have a status code since this is a async response
+        )
+        self.audit_logger.send_to_atlas()
 
         if self._check_for_error_response(self.result):
             logging_info['contains_errors'] = True
@@ -728,7 +738,6 @@ class MerchantApi(BaseMiner):
             integration_service=self.config.integration_service,
             status_code=status,
         )
-        self.audit_logger.send_to_atlas()
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
