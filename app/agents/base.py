@@ -647,7 +647,7 @@ class MerchantApi(BaseMiner):
             scheme_slug=self.scheme_slug,
             handler_type=self.config.handler_type,
             integration_service=self.config.integration_service,
-            status_code=0    # Doesn't have a status code since this is a async response
+            status_code=0    # Doesn't have a status code since this is an async response
         )
         self.audit_logger.send_to_atlas()
 

@@ -56,7 +56,7 @@ class ResponseAuditLog(NamedTuple):
 class AuditLogger:
     """
     Handler for sending request/response audit logs to Atlas.
-    Can be initialised with 2 option arguments:
+    Can be initialised with 2 optional arguments:
          channel: A string identifying the channel from which the request was made or the request is related
          journeys: An iterable (Tuple recommended) of journey types for which auditing should be enabled.
             These should be handler_type values defined in the Configuration class e.g Configuration.JOIN_HANDLER
