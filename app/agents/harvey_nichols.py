@@ -12,7 +12,8 @@ from app.agents.exceptions import (
     NO_SUCH_RECORD,
 )
 from app.audit import RequestAuditLog, AuditLogType
-from app.encryption import AESCipher
+from app.configuration import Configuration
+from app.encryption import AESCipher, hash_ids
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
@@ -198,13 +199,17 @@ class HarveyNichols(ApiMiner):
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        handler_type = (Configuration.JOIN_HANDLER, Configuration.handler_type_as_str(Configuration.JOIN_HANDLER))
+
         self.audit_logger.add_request(
             payload=data,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
-            record_uid=None,
-            handler_type=None,
-            integration_service=None
+            record_uid=record_uid,
+            handler_type=handler_type,
+            integration_service=integration_service,
         )
 
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
@@ -212,10 +217,10 @@ class HarveyNichols(ApiMiner):
         self.audit_logger.add_response(
             response=self.register_response,
             message_uid=message_uid,
-            record_uid=None,
+            record_uid=record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=None,
-            integration_service=None,
+            handler_type=handler_type,
+            integration_service=integration_service,
             status_code=self.register_response.status_code
         )
         self.audit_logger.send_to_atlas()

@@ -710,7 +710,7 @@ class MerchantApi(BaseMiner):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
-            handler_type=self.config.handler_type[1],
+            handler_type=self.config.handler_type,
             integration_service=self.config.integration_service
         )
 
@@ -724,7 +724,7 @@ class MerchantApi(BaseMiner):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
-            handler_type=self.config.handler_type[1],
+            handler_type=self.config.handler_type,
             integration_service=self.config.integration_service,
             status_code=status,
         )
