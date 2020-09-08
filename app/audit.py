@@ -65,7 +65,7 @@ class AuditLogger:
     def __init__(self, channel: str = "", journeys: Iterable[str] = "__all__") -> None:
         self.audit_logs = []
         self.channel = channel
-        self.session = requests.Session()
+        self.session = self.retry_session()
         self.journeys = journeys
 
     def add_request(
