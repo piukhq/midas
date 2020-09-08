@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple
+from typing import Union, Iterable, NamedTuple, List, Tuple
 from uuid import uuid4
 
 import arrow
@@ -13,7 +13,7 @@ from app.utils import get_headers
 from settings import logger, ATLAS_URL
 
 
-class AuditLogType(Enum):
+class AuditLogType(str, Enum):
     REQUEST = "REQUEST"
     RESPONSE = "RESPONSE"
 
@@ -54,20 +54,25 @@ class ResponseAuditLog(NamedTuple):
 
 
 class AuditLogger:
+    """
+    Handler for sending request/response audit logs to Atlas.
+    Can be initialised with 2 optional arguments:
+         channel: A string identifying the channel from which the request was made or the request is related
+         journeys: An iterable (Tuple recommended) of journey types for which auditing should be enabled.
+            These should be handler_type values defined in the Configuration class e.g Configuration.JOIN_HANDLER
+    """
 
-    def __init__(
-        self,
-        channel: str = ""
-    ) -> None:
+    def __init__(self, channel: str = "", journeys: Iterable[str] = "__all__") -> None:
         self.audit_logs = []
         self.channel = channel
-        self.session = requests.Session()
+        self.session = self.retry_session()
+        self.journeys = journeys
 
     def add_request(
         self,
         payload: Union[Iterable[dict], dict],
         scheme_slug: str,
-        handler_type: str,
+        handler_type: Tuple[int, str],
         integration_service: str,
         message_uid: str,
         record_uid: str,
@@ -79,20 +84,21 @@ class AuditLogger:
 
     def add_response(
         self,
-        response: Response,
+        response: Union[str, Response],
         scheme_slug: str,
-        handler_type: str,
+        handler_type: Tuple[int, str],
         integration_service: str,
         status_code: int,
         message_uid: str,
         record_uid: str,
-        response_body: str,
     ) -> None:
-
-        try:
-            data = response.json()
-        except json.decoder.JSONDecodeError:
-            data = response.text
+        if isinstance(response, str):
+            data = response
+        else:
+            try:
+                data = response.json()
+            except (json.decoder.JSONDecodeError, TypeError):
+                data = response.text
 
         self._add_audit_log(
             data, scheme_slug, handler_type, integration_service, message_uid, record_uid,
@@ -121,9 +127,12 @@ class AuditLogger:
 
         headers = get_headers(tid=str(uuid4()))
 
-        self.filter_fields()
-        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
+        try:
+            self.audit_logs = self.filter_fields(self.audit_logs)
+        except Exception:
+            logger.exception(f"Error when filtering fields for atlas audit")
 
+        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
         logger.info(payload)
 
         try:
@@ -136,15 +145,25 @@ class AuditLogger:
         except requests.exceptions.RequestException as e:
             logger.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
-    def filter_fields(self) -> Iterable[RequestAuditLog]:
-        """Override per merchant to modify which fields are omitted/encrypted"""
-        pass
+    @staticmethod
+    def filter_fields(req_audit_logs: List[RequestAuditLog]) -> List[RequestAuditLog]:
+        """
+        Override per merchant to modify which fields are omitted/encrypted.
+
+        This should iterate over req_audit_logs and filter them all in one go as this
+        function is only called once before sending to atlas.
+
+        Audit objects may contain references to objects that are used elsewhere and so should
+        not be modified directly. Use a copy or deepcopy if modifying values e.g encrypting fields
+        in the payload.
+        """
+        return req_audit_logs
 
     def _add_audit_log(
         self,
         data: dict,
         scheme_slug: str,
-        handler_type: str,
+        handler_type: Tuple[int, str],
         integration_service: str,
         message_uid: str,
         record_uid: str,
@@ -152,32 +171,39 @@ class AuditLogger:
         status_code: int = None,
     ) -> None:
 
+        handler_type_int, handler_type_str = handler_type
+
         def _build_audit_log(log_data: Union[dict, str]) -> Union[RequestAuditLog, ResponseAuditLog]:
             timestamp = arrow.utcnow().timestamp
 
             if log_type == AuditLogType.REQUEST:
                 audit_log = self._build_request_audit_log(
-                    log_data, scheme_slug, handler_type, integration_service, timestamp, message_uid,
+                    log_data, scheme_slug, handler_type_str, integration_service, timestamp, message_uid,
                     record_uid
                 )
             elif log_type == AuditLogType.RESPONSE:
                 audit_log = self._build_response_audit_log(
-                    log_data, scheme_slug, handler_type, status_code, integration_service, timestamp,
+                    log_data, scheme_slug, handler_type_str, status_code, integration_service, timestamp,
                     message_uid, record_uid
                 )
             else:
                 raise ValueError("Invalid AuditLogType provided")
             return audit_log
 
-        if isinstance(data, list):
-            for req in data:
-                self.audit_logs.append(_build_audit_log(req))
+        if self.journeys == "__all__" or handler_type_int in self.journeys:
+            if isinstance(data, list):
+                for req in data:
+                    self.audit_logs.append(_build_audit_log(req))
 
-        elif isinstance(data, (dict, str)):
-            self.audit_logs.append(_build_audit_log(data))
+            elif isinstance(data, (dict, str)):
+                self.audit_logs.append(_build_audit_log(data))
 
+            else:
+                logger.warning("Audit log data must be a dict/string or a list of dicts/strings")
         else:
-            logger.warning("Audit log data must be a dict/string or a list of dicts/strings")
+            logger.debug(
+                f"Audit logging is disabled for journey type {handler_type_str} for scheme {scheme_slug}"
+            )
 
     def _build_request_audit_log(
         self,

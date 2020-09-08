@@ -70,7 +70,6 @@ tenacity = "*"
 sentry-sdk = "*"
 requests = "*"
 gaia = "*"
-cryptography = "*"
 
 [dev-packages]
 coverage = "*"
