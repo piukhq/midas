@@ -23,7 +23,7 @@ USER_STORE = {
             "redeemed_vouchers": [],
         },
         "9523456": {
-            "card_number": "WHS00000009523457",
+            "card_number": "WHS00000009523456",
             "points": Decimal("3"),
             "credentials": {},
             "earned_vouchers": [
