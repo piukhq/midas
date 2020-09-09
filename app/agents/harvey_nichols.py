@@ -1,7 +1,7 @@
+from copy import deepcopy
+from typing import List
 from uuid import uuid1
 from decimal import Decimal
-
-from cryptography.fernet import Fernet
 
 from app.agents.exceptions import (
     LoginError, RegistrationError,
@@ -11,10 +11,13 @@ from app.agents.exceptions import (
     STATUS_LOGIN_FAILED,
     NO_SUCH_RECORD,
 )
+from app.audit import RequestAuditLog, AuditLogType
+from app.configuration import Configuration
+from app.encryption import AESCipher, hash_ids
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, ATLAS_CREDENTIAL_KEY
+from settings import REDIS_URL, AES_KEY, logger
 from app.tasks.resend_consents import send_consents
 import arrow
 import json
@@ -31,7 +34,27 @@ class HarveyNichols(ApiMiner):
     token_store = UserTokenStore(REDIS_URL)
     retry_limit = 9  # tries 10 times overall
 
-    encryption_key = Fernet(ATLAS_CREDENTIAL_KEY)
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug)
+        self.audit_logger.filter_fields = self.encrypt_sensitive_fields
+
+    @staticmethod
+    def encrypt_sensitive_fields(req_audit_logs: List[RequestAuditLog]) -> List[RequestAuditLog]:
+        aes = AESCipher(AES_KEY.encode())
+
+        # Values stored in AuditLog objects are references so they should be copied before modifying
+        # in case the values are also used elsewhere.
+        req_audit_logs_copy = deepcopy(req_audit_logs)
+        for audit_log in req_audit_logs_copy:
+            if audit_log.audit_log_type == AuditLogType.REQUEST:
+                try:
+                    audit_log.payload['CustomerSignUpRequest']['password'] = aes.encrypt(
+                        audit_log.payload['CustomerSignUpRequest']['password']
+                    ).decode()
+                except KeyError as e:
+                    logger.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
+
+        return req_audit_logs_copy
 
     def check_loyalty_account_valid(self, credentials):
         """
@@ -176,17 +199,17 @@ class HarveyNichols(ApiMiner):
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
-        payload = data.copy()
-        payload['CustomerSignUpRequest']['password'] = self.encryption_key.encrypt(
-            payload['CustomerSignUpRequest']['password'].encode())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        handler_type = (Configuration.JOIN_HANDLER, Configuration.handler_type_as_str(Configuration.JOIN_HANDLER))
 
         self.audit_logger.add_request(
             payload=data,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
-            record_uid=None,
-            handler_type=None,
-            integration_service=None
+            record_uid=record_uid,
+            handler_type=handler_type,
+            integration_service=integration_service,
         )
 
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
@@ -194,12 +217,11 @@ class HarveyNichols(ApiMiner):
         self.audit_logger.add_response(
             response=self.register_response,
             message_uid=message_uid,
-            record_uid=None,
+            record_uid=record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=None,
-            integration_service=None,
-            status_code=self.register_response.status_code,
-            response_body=self.register_response.text,
+            handler_type=handler_type,
+            integration_service=integration_service,
+            status_code=self.register_response.status_code
         )
         self.audit_logger.send_to_atlas()
 
