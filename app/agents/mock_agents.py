@@ -349,8 +349,16 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         return []
 
     def register(self, credentials):
-        self._validate_join_credentials(data=credentials)
-        return {"message": "success"}
+        return self._validate_join_credentials(credentials)
+
+    def _validate_join_credentials(self, credentials):
+        if credentials['email'] == "whsmithx200@bink.com":
+            # This is to force a PENDING status for this email credential. See MER-432
+            sleep(20)
+        elif credentials['email'] == "whsmithx201@bink.com":
+            raise RegistrationError(STATUS_REGISTRATION_FAILED)
+
+        return super()._validate_join_credentials(data=credentials)
 
     @staticmethod
     def _make_mock_voucher(code: str, expiry_date: str, issued: str):
