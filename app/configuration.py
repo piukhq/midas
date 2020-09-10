@@ -76,11 +76,15 @@ class Configuration:
         :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES.
         """
         self.scheme_slug = scheme_slug
-        self.handler_type = (handler_type, self.HANDLER_TYPE_CHOICES[handler_type][1].upper())
+        self.handler_type = (handler_type, self.handler_type_as_str(handler_type))
 
         self.data = self._get_config_data()
         self._process_config_data()
         logger.debug('retrieved configuration for {}. scheme slug: {}'.format(self.handler_type, self.scheme_slug))
+
+    @classmethod
+    def handler_type_as_str(cls, handler_type: int) -> str:
+        return cls.HANDLER_TYPE_CHOICES[handler_type][1].upper()
 
     def _get_config_data(self):
         params = {

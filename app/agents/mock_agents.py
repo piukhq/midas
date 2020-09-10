@@ -290,7 +290,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             try:
                 user_id = whsmith_card_numbers[card_number]
             except (KeyError, TypeError):
-                raise LoginError(STATUS_LOGIN_FAILED)
+                raise LoginError(CARD_NUMBER_ERROR)
 
             self.user_info = ecrebo_user_store["whsmith"][user_id]
             merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())

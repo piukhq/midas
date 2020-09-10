@@ -1,6 +1,7 @@
 import json
 from collections import OrderedDict
 from unittest.mock import MagicMock, ANY
+from uuid import uuid4
 
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
@@ -30,7 +31,7 @@ mock_configuration = MagicMock()
 mock_configuration.scheme_slug = 'id'
 mock_configuration.merchant_url = 'stuff'
 mock_configuration.integration_service = 'SYNC'
-mock_configuration.handler_type = 'UPDATE'
+mock_configuration.handler_type = (0, 'UPDATE')
 mock_configuration.retry_limit = 2
 mock_configuration.callback_url = ''
 mock_configuration.log_level = 'DEBUG'
@@ -212,7 +213,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
     def test_sync_outbound_audit_logs(self, mock_request, mock_back_off, mock_encode, mock_decode):
-        msg_uid = '51bc9486-db0c-11ea-b8e5-acde48001122'
+        msg_uid = str(uuid4())
         record_uid = 'pym1834v0zrqxnrz5e3wjdglepko5972'
 
         self.m.message_uid = msg_uid
@@ -383,9 +384,10 @@ class TestMerchantApi(FlaskTestCase):
 
             self.assertTrue(mock_request.called)
 
+    @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
-    def test_async_inbound_success(self, mock_process_join, mock_logger):
+    def test_async_inbound_success(self, mock_process_join, mock_logger, mock_session_post):
         mock_process_join.return_value = ''
         self.m.config = self.config
         self.m.record_uid = self.m.scheme_id
@@ -393,11 +395,13 @@ class TestMerchantApi(FlaskTestCase):
         resp = self.m._inbound_handler(json.loads(self.json_data), '')
 
         self.assertTrue(mock_logger.info.called)
+        self.assertTrue(mock_session_post.called)
         self.assertEqual(resp, '')
 
+    @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
-    def test_async_inbound_logs_errors(self, mock_process_join, mock_logger):
+    def test_async_inbound_logs_errors(self, mock_process_join, mock_logger, mock_session_post):
         mock_process_join.return_value = ''
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
@@ -410,11 +414,13 @@ class TestMerchantApi(FlaskTestCase):
         self.m._inbound_handler(data, '')
 
         self.assertTrue(mock_logger.warning.called)
+        self.assertTrue(mock_session_post.called)
 
+    @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.send_consent_status', autospec=True)
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.scheme_account.requests', autospec=True)
-    def test_async_inbound_error_updates_status(self, mock_requests, mock_logger, mock_consents):
+    def test_async_inbound_error_updates_status(self, mock_requests, mock_logger, mock_consents, mock_session_post):
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
         self.m.consents_data = []
@@ -428,14 +434,17 @@ class TestMerchantApi(FlaskTestCase):
             self.m._inbound_handler(data, '')
         self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_consents.called)
+        self.assertTrue(mock_session_post.called)
         self.assertIn('status', mock_requests.post.call_args[0][0])
         self.assertEqual(SchemeAccountStatus.ENROL_FAILED,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
+    @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.send_consent_status', autospec=True)
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.scheme_account.requests', autospec=True)
-    def test_async_inbound_error_account_already_exists_updates_status(self, mock_requests, mock_logger, mock_consents):
+    def test_async_inbound_error_account_already_exists_updates_status(self, mock_requests, mock_logger, mock_consents,
+                                                                       mock_session_post):
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
         self.m.consents_data = []
@@ -449,6 +458,7 @@ class TestMerchantApi(FlaskTestCase):
             self.m._inbound_handler(data, '')
         self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_consents.called)
+        self.assertTrue(mock_session_post.called)
         self.assertIn('status', mock_requests.post.call_args[0][0])
         self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
