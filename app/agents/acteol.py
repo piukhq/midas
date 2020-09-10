@@ -9,6 +9,7 @@ import arrow
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
+    END_SITE_DOWN,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -16,24 +17,17 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
     RegistrationError,
-    END_SITE_DOWN,
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from app.utils import TWO_PLACES
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
-
-
-@enum.unique
-class VoucherType(enum.Enum):
-    JOIN = 0
-    ACCUMULATOR = 1
-    STAMPS = 2
 
 
 class Acteol(ApiMiner):
@@ -192,7 +186,7 @@ class Acteol(ApiMiner):
             points=points, voucher_type=VoucherType.STAMPS
         )
         bink_mapped_vouchers.append(in_progress_voucher)
-
+        # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
             bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
@@ -700,6 +694,7 @@ class Acteol(ApiMiner):
 
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
             return {
+                "state": voucher_state_names[VoucherState.REDEEMED],
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
@@ -720,6 +715,7 @@ class Acteol(ApiMiner):
 
         if voucher.get("Disabled"):
             return {
+                "state": voucher_state_names[VoucherState.CANCELLED],
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
@@ -747,6 +743,7 @@ class Acteol(ApiMiner):
             and not voucher.get("Disabled")
         ):
             return {
+                "state": voucher_state_names[VoucherState.ISSUED],
                 "type": VoucherType.STAMPS.value,
                 "code": voucher["VoucherCode"],
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
@@ -770,6 +767,7 @@ class Acteol(ApiMiner):
 
         if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
             return {
+                "state": voucher_state_names[VoucherState.EXPIRED],
                 "type": VoucherType.STAMPS.value,
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
@@ -787,6 +785,7 @@ class Acteol(ApiMiner):
         :return: dict of in-progress voucher data mapped for Bink
         """
         in_progress_voucher = {
+            "state": voucher_state_names[VoucherState.IN_PROGRESS],
             "type": voucher_type.value,
             "target_value": None,  # None == will be set to Earn Target Value in Hermes
             "value": points,
@@ -836,9 +835,7 @@ class Acteol(ApiMiner):
 
         error_msg = resp_json.get("Error")
         if error_msg:
-            logger.error(
-                f"End Site Down Error: {error_msg}"
-            )
+            logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
 

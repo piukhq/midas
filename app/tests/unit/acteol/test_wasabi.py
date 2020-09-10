@@ -9,8 +9,10 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
-from app.agents.acteol import VoucherType, Wasabi
+from app.agents import schemas
+from app.agents.acteol import Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 
 class TestWasabi(unittest.TestCase):
@@ -468,6 +470,7 @@ class TestWasabi(unittest.TestCase):
             "value_label": "",
             "vouchers": [
                 {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
                     "type": VoucherType.STAMPS.value,
                     "target_value": None,
                     "value": Decimal(expected_points),
@@ -515,6 +518,7 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert balance == expected_balance
+        assert schemas.balance(balance)
 
     def test_get_email_optin_pref_from_consent(self):
         """
@@ -901,6 +905,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
+            "state": voucher_state_names[VoucherState.REDEEMED],
             "type": VoucherType.STAMPS.value,
             "target_value": None,
             "value": None,
@@ -961,6 +966,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
+            "state": voucher_state_names[VoucherState.CANCELLED],
             "type": VoucherType.STAMPS.value,
             "target_value": None,
             "value": None,
@@ -1030,6 +1036,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
+            "state": voucher_state_names[VoucherState.ISSUED],
             "type": VoucherType.STAMPS.value,
             "code": voucher["VoucherCode"],
             "target_value": None,
@@ -1098,6 +1105,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         expected_mapped_voucher = {
+            "state": voucher_state_names[VoucherState.EXPIRED],
             "type": VoucherType.STAMPS.value,
             "target_value": None,
             "value": None,
@@ -1118,6 +1126,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         points = Decimal(123)
         expected_in_progress_voucher = {
+            "state": voucher_state_names[VoucherState.IN_PROGRESS],
             "type": VoucherType.STAMPS.value,
             "target_value": None,
             "value": points,
