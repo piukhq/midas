@@ -395,8 +395,7 @@ class Acteol(ApiMiner):
             "FirstName": credentials["first_name"],
             "LastName": credentials["last_name"],
             "Email": credentials["email"],
-            "Phone": credentials.get("phone", ""),
-            "Company": {"PostCode": credentials.get("postcode", "")},
+            "BirthDate": credentials["date_of_birth"],
         }
         resp = self.make_request(
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
