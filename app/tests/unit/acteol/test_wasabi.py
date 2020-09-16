@@ -916,7 +916,7 @@ class TestWasabi(unittest.TestCase):
             "WeekDays": [],
             "DayHours": [],
             "RandomID": "sample string 13",
-            "VoucherCode": "sample string 14",
+            "VoucherCode": "12KT026N",
             "SmallImage": "sample string 15",
             "MediumImage": "sample string 16",
             "LargeImage": "sample string 17",
@@ -938,6 +938,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.REDEEMED],
             "type": VoucherType.STAMPS.value,
+            "code": voucher['VoucherCode'],
             "target_value": None,
             "value": None,
             "issue_date": 1595432679,  # voucher StartDate as timestamp
@@ -977,7 +978,7 @@ class TestWasabi(unittest.TestCase):
             "WeekDays": [],
             "DayHours": [],
             "RandomID": "sample string 13",
-            "VoucherCode": "sample string 14",
+            "VoucherCode": "12KT026N",
             "SmallImage": "sample string 15",
             "MediumImage": "sample string 16",
             "LargeImage": "sample string 17",
@@ -999,6 +1000,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.CANCELLED],
             "type": VoucherType.STAMPS.value,
+            "code": voucher['VoucherCode'],
             "target_value": None,
             "value": None,
             "issue_date": 1595432679,  # voucher StartDate as timestamp
@@ -1047,7 +1049,7 @@ class TestWasabi(unittest.TestCase):
             "WeekDays": [],
             "DayHours": [],
             "RandomID": "sample string 13",
-            "VoucherCode": "VOUCH123CODE456",
+            "VoucherCode": "12KT026N",
             "SmallImage": "sample string 15",
             "MediumImage": "sample string 16",
             "LargeImage": "sample string 17",
@@ -1116,7 +1118,7 @@ class TestWasabi(unittest.TestCase):
             "WeekDays": [],
             "DayHours": [],
             "RandomID": "sample string 13",
-            "VoucherCode": "VOUCH123CODE456",
+            "VoucherCode": "12KT026N",
             "SmallImage": "sample string 15",
             "MediumImage": "sample string 16",
             "LargeImage": "sample string 17",
@@ -1138,6 +1140,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.EXPIRED],
             "type": VoucherType.STAMPS.value,
+            "code": voucher['VoucherCode'],
             "target_value": None,
             "value": None,
             "issue_date": now.timestamp,  # voucher StartDate as timestamp

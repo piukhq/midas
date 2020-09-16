@@ -712,6 +712,7 @@ class Acteol(ApiMiner):
             return {
                 "state": voucher_state_names[VoucherState.REDEEMED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
@@ -733,6 +734,7 @@ class Acteol(ApiMiner):
             return {
                 "state": voucher_state_names[VoucherState.CANCELLED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
@@ -785,6 +787,7 @@ class Acteol(ApiMiner):
             return {
                 "state": voucher_state_names[VoucherState.EXPIRED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
