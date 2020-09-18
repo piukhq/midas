@@ -1424,3 +1424,36 @@ class TestWasabi(unittest.TestCase):
 
             # THEN
             assert ctcid is None
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_succeeds(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        ctcid = 54321
+        response_data = {
+            "ValidationMsg": "",
+            "IsValid": True,
+            "CtcID": ctcid
+        }
+        expected_ctcid = str(ctcid)
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        ctcid = self.wasabi._validate_member_number(credentials)
+
+        # THEN
+        assert ctcid == expected_ctcid

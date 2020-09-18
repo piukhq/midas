@@ -571,7 +571,7 @@ class Acteol(ApiMiner):
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
-        retry=retry_if_exception_type(AgentError),
+        retry=retry_if_exception_type(AgentError)
     )
     def _validate_member_number(self, credentials: Dict) -> str:
         """
