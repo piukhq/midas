@@ -30,7 +30,7 @@ class TestWasabi(unittest.TestCase):
                     "user_set": "1,2",
                     "journey_type": None,
                     "credentials": {},
-                    "channel": "com.bink.wallet"
+                    "channel": "com.bink.wallet",
                 },
             ]
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
@@ -290,7 +290,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01"
+            "date_of_birth": "1999-01-01",
         }
 
         # WHEN
@@ -314,7 +314,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01"
+            "date_of_birth": "1999-01-01",
         }
 
         # WHEN
@@ -371,7 +371,7 @@ class TestWasabi(unittest.TestCase):
         customer_details = {
             "Firstname": "David",
             "Lastname": "Testperson",
-            "BirthDate": '1999-01-01T00:00:00',
+            "BirthDate": "1999-01-01T00:00:00",
             "Email": expected_email,
             "MobilePhone": None,
             "Address1": None,
@@ -475,7 +475,7 @@ class TestWasabi(unittest.TestCase):
         customer_details = {
             "Firstname": "David",
             "Lastname": "Testperson",
-            "BirthDate": '1999-01-01T00:00:00',
+            "BirthDate": "1999-01-01T00:00:00",
             "Email": "doesnotexist@bink.com",
             "MobilePhone": None,
             "Address1": None,
@@ -502,7 +502,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "date_of_birth": '1999-01-01',
+            "date_of_birth": "1999-01-01",
             "card_number": "1048183413",
             "merchant_identifier": 142163,
         }
@@ -681,6 +681,30 @@ class TestWasabi(unittest.TestCase):
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._validate_member_number")
+    def test_login_balance_path(self, mock_validate_member_number, mock_authenticate):
+        """
+        Check that the call to login() that happens during a balance request avoids an email verification call
+        to Acteol
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+            "merchant_identifier": "54321",
+        }
+
+        # WHEN
+        self.wasabi.login(credentials=credentials)
+
+        # THEN
+        assert not mock_validate_member_number.called
+
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._validate_member_number")
     def test_login_add_path(self, mock_validate_member_number, mock_authenticate):
         """
         Check that the call to login() validates email on an add journey
@@ -694,7 +718,10 @@ class TestWasabi(unittest.TestCase):
             "card_number": "1048235616",
             "consents": [],
         }
+        # These two fields just won't be present in real requests, but set to false here deliberately so we have
+        # greater transparency
         self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["merchant_identifier"] = False
 
         # WHEN
         self.wasabi.login(credentials=credentials)
@@ -1310,10 +1337,7 @@ class TestWasabi(unittest.TestCase):
         Test handling 'Internal Exception error'
         """
         # GIVEN
-        resp_json = {
-            "Response": False,
-            "Error": "Internal Exception"
-        }
+        resp_json = {"Response": False, "Error": "Internal Exception"}
 
         # WHEN
         with pytest.raises(AgentError):
@@ -1326,7 +1350,9 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
@@ -1350,7 +1376,9 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED,
         )
@@ -1374,7 +1402,9 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.FORBIDDEN,
         )
@@ -1401,7 +1431,9 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         response_data = {
             "ValidationMsg": "Invalid Email",
             "IsValid": False,
@@ -1432,13 +1464,11 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         ctcid = 54321
-        response_data = {
-            "ValidationMsg": "",
-            "IsValid": True,
-            "CtcID": ctcid
-        }
+        response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid}
         expected_ctcid = str(ctcid)
         httpretty.register_uri(
             httpretty.GET,
