@@ -9,6 +9,7 @@ import arrow
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
+    END_SITE_DOWN,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -16,7 +17,6 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
     RegistrationError,
-    END_SITE_DOWN,
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
@@ -24,7 +24,12 @@ from app.utils import TWO_PLACES
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -290,14 +295,19 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        # If we are on an add journey, then we will need to verify the supplied email against the card number
-        if credentials["card_number"] and not self.user_info.get("from_register"):
-            # Don't go any further unless the account is valid
+        # If we are on an add journey, then we will need to verify the supplied email against the card number.
+        # Being on an add journey is defined as having a card number but no "from_register" field, and we
+        # don't have a "merchant_identifier" (which would indicate this is just a balance request).
+        if (
+            credentials["card_number"]
+            and not self.user_info.get("from_register")
+            and not credentials.get("merchant_identifier")
+        ):
             ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
-            # Set up attributes needed for the creation of an active membership card
+            # Set up attributes needed for the creation of an active membership card when joining
             self.identifier = {
                 "card_number": credentials["card_number"],
                 "merchant_identifier": ctcid,
@@ -555,6 +565,14 @@ class Acteol(ApiMiner):
 
         return False
 
+    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
+    # and only do this for AgentError(usually HTTPError) types
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+        retry=retry_if_exception_type(AgentError),
+    )
     def _validate_member_number(self, credentials: Dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
@@ -581,13 +599,9 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        try:
-            resp = self.make_request(
-                api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-            )
-        except AgentError as ae:
-            logger.error(f"Error while validating card_number/MemberNumber: {str(ae)}")
-            raise LoginError(STATUS_LOGIN_FAILED) from ae
+        resp = self.make_request(
+            api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+        )
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -835,9 +849,7 @@ class Acteol(ApiMiner):
 
         error_msg = resp_json.get("Error")
         if error_msg:
-            logger.error(
-                f"End Site Down Error: {error_msg}"
-            )
+            logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
 

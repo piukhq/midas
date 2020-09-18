@@ -1318,3 +1318,109 @@ class TestWasabi(unittest.TestCase):
         # WHEN
         with pytest.raises(AgentError):
             self.wasabi._check_internal_error(resp_json)
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_timeout(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        with pytest.raises(AgentError):
+            ctcid = self.wasabi._validate_member_number(credentials)
+
+            # THEN
+            assert ctcid is None
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_fail_authentication(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        with pytest.raises(AgentError):
+            ctcid = self.wasabi._validate_member_number(credentials)
+
+            # THEN
+            assert ctcid is None
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_fail_forbidden(self, mock_authenticate):
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.FORBIDDEN,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        with pytest.raises(AgentError):
+            ctcid = self.wasabi._validate_member_number(credentials)
+
+            # THEN
+            assert ctcid is None
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_validation_error(self, mock_authenticate):
+        """
+        Test one of the LoginError scenarios
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        response_data = {
+            "ValidationMsg": "Invalid Email",
+            "IsValid": False,
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # WHEN
+        with pytest.raises(LoginError):
+            ctcid = self.wasabi._validate_member_number(credentials)
+
+            # THEN
+            assert ctcid is None
