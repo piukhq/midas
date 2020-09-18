@@ -297,7 +297,7 @@ class Acteol(ApiMiner):
         """
         # If we are on an add journey, then we will need to verify the supplied email against the card number.
         # Being on an add journey is defined as having a card number but no "from_register" field, and we
-        # don't have a "merchant_identifier" (which would indicate this is just a balance request).
+        # won't have a "merchant_identifier" (which would indicate a balance request instead).
         if (
             credentials["card_number"]
             and not self.user_info.get("from_register")
@@ -307,7 +307,7 @@ class Acteol(ApiMiner):
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
-            # Set up attributes needed for the creation of an active membership card when joining
+            # Set up attributes needed for the creation of an active membership card
             self.identifier = {
                 "card_number": credentials["card_number"],
                 "merchant_identifier": ctcid,
