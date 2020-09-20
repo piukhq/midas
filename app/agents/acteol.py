@@ -25,6 +25,7 @@ from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
 from tenacity import (
+    Retrying,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -565,14 +566,6 @@ class Acteol(ApiMiner):
 
         return False
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    # and only do this for AgentError(usually HTTPError) types
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-        retry=retry_if_exception_type(AgentError)
-    )
     def _validate_member_number(self, credentials: Dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
@@ -599,9 +592,19 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        resp = self.make_request(
-            api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-        )
+
+        # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
+        # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
+        for attempt in Retrying(
+            stop=stop_after_attempt(RETRY_LIMIT),
+            wait=wait_exponential(multiplier=1, min=3, max=12),
+            reraise=True,
+            retry=retry_if_exception_type(AgentError),
+        ):
+            with attempt:
+                resp = self.make_request(
+                    api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+                )
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
