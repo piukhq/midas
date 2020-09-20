@@ -1359,10 +1359,7 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
-        retrying = Retrying(
-            stop=stop_after_attempt(1),
-            reraise=True
-        )
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
         api_url = urljoin(
@@ -1384,16 +1381,15 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_fail_authentication(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_fail_authentication(
+        self, mock_authenticate, mock_retrying
+    ):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
-        retrying = Retrying(
-            stop=stop_after_attempt(1),
-            reraise=True
-        )
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
         api_url = urljoin(
@@ -1415,16 +1411,15 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_fail_forbidden(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_fail_forbidden(
+        self, mock_authenticate, mock_retrying
+    ):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
-        retrying = Retrying(
-            stop=stop_after_attempt(1),
-            reraise=True
-        )
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
         api_url = urljoin(
@@ -1446,7 +1441,9 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_validation_error(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_validation_error(
+        self, mock_authenticate, mock_retrying
+    ):
         """
         Test one of the LoginError scenarios
         """
@@ -1455,10 +1452,7 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
-        retrying = Retrying(
-            stop=stop_after_attempt(1),
-            reraise=True
-        )
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
         api_url = urljoin(
@@ -1493,10 +1487,7 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
-        retrying = Retrying(
-            stop=stop_after_attempt(1),
-            reraise=True
-        )
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
         api_url = urljoin(
