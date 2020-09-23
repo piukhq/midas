@@ -25,7 +25,13 @@ from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    Retrying,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -284,9 +290,14 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        # If we are on an add journey, then we will need to verify the supplied email against the card number
-        if credentials["card_number"] and not self.user_info.get("from_register"):
-            # Don't go any further unless the account is valid
+        # If we are on an add journey, then we will need to verify the supplied email against the card number.
+        # Being on an add journey is defined as having a card number but no "from_register" field, and we
+        # won't have a "merchant_identifier" (which would indicate a balance request instead).
+        if (
+            credentials["card_number"]
+            and not self.user_info.get("from_register")
+            and not credentials.get("merchant_identifier")
+        ):
             ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
@@ -575,13 +586,19 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        try:
-            resp = self.make_request(
-                api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-            )
-        except AgentError as ae:
-            logger.error(f"Error while validating card_number/MemberNumber: {str(ae)}")
-            raise LoginError(STATUS_LOGIN_FAILED) from ae
+
+        # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
+        # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
+        for attempt in Retrying(
+            stop=stop_after_attempt(RETRY_LIMIT),
+            wait=wait_exponential(multiplier=1, min=3, max=12),
+            reraise=True,
+            retry=retry_if_exception_type(AgentError),
+        ):
+            with attempt:
+                resp = self.make_request(
+                    api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+                )
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
