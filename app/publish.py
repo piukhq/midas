@@ -13,19 +13,19 @@ thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
 
 
-def log_errors(session, resp):
+def log_errors(resp, *args, **kwargs):
     if not resp.ok:
         logger.warning("Could not request to the url: {0}".format(resp.url))
 
 
 def post(url, data, tid):
     session = FuturesSession(executor=thread_pool_executor)
-    session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), background_callback=log_errors)
+    session.post(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), hooks={"response": log_errors})
 
 
 def put(url, data, tid):
     session = FuturesSession(executor=thread_pool_executor)
-    session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), background_callback=log_errors)
+    session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), hooks={"response": log_errors})
 
 
 def transactions(transactions_items, scheme_account_id, user_set, tid):

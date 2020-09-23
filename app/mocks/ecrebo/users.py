@@ -1,4 +1,16 @@
 from decimal import Decimal
+from app.agents.exceptions import (
+    STATUS_LOGIN_FAILED,
+    NO_SUCH_RECORD,
+    ACCOUNT_ALREADY_EXISTS,
+    CARD_NOT_REGISTERED,
+    GENERAL_ERROR,
+    JOIN_IN_PROGRESS,
+    VALIDATION,
+    UnauthorisedError,
+    STATUS_REGISTRATION_FAILED,
+    PASSWORD_EXPIRED,
+)
 
 USER_STORE = {
     "whsmith": {
@@ -9,6 +21,21 @@ USER_STORE = {
             "earned_vouchers": [],
             "expired_vouchers": [],
             "redeemed_vouchers": [],
+        },
+        "9523456": {
+            "card_number": "WHS00000009523456",
+            "points": Decimal("3"),
+            "credentials": {},
+            "earned_vouchers": [
+                ["WHS000046", "2021-01-01"],
+                ["WHS000047", "2021-02-02"],
+            ],
+            "expired_vouchers": [["WHS000048", "2020-08-01"], ],
+            "redeemed_vouchers": [
+                ["WHS000049", "2020-08-04"],
+                ["WHS000050", "2020-07-04"],
+                ["WHS000051", "2020-06-04"],
+            ],
         },
         "9523457": {
             "card_number": "WHS00000009523457",
@@ -622,6 +649,54 @@ USER_STORE = {
             ],
             "expired_vouchers": [],
             "redeemed_vouchers": [["WHS000253", "2020-08-04"], ],
+        },
+        # MER-432: return an exception for certain card numbers
+        "9523100": {
+            "card_number": "WHS00000009523100",
+            "code_to_return": (
+                "X100",
+                None,
+            ),  # Set code to None to force a PENDING state for the card
+        },
+        "9523101": {
+            "card_number": "WHS00000009523101",
+            "code_to_return": ("X101", NO_SUCH_RECORD),
+        },
+        "9523102": {
+            "card_number": "WHS00000009523102",
+            "code_to_return": ("X102", VALIDATION),
+        },
+        "9523103": {
+            "card_number": "WHS00000009523103",
+            "code_to_return": ("X103", UnauthorisedError),
+        },
+        "9523104": {
+            "card_number": "WHS00000009523104",
+            "code_to_return": ("X104", GENERAL_ERROR),
+        },
+        "9523105": {
+            "card_number": "WHS00000009523105",
+            "code_to_return": ("X105", CARD_NOT_REGISTERED),
+        },
+        "9523200": {
+            "card_number": "WHS00000009523200",
+            "code_to_return": ("X200", JOIN_IN_PROGRESS),
+        },
+        "9523201": {
+            "card_number": "WHS00000009523201",
+            "code_to_return": ("X201", STATUS_REGISTRATION_FAILED),
+        },
+        "9523202": {
+            "card_number": "WHS00000009523202",
+            "code_to_return": ("X202", ACCOUNT_ALREADY_EXISTS),
+        },
+        "9523303": {
+            "card_number": "WHS00000009523303",
+            "code_to_return": ("X303", STATUS_LOGIN_FAILED),
+        },
+        "9523304": {
+            "card_number": "WHS00000009523304",
+            "code_to_return": ("X304", PASSWORD_EXPIRED),
         },
     }
 }
