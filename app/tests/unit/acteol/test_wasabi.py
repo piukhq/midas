@@ -292,8 +292,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "phone": "08765543210",
-            "postcode": "BN77UU",
+            "date_of_birth": "1999-01-01"
         }
 
         # WHEN
@@ -317,8 +316,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "phone": "08765543210",
-            "postcode": "BN77UU",
+            "date_of_birth": "1999-01-01"
         }
 
         # WHEN
@@ -375,12 +373,12 @@ class TestWasabi(unittest.TestCase):
         customer_details = {
             "Firstname": "David",
             "Lastname": "Testperson",
-            "BirthDate": None,
+            "BirthDate": '1999-01-01T00:00:00',
             "Email": expected_email,
             "MobilePhone": None,
             "Address1": None,
             "Address2": None,
-            "PostCode": "BN7 7UU",
+            "PostCode": None,
             "City": None,
             "CountryCode": None,
             "LastVisiteDate": None,
@@ -480,12 +478,12 @@ class TestWasabi(unittest.TestCase):
         customer_details = {
             "Firstname": "David",
             "Lastname": "Testperson",
-            "BirthDate": None,
+            "BirthDate": '1999-01-01T00:00:00',
             "Email": "doesnotexist@bink.com",
             "MobilePhone": None,
             "Address1": None,
             "Address2": None,
-            "PostCode": "BN7 7UU",
+            "PostCode": None,
             "City": None,
             "CountryCode": None,
             "LastVisiteDate": None,
@@ -507,8 +505,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "phone": "08765543210",
-            "postcode": "BN77UU",
+            "date_of_birth": '1999-01-01',
             "card_number": "1048183413",
             "merchant_identifier": 142163,
         }
@@ -1197,8 +1194,7 @@ class TestWasabi(unittest.TestCase):
             "first_name": "Sarah",
             "last_name": "TestPerson",
             "email": "testperson@bink.com",
-            "phone": "08765543210",
-            "postcode": "BN77UU",
+            "date_of_birth": "1999-01-01",
             "card_number": "1048183413",
             "merchant_identifier": ctcid,
         }
