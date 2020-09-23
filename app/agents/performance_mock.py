@@ -3,10 +3,9 @@ from decimal import Decimal
 from uuid import uuid4
 
 import arrow
-
 from app.agents.base import MockedMiner
-from app.agents.ecrebo import VoucherType
-from app.agents.exceptions import LoginError, PRE_REGISTERED_CARD
+from app.agents.exceptions import PRE_REGISTERED_CARD, LoginError
+from app.vouchers import VoucherType
 
 GHOST_CARD_PREFIX = "0"
 

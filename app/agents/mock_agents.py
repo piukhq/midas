@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import arrow
 from app.agents.base import MockedMiner
-from app.agents.ecrebo import Ecrebo, VoucherType
+from app.agents.ecrebo import Ecrebo
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
     END_SITE_DOWN,
@@ -20,6 +20,7 @@ from app.mocks import card_numbers
 from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
 from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
 from app.mocks.users import USER_STORE, transactions
+from app.vouchers import VoucherType
 
 JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 
