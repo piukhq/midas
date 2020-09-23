@@ -461,7 +461,7 @@ USER_STORE = {
     '934918': {
         'len_transactions': 0,
         'credentials': {
-            'last_name': 'testuser18',
+            'last_name': 'testusereighteen',
             'postcode': 'rg0 0aa',
         },
         'points': Decimal('0.00')
@@ -469,7 +469,7 @@ USER_STORE = {
     '934919': {
         'len_transactions': 5,
         'credentials': {
-            'last_name': 'testuser19',
+            'last_name': 'testusernineteen',
             'postcode': 'rg5 5aa',
         },
         'points': Decimal('380.01')
@@ -477,7 +477,7 @@ USER_STORE = {
     '934920': {
         'len_transactions': 5,
         'credentials': {
-            'last_name': 'testuser20',
+            'last_name': 'testusertwenty',
             'postcode': 'mp6 obb',
         },
         'points': Decimal('123456')
@@ -485,7 +485,7 @@ USER_STORE = {
     '934921': {
         'len_transactions': 5,
         'credentials': {
-            'last_name': 'testuser21',
+            'last_name': 'testusertwentyone',
             'postcode': 'mp7 1bb',
         },
         'points': Decimal('1234567')
@@ -493,7 +493,7 @@ USER_STORE = {
     '934922': {
         'len_transactions': 0,
         'credentials': {
-            'last_name': 'testuser22',
+            'last_name': 'testusertwentytwo',
             'postcode': 'rg0 0aa',
         },
         'points': Decimal('0.00')
@@ -501,7 +501,7 @@ USER_STORE = {
     '934923': {
         'len_transactions': 1,
         'credentials': {
-            'last_name': 'testuser23',
+            'last_name': 'testusertwentythree',
             'postcode': 'rg1 1aa',
         },
         'points': Decimal('20.10')
@@ -509,7 +509,7 @@ USER_STORE = {
     '934924': {
         'len_transactions': 5,
         'credentials': {
-            'last_name': 'testuser24',
+            'last_name': 'testusertwentyfour',
             'postcode': 'rg5 5aa',
         },
         'points': Decimal('380.01')
@@ -517,7 +517,7 @@ USER_STORE = {
     '934925': {
         'len_transactions': 0,
         'credentials': {
-            'last_name': 'testuser25',
+            'last_name': 'testusertwentyfive',
             'postcode': 'rg0 0aa',
         },
         'points': Decimal('0.00')
@@ -525,7 +525,7 @@ USER_STORE = {
     '934926': {
         'len_transactions': 5,
         'credentials': {
-            'last_name': 'testuser26',
+            'last_name': 'testusertwentysix',
             'postcode': 'rg5 5aa',
         },
         'points': Decimal('380.01')
@@ -533,7 +533,7 @@ USER_STORE = {
     '934927': {
         'len_transactions': 1,
         'credentials': {
-            'last_name': 'testuser27',
+            'last_name': 'testusertwentyseven',
             'postcode': 'mp6 0bb',
         },
         'points': Decimal('20.10')
