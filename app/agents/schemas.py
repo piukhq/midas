@@ -1,8 +1,7 @@
 from decimal import Decimal
 
 from arrow.arrow import Arrow
-from voluptuous import Optional, Required, Schema
-
+from voluptuous import Any, Optional, Required, Schema
 
 transactions = Schema(
     [
@@ -27,13 +26,14 @@ balance = Schema(
         Optional("vouchers"): Schema(
             [
                 {
+                    Required("state"): str,
                     Optional("issue_date"): int,
                     Optional("redeem_date"): int,
                     Optional("expiry_date"): int,
                     Optional("code"): str,
                     Required("type"): int,
                     Optional("value"): Decimal,
-                    Optional("target_value"): Decimal,
+                    Optional("target_value"): Any(None, Decimal),
                 }
             ]
         ),
