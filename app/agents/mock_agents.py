@@ -353,7 +353,8 @@ class MockAgentWHS(MockedMiner, Ecrebo):
                 "card_number": credentials["card_number"],
                 "merchant_identifier": merchant_identifier,
             }
-            self.user_info["credentials"].update(self.identifier)
+            existing_credentials: Dict = self.user_info.get("credentials", {})
+            self.user_info["credentials"] = {**existing_credentials, **self.identifier}
 
         return
 
@@ -370,19 +371,19 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         issued_vouchers = []
         issued = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
         redeemed = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
-        for earned_voucher in self.user_info["earned_vouchers"]:
+        for earned_voucher in self.user_info.get("earned_vouchers", []):
             mock_voucher = self._make_mock_voucher(
                 code=earned_voucher[0], expiry_date=earned_voucher[1], issued=issued
             )
             issued_vouchers.append(mock_voucher)
 
-        for expired_voucher in self.user_info["expired_vouchers"]:
+        for expired_voucher in self.user_info.get("expired_vouchers", []):
             mock_voucher = self._make_mock_voucher(
                 code=expired_voucher[0], expiry_date=expired_voucher[1], issued=issued
             )
             issued_vouchers.append(mock_voucher)
 
-        for redeemed_voucher in self.user_info["redeemed_vouchers"]:
+        for redeemed_voucher in self.user_info.get("redeemed_vouchers", []):
             mock_voucher = self._make_mock_voucher(
                 code=redeemed_voucher[0], expiry_date=redeemed_voucher[1], issued=issued
             )
@@ -391,7 +392,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
 
         balance_response = self._make_balance_response(
             voucher_type=VoucherType.STAMPS,
-            value=self.user_info["points"],
+            value=self.user_info.get("points", 0),
             target_value=Decimal("5"),
             issued_vouchers=issued_vouchers,
         )
