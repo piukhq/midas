@@ -1,23 +1,15 @@
+import time
+import typing as t
 from decimal import Decimal
 from uuid import uuid4
-import typing as t
-import enum
-import time
 
 import arrow
 import requests
-
 from app import constants
-from app.configuration import Configuration
 from app.agents.base import ApiMiner
-from app.agents.exceptions import LoginError, RegistrationError, STATUS_LOGIN_FAILED, ACCOUNT_ALREADY_EXISTS
-
-
-@enum.unique
-class VoucherType(enum.Enum):
-    JOIN = 0
-    ACCUMULATOR = 1
-    STAMPS = 2
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
+from app.configuration import Configuration
+from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
 
 
 class Ecrebo(ApiMiner):
@@ -105,29 +97,44 @@ class Ecrebo(ApiMiner):
             self.user_info["credentials"].update(self.identifier)
 
     def _make_issued_voucher(self, voucher_type: VoucherType, json: dict, target_value: Decimal) -> dict:
+        issue_date = arrow.get(json["issued"], "YYYY-MM-DD")
+        expiry_date = arrow.get(json["expiry_date"], "YYYY-MM-DD")
+        if "redeemed" in json:
+            redeem_date = arrow.get(json["redeemed"], "YYYY-MM-DD")
+        else:
+            redeem_date = None
+
+        state = get_voucher_state(
+            issue_date=issue_date,
+            redeem_date=redeem_date,
+            expiry_date=expiry_date
+        )
+
         voucher = {
+            "state": voucher_state_names[state],
             "type": voucher_type.value,
-            "issue_date": arrow.get(json["issued"], "YYYY-MM-DD").timestamp,
-            "expiry_date": arrow.get(json["expiry_date"], "YYYY-MM-DD").timestamp,
+            "issue_date": issue_date.timestamp,
+            "expiry_date": expiry_date.timestamp,
             "code": json["code"],
             "value": target_value,
             "target_value": target_value,
         }
 
-        if "redeemed" in json:
-            voucher["redeem_date"] = arrow.get(json["redeemed"], "YYYY-MM-DD").timestamp
+        if redeem_date:
+            voucher["redeem_date"] = redeem_date.timestamp
 
         return voucher
 
     def _make_balance_response(
-        self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: t.List[dict]
+            self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: t.List[dict]
     ) -> dict:
         return {
             "points": value,
             "value": value,
             "value_label": "",
             "vouchers": [
-                {"type": voucher_type.value, "value": value, "target_value": target_value},
+                {"state": voucher_state_names[VoucherState.IN_PROGRESS], "type": voucher_type.value, "value": value,
+                 "target_value": target_value},
                 *[self._make_issued_voucher(voucher_type, voucher, target_value) for voucher in issued_vouchers],
             ],
         }

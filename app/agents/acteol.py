@@ -9,6 +9,7 @@ import arrow
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
+    END_SITE_DOWN,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -16,24 +17,23 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
     RegistrationError,
-    END_SITE_DOWN,
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from app.utils import TWO_PLACES
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    Retrying,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
-
-
-@enum.unique
-class VoucherType(enum.Enum):
-    JOIN = 0
-    ACCUMULATOR = 1
-    STAMPS = 2
 
 
 class Acteol(ApiMiner):
@@ -192,7 +192,7 @@ class Acteol(ApiMiner):
             points=points, voucher_type=VoucherType.STAMPS
         )
         bink_mapped_vouchers.append(in_progress_voucher)
-
+        # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
             bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
@@ -290,9 +290,14 @@ class Acteol(ApiMiner):
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
         """
-        # If we are on an add journey, then we will need to verify the supplied email against the card number
-        if credentials["card_number"] and not self.user_info.get("from_register"):
-            # Don't go any further unless the account is valid
+        # If we are on an add journey, then we will need to verify the supplied email against the card number.
+        # Being on an add journey is defined as having a card number but no "from_register" field, and we
+        # won't have a "merchant_identifier" (which would indicate a balance request instead).
+        if (
+            credentials["card_number"]
+            and not self.user_info.get("from_register")
+            and not credentials.get("merchant_identifier")
+        ):
             ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
@@ -581,13 +586,19 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        try:
-            resp = self.make_request(
-                api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-            )
-        except AgentError as ae:
-            logger.error(f"Error while validating card_number/MemberNumber: {str(ae)}")
-            raise LoginError(STATUS_LOGIN_FAILED) from ae
+
+        # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
+        # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
+        for attempt in Retrying(
+            stop=stop_after_attempt(RETRY_LIMIT),
+            wait=wait_exponential(multiplier=1, min=3, max=12),
+            reraise=True,
+            retry=retry_if_exception_type(AgentError),
+        ):
+            with attempt:
+                resp = self.make_request(
+                    api_url, method="get", timeout=self.API_TIMEOUT, json=payload
+                )
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -699,7 +710,9 @@ class Acteol(ApiMiner):
 
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
             return {
+                "state": voucher_state_names[VoucherState.REDEEMED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
@@ -719,7 +732,9 @@ class Acteol(ApiMiner):
 
         if voucher.get("Disabled"):
             return {
+                "state": voucher_state_names[VoucherState.CANCELLED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
@@ -746,6 +761,7 @@ class Acteol(ApiMiner):
             and not voucher.get("Disabled")
         ):
             return {
+                "state": voucher_state_names[VoucherState.ISSUED],
                 "type": VoucherType.STAMPS.value,
                 "code": voucher["VoucherCode"],
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
@@ -769,7 +785,9 @@ class Acteol(ApiMiner):
 
         if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
             return {
+                "state": voucher_state_names[VoucherState.EXPIRED],
                 "type": VoucherType.STAMPS.value,
+                "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
                 "issue_date": arrow.get(voucher["StartDate"]).timestamp,
@@ -786,6 +804,7 @@ class Acteol(ApiMiner):
         :return: dict of in-progress voucher data mapped for Bink
         """
         in_progress_voucher = {
+            "state": voucher_state_names[VoucherState.IN_PROGRESS],
             "type": voucher_type.value,
             "target_value": None,  # None == will be set to Earn Target Value in Hermes
             "value": points,
@@ -835,9 +854,7 @@ class Acteol(ApiMiner):
 
         error_msg = resp_json.get("Error")
         if error_msg:
-            logger.error(
-                f"End Site Down Error: {error_msg}"
-            )
+            logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
 
