@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple, List, Tuple
+from typing import Union, Iterable, NamedTuple, List
 from uuid import uuid4
 
 import arrow
