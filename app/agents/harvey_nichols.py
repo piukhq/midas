@@ -1,6 +1,6 @@
 from copy import deepcopy
 from typing import List
-from uuid import uuid1
+from uuid import uuid4
 from decimal import Decimal
 
 from app.agents.exceptions import (
@@ -182,7 +182,7 @@ class HarveyNichols(ApiMiner):
         return sorted_transactions
 
     def register(self, credentials):
-        message_uid = str(uuid1())
+        message_uid = str(uuid4())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.BASE_URL + "/SignUp"
         data = {
@@ -201,14 +201,13 @@ class HarveyNichols(ApiMiner):
 
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        handler_type = (Configuration.JOIN_HANDLER, Configuration.handler_type_as_str(Configuration.JOIN_HANDLER))
 
         self.audit_logger.add_request(
             payload=data,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
             record_uid=record_uid,
-            handler_type=handler_type,
+            handler_type=Configuration.JOIN_HANDLER,
             integration_service=integration_service,
         )
 
@@ -219,7 +218,7 @@ class HarveyNichols(ApiMiner):
             message_uid=message_uid,
             record_uid=record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=handler_type,
+            handler_type=Configuration.JOIN_HANDLER,
             integration_service=integration_service,
             status_code=self.register_response.status_code
         )

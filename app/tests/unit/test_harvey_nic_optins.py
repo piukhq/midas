@@ -131,7 +131,7 @@ class TestUserConsents(unittest.TestCase):
     @staticmethod
     def add_audit_logs(hn: HarveyNichols) -> None:
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        handler_type = (Configuration.JOIN_HANDLER, Configuration.handler_type_as_str(Configuration.JOIN_HANDLER))
+        handler_type = Configuration.JOIN_HANDLER
         message_uid = str(uuid4())
         data = {
             'CustomerSignUpRequest': {

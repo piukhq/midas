@@ -7,7 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
 from urllib.parse import urlsplit
-from uuid import uuid1
+from uuid import uuid4
 from random import randint
 
 import requests
@@ -565,7 +565,7 @@ class MerchantApi(BaseMiner):
         :param handler_type: Int. A choice from Configuration.HANDLER_TYPE_CHOICES
         :return: dict of response data
         """
-        self.message_uid = str(uuid1())
+        self.message_uid = str(uuid4())
         if not self.config:
             self.config = Configuration(scheme_slug, handler_type)
 
@@ -645,7 +645,7 @@ class MerchantApi(BaseMiner):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=self.config.handler_type,
+            handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=0    # Doesn't have a status code since this is an async response
         )
@@ -720,7 +720,7 @@ class MerchantApi(BaseMiner):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
-            handler_type=self.config.handler_type,
+            handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service
         )
 
@@ -734,7 +734,7 @@ class MerchantApi(BaseMiner):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
-            handler_type=self.config.handler_type,
+            handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=status,
         )
