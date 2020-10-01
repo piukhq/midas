@@ -8,7 +8,9 @@ import requests
 from app import constants
 from app.agents.base import ApiMiner
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
+from app.audit import AuditLogger
 from app.configuration import Configuration
+from app.encryption import hash_ids
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
 
 
@@ -18,6 +20,9 @@ class Ecrebo(ApiMiner):
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+
+        # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
+        self.audit_logger = AuditLogger(channel=self.channel, journeys=())
 
     def _authenticate(self):
         """
@@ -66,11 +71,37 @@ class Ecrebo(ApiMiner):
 
     def register(self, credentials):
         consents = {c["slug"]: c["value"] for c in credentials.get("consents", {})}
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+
+        data = {"data": self._get_registration_credentials(credentials, consents)}
+
+        self.audit_logger.add_request(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
         resp = requests.post(
             f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
-            json={"data": self._get_registration_credentials(credentials, consents)},
+            json=data,
             headers=self._make_headers(self._authenticate()),
         )
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
 
         if resp.status_code == 409:
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
@@ -188,6 +219,10 @@ class Ecrebo(ApiMiner):
 
 class FatFace(Ecrebo):
     RETAILER_ID = "94"
+
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
