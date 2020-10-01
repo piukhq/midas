@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple, List, Tuple
+from typing import Union, Iterable, NamedTuple, List
 from uuid import uuid4
 
 import arrow
@@ -9,6 +9,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from requests import Response
 
+from app.configuration import Configuration
 from app.utils import get_headers
 from settings import logger, ATLAS_URL
 
@@ -62,7 +63,7 @@ class AuditLogger:
             These should be handler_type values defined in the Configuration class e.g Configuration.JOIN_HANDLER
     """
 
-    def __init__(self, channel: str = "", journeys: Iterable[str] = "__all__") -> None:
+    def __init__(self, channel: str = "", journeys: Iterable[Union[str, int]] = "__all__") -> None:
         self.audit_logs = []
         self.channel = channel
         self.session = self.retry_session()
@@ -72,7 +73,7 @@ class AuditLogger:
         self,
         payload: Union[Iterable[dict], dict],
         scheme_slug: str,
-        handler_type: Tuple[int, str],
+        handler_type: int,
         integration_service: str,
         message_uid: str,
         record_uid: str,
@@ -86,7 +87,7 @@ class AuditLogger:
         self,
         response: Union[str, Response],
         scheme_slug: str,
-        handler_type: Tuple[int, str],
+        handler_type: int,
         integration_service: str,
         status_code: int,
         message_uid: str,
@@ -163,15 +164,14 @@ class AuditLogger:
         self,
         data: dict,
         scheme_slug: str,
-        handler_type: Tuple[int, str],
+        handler_type: int,
         integration_service: str,
         message_uid: str,
         record_uid: str,
         log_type: AuditLogType,
         status_code: int = None,
     ) -> None:
-
-        handler_type_int, handler_type_str = handler_type
+        handler_type_str = Configuration.handler_type_as_str(handler_type)
 
         def _build_audit_log(log_data: Union[dict, str]) -> Union[RequestAuditLog, ResponseAuditLog]:
             timestamp = arrow.utcnow().timestamp
@@ -190,7 +190,7 @@ class AuditLogger:
                 raise ValueError("Invalid AuditLogType provided")
             return audit_log
 
-        if self.journeys == "__all__" or handler_type_int in self.journeys:
+        if self.journeys == "__all__" or handler_type in self.journeys:
             if isinstance(data, list):
                 for req in data:
                     self.audit_logs.append(_build_audit_log(req))
