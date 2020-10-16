@@ -131,7 +131,7 @@ class AuditLogger:
         try:
             self.audit_logs = self.filter_fields(self.audit_logs)
         except Exception:
-            logger.exception(f"Error when filtering fields for atlas audit")
+            logger.exception("Error when filtering fields for atlas audit")
 
         payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
         logger.info(payload)
