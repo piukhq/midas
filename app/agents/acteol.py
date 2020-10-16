@@ -715,7 +715,7 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).timestamp,
                 "redeem_date": arrow.get(voucher["RedemptionDate"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
@@ -737,7 +737,7 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
@@ -755,7 +755,7 @@ class Acteol(ApiMiner):
         """
 
         if (
-            voucher.get("StartDate")
+            voucher.get("URD")
             and (arrow.get(voucher.get("ExpiryDate")) >= current_datetime)
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
@@ -766,7 +766,7 @@ class Acteol(ApiMiner):
                 "code": voucher["VoucherCode"],
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
@@ -790,7 +790,7 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["StartDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).timestamp,
                 "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
             }
 
