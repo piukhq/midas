@@ -5,47 +5,38 @@ stages:
 
 tests:
   stage: tests
+  image: binkhq/python:3.7
   script:
+    - pip install pipenv
     - pipenv install --dev --system --deploy
     - pytest app/tests/unit --cov=app
 
 complexity:
   stage: tests
+  image: binkhq/python:3.7
   script:
+    - pip install xenon
     - xenon --max-average A --max-modules B --max-absolute B .
 
 flake8:
   stage: tests
+  image: binkhq/python:3.7
   script:
-    - flake8 *
+    - pip install flake8
+    - flake8
 
 build-develop:
   stage: build
-  image: docker:latest
-  services:
-    - docker:dind
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - docker build --pull -t "$CI_REGISTRY/midas:latest" .
-    - docker push "$CI_REGISTRY/midas:latest"
-  only:
-    - develop
-
-tag-develop:
-  stage: tagging
-  image: binkops.azurecr.io/tagbot:latest
-  environment: dev
-  script:
-    - tagbot --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD" --source "$CI_REGISTRY/midas:latest" --tag "develop-$CI_COMMIT_SHORT_SHA"
+    - docker build --pull -t "$CI_REGISTRY/midas:develop-$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY/midas:develop-$CI_COMMIT_SHORT_SHA"
   only:
     - develop
 
 build-master:
   stage: build
-  image: docker:latest
-  services:
-    - docker:dind
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
