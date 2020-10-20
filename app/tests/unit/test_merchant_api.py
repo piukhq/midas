@@ -11,7 +11,7 @@ from hvac import Client
 from requests import Response
 
 from app import create_app
-from app.agents.base import MerchantApi
+from app.agents.base import BaseMiner, MerchantApi
 from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
@@ -463,7 +463,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
-    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    @mock.patch.object(BaseMiner, 'consent_confirmation')
     def test_process_join_handles_errors(self, mock_consent_confirmation):
         self.m.record_uid = self.m.scheme_id
         self.m.message_uid = "test_message_uid"
@@ -669,7 +669,7 @@ class TestMerchantApi(FlaskTestCase):
             self.m.login({})
         self.assertEqual(e.exception.name, "Message was not sent")
 
-    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    @mock.patch.object(BaseMiner, 'consent_confirmation')
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
         self.m.message_uid = "test_message_uid"
@@ -1132,7 +1132,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('app.agents.base.publish.status')
     @mock.patch('app.agents.base.update_pending_join_account', autospec=True)
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    @mock.patch.object(BaseMiner, 'consent_confirmation')
     def test_consents_confirmation_is_called_on_sync_register(self, mock_consent_confirmation, mock_outbound_handler,
                                                               mock_update_pending_join_account, mock_publish):
         # Confirmation is setting calling the endpoint to update UserConsent status to either SUCCESS or FAILURE
@@ -1155,7 +1155,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_publish.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    @mock.patch.object(BaseMiner, 'consent_confirmation')
     def test_consents_confirmed_as_pending_on_async_register(self, mock_consent_confirmation, mock_outbound_handler):
         credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True,
                                      'journey_type': JourneyTypes.JOIN.value},
@@ -1174,7 +1174,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    @mock.patch.object(MerchantApi, 'consent_confirmation')
+    @mock.patch.object(BaseMiner, 'consent_confirmation')
     def test_consents_confirmed_on_failed_async_register(self, mock_consent_confirmation, mock_outbound_handler):
         credentials = {'consents': [{'id': 1, 'slug': 'consent1', 'value': True,
                                      'journey_type': JourneyTypes.JOIN.value},
