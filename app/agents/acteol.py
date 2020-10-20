@@ -20,18 +20,13 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from app.tasks.resend_consents import send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, logger
-from tenacity import (
-    Retrying,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -60,9 +55,7 @@ class Acteol(ApiMiner):
         try:
             token: Dict = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
-                if self._token_is_valid(
-                    token=token, current_timestamp=current_timestamp
-                ):
+                if self._token_is_valid(token=token, current_timestamp=current_timestamp):
                     have_valid_token = True
             except (KeyError, TypeError) as e:
                 logger.exception(e)  # have_valid_token is still False
@@ -71,10 +64,7 @@ class Acteol(ApiMiner):
 
         if not have_valid_token:
             acteol_access_token = self._refresh_access_token()
-            token = self._store_token(
-                acteol_access_token=acteol_access_token,
-                current_timestamp=current_timestamp,
-            )
+            token = self._store_token(acteol_access_token=acteol_access_token, current_timestamp=current_timestamp,)
 
         return token
 
@@ -93,9 +83,7 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
-        origin_id = self._create_origin_id(
-            user_email=user_email, origin_root=self.ORIGIN_ROOT
-        )
+        origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         # Check if account already exists
         account_already_exists = self._account_already_exists(origin_id=origin_id)
@@ -119,19 +107,15 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)
 
-        # Set user's email opt-in preferences in Acteol
-        email_optin_pref: bool = self._get_email_optin_pref_from_consent(
-            consents=credentials.get("consents", [{}])
-        )
+        # Set user's email opt-in preferences in Acteol, if opt-in is True
+        email_optin: Dict = self._get_email_optin_from_consent(consents=credentials.get("consents", [{}]))
         # Not a fatal error if we can't register i.e. don't kill the join process, just log
-        try:
-            self._set_customer_preferences(
-                ctcid=ctcid, email_optin_pref=email_optin_pref
-            )
-        except AgentError as ae:
-            logger.info(f"AgentError while setting customer preferences: {ae.message}")
-        except Exception as e:
-            logger.info(f"Exception while setting customer preferences: {str(e)}")
+        if email_optin:
+            self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
+        # except AgentError as ae:
+        #     logger.info(f"AgentError while setting customer preferences: {ae.message}")
+        # except Exception as e:
+        #     logger.info(f"Exception while setting customer preferences: {str(e)}")
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
@@ -158,9 +142,7 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
-        origin_id = self._create_origin_id(
-            user_email=user_email, origin_root=self.ORIGIN_ROOT
-        )
+        origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         # Get customer details
         customer_details = self._get_customer_details(origin_id=origin_id)
@@ -188,15 +170,11 @@ class Acteol(ApiMiner):
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
         # Create an 'in-progress' voucher - the current, incomplete voucher
-        in_progress_voucher = self._make_in_progress_voucher(
-            points=points, voucher_type=VoucherType.STAMPS
-        )
+        in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
         bink_mapped_vouchers.append(in_progress_voucher)
         # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
-            bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
-                voucher=bink_only_voucher
-            )
+            bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(voucher=bink_only_voucher)
             bink_mapped_vouchers.append(bink_mapped_voucher)
 
         balance = {
@@ -215,15 +193,12 @@ class Acteol(ApiMiner):
         :param transaction: a transaction record
         :return: transaction record in the format required by Bink
         """
-        formatted_total_cost = self._format_money_value(
-            money_value=transaction["TotalCost"]
-        )
+        formatted_total_cost = self._format_money_value(money_value=transaction["TotalCost"])
 
         order_date = arrow.get(transaction["OrderDate"]).timestamp
         points = self._decimalise_to_two_places(transaction["PointEarned"])
         description = self._make_transaction_description(
-            location_name=transaction["LocationName"],
-            formatted_total_cost=formatted_total_cost,
+            location_name=transaction["LocationName"], formatted_total_cost=formatted_total_cost,
         )
         location = transaction["LocationName"]
 
@@ -264,9 +239,7 @@ class Acteol(ApiMiner):
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
 
-        api_url = urljoin(
-            self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
-        )
+        api_url = urljoin(self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp.raise_for_status()
         contact_ids_data = resp.json()
@@ -299,9 +272,7 @@ class Acteol(ApiMiner):
             and not credentials.get("merchant_identifier")
         ):
             ctcid = self._validate_member_number(credentials)
-            self.identifier_type = (
-                "card_number"  # Not sure this is needed but the base class has one
-            )
+            self.identifier_type = "card_number"  # Not sure this is needed but the base class has one
             # Set up attributes needed for the creation of an active membership card
             self.identifier = {
                 "card_number": credentials["card_number"],
@@ -317,9 +288,7 @@ class Acteol(ApiMiner):
     # Private methods
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
+        stop=stop_after_attempt(RETRY_LIMIT), wait=wait_exponential(multiplier=1, min=3, max=12), reraise=True,
     )
     def _get_customer_details(self, origin_id: str) -> Dict:
         """
@@ -340,18 +309,14 @@ class Acteol(ApiMiner):
         self._check_internal_error(resp_json=customer_details_data)
 
         if resp.status_code != HTTPStatus.OK:
-            logger.debug(
-                f"Error while fetching customer details, reason: {resp.reason}"
-            )
+            logger.debug(f"Error while fetching customer details, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         return customer_details_data
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
+        stop=stop_after_attempt(RETRY_LIMIT), wait=wait_exponential(multiplier=1, min=3, max=12), reraise=True,
     )
     def _account_already_exists(self, origin_id: str) -> bool:
         """
@@ -363,15 +328,11 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = urljoin(
-            self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
-        )
+        api_url = urljoin(self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
-            logger.debug(
-                f"Error while checking for existing account, reason: {resp.reason}"
-            )
+            logger.debug(f"Error while checking for existing account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         response_json = resp.json()
@@ -382,9 +343,7 @@ class Acteol(ApiMiner):
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
+        stop=stop_after_attempt(RETRY_LIMIT), wait=wait_exponential(multiplier=1, min=3, max=12), reraise=True,
     )
     def _create_account(self, origin_id: str, credentials: Dict) -> str:
         """
@@ -402,9 +361,7 @@ class Acteol(ApiMiner):
             "Email": credentials["email"],
             "BirthDate": credentials["date_of_birth"],
         }
-        resp = self.make_request(
-            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
-        )
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
 
         response_json = resp.json()
         self._check_internal_error(resp_json=response_json)
@@ -419,9 +376,7 @@ class Acteol(ApiMiner):
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
+        stop=stop_after_attempt(RETRY_LIMIT), wait=wait_exponential(multiplier=1, min=3, max=12), reraise=True,
     )
     def _add_member_number(self, ctcid: str) -> str:
         """
@@ -471,9 +426,7 @@ class Acteol(ApiMiner):
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
+        stop=stop_after_attempt(RETRY_LIMIT), wait=wait_exponential(multiplier=1, min=3, max=12), reraise=True,
     )
     def _refresh_access_token(self) -> str:
         """
@@ -485,9 +438,7 @@ class Acteol(ApiMiner):
             "password": self.auth["password"],
         }
         token_url = urljoin(self.base_url, "token")
-        resp = self.make_request(
-            token_url, method="post", timeout=self.API_TIMEOUT, data=payload
-        )
+        resp = self.make_request(token_url, method="post", timeout=self.API_TIMEOUT, data=payload)
         token = resp.json()["access_token"]
 
         return token
@@ -512,53 +463,56 @@ class Acteol(ApiMiner):
         """
         These fields are required and expected, so it's an exception if they're not there
         """
-        return all(
-            [
-                k in customer_details
-                for k in ["Email", "CurrentMemberNumber", "CustomerID"]
-            ]
-        )
+        return all([k in customer_details for k in ["Email", "CurrentMemberNumber", "CustomerID"]])
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
-    def _set_customer_preferences(self, ctcid: str, email_optin_pref: bool):
+    def _set_customer_preferences(self, ctcid: str, email_optin: Dict):
         """
-        Set user's email opt-in preferences in Acteol
-        Condition: "EmailOptin" = true if Enrol user consent has been marked as true.
+        Set user's email opt-in preferences in Acteol, retry on fail up to retry limit and then
+        update Hermes with the results.
 
-        :param email_optin_pref: boolean
+        :param email_optin: dict of email optin consent
         """
         api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
         payload = {
             "CustomerID": ctcid,
-            "EmailOptin": email_optin_pref,
+            "EmailOptin": email_optin["value"],
         }
-        self.make_request(
-            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
+        # Will hold the retry count down for each consent confirmation retried
+        confirm_retries = {email_optin["id"]: self.HERMES_CONFIRMATION_TRIES}
+
+        send_consents(
+            {
+                "url": api_url,  # set to scheme url for the agent to accept consents
+                "headers": self.headers,  # headers used for agent consent call
+                "message": json.dumps(payload),  # set to message body encoded as required
+                "agent_tries": self.AGENT_CONSENT_TRIES,  # max number of attempts to send consents to agent
+                "confirm_tries": confirm_retries,  # retries for each consent confirmation sent to hermes
+                "id": ctcid,  # used for identification in error messages
+                "callback": "app.agents.acteol"  # If present identifies the module containing the
+                # function "agent_consent_response"
+                # callback_function can be set to change default function
+                # name.  Without this the HTML repsonse status code is used
+            }
         )
 
-    def _get_email_optin_pref_from_consent(self, consents: List[Dict]) -> bool:
+        # self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
+
+    def _get_email_optin_from_consent(self, consents: List[Dict]) -> Dict:
         """
-        Find the dict (should only be one) with a key of EmailOptin that also has key of "value" set to True
+        Find the dict (should only be one, so return the first one found) with a key of EmailOptin that also has a
+        key of "value" set to True
 
         :param consents: the list of consents dicts from the user's credentials
-        :return: bool True if at least one matching dict found
+        :return: matched consent dict
         """
         matching_true_consents = list(
-            filter(
-                lambda x: x.get("slug") == "EmailOptin" and bool(x.get("value")),
-                consents,
-            )
+            filter(lambda x: x.get("slug") == "EmailOptin" and bool(x.get("value")), consents,)
         )
 
         if matching_true_consents:
-            return True
-
-        return False
+            return matching_true_consents[0]
+        else:
+            return {}
 
     def _validate_member_number(self, credentials: Dict) -> str:
         """
@@ -596,9 +550,7 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
-                resp = self.make_request(
-                    api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-                )
+                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -612,9 +564,7 @@ class Acteol(ApiMiner):
             }
 
             error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
-            logger.error(
-                f"Failed login validation for member number {member_number}: {validation_msg}"
-            )
+            logger.error(f"Failed login validation for member number {member_number}: {validation_msg}")
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
@@ -631,9 +581,7 @@ class Acteol(ApiMiner):
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
 
-        api_url = urljoin(
-            self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
-        )
+        api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         response_json = resp.json()
         vouchers: List = response_json["voucher"]
@@ -647,9 +595,7 @@ class Acteol(ApiMiner):
         :param vouchers: list of voucher dicts from Acteol
         :return: only those voucher dicts whose CategoryName == "BINK"
         """
-        bink_only_vouchers = [
-            voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"
-        ]
+        bink_only_vouchers = [voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"]
 
         return bink_only_vouchers
 
@@ -682,15 +628,11 @@ class Acteol(ApiMiner):
         if bink_voucher:
             return bink_voucher
         # Is it an issued voucher?
-        bink_voucher = self._make_issued_voucher(
-            voucher=voucher, current_datetime=current_datetime
-        )
+        bink_voucher = self._make_issued_voucher(voucher=voucher, current_datetime=current_datetime)
         if bink_voucher:
             return bink_voucher
         # Is it expired?
-        bink_voucher = self._make_expired_voucher(
-            voucher=voucher, current_datetime=current_datetime
-        )
+        bink_voucher = self._make_expired_voucher(voucher=voucher, current_datetime=current_datetime)
         if bink_voucher:
             return bink_voucher
 
@@ -743,9 +685,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_issued_voucher(
-        self, voucher: Dict, current_datetime: Arrow
-    ) -> [Dict, None]:
+    def _make_issued_voucher(self, voucher: Dict, current_datetime: Arrow) -> [Dict, None]:
         """
         Make a Bink issued voucher dict if the Acteol voucher is of that type
 
@@ -772,9 +712,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_expired_voucher(
-        self, voucher: Dict, current_datetime: Arrow
-    ) -> [Dict, None]:
+    def _make_expired_voucher(self, voucher: Dict, current_datetime: Arrow) -> [Dict, None]:
         """
         Make a Bink expired voucher dict if the Acteol voucher is of that type
 
@@ -828,9 +766,7 @@ class Acteol(ApiMiner):
 
         return decimalised
 
-    def _make_transaction_description(
-        self, location_name: str, formatted_total_cost: str
-    ) -> str:
+    def _make_transaction_description(self, location_name: str, formatted_total_cost: str) -> str:
         """
         e.g. "Kensington High St £6.10"
         """
@@ -858,9 +794,27 @@ class Acteol(ApiMiner):
             raise AgentError(END_SITE_DOWN)
 
 
+def agent_consent_response(resp):
+    # {
+    #   "Response": true,
+    #   "Error": "sample string 2"
+    # }
+    response_data = json.loads(resp.text)
+    if response_data.get("Response") and not response_data.get("Error"):
+        return True, ""
+    return (
+        False,
+        f'Acteol returned {response_data.get("Error", "")}, Response:{response_data.get("Response", "")}',
+    )
+
+
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API
+    # Number of attempts to send consents to Agent must be > 0
+    # (0 = no send , 1 send once, 2 = 1 retry)
+    AGENT_CONSENT_TRIES = 10
+    HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents
