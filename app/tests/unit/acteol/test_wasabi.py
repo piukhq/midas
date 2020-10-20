@@ -625,8 +625,6 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert mock_set_task.called_once()
 
-    # [{'id': 2744, 'slug': 'EmailOptin', 'value': True, 'created_on': '2020-10-20T14:31:31.799096+00:00', 'journey_type': 0}]
-
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._validate_member_number")
     def test_login_happy_path(self, mock_validate_member_number, mock_authenticate):
@@ -772,12 +770,12 @@ class TestWasabi(unittest.TestCase):
                 "Notes": "sample string 11",
                 "ReactivationComment": "sample string 12",
                 "WeekDays": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
                 ],
                 "DayHours": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
                 ],
                 "RandomID": "sample string 13",
                 "VoucherCode": "sample string 14",
@@ -820,12 +818,12 @@ class TestWasabi(unittest.TestCase):
                 "Notes": "sample string 11",
                 "ReactivationComment": "sample string 12",
                 "WeekDays": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
                 ],
                 "DayHours": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {},},
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
                 ],
                 "RandomID": "sample string 13",
                 "VoucherCode": "sample string 14",
