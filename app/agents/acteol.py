@@ -109,13 +109,8 @@ class Acteol(ApiMiner):
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         email_optin: Dict = self._get_email_optin_from_consent(consents=credentials.get("consents", [{}]))
-        # Not a fatal error if we can't register i.e. don't kill the join process, just log
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
-        # except AgentError as ae:
-        #     logger.info(f"AgentError while setting customer preferences: {ae.message}")
-        # except Exception as e:
-        #     logger.info(f"Exception while setting customer preferences: {str(e)}")
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
@@ -473,6 +468,12 @@ class Acteol(ApiMiner):
         :param email_optin: dict of email optin consent
         """
         api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
+        # Add content type etc into header that already contains the auth info
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+        }
+        headers.update(self.headers)
         payload = {
             "CustomerID": ctcid,
             "EmailOptin": email_optin["value"],
@@ -483,7 +484,7 @@ class Acteol(ApiMiner):
         send_consents(
             {
                 "url": api_url,  # set to scheme url for the agent to accept consents
-                "headers": self.headers,  # headers used for agent consent call
+                "headers": headers,  # headers used for agent consent call
                 "message": json.dumps(payload),  # set to message body encoded as required
                 "agent_tries": self.AGENT_CONSENT_TRIES,  # max number of attempts to send consents to agent
                 "confirm_tries": confirm_retries,  # retries for each consent confirmation sent to hermes
@@ -494,8 +495,6 @@ class Acteol(ApiMiner):
                 # name.  Without this the HTML repsonse status code is used
             }
         )
-
-        # self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
 
     def _get_email_optin_from_consent(self, consents: List[Dict]) -> Dict:
         """
