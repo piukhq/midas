@@ -903,7 +903,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": 1595432679,  # voucher StartDate as timestamp
+            "issue_date": 1595432679,  # voucher URD as timestamp
             "redeem_date": 1595432679,  # voucher RedemptionDate as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
@@ -965,7 +965,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": 1595432679,  # voucher StartDate as timestamp
+            "issue_date": 1595432679,  # voucher URD as timestamp
             "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
         }
 
@@ -990,7 +990,7 @@ class TestWasabi(unittest.TestCase):
         voucher = {
             "VoucherID": 1,
             "OfferID": 1,
-            "StartDate": str(now),
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
             "ExpiryDate": str(one_month_from_now),
             "Conditions": "sample string 1",
             "Message": "sample string 2",
@@ -1004,7 +1004,7 @@ class TestWasabi(unittest.TestCase):
             "RedeemedBy": "sample string 8",
             "Location": "sample string 9",
             "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
-            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": str(now),
             "Disabled": False,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
@@ -1036,7 +1036,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": now.timestamp,  # voucher StartDate as timestamp
+            "issue_date": now.timestamp,  # voucher URD as timestamp
             "expiry_date": one_month_from_now_timestamp,
         }
 
@@ -1059,7 +1059,7 @@ class TestWasabi(unittest.TestCase):
         voucher = {
             "VoucherID": 1,
             "OfferID": 1,
-            "StartDate": str(now),
+            "StartDate": "2020-07-22T16:44:39.8253129+01:00",
             "ExpiryDate": str(one_month_ago),
             "Conditions": "sample string 1",
             "Message": "sample string 2",
@@ -1073,7 +1073,7 @@ class TestWasabi(unittest.TestCase):
             "RedeemedBy": "sample string 8",
             "Location": "sample string 9",
             "RedemptionDate": "2020-07-22T16:44:39.8253129+01:00",
-            "URD": "2020-07-22T16:44:39.8253129+01:00",
+            "URD": str(now),
             "Disabled": False,
             "Notes": "sample string 11",
             "ReactivationComment": "sample string 12",
@@ -1105,7 +1105,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": now.timestamp,  # voucher StartDate as timestamp
+            "issue_date": now.timestamp,  # voucher URD as timestamp
             "expiry_date": one_month_ago_timestamp,
         }
 
