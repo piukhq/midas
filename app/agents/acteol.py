@@ -20,7 +20,7 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
-from app.tasks.resend_consents import send_consents
+from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
@@ -121,11 +121,12 @@ class Acteol(ApiMiner):
             raise RegistrationError(JOIN_ERROR)
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
-        email_optin: Dict = self._get_email_optin_from_consent(
-            consents=credentials.get("consents", [{}])
-        )
+        consents = credentials.get("consents", [{}])
+        email_optin: Dict = self._get_email_optin_from_consent(consents=consents)
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
+        else:
+            self.consent_confirmation(consents_data=consents, status=ConsentStatus.NOT_SENT)
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
