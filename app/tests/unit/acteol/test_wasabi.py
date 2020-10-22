@@ -53,7 +53,9 @@ class TestWasabi(unittest.TestCase):
         mock_token_is_valid.return_value = False
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
+        ):
             self.wasabi.authenticate()
 
             # THEN
@@ -63,7 +65,9 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
     @patch("app.agents.acteol.Acteol._store_token")
-    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_access_token, mock_token_is_valid):
+    def test_does_not_refresh_token(
+        self, mock_store_token, mock_refresh_access_token, mock_token_is_valid
+    ):
         """
         The token is valid and should not be refreshed.
         """
@@ -71,7 +75,9 @@ class TestWasabi(unittest.TestCase):
         mock_token_is_valid.return_value = True
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)
+        ):
             token = self.wasabi.authenticate()
 
             # THEN
@@ -94,7 +100,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
 
         # THEN
         assert is_valid is False
@@ -114,7 +122,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
 
         # THEN
         assert is_valid is False
@@ -134,7 +144,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token, current_timestamp=mock_current_timestamp
+        )
 
         # THEN
         assert is_valid is True
@@ -152,13 +164,18 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "set", return_value=True):
+        with unittest.mock.patch.object(
+            self.wasabi.token_store, "set", return_value=True
+        ):
             token = self.wasabi._store_token(
-                acteol_access_token=mock_acteol_access_token, current_timestamp=mock_current_timestamp,
+                acteol_access_token=mock_acteol_access_token,
+                current_timestamp=mock_current_timestamp,
             )
 
             # THEN
-            assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
+            assert self.wasabi.token_store.set.called_once_with(
+                self.wasabi.scheme_id, json.dumps(expected_token)
+            )
             assert token == expected_token
 
     def test_make_headers(self):
@@ -184,7 +201,9 @@ class TestWasabi(unittest.TestCase):
         origin_root = "Bink-Wasabi"
 
         # WHEN
-        origin_id = self.wasabi._create_origin_id(user_email=user_email, origin_root=origin_root)
+        origin_id = self.wasabi._create_origin_id(
+            user_email=user_email, origin_root=origin_root
+        )
 
         # THEN
         assert all(c in string.hexdigits for c in origin_id)
@@ -196,13 +215,17 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.OK,
         )
 
         # WHEN
-        account_already_exists = self.wasabi._account_already_exists(origin_id=origin_id)
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
 
         # THEN
         assert account_already_exists
@@ -216,7 +239,9 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
@@ -234,13 +259,20 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
-        api_url = urljoin(self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
+        )
         httpretty.register_uri(
-            httpretty.GET, api_url, responses=[httpretty.Response(body="[]")], status=HTTPStatus.OK,
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body="[]")],
+            status=HTTPStatus.OK,
         )
 
         # WHEN
-        account_already_exists = self.wasabi._account_already_exists(origin_id=origin_id)
+        account_already_exists = self.wasabi._account_already_exists(
+            origin_id=origin_id
+        )
 
         # THEN
         assert not account_already_exists
@@ -268,7 +300,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid = self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+        ctcid = self.wasabi._create_account(
+            origin_id=origin_id, credentials=credentials
+        )
 
         # THEN
         assert ctcid == expected_ctcid
@@ -303,7 +337,9 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         ctcid = "54321"
         expected_member_number = "987654321"
-        api_url = urljoin(self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}"
+        )
         response_data = {
             "Response": True,
             "MemberNumber": expected_member_number,
@@ -393,7 +429,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        customer_fields_are_present = self.wasabi._customer_fields_are_present(customer_details=customer_details)
+        customer_fields_are_present = self.wasabi._customer_fields_are_present(
+            customer_details=customer_details
+        )
 
         # THEN
         assert customer_fields_are_present
@@ -406,7 +444,9 @@ class TestWasabi(unittest.TestCase):
         customer_details = {"Email": 1, "CurrentMemberNumber": 1, "AnExtraField": 1}
 
         # WHEN
-        customer_fields_are_present = self.wasabi._customer_fields_are_present(customer_details=customer_details)
+        customer_fields_are_present = self.wasabi._customer_fields_are_present(
+            customer_details=customer_details
+        )
 
         # THEN
         assert not customer_fields_are_present
@@ -414,7 +454,9 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._get_vouchers")
     @patch("app.agents.acteol.Acteol._get_customer_details")
-    def test_balance(self, mock_get_customer_details, mock_get_vouchers, mock_authenticate):
+    def test_balance(
+        self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
+    ):
         """
         Check that the call to balance() returns an expected dict
         """
@@ -561,9 +603,11 @@ class TestWasabi(unittest.TestCase):
         assert not rv
 
     @httpretty.activate
-    @patch('app.tasks.resend_consents.ReTryTaskStore.set_task')
-    @patch('app.tasks.resend_consents.try_hermes_confirm')
-    def test_set_customer_preferences_happy_path(self, mock_try_hermes_confirm, mock_set_task):
+    @patch("app.tasks.resend_consents.ReTryTaskStore.set_task")
+    @patch("app.tasks.resend_consents.try_hermes_confirm")
+    def test_set_customer_preferences_happy_path(
+        self, mock_try_hermes_confirm, mock_set_task
+    ):
         """
         This is an integration test in that it will test through to send_consents(), which is mostly mocked.
         No resend to agent's API jobs should be put on the retry queue
@@ -594,7 +638,7 @@ class TestWasabi(unittest.TestCase):
         assert not mock_set_task.called
 
     @httpretty.activate
-    @patch('app.tasks.resend_consents.ReTryTaskStore.set_task')
+    @patch("app.tasks.resend_consents.ReTryTaskStore.set_task")
     def test_set_customer_preferences_unhappy_path(self, mock_set_task):
         """
         This is more of an integration test, in that it will test through to send_consents(), which is mostly mocked.
@@ -611,7 +655,10 @@ class TestWasabi(unittest.TestCase):
         }
         # Make sure we get a bad response from the agent's API
         api_url = urljoin(self.wasabi.base_url, "api/CommunicationPreference/Post")
-        ok_response_body = {"Response": False, "Error": "Bad things, flee for the hills"}
+        ok_response_body = {
+            "Response": False,
+            "Error": "Bad things, flee for the hills",
+        }
         httpretty.register_uri(
             httpretty.POST,
             api_url,
@@ -649,7 +696,8 @@ class TestWasabi(unittest.TestCase):
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
-        "app.agents.acteol.Acteol._validate_member_number", side_effect=LoginError(STATUS_LOGIN_FAILED),
+        "app.agents.acteol.Acteol._validate_member_number",
+        side_effect=LoginError(STATUS_LOGIN_FAILED),
     )
     def test_login_fail(self, mock_validate_member_number, mock_authenticate):
         """
@@ -770,12 +818,32 @@ class TestWasabi(unittest.TestCase):
                 "Notes": "sample string 11",
                 "ReactivationComment": "sample string 12",
                 "WeekDays": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
                 ],
                 "DayHours": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
                 ],
                 "RandomID": "sample string 13",
                 "VoucherCode": "sample string 14",
@@ -818,12 +886,32 @@ class TestWasabi(unittest.TestCase):
                 "Notes": "sample string 11",
                 "ReactivationComment": "sample string 12",
                 "WeekDays": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
                 ],
                 "DayHours": [
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
-                    {"Id": 1, "Name": "sample string 2", "IsSelected": True, "Tags": {}, },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
+                    {
+                        "Id": 1,
+                        "Name": "sample string 2",
+                        "IsSelected": True,
+                        "Tags": {},
+                    },
                 ],
                 "RandomID": "sample string 13",
                 "VoucherCode": "sample string 14",
@@ -1129,7 +1217,9 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
+        in_progress_voucher = self.wasabi._make_in_progress_voucher(
+            points=points, voucher_type=VoucherType.STAMPS
+        )
 
         # THEN
         assert in_progress_voucher == expected_in_progress_voucher
@@ -1146,7 +1236,8 @@ class TestWasabi(unittest.TestCase):
         ctcid = 666999
         n_records = 5
         api_url = urljoin(
-            self.wasabi.base_url, f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false",
+            self.wasabi.base_url,
+            f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false",
         )
         mock_transactions = [
             {
@@ -1209,10 +1300,18 @@ class TestWasabi(unittest.TestCase):
         money_value4 = 6000.100
 
         # WHEN
-        formatted_money_value1 = self.wasabi._format_money_value(money_value=money_value1)
-        formatted_money_value2 = self.wasabi._format_money_value(money_value=money_value2)
-        formatted_money_value3 = self.wasabi._format_money_value(money_value=money_value3)
-        formatted_money_value4 = self.wasabi._format_money_value(money_value=money_value4)
+        formatted_money_value1 = self.wasabi._format_money_value(
+            money_value=money_value1
+        )
+        formatted_money_value2 = self.wasabi._format_money_value(
+            money_value=money_value2
+        )
+        formatted_money_value3 = self.wasabi._format_money_value(
+            money_value=money_value3
+        )
+        formatted_money_value4 = self.wasabi._format_money_value(
+            money_value=money_value4
+        )
 
         # THEN
         assert formatted_money_value1 == "6.10"
@@ -1325,7 +1424,9 @@ class TestWasabi(unittest.TestCase):
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
         )
@@ -1342,7 +1443,9 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_fail_authentication(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_fail_authentication(
+        self, mock_authenticate, mock_retrying
+    ):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1351,7 +1454,9 @@ class TestWasabi(unittest.TestCase):
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED,
         )
@@ -1368,7 +1473,9 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_fail_forbidden(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_fail_forbidden(
+        self, mock_authenticate, mock_retrying
+    ):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1377,7 +1484,9 @@ class TestWasabi(unittest.TestCase):
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         httpretty.register_uri(
             httpretty.GET, api_url, status=HTTPStatus.FORBIDDEN,
         )
@@ -1394,7 +1503,9 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_validation_error(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_validation_error(
+        self, mock_authenticate, mock_retrying
+    ):
         """
         Test one of the LoginError scenarios
         """
@@ -1406,7 +1517,9 @@ class TestWasabi(unittest.TestCase):
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         response_data = {
             "ValidationMsg": "Invalid Email",
             "IsValid": False,
@@ -1439,7 +1552,9 @@ class TestWasabi(unittest.TestCase):
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
 
-        api_url = urljoin(self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber")
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
         ctcid = 54321
         response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid}
         expected_ctcid = str(ctcid)
