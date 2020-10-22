@@ -126,7 +126,9 @@ class Acteol(ApiMiner):
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
         else:
-            self.consent_confirmation(consents_data=consents, status=ConsentStatus.NOT_SENT)
+            self.consent_confirmation(
+                consents_data=consents, status=ConsentStatus.NOT_SENT
+            )
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
