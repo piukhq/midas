@@ -63,7 +63,7 @@ USER_STORE = {
         'credentials': {
             'email': 'sevendigitpoints@testbink.com',
             'password': 'Password01',
-            'last_name': 'smiths',
+            'last_name': 'smith-s',
             'postcode': 'mp7 1bb',
             'date_of_birth': '2000-01-01',
         },
