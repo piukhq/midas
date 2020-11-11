@@ -179,8 +179,8 @@ class Acteol(ApiMiner):
         # data from Acteol. If it's not already present in the credentials then populate that field from
         # the customer_details - do this so that we have a full record of credentials for anything else that might
         # rely on it.
-        if not self.credentials.get("merchant_identifier"):
-            self.credentials["merchant_identifier"] = customer_details["CustomerID"]
+        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
+        self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
         # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
@@ -581,6 +581,7 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
+        # This member_number will possibly need to move below where the response is set.
         member_number = credentials["card_number"]
         payload = {
             "MemberNumber": member_number,
@@ -618,7 +619,7 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
-
+        credentials["card_number"] = str(resp_json["CurrentMemberNumber"])
         return ctcid
 
     def _get_vouchers(self, ctcid: str) -> List:
