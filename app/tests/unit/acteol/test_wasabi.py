@@ -1527,7 +1527,6 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        # ctcid = self.wasabi._validate_member_number(credentials)
         ctcid, member_number = self.wasabi._validate_member_number(credentials)
 
         # THEN
