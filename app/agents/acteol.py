@@ -2,7 +2,7 @@ import enum
 import json
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from urllib.parse import urljoin
 
 import arrow
@@ -176,9 +176,7 @@ class Acteol(ApiMiner):
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
-        # data from Acteol. If it's not already present in the credentials then populate that field from
-        # the customer_details - do this so that we have a full record of credentials for anything else that might
-        # rely on it.
+        # data from Acteol.
         self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
         self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
@@ -298,16 +296,16 @@ class Acteol(ApiMiner):
             and not self.user_info.get("from_register")
             and not credentials.get("merchant_identifier")
         ):
-            ctcid = self._validate_member_number(credentials)
+            ctcid, member_number = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
             # Set up attributes needed for the creation of an active membership card
             self.identifier = {
-                "card_number": credentials["card_number"],
+                "card_number": member_number,
                 "merchant_identifier": ctcid,
             }
-            credentials.update({"merchant_identifier": ctcid})
+            credentials.update(self.identifier)
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -560,7 +558,7 @@ class Acteol(ApiMiner):
 
         return False
 
-    def _validate_member_number(self, credentials: Dict) -> str:
+    def _validate_member_number(self, credentials: Dict) -> Tuple[str, str]:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -619,8 +617,9 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
-        credentials["card_number"] = str(resp_json["CurrentMemberNumber"])
-        return ctcid
+        member_number = str(resp_json["CurrentMemberNumber"])
+
+        return ctcid, member_number
 
     def _get_vouchers(self, ctcid: str) -> List:
         """
