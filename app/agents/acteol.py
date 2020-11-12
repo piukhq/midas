@@ -176,7 +176,10 @@ class Acteol(ApiMiner):
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
-        # data from Acteol.
+        # data from Acteol. Wasabi user’s credentials to be updated if they are updated within Acteol,
+        # so that the user’s scheme account reflects the correct data.
+        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
+        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
         self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
         self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
@@ -579,7 +582,6 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
-        # This member_number will possibly need to move below where the response is set.
         member_number = credentials["card_number"]
         payload = {
             "MemberNumber": member_number,
