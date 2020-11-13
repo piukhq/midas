@@ -2,7 +2,7 @@ import enum
 import json
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from urllib.parse import urljoin
 
 import arrow
@@ -20,6 +20,7 @@ from app.agents.exceptions import (
 )
 from app.configuration import Configuration
 from app.encryption import HashSHA1
+from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
@@ -119,19 +120,15 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)
 
-        # Set user's email opt-in preferences in Acteol
-        email_optin_pref: bool = self._get_email_optin_pref_from_consent(
-            consents=credentials.get("consents", [{}])
-        )
-        # Not a fatal error if we can't register i.e. don't kill the join process, just log
-        try:
-            self._set_customer_preferences(
-                ctcid=ctcid, email_optin_pref=email_optin_pref
+        # Set user's email opt-in preferences in Acteol, if opt-in is True
+        consents = credentials.get("consents", [{}])
+        email_optin: Dict = self._get_email_optin_from_consent(consents=consents)
+        if email_optin:
+            self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
+        else:
+            self.consent_confirmation(
+                consents_data=consents, status=ConsentStatus.NOT_SENT
             )
-        except AgentError as ae:
-            logger.info(f"AgentError while setting customer preferences: {ae.message}")
-        except Exception as e:
-            logger.info(f"Exception while setting customer preferences: {str(e)}")
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
@@ -176,11 +173,12 @@ class Acteol(ApiMiner):
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
-        # data from Acteol. If it's not already present in the credentials then populate that field from
-        # the customer_details - do this so that we have a full record of credentials for anything else that might
-        # rely on it.
-        if not self.credentials.get("merchant_identifier"):
-            self.credentials["merchant_identifier"] = customer_details["CustomerID"]
+        # data from Acteol. Wasabi user’s credentials to be updated if they are updated within Acteol,
+        # so that the user’s scheme account reflects the correct data.
+        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
+        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
+        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
+        self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
         # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
@@ -298,16 +296,16 @@ class Acteol(ApiMiner):
             and not self.user_info.get("from_register")
             and not credentials.get("merchant_identifier")
         ):
-            ctcid = self._validate_member_number(credentials)
+            ctcid, member_number = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
             # Set up attributes needed for the creation of an active membership card
             self.identifier = {
-                "card_number": credentials["card_number"],
+                "card_number": member_number,
                 "merchant_identifier": ctcid,
             }
-            credentials.update({"merchant_identifier": ctcid})
+            credentials.update(self.identifier)
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -519,34 +517,51 @@ class Acteol(ApiMiner):
             ]
         )
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
-    def _set_customer_preferences(self, ctcid: str, email_optin_pref: bool):
+    def _set_customer_preferences(self, ctcid: str, email_optin: Dict):
         """
-        Set user's email opt-in preferences in Acteol
-        Condition: "EmailOptin" = true if Enrol user consent has been marked as true.
+        Set user's email opt-in preferences in Acteol, retry on fail up to retry limit and then
+        update Hermes with the results.
 
-        :param email_optin_pref: boolean
+        :param email_optin: dict of email optin consent
         """
         api_url = urljoin(self.base_url, "api/CommunicationPreference/Post")
+        # Add content type etc into header that already contains the auth info
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+        }
+        headers.update(self.headers)
         payload = {
             "CustomerID": ctcid,
-            "EmailOptin": email_optin_pref,
+            "EmailOptin": email_optin["value"],
         }
-        self.make_request(
-            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
+        # Will hold the retry count down for each consent confirmation retried
+        confirm_retries = {email_optin["id"]: self.HERMES_CONFIRMATION_TRIES}
+
+        send_consents(
+            {
+                "url": api_url,  # set to scheme url for the agent to accept consents
+                "headers": headers,  # headers used for agent consent call
+                "message": json.dumps(
+                    payload
+                ),  # set to message body encoded as required
+                "agent_tries": self.AGENT_CONSENT_TRIES,  # max number of attempts to send consents to agent
+                "confirm_tries": confirm_retries,  # retries for each consent confirmation sent to hermes
+                "id": ctcid,  # used for identification in error messages
+                "callback": "app.agents.acteol"  # If present identifies the module containing the
+                # function "agent_consent_response"
+                # callback_function can be set to change default function
+                # name.  Without this the HTML repsonse status code is used
+            }
         )
 
-    def _get_email_optin_pref_from_consent(self, consents: List[Dict]) -> bool:
+    def _get_email_optin_from_consent(self, consents: List[Dict]) -> Dict:
         """
-        Find the dict (should only be one) with a key of EmailOptin that also has key of "value" set to True
+        Find the dict (should only be one, so return the first one found) with a key of EmailOptin that also has a
+        key of "value" set to True
 
         :param consents: the list of consents dicts from the user's credentials
-        :return: bool True if at least one matching dict found
+        :return: matched consent dict
         """
         matching_true_consents = list(
             filter(
@@ -556,11 +571,11 @@ class Acteol(ApiMiner):
         )
 
         if matching_true_consents:
-            return True
+            return matching_true_consents[0]
+        else:
+            return {}
 
-        return False
-
-    def _validate_member_number(self, credentials: Dict) -> str:
+    def _validate_member_number(self, credentials: Dict) -> Tuple[str, str]:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -618,8 +633,9 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
+        member_number = str(resp_json["CurrentMemberNumber"])
 
-        return ctcid
+        return ctcid, member_number
 
     def _get_vouchers(self, ctcid: str) -> List:
         """
@@ -858,9 +874,28 @@ class Acteol(ApiMiner):
             raise AgentError(END_SITE_DOWN)
 
 
+def agent_consent_response(resp):
+    """
+    Callback to calculate correct response from Acteol's endpoint, as can't rely on status code
+    """
+    response_data = json.loads(resp.text)
+    if response_data.get("Response") and not response_data.get("Error"):
+        return True, ""
+    return (
+        False,
+        f'Acteol returned {response_data.get("Error", "")}, Response:{response_data.get("Response", "")}',
+    )
+
+
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
     AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API
+    # Number of attempts to send consents to Agent must be > 0
+    # (0 = no send , 1 send once, 2 = 1 retry)
+    AGENT_CONSENT_TRIES = 10
+    HERMES_CONFIRMATION_TRIES = (
+        10  # no of attempts to confirm to hermes Agent has received consents
+    )

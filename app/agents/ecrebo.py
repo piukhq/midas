@@ -11,6 +11,7 @@ from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, L
 from app.audit import AuditLogger
 from app.configuration import Configuration
 from app.encryption import hash_ids
+from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
 
 
@@ -70,12 +71,13 @@ class Ecrebo(ApiMiner):
                 break
 
     def register(self, credentials):
-        consents = {c["slug"]: c["value"] for c in credentials.get("consents", {})}
+        consents = credentials.get("consents", [])
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
-        data = {"data": self._get_registration_credentials(credentials, consents)}
+        consents_data = {c["slug"]: c["value"] for c in consents}
+        data = {"data": self._get_registration_credentials(credentials, consents_data)}
 
         self.audit_logger.add_request(
             payload=data,
@@ -114,6 +116,9 @@ class Ecrebo(ApiMiner):
 
         self.identifier = {"card_number": card_number, "merchant_identifier": uid}
         self.user_info["credentials"].update(self.identifier)
+
+        if consents:
+            self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     def login(self, credentials):
         self.credentials = credentials

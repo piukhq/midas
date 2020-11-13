@@ -15,6 +15,7 @@ class ConsentStatus(IntEnum):
     PENDING = 0
     SUCCESS = 1
     FAILED = 2
+    NOT_SENT = 3
 
 
 class ConsentSendState(IntEnum):

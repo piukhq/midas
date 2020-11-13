@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import time
+import typing as t
 from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
@@ -153,6 +154,33 @@ class BaseMiner(object):
             self.register(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    @staticmethod
+    def consent_confirmation(consents_data: t.List[t.Dict], status: int) -> None:
+        """
+        Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
+
+        :param consents_data: list of dicts.
+        [{
+            'id': int. UserConsent id. (Required)
+            'slug': string. Consent slug.
+            'value': bool. User's consent decision. (Required)
+            'created_on': string. Datetime string of when the UserConsent instance was created.
+            'journey_type': int. Usually of JourneyTypes IntEnum.
+        }]
+        :param status: int. Should be of type ConsentStatus.
+        :return: None
+        """
+        confirm_tries = {}
+        for consent in consents_data:
+            confirm_tries[consent['id']] = HERMES_CONFIRMATION_TRIES
+
+        retry_data = {
+            "confirm_tries": confirm_tries,
+            "status": status
+        }
+
+        send_consent_status(retry_data)
 
 
 # Based on RoboBrowser Library
@@ -837,33 +865,6 @@ class MerchantApi(BaseMiner):
             if error:
                 break
         return error
-
-    @staticmethod
-    def consent_confirmation(consents_data, status):
-        """
-        Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
-
-        :param consents_data: list of dicts.
-        [{
-            'id': int. UserConsent id. (Required)
-            'slug': string. Consent slug.
-            'value': bool. User's consent decision. (Required)
-            'created_on': string. Datetime string of when the UserConsent instance was created.
-            'journey_type': int. Usually of JourneyTypes IntEnum.
-        }]
-        :param status: int. Should be of type ConsentStatus.
-        :return: None
-        """
-        confirm_tries = {}
-        for consent in consents_data:
-            confirm_tries[consent['id']] = HERMES_CONFIRMATION_TRIES
-
-        retry_data = {
-            "confirm_tries": confirm_tries,
-            "status": status
-        }
-
-        send_consent_status(retry_data)
 
     @staticmethod
     def _filter_consents(data, handler_type):
