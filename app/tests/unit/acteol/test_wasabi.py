@@ -3,6 +3,7 @@ import string
 import unittest
 from decimal import Decimal
 from http import HTTPStatus
+from typing import Dict
 from unittest.mock import patch
 from urllib.parse import urljoin
 
@@ -522,7 +523,7 @@ class TestWasabi(unittest.TestCase):
         assert balance == expected_balance
         assert schemas.balance(balance)
 
-    def test_get_email_optin_pref_from_consent(self):
+    def test_get_email_optin_from_consent(self):
         """
         Test finding the dict  with a key of EmailOptin that also has key of "value" set to True
         """
@@ -552,12 +553,12 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
-        assert rv
+        assert rv == consents[0]
 
-    def test_get_email_optin_pref_from_consent_is_false(self):
+    def test_get_email_optin_from_consent_is_false(self):
         """
         Test finding no matching dict with a key of EmailOptin that also has key of "value" set to True
         """
@@ -580,12 +581,12 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
         assert not rv
 
-    def test_get_email_optin_pref_from_consent_is_false_if_passed_empty(self):
+    def test_get_email_optin_from_consent_is_false_if_passed_empty(self):
         """
         Test finding no matching dict with a key of EmailOptin that also has key of "value" set to True,
         if passed a list with an empty dict
@@ -596,31 +597,80 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: bool = self.wasabi._get_email_optin_pref_from_consent(consents=consents)
+        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
         assert not rv
 
     @httpretty.activate
-    def test_set_optin_prefs_exception(self):
+    @patch("app.tasks.resend_consents.ReTryTaskStore.set_task")
+    @patch("app.tasks.resend_consents.try_hermes_confirm")
+    def test_set_customer_preferences_happy_path(
+        self, mock_try_hermes_confirm, mock_set_task
+    ):
         """
-        Test that an exception during setting prefs won't derail the join process
+        This is an integration test in that it will test through to send_consents(), which is mostly mocked.
+        No resend to agent's API jobs should be put on the retry queue
+        """
+        # GIVEN
+        mock_try_hermes_confirm.return_value = (True, "done")
+        ctcid = "54321"
+        email_optin = {
+            "id": 2585,
+            "slug": "EmailOptin",
+            "value": True,
+            "created_on": "2020-07-13T13:26:53.809970+00:00",
+            "journey_type": 0,
+        }
+        api_url = urljoin(self.wasabi.base_url, "api/CommunicationPreference/Post")
+        ok_response_body = {"Response": True, "Error": ""}
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(ok_response_body))],
+            status=HTTPStatus.OK,
+        )
+
+        # WHEN
+        self.wasabi._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
+
+        # THEN
+        assert not mock_set_task.called
+
+    @httpretty.activate
+    @patch("app.tasks.resend_consents.ReTryTaskStore.set_task")
+    def test_set_customer_preferences_unhappy_path(self, mock_set_task):
+        """
+        This is more of an integration test, in that it will test through to send_consents(), which is mostly mocked.
+        Failed calls to the agent's API should result in a job being put on a retry queue
         """
         # GIVEN
         ctcid = "54321"
-        email_optin_pref = True
+        email_optin = {
+            "id": 2585,
+            "slug": "EmailOptin",
+            "value": True,
+            "created_on": "2020-07-13T13:26:53.809970+00:00",
+            "journey_type": 0,
+        }
+        # Make sure we get a bad response from the agent's API
         api_url = urljoin(self.wasabi.base_url, "api/CommunicationPreference/Post")
+        ok_response_body = {
+            "Response": False,
+            "Error": "Bad things, flee for the hills",
+        }
         httpretty.register_uri(
-            httpretty.POST, api_url, status=HTTPStatus.GATEWAY_TIMEOUT,
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(ok_response_body))],
+            status=HTTPStatus.OK,
         )
-        # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._set_customer_preferences.retry.sleep = unittest.mock.Mock()
 
         # WHEN
-        with pytest.raises(AgentError):
-            self.wasabi._set_customer_preferences(
-                ctcid=ctcid, email_optin_pref=email_optin_pref
-            )
+        self.wasabi._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
+
+        # THEN
+        assert mock_set_task.called_once()
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._validate_member_number")
@@ -938,7 +988,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.REDEEMED],
             "type": VoucherType.STAMPS.value,
-            "code": voucher['VoucherCode'],
+            "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
             "issue_date": 1595432679,  # voucher URD as timestamp
@@ -1000,7 +1050,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.CANCELLED],
             "type": VoucherType.STAMPS.value,
-            "code": voucher['VoucherCode'],
+            "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
             "issue_date": 1595432679,  # voucher URD as timestamp
@@ -1140,7 +1190,7 @@ class TestWasabi(unittest.TestCase):
         expected_mapped_voucher = {
             "state": voucher_state_names[VoucherState.EXPIRED],
             "type": VoucherType.STAMPS.value,
-            "code": voucher['VoucherCode'],
+            "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
             "issue_date": now.timestamp,  # voucher URD as timestamp
