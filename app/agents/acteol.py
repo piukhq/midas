@@ -884,7 +884,6 @@ class Acteol(ApiMiner):
             raise AgentError(NO_SUCH_RECORD)
 
 
-
 def agent_consent_response(resp):
     """
     Callback to calculate correct response from Acteol's endpoint, as can't rely on status code
