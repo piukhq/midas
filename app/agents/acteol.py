@@ -335,6 +335,7 @@ class Acteol(ApiMiner):
 
         customer_details_data = resp.json()
         self._check_internal_error(resp_json=customer_details_data)
+        self._check_deleted_user(resp_json=customer_details_data)
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
@@ -631,6 +632,7 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
+        self._check_deleted_user(resp_json)
         ctcid = str(resp_json["CtcID"])
 
         return ctcid
@@ -870,6 +872,17 @@ class Acteol(ApiMiner):
         if error_msg:
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
+
+    def _check_deleted_user(self, resp_json: Dict):
+
+        # When calling a GET Balance set of calls and the response is successful
+        # BUT the CustomerID = “0”then this is how Acteol return a deleted account
+        card_number = resp_json["CurrentMemberNumber"]
+        customer_id = resp_json["CustomerID"]
+        if customer_id == "0":
+            logger.error(f"Card does not exist: {card_number}")
+            raise AgentError(NO_SUCH_RECORD)
+
 
 
 def agent_consent_response(resp):
