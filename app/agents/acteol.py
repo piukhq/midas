@@ -879,8 +879,12 @@ class Acteol(ApiMiner):
 
         # When calling a GET Balance set of calls and the response is successful
         # BUT the CustomerID = “0”then this is how Acteol return a deleted account
-        card_number = resp_json["CurrentMemberNumber"]
-        customer_id = resp_json["CustomerID"]
+        card_number = str(resp_json["CurrentMemberNumber"])
+        if "CustomerID" in resp_json:
+            customer_id = str(resp_json["CustomerID"])
+        elif "CtcID" in resp_json:
+            customer_id = str(resp_json["CtcID"])
+
         if customer_id == "0":
             logger.error(f"Card does not exist: {card_number}")
             raise AgentError(NO_SUCH_RECORD)
