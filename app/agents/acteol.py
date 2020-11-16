@@ -170,6 +170,7 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
+        self._check_deleted_user(resp_json=customer_details)
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
@@ -872,6 +873,20 @@ class Acteol(ApiMiner):
         if error_msg:
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
+
+    def _check_deleted_user(self, resp_json: Dict):
+
+        # When calling a GET Balance set of calls and the response is successful
+        # BUT the CustomerID = “0”then this is how Acteol return a deleted account
+        card_number = str(resp_json["CurrentMemberNumber"])
+        if "CustomerID" in resp_json:
+            customer_id = str(resp_json["CustomerID"])
+        elif "CtcID" in resp_json:
+            customer_id = str(resp_json["CtcID"])
+
+        if customer_id == "0":
+            logger.error(f"Acteol card number has been deleted: Card number: {card_number}")
+            raise AgentError(NO_SUCH_RECORD)
 
 
 def agent_consent_response(resp):

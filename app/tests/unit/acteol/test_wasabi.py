@@ -1416,6 +1416,17 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi._check_internal_error(resp_json)
 
+    def test_check_deleted_user(self):
+        """
+        Test handling 'Deleted User error'
+        """
+        # GIVEN
+        resp_json = {"CustomerID": "0", "CurrentMemberNumber": "ABC123"}
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._check_deleted_user(resp_json)
+
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
