@@ -170,6 +170,7 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
+        self._check_deleted_user(resp_json=customer_details)
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
@@ -336,7 +337,6 @@ class Acteol(ApiMiner):
 
         customer_details_data = resp.json()
         self._check_internal_error(resp_json=customer_details_data)
-        self._check_deleted_user(resp_json=customer_details_data)
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
@@ -633,7 +633,6 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
-        self._check_deleted_user(resp_json)
         ctcid = str(resp_json["CtcID"])
         member_number = str(resp_json["CurrentMemberNumber"])
 
@@ -886,7 +885,7 @@ class Acteol(ApiMiner):
             customer_id = str(resp_json["CtcID"])
 
         if customer_id == "0":
-            logger.error(f"Card does not exist: {card_number}")
+            logger.error(f"Acteol card number has been deleted: Card number: {card_number}")
             raise AgentError(NO_SUCH_RECORD)
 
 
