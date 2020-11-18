@@ -297,16 +297,16 @@ class Acteol(ApiMiner):
             and not self.user_info.get("from_register")
             and not credentials.get("merchant_identifier")
         ):
-            ctcid, member_number = self._validate_member_number(credentials)
+            ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
             # Set up attributes needed for the creation of an active membership card
             self.identifier = {
-                "card_number": member_number,
+                "card_number": credentials["card_number"],
                 "merchant_identifier": ctcid,
             }
-            credentials.update(self.identifier)
+            credentials.update({"merchant_identifier": ctcid})
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -634,9 +634,7 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
-        member_number = str(resp_json["CurrentMemberNumber"])
-
-        return ctcid, member_number
+        return ctcid
 
     def _get_vouchers(self, ctcid: str) -> List:
         """
