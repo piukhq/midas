@@ -1510,10 +1510,8 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
         )
         ctcid = 54321
-        member_number = 1048235616
-        response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid, "CurrentMemberNumber": member_number}
+        response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid}
         expected_ctcid = str(ctcid)
-        expected_member_number = str(member_number)
         httpretty.register_uri(
             httpretty.GET,
             api_url,
@@ -1527,8 +1525,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid, member_number = self.wasabi._validate_member_number(credentials)
+        ctcid = self.wasabi._validate_member_number(credentials)
 
         # THEN
         assert ctcid == expected_ctcid
-        assert member_number == expected_member_number
