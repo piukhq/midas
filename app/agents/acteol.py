@@ -179,8 +179,16 @@ class Acteol(ApiMiner):
         # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
         # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
         self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
+        card_number = self.credentials["card_number"]
         self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
+
+        self.identifier = {
+            "card_number": card_number,
+            "merchant_identifier": ctcid,
+        }
+        self.user_info["credentials"].update(self.identifier)
+
         # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
