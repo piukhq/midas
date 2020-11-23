@@ -408,6 +408,7 @@ class Acteol(ApiMiner):
             "LastName": credentials["last_name"],
             "Email": credentials["email"],
             "BirthDate": credentials["date_of_birth"],
+            "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
         resp = self.make_request(
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
@@ -891,7 +892,9 @@ class Acteol(ApiMiner):
             customer_id = str(resp_json["CtcID"])
 
         if customer_id == "0":
-            logger.error(f"Acteol card number has been deleted: Card number: {card_number}")
+            logger.error(
+                f"Acteol card number has been deleted: Card number: {card_number}"
+            )
             raise AgentError(NO_SUCH_RECORD)
 
 
