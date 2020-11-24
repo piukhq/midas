@@ -4,6 +4,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
 from urllib.parse import urljoin
+from app.encoding import JsonEncoder
 
 import arrow
 from app.agents.base import ApiMiner
@@ -21,11 +22,11 @@ from app.agents.exceptions import (
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from app.tasks.resend_consents import ConsentStatus, send_consents
-from app.utils import TWO_PLACES
+from app.utils import TWO_PLACES, get_headers
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, logger
+from settings import REDIS_URL, logger, HERMES_URL, SERVICE_API_KEY
 from tenacity import (
     Retrying,
     retry,
@@ -176,18 +177,10 @@ class Acteol(ApiMiner):
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
         # data from Acteol. Wasabi user’s credentials to be updated if they are updated within Acteol,
         # so that the user’s scheme account reflects the correct data.
-        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
-        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
-        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
-        card_number = self.credentials["card_number"]
         self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
 
-        self.identifier = {
-            "card_number": card_number,
-            "merchant_identifier": ctcid,
-        }
-        self.user_info["credentials"].update(self.identifier)
+        self.update_hermes_credentials(ctcid, customer_details)
 
         # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
@@ -214,6 +207,33 @@ class Acteol(ApiMiner):
         }
 
         return balance
+
+    def update_hermes_credentials(self, ctcid, customer_details):
+        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
+        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
+        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
+        card_number = self.credentials["card_number"]
+
+        self.identifier = {
+            "card_number": card_number,
+            "merchant_identifier": ctcid,
+        }
+        self.user_info["credentials"].update(self.identifier)
+
+        scheme_account_id = self.user_info['scheme_account_id']
+        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+
+        api_url = urljoin(
+            HERMES_URL,
+            f"schemes/accounts/{scheme_account_id}/credentials",
+        )
+
+        headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
+
+        resp = self.make_request(
+            api_url, method="put", timeout=self.API_TIMEOUT, data=json.dumps(self.identifier, cls=JsonEncoder),
+            headers=headers
+        )
 
     def parse_transaction(self, transaction: Dict) -> Dict:
         """
