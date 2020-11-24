@@ -4,7 +4,6 @@ from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
 from urllib.parse import urljoin
-from app.encoding import JsonEncoder
 
 import arrow
 from app.agents.base import ApiMiner
@@ -22,7 +21,7 @@ from app.agents.exceptions import (
 from app.configuration import Configuration
 from app.encryption import HashSHA1
 from app.tasks.resend_consents import ConsentStatus, send_consents
-from app.utils import TWO_PLACES, get_headers
+from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
@@ -222,17 +221,13 @@ class Acteol(ApiMiner):
 
         scheme_account_id = self.user_info['scheme_account_id']
         # for updating user ID credential you get for registering (e.g. getting issued a card number)
-
         api_url = urljoin(
             HERMES_URL,
             f"schemes/accounts/{scheme_account_id}/credentials",
         )
-
         headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
-
-        resp = self.make_request(
-            api_url, method="put", timeout=self.API_TIMEOUT, data=json.dumps(self.identifier, cls=JsonEncoder),
-            headers=headers
+        self.make_request(
+            api_url, method="put", timeout=self.API_TIMEOUT, json=self.identifier, headers=headers
         )
 
     def parse_transaction(self, transaction: Dict) -> Dict:
