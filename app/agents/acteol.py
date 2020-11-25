@@ -953,3 +953,7 @@ class Wasabi(Acteol):
     HERMES_CONFIRMATION_TRIES = (
         10  # no of attempts to confirm to hermes Agent has received consents
     )
+
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
