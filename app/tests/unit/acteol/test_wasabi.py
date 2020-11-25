@@ -17,6 +17,7 @@ from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from tenacity import Retrying, stop_after_attempt
 from settings import HERMES_URL
 
+
 class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -462,7 +463,7 @@ class TestWasabi(unittest.TestCase):
         Check that the call to balance() returns an expected dict
         """
         # GIVEN
-        api_url = urljoin(HERMES_URL,f"schemes/accounts/1/credentials")
+        api_url = urljoin(HERMES_URL, "schemes/accounts/1/credentials")
         httpretty.register_uri(
             httpretty.PUT, api_url, status=HTTPStatus.OK,
         )
