@@ -279,7 +279,8 @@ class TestWasabi(unittest.TestCase):
         assert not account_already_exists
 
     @httpretty.activate
-    def test_create_account(self):
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_create_account(self, mock_send_to_atlas):
         """
         Test creating an account
         """
@@ -307,9 +308,11 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert ctcid == expected_ctcid
+        assert mock_send_to_atlas.called
 
     @httpretty.activate
-    def test_create_account_raises(self):
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_create_account_raises(self, mock_send_to_atlas):
         """
         Test creating an account raises an exception from base class's make_request()
         """
@@ -327,6 +330,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
 
         # WHEN
+        assert not mock_send_to_atlas.called
         with pytest.raises(AgentError):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 

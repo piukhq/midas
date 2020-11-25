@@ -4,6 +4,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
 from urllib.parse import urljoin
+from uuid import uuid4
 
 import arrow
 from app.agents.base import ApiMiner
@@ -18,8 +19,9 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from app.audit import AuditLogger
 from app.configuration import Configuration
-from app.encryption import HashSHA1
+from app.encryption import HashSHA1, hash_ids
 from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
@@ -46,6 +48,9 @@ class Acteol(ApiMiner):
         self.token_store = UserTokenStore(REDIS_URL)
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+
+        # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
+        self.audit_logger = AuditLogger(channel=self.channel, journeys=())
 
     # Public methods
     def authenticate(self) -> Dict:
@@ -425,9 +430,35 @@ class Acteol(ApiMiner):
             "BirthDate": credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
+
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
         resp = self.make_request(
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
 
         response_json = resp.json()
         self._check_internal_error(resp_json=response_json)
@@ -938,3 +969,7 @@ class Wasabi(Acteol):
     HERMES_CONFIRMATION_TRIES = (
         10  # no of attempts to confirm to hermes Agent has received consents
     )
+
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
