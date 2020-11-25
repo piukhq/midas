@@ -15,7 +15,7 @@ from app.agents.acteol import Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from tenacity import Retrying, stop_after_attempt
-
+from settings import HERMES_URL
 
 class TestWasabi(unittest.TestCase):
     @classmethod
@@ -454,12 +454,19 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._get_vouchers")
     @patch("app.agents.acteol.Acteol._get_customer_details")
+    @httpretty.activate
     def test_balance(
         self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
     ):
         """
         Check that the call to balance() returns an expected dict
         """
+        # GIVEN
+        api_url = urljoin(HERMES_URL,f"schemes/accounts/1/credentials")
+        httpretty.register_uri(
+            httpretty.PUT, api_url, status=HTTPStatus.OK,
+        )
+
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
