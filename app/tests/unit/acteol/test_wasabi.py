@@ -15,6 +15,7 @@ from app.agents.acteol import Wasabi
 from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from tenacity import Retrying, stop_after_attempt
+from settings import HERMES_URL
 
 
 class TestWasabi(unittest.TestCase):
@@ -278,7 +279,8 @@ class TestWasabi(unittest.TestCase):
         assert not account_already_exists
 
     @httpretty.activate
-    def test_create_account(self):
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_create_account(self, mock_send_to_atlas):
         """
         Test creating an account
         """
@@ -306,9 +308,11 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert ctcid == expected_ctcid
+        assert mock_send_to_atlas.called
 
     @httpretty.activate
-    def test_create_account_raises(self):
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_create_account_raises(self, mock_send_to_atlas):
         """
         Test creating an account raises an exception from base class's make_request()
         """
@@ -326,6 +330,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
 
         # WHEN
+        assert not mock_send_to_atlas.called
         with pytest.raises(AgentError):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
@@ -454,12 +459,19 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._get_vouchers")
     @patch("app.agents.acteol.Acteol._get_customer_details")
+    @httpretty.activate
     def test_balance(
         self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
     ):
         """
         Check that the call to balance() returns an expected dict
         """
+        # GIVEN
+        api_url = urljoin(HERMES_URL, "schemes/accounts/1/credentials")
+        httpretty.register_uri(
+            httpretty.PUT, api_url, status=HTTPStatus.OK,
+        )
+
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1416,6 +1428,17 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi._check_internal_error(resp_json)
 
+    def test_check_deleted_user(self):
+        """
+        Test handling 'Deleted User error'
+        """
+        # GIVEN
+        resp_json = {"CustomerID": "0", "CurrentMemberNumber": "ABC123"}
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._check_deleted_user(resp_json)
+
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -1560,10 +1583,8 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
         )
         ctcid = 54321
-        member_number = 1048235616
-        response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid, "CurrentMemberNumber": member_number}
+        response_data = {"ValidationMsg": "", "IsValid": True, "CtcID": ctcid}
         expected_ctcid = str(ctcid)
-        expected_member_number = str(member_number)
         httpretty.register_uri(
             httpretty.GET,
             api_url,
@@ -1577,8 +1598,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        ctcid, member_number = self.wasabi._validate_member_number(credentials)
+        ctcid = self.wasabi._validate_member_number(credentials)
 
         # THEN
         assert ctcid == expected_ctcid
-        assert member_number == expected_member_number

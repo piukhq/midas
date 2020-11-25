@@ -4,6 +4,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
 from urllib.parse import urljoin
+from uuid import uuid4
 
 import arrow
 from app.agents.base import ApiMiner
@@ -18,14 +19,15 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from app.audit import AuditLogger
 from app.configuration import Configuration
-from app.encryption import HashSHA1
+from app.encryption import HashSHA1, hash_ids
 from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, logger
+from settings import REDIS_URL, logger, HERMES_URL, SERVICE_API_KEY
 from tenacity import (
     Retrying,
     retry,
@@ -46,6 +48,9 @@ class Acteol(ApiMiner):
         self.token_store = UserTokenStore(REDIS_URL)
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+
+        # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
+        self.audit_logger = AuditLogger(channel=self.channel, journeys=())
 
     # Public methods
     def authenticate(self) -> Dict:
@@ -170,16 +175,17 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
+        self._check_deleted_user(resp_json=customer_details)
         points = Decimal(customer_details["LoyaltyPointsBalance"])
 
         # Make sure we have a populated merchant_identifier in credentials. This is required to get voucher
         # data from Acteol. Wasabi user’s credentials to be updated if they are updated within Acteol,
         # so that the user’s scheme account reflects the correct data.
-        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
-        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
-        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
         self.credentials["merchant_identifier"] = customer_details["CustomerID"]
         ctcid = self.credentials["merchant_identifier"]
+
+        self.update_hermes_credentials(ctcid, customer_details)
+
         # Get all vouchers for this customer
         vouchers: List = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
@@ -205,6 +211,29 @@ class Acteol(ApiMiner):
         }
 
         return balance
+
+    def update_hermes_credentials(self, ctcid, customer_details):
+        # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
+        # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
+        self.credentials["card_number"] = customer_details["CurrentMemberNumber"]
+        card_number = self.credentials["card_number"]
+
+        self.identifier = {
+            "card_number": card_number,
+            "merchant_identifier": ctcid,
+        }
+        self.user_info["credentials"].update(self.identifier)
+
+        scheme_account_id = self.user_info['scheme_account_id']
+        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+        api_url = urljoin(
+            HERMES_URL,
+            f"schemes/accounts/{scheme_account_id}/credentials",
+        )
+        headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
+        self.make_request(
+            api_url, method="put", timeout=self.API_TIMEOUT, json=self.identifier, headers=headers
+        )
 
     def parse_transaction(self, transaction: Dict) -> Dict:
         """
@@ -296,16 +325,16 @@ class Acteol(ApiMiner):
             and not self.user_info.get("from_register")
             and not credentials.get("merchant_identifier")
         ):
-            ctcid, member_number = self._validate_member_number(credentials)
+            ctcid = self._validate_member_number(credentials)
             self.identifier_type = (
                 "card_number"  # Not sure this is needed but the base class has one
             )
             # Set up attributes needed for the creation of an active membership card
             self.identifier = {
-                "card_number": member_number,
+                "card_number": credentials["card_number"],
                 "merchant_identifier": ctcid,
             }
-            credentials.update(self.identifier)
+            credentials.update({"merchant_identifier": ctcid})
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -399,10 +428,37 @@ class Acteol(ApiMiner):
             "LastName": credentials["last_name"],
             "Email": credentials["email"],
             "BirthDate": credentials["date_of_birth"],
+            "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
+
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
         resp = self.make_request(
             api_url, method="post", timeout=self.API_TIMEOUT, json=payload
         )
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
 
         response_json = resp.json()
         self._check_internal_error(resp_json=response_json)
@@ -633,9 +689,7 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
-        member_number = str(resp_json["CurrentMemberNumber"])
-
-        return ctcid, member_number
+        return ctcid
 
     def _get_vouchers(self, ctcid: str) -> List:
         """
@@ -873,6 +927,22 @@ class Acteol(ApiMiner):
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
+    def _check_deleted_user(self, resp_json: Dict):
+
+        # When calling a GET Balance set of calls and the response is successful
+        # BUT the CustomerID = “0”then this is how Acteol return a deleted account
+        card_number = str(resp_json["CurrentMemberNumber"])
+        if "CustomerID" in resp_json:
+            customer_id = str(resp_json["CustomerID"])
+        elif "CtcID" in resp_json:
+            customer_id = str(resp_json["CtcID"])
+
+        if customer_id == "0":
+            logger.error(
+                f"Acteol card number has been deleted: Card number: {card_number}"
+            )
+            raise AgentError(NO_SUCH_RECORD)
+
 
 def agent_consent_response(resp):
     """
@@ -899,3 +969,7 @@ class Wasabi(Acteol):
     HERMES_CONFIRMATION_TRIES = (
         10  # no of attempts to confirm to hermes Agent has received consents
     )
+
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
