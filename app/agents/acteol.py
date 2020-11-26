@@ -298,7 +298,6 @@ class Acteol(ApiMiner):
         resp.raise_for_status()
         contact_ids_data = resp.json()
 
-        # rk check
         self._check_internal_error(resp_json=contact_ids_data)
 
         return contact_ids_data
@@ -691,7 +690,6 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
-        # rk check
         self._check_internal_error(resp_json)
 
         ctcid = str(resp_json["CtcID"])
@@ -714,7 +712,6 @@ class Acteol(ApiMiner):
         response_json = resp.json()
         vouchers: List = response_json["voucher"]
 
-        # rk check
         self._check_internal_error(resp_json=response_json)
 
         return vouchers

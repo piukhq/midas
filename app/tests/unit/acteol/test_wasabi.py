@@ -1308,6 +1308,37 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert transactions == mock_transactions
 
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_get_contact_ids_by_email(self, mock_authenticate):
+        """
+        Test get_contact_ids_by_email
+        """
+        # GIVEN
+        ctcid = "54321"
+        email = "testperson@bink.com"
+        api_url = urljoin(
+            self.wasabi.base_url,
+            f"api/Contact/GetContactIDsByEmail?Email={email}"
+        )
+        response_data = {
+            "Response": True,
+            "CtcID": ctcid,
+            "Error": "",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        # WHEN
+        contact_ids_data = self.wasabi.get_contact_ids_by_email(email=email)
+
+        # THEN
+        assert contact_ids_data["CtcID"] == ctcid
+
     def test_format_money_value(self):
         # GIVEN
         money_value1 = 6.1
