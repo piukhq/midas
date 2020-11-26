@@ -298,6 +298,9 @@ class Acteol(ApiMiner):
         resp.raise_for_status()
         contact_ids_data = resp.json()
 
+        # rk check
+        self._check_internal_error(resp_json=contact_ids_data)
+
         return contact_ids_data
 
     def delete_contact_by_ctcid(self, ctcid: str):
@@ -395,14 +398,7 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        if resp.status_code != HTTPStatus.OK:
-            logger.debug(
-                f"Error while checking for existing account, reason: {resp.reason}"
-            )
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
-
-        response_json = resp.json()
-        if response_json:
+        if resp:
             return True
 
         return False
@@ -688,6 +684,9 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
+        # rk check
+        self._check_internal_error(resp_json)
+
         ctcid = str(resp_json["CtcID"])
         return ctcid
 
@@ -707,6 +706,9 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         response_json = resp.json()
         vouchers: List = response_json["voucher"]
+
+        # rk check
+        self._check_internal_error(resp_json=response_json)
 
         return vouchers
 
