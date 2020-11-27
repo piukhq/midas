@@ -1453,7 +1453,7 @@ class TestWasabi(unittest.TestCase):
         Test handling 'Internal Exception error'
         """
         # GIVEN
-        resp_json = {"Response": False, "Error": "Internal Exception"}
+        resp_json = {"Response": False, "Errors": "Internal Exception"}
 
         # WHEN
         with pytest.raises(AgentError):

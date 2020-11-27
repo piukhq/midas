@@ -690,8 +690,6 @@ class Acteol(ApiMiner):
             )
             raise LoginError(error_type)
 
-        self._check_internal_error(resp_json)
-
         ctcid = str(resp_json["CtcID"])
         return ctcid
 
@@ -927,8 +925,8 @@ class Acteol(ApiMiner):
         """
         Handle an Internal Exception error
         """
+        error_msg = resp_json.get("Error") or resp_json.get("Errors")
 
-        error_msg = resp_json.get("Error")
         if error_msg:
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
