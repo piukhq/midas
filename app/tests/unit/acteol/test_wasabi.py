@@ -422,7 +422,6 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi._add_member_number(ctcid=ctcid)
 
-
     @httpretty.activate
     def test_get_customer_details(self):
         """
@@ -570,85 +569,6 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert not customer_fields_are_present
-
-    @patch("app.agents.acteol.Acteol.authenticate")
-    @patch("app.agents.acteol.Acteol._get_vouchers")
-    @patch("app.agents.acteol.Acteol._get_customer_details")
-    @httpretty.activate
-    def test_balance(
-        self, mock_get_customer_details, mock_get_vouchers, mock_authenticate
-    ):
-        """
-        Check that the call to balance() returns an expected dict
-        """
-        # GIVEN
-        api_url = urljoin(HERMES_URL, "schemes/accounts/1/credentials")
-        httpretty.register_uri(
-            httpretty.PUT, api_url, status=HTTPStatus.OK,
-        )
-
-        # GIVEN
-        # Mock us through authentication
-        mock_authenticate.return_value = self.mock_token
-
-        mock_points = 7
-        expected_points = 7
-        # Assume we only have a single in-progress voucher
-        mock_get_vouchers.return_value = []
-        expected_balance = {
-            "points": Decimal(expected_points),
-            "value": Decimal(expected_points),
-            "value_label": "",
-            "vouchers": [
-                {
-                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
-                    "target_value": None,
-                    "value": Decimal(expected_points),
-                }
-            ],
-        }
-        customer_details = {
-            "Firstname": "David",
-            "Lastname": "Testperson",
-            "BirthDate": "1999-01-01T00:00:00",
-            "Email": "doesnotexist@bink.com",
-            "MobilePhone": None,
-            "Address1": None,
-            "Address2": None,
-            "PostCode": None,
-            "City": None,
-            "CountryCode": None,
-            "LastVisiteDate": None,
-            "LoyaltyPointsBalance": mock_points,
-            "LoyaltyCashBalance": 0.0,
-            "CustomerID": 142163,
-            "LoyaltyCardNumber": None,
-            "CurrentTiers": "",
-            "NextTiers": "",
-            "NextTiersAmountLeft": 0.0,
-            "Property": None,
-            "TiersExpirationDate": None,
-            "PointsExpirationDate": None,
-            "MemberNumbersList": ["1048183413"],
-            "CurrentMemberNumber": "1048183413",
-        }
-        mock_get_customer_details.return_value = customer_details
-        self.wasabi.credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-            "card_number": "1048183413",
-            "merchant_identifier": 142163,
-        }
-
-        # WHEN
-        balance = self.wasabi.balance()
-
-        # THEN
-        assert balance == expected_balance
-        assert schemas.balance(balance)
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._get_vouchers")
@@ -1539,7 +1459,6 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         ctcid = "54321"
-        email = "testperson@bink.com"
         api_url = urljoin(
             self.wasabi.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
         )
@@ -1776,7 +1695,6 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
-
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -1816,7 +1734,6 @@ class TestWasabi(unittest.TestCase):
         # THEN
         with pytest.raises(LoginError):
             self.wasabi._validate_member_number(credentials)
-
 
     @httpretty.activate
     @patch("app.agents.acteol.Retrying")
