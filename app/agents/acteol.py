@@ -285,8 +285,7 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
 
-        # Dict is required to check response for error.
-        # Currently a List is returned this could change.
+        # The API can return a dict if there's an error but a List normally returned.
         if isinstance(resp_json, Dict):
             self._check_response_for_error(resp_json)
 
@@ -416,8 +415,7 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        # Dict is required to check response for error.
-        # Currently a List is returned this could change.
+        # The API can return a dict if there's an error but a List normally returned.
         resp_json = resp.json()
         if isinstance(resp_json, Dict):
             self._check_response_for_error(resp_json)
@@ -513,7 +511,7 @@ class Acteol(ApiMiner):
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
 
-        member_number = resp.json()["MemberNumber"]
+        member_number = resp_json["MemberNumber"]
 
         return member_number
 
@@ -710,6 +708,7 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
+
         return ctcid
 
     @retry(
@@ -732,7 +731,10 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
-        self._check_response_for_error(resp_json)
+
+        # The API can return a dict if there's an error but a List normally returned.
+        if isinstance(resp_json, Dict):
+            self._check_response_for_error(resp_json)
 
         vouchers: List = resp_json["voucher"]
 

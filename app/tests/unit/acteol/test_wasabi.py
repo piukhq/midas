@@ -1602,7 +1602,18 @@ class TestWasabi(unittest.TestCase):
 
     def test_check_response_for_error(self):
         """
-        Testing _check_response_for_error
+        Testing _check_response_for_error response returning "Error" no "s"
+        """
+        # GIVEN
+        resp_json = {"Response": False, "Error": "Internal Exception"}
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._check_response_for_error(resp_json)
+
+    def test_check_response_for_errors(self):
+        """
+        Testing _check_response_for_error for response returning "Errors" with an "s"
         """
         # GIVEN
         resp_json = {"Response": False, "Errors": "Internal Exception"}
