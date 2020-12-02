@@ -284,11 +284,13 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
+
+        # Dict is required to check response for error.
+        # Currently a List is returned this could change.
         if isinstance(resp_json, Dict):
             self._check_response_for_error(resp_json)
-        transactions: List[Dict] = resp_json
 
-        return transactions
+        return resp_json
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -311,9 +313,8 @@ class Acteol(ApiMiner):
         resp.raise_for_status()
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
-        contact_ids_data = resp_json
 
-        return contact_ids_data
+        return resp_json
 
     def delete_contact_by_ctcid(self, ctcid: str):
         """
@@ -385,9 +386,8 @@ class Acteol(ApiMiner):
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
-        customer_details_data = resp_json
 
-        return customer_details_data
+        return resp_json
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
@@ -416,6 +416,8 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
+        # Dict is required to check response for error.
+        # Currently a List is returned this could change.
         resp_json = resp.json()
         if isinstance(resp_json, Dict):
             self._check_response_for_error(resp_json)
@@ -732,9 +734,6 @@ class Acteol(ApiMiner):
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
 
-        # resp_json = resp.json()
-        # if isinstance(resp_json, Dict):
-        #     self._check_response_for_error(resp_json)
         vouchers: List = resp_json["voucher"]
 
         return vouchers

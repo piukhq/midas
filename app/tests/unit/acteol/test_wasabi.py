@@ -338,6 +338,9 @@ class TestWasabi(unittest.TestCase):
             "date_of_birth": "1999-01-01",
         }
 
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
+
         # WHEN
         with pytest.raises(AgentError):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
@@ -417,6 +420,9 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._add_member_number.retry.sleep = unittest.mock.Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -530,6 +536,9 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(customer_details))],
             status=HTTPStatus.OK,
         )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -1447,6 +1456,9 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
 
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi.get_contact_ids_by_email.retry.sleep = unittest.mock.Mock()
+
         # THEN
         with pytest.raises(AgentError):
             self.wasabi.get_contact_ids_by_email(email=email)
@@ -1471,6 +1483,9 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
 
         # THEN
         with pytest.raises(AgentError):
