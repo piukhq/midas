@@ -1776,7 +1776,7 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
         )
         response_data = {
-            "Errors": "errortest333",
+            "Error": "errortest333",
         }
         httpretty.register_uri(
             httpretty.GET,

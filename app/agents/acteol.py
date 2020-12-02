@@ -733,8 +733,7 @@ class Acteol(ApiMiner):
         resp_json = resp.json()
 
         # The API can return a list if there's an error.
-        errors_list: List = resp_json["errors"]
-        self._check_voucher_response_for_error(errors_list)
+        self._check_voucher_response_for_errors(resp_json)
 
         vouchers: List = resp_json["voucher"]
 
@@ -957,13 +956,14 @@ class Acteol(ApiMiner):
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
-    def _check_voucher_response_for_error(self, errors_resp):
+    def _check_voucher_response_for_errors(self, resp_json: List):
         """
         Handle voucher response errors
         """
+        error_list = resp_json.get("errors")
 
-        if errors_resp:
-            logger.error(f"End Site Down Error: {errors_resp}")
+        if error_list:
+            logger.error(f"End Site Down Error: {json.dumps(error_list)}")
             raise AgentError(END_SITE_DOWN)
 
     def _check_deleted_user(self, resp_json: Dict):
