@@ -1475,7 +1475,12 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
         )
         response_data = {
-            "Error": "Errortest123",
+            "voucher": "null",
+            "OfferCategories": "null",
+            "response": "false",
+            "errors": [
+                "CustomerID is mandatory"
+            ]
         }
         httpretty.register_uri(
             httpretty.GET,
@@ -1606,17 +1611,6 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         resp_json = {"Response": False, "Error": "Internal Exception"}
-
-        # WHEN
-        with pytest.raises(AgentError):
-            self.wasabi._check_response_for_error(resp_json)
-
-    def test_check_response_for_errors(self):
-        """
-        Testing _check_response_for_error for response returning "Errors" with an "s"
-        """
-        # GIVEN
-        resp_json = {"Response": False, "Errors": "Internal Exception"}
 
         # WHEN
         with pytest.raises(AgentError):
