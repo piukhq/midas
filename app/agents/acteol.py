@@ -956,14 +956,14 @@ class Acteol(ApiMiner):
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
-    def _check_voucher_response_for_errors(self, resp_json: List):
+    def _check_voucher_response_for_errors(self, resp_json: Dict):
         """
         Handle voucher response errors
         """
         error_list = resp_json.get("errors")
 
         if error_list:
-            logger.error(f"End Site Down Error: {json.dumps(error_list)}")
+            logger.error(f"End Site Down Error: {str(error_list)}")
             raise AgentError(END_SITE_DOWN)
 
     def _check_deleted_user(self, resp_json: Dict):
