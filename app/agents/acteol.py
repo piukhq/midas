@@ -263,6 +263,11 @@ class Acteol(ApiMiner):
 
         return parsed_transaction
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def scrape_transactions(self) -> List[Dict]:
         """
         We're not scraping, we're calling the Acteol API
@@ -278,10 +283,19 @@ class Acteol(ApiMiner):
             f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={self.N_TRANSACTIONS}&IncludeOrderDetails=false",
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-        transactions: List[Dict] = resp.json()
+        resp_json = resp.json()
 
-        return transactions
+        # The API can return a dict if there's an error but a List normally returned.
+        if isinstance(resp_json, Dict):
+            self._check_response_for_error(resp_json)
 
+        return resp_json
+
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def get_contact_ids_by_email(self, email: str) -> Dict:
         """
         Get dict of contact ids from Acteol by email
@@ -296,9 +310,10 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp.raise_for_status()
-        contact_ids_data = resp.json()
+        resp_json = resp.json()
+        self._check_response_for_error(resp_json)
 
-        return contact_ids_data
+        return resp_json
 
     def delete_contact_by_ctcid(self, ctcid: str):
         """
@@ -362,17 +377,16 @@ class Acteol(ApiMiner):
             ),
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-
-        customer_details_data = resp.json()
-        self._check_internal_error(resp_json=customer_details_data)
-
         if resp.status_code != HTTPStatus.OK:
             logger.debug(
                 f"Error while fetching customer details, reason: {resp.reason}"
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        return customer_details_data
+        resp_json = resp.json()
+        self._check_response_for_error(resp_json)
+
+        return resp_json
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
     @retry(
@@ -401,8 +415,12 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        response_json = resp.json()
-        if response_json:
+        # The API can return a dict if there's an error but a List normally returned.
+        resp_json = resp.json()
+        if isinstance(resp_json, Dict):
+            self._check_response_for_error(resp_json)
+
+        if resp_json:
             return True
 
         return False
@@ -460,14 +478,14 @@ class Acteol(ApiMiner):
         )
         self.audit_logger.send_to_atlas()
 
-        response_json = resp.json()
-        self._check_internal_error(resp_json=response_json)
+        resp_json = resp.json()
+        self._check_response_for_error(resp_json)
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while creating new account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        ctcid = response_json["CtcID"]
+        ctcid = resp_json["CtcID"]
 
         return ctcid
 
@@ -486,14 +504,14 @@ class Acteol(ApiMiner):
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
-        resp_json = resp.json()
-        self._check_internal_error(resp_json)
-
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        member_number = resp.json()["MemberNumber"]
+        resp_json = resp.json()
+        self._check_response_for_error(resp_json)
+
+        member_number = resp_json["MemberNumber"]
 
         return member_number
 
@@ -673,6 +691,7 @@ class Acteol(ApiMiner):
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
+        self._check_response_for_error(resp_json)
         validation_msg = resp_json.get("ValidationMsg")
         is_valid = resp_json.get("IsValid")
         if not is_valid:
@@ -689,8 +708,14 @@ class Acteol(ApiMiner):
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
+
         return ctcid
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _get_vouchers(self, ctcid: str) -> List:
         """
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
@@ -705,8 +730,12 @@ class Acteol(ApiMiner):
             self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-        response_json = resp.json()
-        vouchers: List = response_json["voucher"]
+        resp_json = resp.json()
+
+        # The API can return a list if there's an error.
+        self._check_voucher_response_for_errors(resp_json)
+
+        vouchers: List = resp_json["voucher"]
 
         return vouchers
 
@@ -917,14 +946,24 @@ class Acteol(ApiMiner):
         # Add auth for subsequent API calls
         self.headers = self._make_headers(token=token["acteol_access_token"])
 
-    def _check_internal_error(self, resp_json: Dict):
+    def _check_response_for_error(self, resp_json: Dict):
         """
-        Handle an Internal Exception error
+        Handle response error
         """
-
         error_msg = resp_json.get("Error")
+
         if error_msg:
             logger.error(f"End Site Down Error: {error_msg}")
+            raise AgentError(END_SITE_DOWN)
+
+    def _check_voucher_response_for_errors(self, resp_json: Dict):
+        """
+        Handle voucher response errors
+        """
+        error_list = resp_json.get("errors")
+
+        if error_list:
+            logger.error(f"End Site Down Error: {str(error_list)}")
             raise AgentError(END_SITE_DOWN)
 
     def _check_deleted_user(self, resp_json: Dict):
