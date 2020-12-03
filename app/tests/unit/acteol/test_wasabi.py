@@ -312,6 +312,41 @@ class TestWasabi(unittest.TestCase):
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_create_account_error(self, mock_send_to_atlas):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
+        response_data = {
+            "FirstName": "TestPerson3",
+            "Email": "testperson@bink.com",
+            "Error": "errortest122",
+        }
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+        }
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+
+    @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     def test_create_account_raises(self, mock_send_to_atlas):
         """
         Test creating an account raises an exception from base class's make_request()
@@ -362,6 +397,36 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert member_number == expected_member_number
+
+    @httpretty.activate
+    def test_add_member_number_error(self):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        ctcid = "54321"
+        expected_member_number = "987654321"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}"
+        )
+        response_data = {
+            "Response": True,
+            "MemberNumber": expected_member_number,
+            "Error": "errortest123",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._add_member_number.retry.sleep = unittest.mock.Mock()
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._add_member_number(ctcid=ctcid)
 
     @httpretty.activate
     def test_get_customer_details(self):
@@ -420,6 +485,64 @@ class TestWasabi(unittest.TestCase):
         assert customer_details["Email"] == expected_email
         assert customer_details["CustomerID"] == expected_customer_id
         assert customer_details["CurrentMemberNumber"] == expected_current_member_number
+
+    @httpretty.activate
+    def test_get_customer_details_error(self):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = urljoin(
+            self.wasabi.base_url,
+            (
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
+                f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
+            ),
+        )
+
+        expected_email = "doesnotexist@bink.com"
+        expected_customer_id = 142163
+        expected_current_member_number = "1048183413"
+        customer_details = {
+            "Firstname": "David",
+            "Lastname": "Testperson",
+            "BirthDate": "1999-01-01T00:00:00",
+            "Email": expected_email,
+            "MobilePhone": None,
+            "Address1": None,
+            "Address2": None,
+            "PostCode": None,
+            "City": None,
+            "CountryCode": None,
+            "LastVisiteDate": None,
+            "LoyaltyPointsBalance": 0,
+            "LoyaltyCashBalance": 0.0,
+            "CustomerID": expected_customer_id,
+            "LoyaltyCardNumber": None,
+            "CurrentTiers": "",
+            "NextTiers": "",
+            "NextTiersAmountLeft": 0.0,
+            "Property": None,
+            "TiersExpirationDate": None,
+            "PointsExpirationDate": None,
+            "MemberNumbersList": ["1048183413"],
+            "CurrentMemberNumber": expected_current_member_number,
+            "Error": "errortest123",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(customer_details))],
+            status=HTTPStatus.OK,
+        )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
+
+        # WHEN
+        with pytest.raises(AgentError):
+            self.wasabi._get_customer_details(origin_id=origin_id)
 
     def test_customer_fields_are_present(self):
         """
@@ -1308,6 +1431,71 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert transactions == mock_transactions
 
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_get_contact_ids_by_email_error(self, mock_authenticate):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        ctcid = "54321"
+        email = "testperson@bink.com"
+        api_url = urljoin(
+            self.wasabi.base_url,
+            f"api/Contact/GetContactIDsByEmail?Email={email}"
+        )
+        response_data = {
+            "Response": True,
+            "CtcID": ctcid,
+            "Error": "Errortest123",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi.get_contact_ids_by_email.retry.sleep = unittest.mock.Mock()
+
+        # THEN
+        with pytest.raises(AgentError):
+            self.wasabi.get_contact_ids_by_email(email=email)
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_get_vouchers_error(self, mock_authenticate):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
+        )
+        response_data = {
+            "voucher": "null",
+            "OfferCategories": "null",
+            "response": "false",
+            "errors": [
+                "CustomerID is mandatory"
+            ]
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
+
+        # THEN
+        with pytest.raises(AgentError):
+            self.wasabi._get_vouchers(ctcid=ctcid)
+
     def test_format_money_value(self):
         # GIVEN
         money_value1 = 6.1
@@ -1417,16 +1605,16 @@ class TestWasabi(unittest.TestCase):
         assert isinstance(parsed_transaction["points"], Decimal)
         assert parsed_transaction["points"] == expected_points
 
-    def test_check_internal_error(self):
+    def test_check_response_for_error(self):
         """
-        Test handling 'Internal Exception error'
+        Testing _check_response_for_error response returning "Error" no "s"
         """
         # GIVEN
         resp_json = {"Response": False, "Error": "Internal Exception"}
 
         # WHEN
         with pytest.raises(AgentError):
-            self.wasabi._check_internal_error(resp_json)
+            self.wasabi._check_response_for_error(resp_json)
 
     def test_check_deleted_user(self):
         """
@@ -1565,6 +1753,45 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         with pytest.raises(LoginError):
+            self.wasabi._validate_member_number(credentials)
+
+    @httpretty.activate
+    @patch("app.agents.acteol.Retrying")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_validate_member_number_error(
+            self, mock_authenticate, mock_retrying
+    ):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
+        mock_retrying.return_value = retrying
+
+        api_url = urljoin(
+            self.wasabi.base_url, "api/Contact/ValidateContactMemberNumber"
+        )
+        response_data = {
+            "Error": "errortest333",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+        credentials = {
+            "email": "testastic@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+
+        # THEN
+        with pytest.raises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
