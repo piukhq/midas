@@ -16,9 +16,15 @@ def update_pending_join_account(user_info, message, tid, identifier=None, scheme
     # for updating user ID credential you get for registering (e.g. getting issued a card number)
     headers = get_headers(tid)
     if identifier:
-        requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
-                     data=json.dumps(identifier, cls=JsonEncoder), headers=headers)
-        return
+        try:
+            data = json.dumps(identifier, cls=JsonEncoder)
+        except Exception as e:
+            logger.exception(str(e))
+            raise
+        else:
+            requests.put('{}/schemes/accounts/{}/credentials'.format(HERMES_URL, scheme_account_id),
+                         data=data, headers=headers)
+            return
 
     logger.debug('join error: {}, updating scheme account: {}'.format(message, scheme_account_id))
     # error handling for pending scheme accounts waiting for join journey to complete

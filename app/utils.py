@@ -2,6 +2,7 @@ import importlib
 import json
 import re
 import socket
+import traceback
 from decimal import Decimal
 from enum import IntEnum
 
@@ -149,10 +150,13 @@ def log_task(func):
                 scheme_account_message
             ))
         except Exception as e:
-            logger.debug('error with {0} task{1}. error: {2}'.format(
+            # Extract stack trace from exception
+            tb_str = ''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))
+            logger.debug('error with {0} task{1}. error: {2}, traceback: {3}'.format(
                 func.__name__,
                 scheme_account_message,
-                repr(e)
+                repr(e),
+                tb_str
             ))
             raise
 
