@@ -100,6 +100,12 @@ class MockAgentHN(MockedMiner):
 
     def scrape_transactions(self):
         max_transactions = self.user_info["len_transactions"]
+        # If the user is five@testbink.com, ensure the date associated with transactions all occur
+        # after the 25th October 2020
+        if self.user_info["credentials"]["email"] == "five@testbink.com":
+            for transaction in transactions:
+                transaction["date"] = arrow.get('26/10/2020 14:24:15', 'DD/MM/YYYY HH:mm:ss')
+
         return transactions[:max_transactions]
 
     def register(self, credentials):
