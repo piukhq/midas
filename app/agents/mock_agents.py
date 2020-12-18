@@ -198,6 +198,7 @@ class MockAgentIce(MockedMiner):
         if (
             self.user_info["credentials"]["last_name"] == "five"
             and self.user_info["credentials"]["postcode"] == "rg5 5aa"
+            and self.identifier.get("barcode") == "5555555555555555555"
         ):
             for transaction in transactions:
                 transaction["date"] = arrow.get(
