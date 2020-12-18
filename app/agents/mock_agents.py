@@ -27,7 +27,7 @@ JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 
 class MockAgentHN(MockedMiner):
     add_error_credentials = {
-        "email": {"endsitedown@testbink.com": END_SITE_DOWN,},
+        "email": {"endsitedown@testbink.com": END_SITE_DOWN, },
     }
     existing_card_numbers = card_numbers.HARVEY_NICHOLS
     join_fields = {"email", "password", "title", "first_name", "last_name"}
