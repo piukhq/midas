@@ -200,12 +200,15 @@ class MockAgentIce(MockedMiner):
             and self.user_info["credentials"]["postcode"] == "rg5 5aa"
             and self.identifier.get("barcode") == "5555555555555555555"
         ):
-            for transaction in transactions:
-                transaction["date"] = arrow.get(
+            transactions_copy = transactions.copy()
+            for transaction_copy in transactions_copy:
+                transaction_copy["date"] = arrow.get(
                     "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
                 )
 
-        return transactions[:max_transactions]
+            return transactions_copy[:max_transactions]
+        else:
+            return transactions[:max_transactions]
 
     def register(self, credentials, inbound=False):
         return self._validate_join_credentials(credentials)
