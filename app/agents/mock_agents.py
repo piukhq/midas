@@ -27,7 +27,7 @@ JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 
 class MockAgentHN(MockedMiner):
     add_error_credentials = {
-        "email": {"endsitedown@testbink.com": END_SITE_DOWN, },
+        "email": {"endsitedown@testbink.com": END_SITE_DOWN,},
     }
     existing_card_numbers = card_numbers.HARVEY_NICHOLS
     join_fields = {"email", "password", "title", "first_name", "last_name"}
@@ -193,12 +193,16 @@ class MockAgentIce(MockedMiner):
 
     def scrape_transactions(self):
         max_transactions = self.user_info["len_transactions"]
-        # If the user is the 'five' test user, ensure the date associated with transactions all occur
+        # MER-825: If the user is the 'five' test user, ensure the date associated with transactions all occur
         # after the 25th October 2020
-        if self.user_info["credentials"]["last_name"] == "five" and self.user_info["credentials"][
-            "postcode"] == "rg5 5aa":
+        if (
+            self.user_info["credentials"]["last_name"] == "five"
+            and self.user_info["credentials"]["postcode"] == "rg5 5aa"
+        ):
             for transaction in transactions:
-                transaction["date"] = arrow.get('26/10/2020 14:24:15', 'DD/MM/YYYY HH:mm:ss')
+                transaction["date"] = arrow.get(
+                    "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
+                )
 
         return transactions[:max_transactions]
 
