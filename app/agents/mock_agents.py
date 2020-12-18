@@ -103,12 +103,15 @@ class MockAgentHN(MockedMiner):
         # MER-824: If the user is five@testbink.com, ensure the date associated with transactions all occur
         # after the 25th October 2020
         if self.user_info["credentials"]["email"] == "five@testbink.com":
-            for transaction in transactions:
-                transaction["date"] = arrow.get(
+            transactions_copy = transactions.copy()
+            for transaction_copy in transactions_copy:
+                transaction_copy["date"] = arrow.get(
                     "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
                 )
 
-        return transactions[:max_transactions]
+            return transactions_copy[:max_transactions]
+        else:
+            return transactions[:max_transactions]
 
     def register(self, credentials):
         self._validate_join_credentials(credentials)
