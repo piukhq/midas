@@ -1,5 +1,6 @@
 import random
 import uuid
+from copy import deepcopy
 from decimal import Decimal
 from time import sleep
 from typing import Dict, List
@@ -103,7 +104,7 @@ class MockAgentHN(MockedMiner):
         # MER-824: If the user is five@testbink.com, ensure the date associated with transactions all occur
         # after the 25th October 2020
         if self.user_info["credentials"]["email"] == "five@testbink.com":
-            transactions_copy = transactions.copy()
+            transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get(
                     "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
@@ -209,9 +210,9 @@ class MockAgentIce(MockedMiner):
         if (
             self.user_info["credentials"]["last_name"] == "five"
             and self.user_info["credentials"]["postcode"] == "rg5 5aa"
-            and self.identifier.get("barcode") == "5555555555555555555"
+            and self.user_info["credentials"]["email"] == "five@testbink.com"
         ):
-            transactions_copy = transactions.copy()
+            transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get(
                     "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
