@@ -2,6 +2,7 @@ import functools
 import json
 
 import requests
+import sentry_sdk
 from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
@@ -12,7 +13,7 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
+from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RegistrationError, RetryLimitError,
                                    SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
@@ -448,6 +449,9 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     try:
         agent_instance.attempt_register(user_info['credentials'])
     except Exception as e:
+        if isinstance(e, RegistrationError):
+            sentry_sdk.capture_exception()
+
         error = e.args[0]
 
         consents = user_info['credentials'].get('consents', [])
