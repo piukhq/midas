@@ -1,6 +1,7 @@
 import importlib
 import json
 import re
+import sentry_sdk
 import socket
 import traceback
 from decimal import Decimal
@@ -10,6 +11,8 @@ import lxml.html
 from Crypto import Random
 
 from app.active import AGENTS
+from app.agents.exceptions import (errors, UNKNOWN)
+from app.exceptions import AgentException
 from settings import SERVICE_API_KEY, logger
 
 TWO_PLACES = Decimal(10) ** -2
@@ -150,6 +153,10 @@ def log_task(func):
                 scheme_account_message
             ))
         except Exception as e:
+            # If this is an UNKNOWN error, also log to sentry
+            if isinstance(e, AgentException) and e.status_code == errors[UNKNOWN]['code']:
+                sentry_sdk.capture_exception()
+
             # Extract stack trace from exception
             tb_str = ''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))
             logger.debug('error with {0} task{1}. error: {2}, traceback: {3}'.format(

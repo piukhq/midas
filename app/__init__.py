@@ -1,3 +1,4 @@
+import sentry_sdk
 from celery import Celery
 from flask import Flask, jsonify
 
@@ -28,6 +29,7 @@ def create_app(config_name="settings"):
 
     @app.errorhandler(UnknownException)
     def agent_unknown_request_handler(error):
+        sentry_sdk.capture_exception(error)  # As this is an UNKNOWN error, also log to sentry
         settings.logger.exception(str(error))
 
         response = jsonify({'message': str(error), 'code': 520, 'name': 'Unknown Error'})

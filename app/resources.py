@@ -13,8 +13,8 @@ from werkzeug.exceptions import NotFound
 import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
-from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RegistrationError, RetryLimitError,
-                                   SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
+from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
+                                   SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE, UNKNOWN)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
@@ -433,12 +433,15 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
     except (LoginError, AgentError) as e:
+        # If this is an UNKNOWN error, also log to sentry
+        if e.code == errors[UNKNOWN]['code']:
+            sentry_sdk.capture_exception()
         if e.args[0] in SYSTEM_ACTION_REQUIRED and from_register:
             raise e
         retry.inc_count(key)
         raise AgentException(e)
     except Exception as e:
-        raise UnknownException(e)
+        raise UnknownException(e) from e
 
     return agent_instance
 
@@ -449,9 +452,6 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     try:
         agent_instance.attempt_register(user_info['credentials'])
     except Exception as e:
-        if isinstance(e, RegistrationError):
-            sentry_sdk.capture_exception()
-
         error = e.args[0]
 
         consents = user_info['credentials'].get('consents', [])
@@ -492,6 +492,7 @@ def registration(scheme_slug, user_info, tid):
             update_pending_join_account(user_info, str(e.args[0]), tid, scheme_slug=scheme_slug,
                                         consent_ids=consent_ids)
         else:
+            user_info["user_id"] = 99999
             publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
         return True
 
