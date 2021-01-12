@@ -2,6 +2,7 @@ import functools
 import json
 
 import requests
+import sentry_sdk
 from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
@@ -13,7 +14,7 @@ import settings
 from app import publish, retry
 from app.agents.base import MerchantApi
 from app.agents.exceptions import (ACCOUNT_ALREADY_EXISTS, AgentError, LoginError, RetryLimitError,
-                                   SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE)
+                                   SYSTEM_ACTION_REQUIRED, errors, SCHEME_REQUESTED_DELETE, UNKNOWN)
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
@@ -432,12 +433,15 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
     except (LoginError, AgentError) as e:
+        # If this is an UNKNOWN error, also log to sentry
+        if e.code == errors[UNKNOWN]['code']:
+            sentry_sdk.capture_exception()
         if e.args[0] in SYSTEM_ACTION_REQUIRED and from_register:
             raise e
         retry.inc_count(key)
         raise AgentException(e)
     except Exception as e:
-        raise UnknownException(e)
+        raise UnknownException(e) from e
 
     return agent_instance
 
