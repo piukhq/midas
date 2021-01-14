@@ -8,7 +8,7 @@ class UnknownException(Exception):
         self.status_code = return_error_code(error)
 
 
-SENTRY_IGNORED_EXCEPTIONS = [AgentException, UnknownException]
+SENTRY_IGNORED_EXCEPTIONS = (AgentException,)
 
 
 def return_error_code(exception):
