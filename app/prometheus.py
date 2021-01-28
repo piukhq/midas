@@ -69,12 +69,12 @@ class PrometheusManager:
     def prometheus_push_manager(prometheus_push_gateway: str, prometheus_job: str):
         push_timeout = 3  # PushGateway should be running in the same pod
         grouping_key = {"pid": str(os.getpid())}
-        logger.debug("Prometheus push manager started")
 
         try:
             yield
         finally:
             if settings.PUSH_PROMETHEUS_METRICS:
+                logger.debug("Prometheus push manager started")
                 try:
                     push_to_gateway(
                         gateway=prometheus_push_gateway,
