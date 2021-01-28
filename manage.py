@@ -2,6 +2,7 @@
 import os
 from flask_script import Manager, Shell, Server
 from app import create_app
+from app.prometheus import PrometheusManager
 import settings
 
 app = create_app()
@@ -29,4 +30,5 @@ def test():
 
 
 if __name__ == '__main__':
+    prometheus = PrometheusManager()
     manager.run()
