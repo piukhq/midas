@@ -6,6 +6,7 @@ from time import sleep
 from typing import Dict, List
 
 import arrow
+from blinker import signal
 from app.agents.base import MockedMiner
 from app.agents.ecrebo import Ecrebo
 from app.agents.exceptions import (
@@ -47,19 +48,25 @@ class MockAgentHN(MockedMiner):
     ]
 
     def login(self, credentials):
-        self.check_and_raise_error_credentials(credentials)
+        try:
+            self.check_and_raise_error_credentials(credentials)
+        except LoginError:
+            signal("log-in-fail").send(self, slug="harvey-nichols-mock")
+            raise
 
         # if join request, assign new user rather than check credentials
         if self.join_fields.issubset(credentials.keys()):
             self.user_info = USER_STORE["000000"]
             card_suffix = random.randint(0, 9999999999)
             self.identifier = {"card_number": f"{self.join_prefix}{card_suffix:010d}"}
+            signal("log-in-success").send(self, slug="harvey-nichols-mock")
             return
 
         card_number = credentials.get("card_number")
         # if created from join, dont check credentials on balance updates
         if card_number and card_number.startswith(self.join_prefix):
             self.user_info = USER_STORE["000000"]
+            signal("log-in-success").send(self, slug="harvey-nichols-mock")
             return
 
         # if none of the above, do the normal login checks
@@ -79,12 +86,14 @@ class MockAgentHN(MockedMiner):
                 break
 
         else:
+            signal("log-in-fail").send(self, slug="harvey-nichols-mock")
             raise LoginError(STATUS_LOGIN_FAILED)
 
         self.customer_number = card_numbers.HARVEY_NICHOLS[user_id]
         if credentials.get("card_number") != self.customer_number:
             self.identifier = {"card_number": self.customer_number}
 
+        signal("log-in-success").send(self, slug="harvey-nichols-mock")
         return
 
     def balance(self):

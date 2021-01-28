@@ -75,10 +75,13 @@ class PrometheusManager:
             yield
         finally:
             if settings.PUSH_PROMETHEUS_METRICS:
-                push_to_gateway(
-                    gateway=prometheus_push_gateway,
-                    job=prometheus_job,
-                    registry=REGISTRY,
-                    grouping_key=grouping_key,
-                    timeout=push_timeout,
-                )
+                try:
+                    push_to_gateway(
+                        gateway=prometheus_push_gateway,
+                        job=prometheus_job,
+                        registry=REGISTRY,
+                        grouping_key=grouping_key,
+                        timeout=push_timeout,
+                    )
+                except Exception as e:
+                    logger.exception(str(e))
