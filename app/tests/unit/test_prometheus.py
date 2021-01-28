@@ -5,11 +5,12 @@ from app.prometheus import PrometheusManager
 from blinker import signal
 
 
-class TestPrometheus(TestCase):
-    # initialise the prometheus manager, but only once or you will get name
-    # conflicts in the registry
-    prometheus = PrometheusManager()
+# initialise the prometheus manager, but only once or you will get name
+# conflicts in the registry
+prometheus = PrometheusManager()
 
+
+class TestPrometheus(TestCase):
     @mock.patch("app.prometheus.Counter.inc", autospec=True)
     def test_log_in_success(self, mock_prometheus_counter_inc):
         """
