@@ -15,9 +15,12 @@ class PrometheusManager:
         signal("log-in-success").connect(self.log_in_success)
         signal("log-in-fail").connect(self.log_in_fail)
 
-    def log_in_success(
-        self, sender, slug: str, increment_by: t.Union[int, float]
-    ) -> None:
+    def log_in_success(self, sender: t.Union[object, str], slug: str) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        """
+        increment_by = 1
         with self.prometheus_push_manager(
             prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
             prometheus_job=settings.PROMETHEUS_JOB,
@@ -25,7 +28,12 @@ class PrometheusManager:
             counter = self.metric_types["counters"]["log_in_success"]
             counter.labels(slug=slug).inc(increment_by)
 
-    def log_in_fail(self, sender, slug: str, increment_by: t.Union[int, float]) -> None:
+    def log_in_fail(self, sender: t.Union[object, str], slug: str) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        """
+        increment_by = 1
         with self.prometheus_push_manager(
             prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
             prometheus_job=settings.PROMETHEUS_JOB,
@@ -33,7 +41,8 @@ class PrometheusManager:
             counter = self.metric_types["counters"]["log_in_fail"]
             counter.labels(slug=slug).inc(increment_by)
 
-    def _get_metric_types(self) -> t.Dict:
+    @staticmethod
+    def _get_metric_types() -> t.Dict:
         """
         Define metric types here (see https://prometheus.io/docs/concepts/metric_types/),
         with the name, description and a list of the labels they expect.

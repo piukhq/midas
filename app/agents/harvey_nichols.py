@@ -100,7 +100,7 @@ class HarveyNichols(ApiMiner):
                 try:
                     self.check_loyalty_account_valid(self.credentials)
                 except (LoginError, AgentError):
-                    signal("log-in-fail").send(self, slug=self.scheme_slug, increment_by=1)
+                    signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
 
         try:
@@ -253,7 +253,7 @@ class HarveyNichols(ApiMiner):
         json_result = self.login_response.json()["CustomerSignOnResult"]
 
         if json_result["outcome"] == "Success":
-            signal("log-in-success").send(self, slug=self.scheme_slug, increment_by=1)
+            signal("log-in-success").send(self, slug=self.scheme_slug)
             self.customer_number = json_result["customerNumber"]
             self.token = json_result["token"]
             self.token_store.set(self.scheme_id, self.token)
@@ -297,7 +297,7 @@ class HarveyNichols(ApiMiner):
                 )
 
         else:
-            signal("log-in-fail").send(self, slug=self.scheme_slug, increment_by=1)
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(json_result["outcome"])
 
 

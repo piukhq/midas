@@ -10,25 +10,6 @@ from app.version import __version__
 from environment import env_var, read_env
 
 
-class ConfigVarRequiredError(Exception):
-    pass
-
-
-def getenv(key: str, default: str = None, conv: t.Callable = str, required: bool = True) -> t.Any:
-    """If `default` is None, then the var is non-optional."""
-    var = os.getenv(key, default)
-    if var is None and required is True:
-        raise ConfigVarRequiredError(f"Configuration variable '{key}' is required but was not provided.")
-    elif var is not None:
-        return conv(var)
-    else:
-        return None
-
-
-def boolconv(s: str) -> bool:
-    return s.lower() in ["true", "t", "yes"]
-
-
 os.chdir(os.path.dirname(__file__))
 read_env()
 
@@ -149,6 +130,6 @@ ENABLE_ICELAND_VALIDATE = env_var('ENABLE_ICELAND_VALIDATE', False)
 BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
 
 # Prometheus settings
-PUSH_PROMETHEUS_METRICS = getenv("TXM_PUSH_PROMETHEUS_METRICS", default="true", conv=boolconv)
-PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
-PROMETHEUS_JOB = "midas"
+PUSH_PROMETHEUS_METRICS = env_var('TXM_PUSH_PROMETHEUS_METRICS', 'true')
+PROMETHEUS_PUSH_GATEWAY = 'http://localhost:9100'
+PROMETHEUS_JOB = 'midas'
