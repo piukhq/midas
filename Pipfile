@@ -70,6 +70,7 @@ tenacity = "*"
 sentry-sdk = "*"
 requests = "*"
 gaia = "*"
+prometheus-client = "*"
 
 [dev-packages]
 coverage = "*"
