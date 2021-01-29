@@ -14,32 +14,63 @@ class PrometheusManager:
         self.metric_types = self._get_metric_types()
         signal("log-in-success").connect(self.log_in_success)
         signal("log-in-fail").connect(self.log_in_fail)
+        signal("register-success").connect(self.register_success)
+        signal("register-fail").connect(self.register_fail)
 
     def log_in_success(self, sender: t.Union[object, str], slug: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
         """
+        counter = self.metric_types["counters"]["log_in_success"]
         increment_by = 1
-        with self.prometheus_push_manager(
-            prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
-            prometheus_job=settings.PROMETHEUS_JOB,
-        ):
-            counter = self.metric_types["counters"]["log_in_success"]
-            counter.labels(slug=slug).inc(increment_by)
+        labels = {"slug": slug}
+        self.increment_counter(counter, increment_by, labels)
 
     def log_in_fail(self, sender: t.Union[object, str], slug: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
         """
+        counter = self.metric_types["counters"]["log_in_fail"]
         increment_by = 1
+        labels = {"slug": slug}
+        self.increment_counter(counter, increment_by, labels)
+
+    def register_success(
+        self, sender: t.Union[object, str], slug: str, channel: str
+    ) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        :param channel: The origin of this request e.g. 'com.bink.wallet'
+        """
+        counter = self.metric_types["counters"]["register_success"]
+        increment_by = 1
+        labels = {"slug": slug, "channel": channel}
+        self.increment_counter(counter, increment_by, labels)
+
+    def register_fail(
+        self, sender: t.Union[object, str], slug: str, channel: str
+    ) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        :param channel: The origin of this request e.g. 'com.bink.wallet'
+        """
+        counter = self.metric_types["counters"]["register_fail"]
+        increment_by = 1
+        labels = {"slug": slug, "channel": channel}
+        self.increment_counter(counter, increment_by, labels)
+
+    def increment_counter(
+        self, counter: Counter, increment_by: t.Union[int, float], labels: t.Dict
+    ):
         with self.prometheus_push_manager(
             prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
             prometheus_job=settings.PROMETHEUS_JOB,
         ):
-            counter = self.metric_types["counters"]["log_in_fail"]
-            counter.labels(slug=slug).inc(increment_by)
+            counter.labels(**labels).inc(increment_by)
 
     @staticmethod
     def _get_metric_types() -> t.Dict:
@@ -58,6 +89,16 @@ class PrometheusManager:
                     name="log_in_fail",
                     documentation="Incremental count of failed logins",
                     labelnames=("slug",),
+                ),
+                "register_success": Counter(
+                    name="register_success",
+                    documentation="Incremental count of successful registrations",
+                    labelnames=("slug", "channel"),
+                ),
+                "register_fail": Counter(
+                    name="register_fail",
+                    documentation="Incremental count of failed registrations",
+                    labelnames=("slug", "channel"),
                 ),
             },
         }

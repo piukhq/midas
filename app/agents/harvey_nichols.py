@@ -232,8 +232,10 @@ class HarveyNichols(ApiMiner):
         message = self.register_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
+            signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             return {"message": "success"}
 
+        signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
         self.handle_errors(message, exception_type=RegistrationError)
 
     def _login(self, credentials):
