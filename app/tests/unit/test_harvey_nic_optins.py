@@ -305,6 +305,9 @@ class TestUserConsents(unittest.TestCase):
 
         }
         with self.assertLogs() as logs:
+            # Disable any attempt to push real prometheus metrics
+            settings.PUSH_PROMETHEUS_METRICS = False
+
             hn._login(credentials)
             self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])
@@ -360,6 +363,9 @@ class TestUserConsents(unittest.TestCase):
 
         }
         with self.assertLogs() as logs:
+            # Disable any attempt to push real prometheus metrics
+            settings.PUSH_PROMETHEUS_METRICS = False
+
             hn._login(credentials)
             self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])

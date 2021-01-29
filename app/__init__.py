@@ -3,11 +3,13 @@ from celery import Celery
 from flask import Flask, jsonify
 
 from app.exceptions import AgentException, UnknownException
+from app.prometheus import PrometheusManager
 
 import settings
 from app.retry import redis
 
 celery = Celery(backend=settings.CELERY_RESULT_BACKEND, broker=settings.CELERY_BROKER_URL, config_source=settings)
+prometheus_manager = PrometheusManager()
 
 
 def create_app(config_name="settings"):

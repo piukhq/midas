@@ -4,7 +4,7 @@ from uuid import uuid4
 from decimal import Decimal
 
 from app.agents.exceptions import (
-    LoginError, RegistrationError,
+    AgentError, LoginError, RegistrationError,
     STATUS_REGISTRATION_FAILED,
     ACCOUNT_ALREADY_EXISTS,
     UNKNOWN,
@@ -20,6 +20,7 @@ from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, AES_KEY, logger
 from app.tasks.resend_consents import send_consents
 import arrow
+from blinker import signal
 import json
 
 
@@ -96,7 +97,11 @@ class HarveyNichols(ApiMiner):
         except self.token_store.NoSuchToken:
             sign_on_required = True
             if self.journey_type == JourneyTypes.LINK.value:
-                self.check_loyalty_account_valid(self.credentials)
+                try:
+                    self.check_loyalty_account_valid(self.credentials)
+                except (LoginError, AgentError):
+                    signal("log-in-fail").send(self, slug=self.scheme_slug)
+                    raise
 
         try:
             self.customer_number = credentials[self.identifier_type]
@@ -248,6 +253,7 @@ class HarveyNichols(ApiMiner):
         json_result = self.login_response.json()["CustomerSignOnResult"]
 
         if json_result["outcome"] == "Success":
+            signal("log-in-success").send(self, slug=self.scheme_slug)
             self.customer_number = json_result["customerNumber"]
             self.token = json_result["token"]
             self.token_store.set(self.scheme_id, self.token)
@@ -291,6 +297,7 @@ class HarveyNichols(ApiMiner):
                 )
 
         else:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(json_result["outcome"])
 
 
