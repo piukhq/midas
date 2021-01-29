@@ -1,13 +1,7 @@
 from unittest import TestCase, mock
 
 import settings
-from app.prometheus import PrometheusManager
 from blinker import signal
-
-
-# initialise the prometheus manager, but only once or you will get name
-# conflicts in the registry
-prometheus = PrometheusManager()
 
 
 class TestPrometheus(TestCase):
