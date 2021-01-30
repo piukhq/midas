@@ -67,6 +67,9 @@ class HarveyNichols(ApiMiner):
         headers = {"Accept": "application/json"}
         response = self.make_request(
             self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=response.request.path_url,
+                                           latency=response.elapsed.total_seconds(),
+                                           response_code=response.status_code)
         message = response.json()["auth_resp"]["message"]
         if message != 'OK':
             raise LoginError(STATUS_LOGIN_FAILED)
@@ -115,6 +118,9 @@ class HarveyNichols(ApiMiner):
         url = self.BASE_URL + "/GetProfile"
         data = {"CustomerLoyaltyProfileRequest": {"token": self.token, "customerNumber": self.customer_number}}
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=balance_response.request.path_url,
+                                           latency=balance_response.elapsed.total_seconds(),
+                                           response_code=balance_response.status_code)
         return balance_response.json()["CustomerLoyaltyProfileResult"]
 
     def balance(self):
@@ -154,6 +160,9 @@ class HarveyNichols(ApiMiner):
         }
 
         transaction_response = self.make_request(url, method="post", timeout=10, json=data)
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=transaction_response.request.path_url,
+                                           latency=transaction_response.elapsed.total_seconds(),
+                                           response_code=transaction_response.status_code)
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
     @staticmethod
@@ -217,6 +226,10 @@ class HarveyNichols(ApiMiner):
         )
 
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
+        signal("record-http-request").send(self, slug=self.scheme_slug,
+                                           endpoint=self.register_response.request.path_url,
+                                           latency=self.register_response.elapsed.total_seconds(),
+                                           response_code=self.register_response.status_code)
 
         self.audit_logger.add_response(
             response=self.register_response,
@@ -252,8 +265,11 @@ class HarveyNichols(ApiMiner):
         }
 
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
-        json_result = self.login_response.json()["CustomerSignOnResult"]
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=self.login_response.request.path_url,
+                                           latency=self.login_response.elapsed.total_seconds(),
+                                           response_code=self.login_response.status_code)
 
+        json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":
             signal("log-in-success").send(self, slug=self.scheme_slug)
             self.customer_number = json_result["customerNumber"]

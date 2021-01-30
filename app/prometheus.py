@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 import settings
 from blinker import signal
-from prometheus_client import Counter, push_to_gateway
+from prometheus_client import Counter, Histogram, push_to_gateway
 from prometheus_client.registry import REGISTRY
 from settings import logger
 
@@ -16,6 +16,7 @@ class PrometheusManager:
         signal("log-in-fail").connect(self.log_in_fail)
         signal("register-success").connect(self.register_success)
         signal("register-fail").connect(self.register_fail)
+        signal("record-http-request").connect(self.record_http_request)
 
     def log_in_success(self, sender: t.Union[object, str], slug: str) -> None:
         """
@@ -23,9 +24,8 @@ class PrometheusManager:
         :param slug: A slug, e.g. 'harvey-nichols'
         """
         counter = self.metric_types["counters"]["log_in_success"]
-        increment_by = 1
         labels = {"slug": slug}
-        self.increment_counter(counter, increment_by, labels)
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
     def log_in_fail(self, sender: t.Union[object, str], slug: str) -> None:
         """
@@ -33,9 +33,8 @@ class PrometheusManager:
         :param slug: A slug, e.g. 'harvey-nichols'
         """
         counter = self.metric_types["counters"]["log_in_fail"]
-        increment_by = 1
         labels = {"slug": slug}
-        self.increment_counter(counter, increment_by, labels)
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
     def register_success(
         self, sender: t.Union[object, str], slug: str, channel: str
@@ -46,9 +45,8 @@ class PrometheusManager:
         :param channel: The origin of this request e.g. 'com.bink.wallet'
         """
         counter = self.metric_types["counters"]["register_success"]
-        increment_by = 1
         labels = {"slug": slug, "channel": channel}
-        self.increment_counter(counter, increment_by, labels)
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
     def register_fail(
         self, sender: t.Union[object, str], slug: str, channel: str
@@ -59,14 +57,36 @@ class PrometheusManager:
         :param channel: The origin of this request e.g. 'com.bink.wallet'
         """
         counter = self.metric_types["counters"]["register_fail"]
-        increment_by = 1
         labels = {"slug": slug, "channel": channel}
-        self.increment_counter(counter, increment_by, labels)
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
-    def increment_counter(
+    def record_http_request(
+        self,
+        sender: t.Union[object, str],
+        slug: str,
+        endpoint: str,
+        latency: t.Union[int, float],
+        response_code: int,
+    ) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        :param endpoint: The API endpoint path
+        :param latency: HTTP request time in seconds
+        :response_code: HTTP response code e.g 200, 500
+        """
+
+        histogram = self.metric_types["histograms"]["request_latency"]
+        with self._prometheus_push_manager(
+                prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
+                prometheus_job=settings.PROMETHEUS_JOB,
+        ):
+            histogram.labels(slug=slug, endpoint=endpoint, response_code=response_code).observe(latency)
+
+    def _increment_counter(
         self, counter: Counter, increment_by: t.Union[int, float], labels: t.Dict
     ):
-        with self.prometheus_push_manager(
+        with self._prometheus_push_manager(
             prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
             prometheus_job=settings.PROMETHEUS_JOB,
         ):
@@ -101,13 +121,20 @@ class PrometheusManager:
                     labelnames=("slug", "channel"),
                 ),
             },
+            "histograms": {
+                "request_latency": Histogram(
+                    name="request_latency_seconds",
+                    documentation="Request latency seconds",
+                    labelnames=("slug", "endpoint", "response_code"),
+                )
+            },
         }
 
         return metric_types
 
     @staticmethod
     @contextmanager
-    def prometheus_push_manager(prometheus_push_gateway: str, prometheus_job: str):
+    def _prometheus_push_manager(prometheus_push_gateway: str, prometheus_job: str):
         push_timeout = 3  # PushGateway should be running in the same pod
         grouping_key = {"pid": str(os.getpid())}
 
