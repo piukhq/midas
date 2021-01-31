@@ -513,7 +513,9 @@ class TestLoginJourneyTypes(unittest.TestCase):
              "User details not authenticated"]  # Bad credentials
         ):
             mock_make_request.side_effect = [
-                MockResponse({"auth_resp": {"message": msg, "status_code": "404"}}, 200)
+                MockResponse(
+                    {"auth_resp": {"message": msg, "status_code": "404"}}, 200
+                )
             ]
             self.assertRaises(LoginError, self.hn.login, self.credentials)
             self.assertEqual(
