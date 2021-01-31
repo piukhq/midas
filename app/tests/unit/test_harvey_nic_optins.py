@@ -31,10 +31,29 @@ class MockStore:
             raise self.NoSuchToken
 
 
+# class MockRequest:
+#     def __init__(self, json_data, status_code):
+#         self.path_url =
+#         self.status_code = status_code
+#
+#     # endpoint = self.login_response.request.path_url,
+#     # latency = self.login_response.elapsed.total_seconds()
+#
+#     def json(self):
+#         return self.json_data
+#
+#     @property
+#     def text(self):
+#         return json.dumps(self.json_data)
+
+
 class MockResponse:
-    def __init__(self, json_data, status_code):
+    def __init__(self, json_data, status_code, mock_request: mock.MagicMock = None,
+                 mock_elapsed: mock.MagicMock = None):
         self.json_data = json_data
         self.status_code = status_code
+        self.request = mock_request
+        self.elapsed = mock_elapsed
 
     def json(self):
         return self.json_data
@@ -82,17 +101,29 @@ def mocked_requests_put_200_ok(*args, **kwargs):
 
 
 def mock_harvey_nick_post(*args, **kwargs):
-    return MockResponse({'CustomerSignOnResult': {'outcome': 'Success',
+    mock_request = mock.MagicMock()
+    mock_request.path_url = "/test_path"
+    mock_elapsed = mock.MagicMock()
+    mock_elapsed.total_seconds.return_value = 3
+
+    mock_response = MockResponse({'CustomerSignOnResult': {'outcome': 'Success',
                                                   'customerNumber': '2601507998647',
                                                   'token': '1234'
-                                                  }}, 200)
+                                                  }}, 200, mock_request, mock_elapsed)
+
+    return mock_response
 
 
 def mock_harvey_nick_register(*args, **kwargs):
+    mock_request = mock.MagicMock()
+    mock_request.path_url = "/test_path"
+    mock_elapsed = mock.MagicMock()
+    mock_elapsed.total_seconds.return_value = 3
+
     return MockResponse({'CustomerSignUpResult': {'outcome': 'Success',
                                                   'customerNumber': '2601507998647',
                                                   'token': '1234'
-                                                  }}, 200)
+                                                  }}, 200, mock_request, mock_elapsed)
 
 
 class TestUserConsents(unittest.TestCase):
@@ -507,9 +538,13 @@ class TestLoginJourneyTypes(unittest.TestCase):
             ["Not found",                       # Web account only
              "User details not authenticated"]  # Bad credentials
         ):
+            mock_request = mock.MagicMock()
+            mock_request.path_url = "/test_path"
+            mock_elapsed = mock.MagicMock()
+            mock_elapsed.total_seconds.return_value = 3
             mock_make_request.side_effect = [
                 MockResponse(
-                    {"auth_resp": {"message": msg, "status_code": "404"}}, 200
+                    {"auth_resp": {"message": msg, "status_code": "404"}}, 200, mock_request, mock_elapsed
                 )
             ]
             self.assertRaises(LoginError, self.hn.login, self.credentials)
