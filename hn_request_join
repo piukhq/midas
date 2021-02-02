@@ -1,0 +1,39 @@
+curl --location --request POST '127.0.0.1:8000/ubiquity/membership_cards' \
+--header 'Authorization: token eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJidW5kbGVfaWQiOiJjb20uYmluay53YWxsZXQiLCJ1c2VyX2lkIjoiZGZlbGNlQHRlc3RiaW5rLmNvbSIsInN1YiI6MzQ1NTcsImlhdCI6MTYxMTc1OTc4MX0.BBTgwZGTcBOPSMM4Y9R4B_6gAajAXlyXEWTZcrEC3ek' \
+--header 'Accept: application/json;v=1.1' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+ "membership_plan": 194,
+     "account": {
+        "enrol_fields": [
+            {
+                "column": "Email",
+                "value": "dfelce11@bink.com"
+            },
+            {
+                "column": "Password",
+                "value": "password"
+            },
+            {
+                "column": "Title",
+                "value": "Mrs"
+            },
+            {
+                "column": "First name",
+                "value": "Henry"
+            },
+            {
+                "column": "Last name",
+                "value": "Bink"
+            },
+            {
+                "column": "Mobile number",
+                "value": "123454567"
+            },
+            {
+                "column": "Consent 1",
+                "value": "true"
+            }
+        ]
+    }
+}'
