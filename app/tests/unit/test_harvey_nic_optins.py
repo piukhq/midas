@@ -35,6 +35,11 @@ class MockResponse:
     def __init__(self, json_data, status_code):
         self.json_data = json_data
         self.status_code = status_code
+        # Set mock values expected by Signal events
+        self.request = mock.MagicMock()
+        self.request.path_url = "/test_path"
+        self.elapsed = mock.MagicMock()
+        self.elapsed.total_seconds.return_value = 2
 
     def json(self):
         return self.json_data
