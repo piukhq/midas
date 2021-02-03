@@ -35,6 +35,11 @@ class MockResponse:
     def __init__(self, json_data, status_code):
         self.json_data = json_data
         self.status_code = status_code
+        # Set mock values expected by Signal events
+        self.request = mock.MagicMock()
+        self.request.path_url = "/test_path"
+        self.elapsed = mock.MagicMock()
+        self.elapsed.total_seconds.return_value = 2
 
     def json(self):
         return self.json_data
@@ -305,6 +310,9 @@ class TestUserConsents(unittest.TestCase):
 
         }
         with self.assertLogs() as logs:
+            # Disable any attempt to push real prometheus metrics
+            settings.PUSH_PROMETHEUS_METRICS = False
+
             hn._login(credentials)
             self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])
@@ -360,6 +368,9 @@ class TestUserConsents(unittest.TestCase):
 
         }
         with self.assertLogs() as logs:
+            # Disable any attempt to push real prometheus metrics
+            settings.PUSH_PROMETHEUS_METRICS = False
+
             hn._login(credentials)
             self.assertEqual('https://hn_sso.harveynichols.com/preferences/create',
                              mock_post.call_args_list[0][0][0])
