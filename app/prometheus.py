@@ -73,7 +73,7 @@ class PrometheusManager:
         :param slug: A slug, e.g. 'harvey-nichols'
         :param endpoint: The API endpoint path
         :param latency: HTTP request time in seconds
-        :response_code: HTTP response code e.g 200, 500
+        :param response_code: HTTP response code e.g 200, 500
         """
 
         histogram = self.metric_types["histograms"]["request_latency"]
