@@ -1,7 +1,7 @@
 import json
 import unittest
 from http import HTTPStatus
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import httpretty
 from app.agents.ecrebo import WhSmith
@@ -11,7 +11,21 @@ from requests import HTTPError
 class TestEcrebo(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with unittest.mock.patch("app.agents.acteol.Configuration"):
+        with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
+            mock_config_object = MagicMock()
+            mock_config_object.security_credentials = {
+                "outbound": {
+                    "credentials": [
+                        {
+                            "value": {
+                                "username": "some_user",
+                                "password": "some_pass",
+                            }
+                        }
+                    ]
+                }
+            }
+            mock_configuration.return_value = mock_config_object
             MOCK_AGENT_CLASS_ARGUMENTS = [
                 1,
                 {
