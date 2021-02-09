@@ -2,10 +2,11 @@ import json
 import unittest
 from http import HTTPStatus
 from unittest.mock import ANY, MagicMock, call, patch
+from uuid import uuid4
 
 import httpretty
 from app.agents.ecrebo import WhSmith
-from app.agents.exceptions import LoginError
+from app.agents.exceptions import LoginError, RegistrationError
 from requests import HTTPError
 
 
@@ -34,7 +35,16 @@ class TestEcreboSignal(unittest.TestCase):
                     "status": 1,
                     "user_set": "1,2",
                     "journey_type": None,
-                    "credentials": {},
+                    "credentials": {
+                        "email": "mrtestman@thing.com",
+                        "title": "Mr",
+                        "first_name": "Test",
+                        "last_name": "Man",
+                        "phone": 1234567890,
+                        "address_1": "1 The Street",
+                        "town_city": "Nowhereton",
+                        "postcode": "NW11NW",
+                    },
                     "channel": "com.bink.wallet",
                 },
             ]
@@ -99,7 +109,7 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_get_membership_data_calls_signal(self, mock_signal, mock_authenticate):
         """
-        Check that correct params are passed to signal on HTTPError
+        Check that correct params are passed to signal
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -130,7 +140,7 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_get_membership_data_calls_signal_on_error(self, mock_signal, mock_authenticate):
         """
-        Check that correct params are passed to signal when the HTTP request is NOT OK
+        Check that correct params are passed to signal on HTTPError
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -181,6 +191,106 @@ class TestEcreboSignal(unittest.TestCase):
 
         # WHEN
         self.assertRaises(LoginError, self.whsmith._get_membership_data, endpoint=mock_endpoint)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_register_calls_signals_success(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+        """
+        Check that correct params are passed to the signals for a successful registration
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_get_card_number_and_uid.return_value = (987654321, str(uuid4()))
+        mock_endpoint = f"/v1/list/append_item/{self.whsmith.RETAILER_ID}/assets/membership"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.POST,
+            mock_api_url,
+            responses=[httpretty.Response(body=json.dumps({"publisher": [{"message": "testingonetwothree"}]}))],
+            status=HTTPStatus.OK,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
+                        slug=self.whsmith.scheme_slug),
+            call("register-success"),
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.whsmith.register(credentials=self.whsmith.user_info["credentials"])
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_register_calls_signals_for_409(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+        """
+        Check that correct params are passed to the signals for a CONFLICT (409) response during registration
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_get_card_number_and_uid.return_value = (987654321, str(uuid4()))
+        mock_endpoint = f"/v1/list/append_item/{self.whsmith.RETAILER_ID}/assets/membership"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.POST,
+            mock_api_url,
+            status=HTTPStatus.CONFLICT,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.CONFLICT,
+                        slug=self.whsmith.scheme_slug),
+            call("register-fail"),
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(RegistrationError, self.whsmith.register, credentials=self.whsmith.user_info["credentials"])
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_register_calls_signals_for_httperror(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+        """
+        Check that correct params are passed to the signals for a HTTPError response during registration
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_get_card_number_and_uid.return_value = (987654321, str(uuid4()))
+        mock_endpoint = f"/v1/list/append_item/{self.whsmith.RETAILER_ID}/assets/membership"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.POST,
+            mock_api_url,
+            status=HTTPStatus.GATEWAY_TIMEOUT,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.GATEWAY_TIMEOUT,
+                        slug=self.whsmith.scheme_slug),
+            call("register-fail"),
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(HTTPError, self.whsmith.register, credentials=self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
