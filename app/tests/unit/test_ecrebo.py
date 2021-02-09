@@ -5,10 +5,11 @@ from unittest.mock import ANY, MagicMock, call, patch
 
 import httpretty
 from app.agents.ecrebo import WhSmith
+from app.agents.exceptions import LoginError
 from requests import HTTPError
 
 
-class TestEcrebo(unittest.TestCase):
+class TestEcreboSignal(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
@@ -42,7 +43,7 @@ class TestEcrebo(unittest.TestCase):
 
     @httpretty.activate
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_authenticate_calls_signal_with_error(self, mock_signal):
+    def test_authenticate_calls_signal_on_error(self, mock_signal):
         """
         Check that correct params are passed to signal on HTTPError
         """
@@ -68,7 +69,7 @@ class TestEcrebo(unittest.TestCase):
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_authenticate_calls_signal(self, mock_signal):
         """
-        Check that correct params are passed to signal
+        Check that correct params are passed to signal when the HTTP request is OK
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -92,3 +93,94 @@ class TestEcrebo(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
         assert token == mock_token
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_signal(self, mock_signal, mock_authenticate):
+        """
+        Check that correct params are passed to signal on HTTPError
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/someendpoint"
+        mock_membership_data = {"username": "Mr A User"}
+        httpretty.register_uri(
+            httpretty.GET,
+            f"{self.whsmith.base_url}{mock_endpoint}",
+            responses=[httpretty.Response(body=json.dumps({"data": mock_membership_data}))],
+            status=HTTPStatus.OK,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
+                        slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        membership_data = self.whsmith._get_membership_data(endpoint=mock_endpoint)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+        assert membership_data == mock_membership_data
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_signal_on_error(self, mock_signal, mock_authenticate):
+        """
+        Check that correct params are passed to signal when the HTTP request is NOT OK
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/somebrokenendpoint"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.GET,
+            mock_api_url,
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
+                        response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(HTTPError, self.whsmith._get_membership_data, endpoint=mock_endpoint)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_signal_and_raises_login_error(self, mock_signal, mock_authenticate):
+        """
+        Check that correct params are passed to signal and a login error is raised when the HTTP request returns 404
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/somebrokenendpoint"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.GET,
+            mock_api_url,
+            status=HTTPStatus.NOT_FOUND,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
+                        response_code=HTTPStatus.NOT_FOUND,
+                        slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(LoginError, self.whsmith._get_membership_data, endpoint=mock_endpoint)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)

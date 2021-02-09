@@ -70,6 +70,9 @@ class Ecrebo(ApiMiner):
             resp = requests.get(url, headers=headers)
             try:
                 resp.raise_for_status()
+                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
+                                                   latency=resp.elapsed.total_seconds(),
+                                                   response_code=resp.status_code)
                 return resp.json()["data"]
             except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
                 try:
@@ -87,9 +90,6 @@ class Ecrebo(ApiMiner):
                 if attempts == 0:
                     raise
                 else:
-                    signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                                       latency=resp.elapsed.total_seconds(),
-                                                       response_code=resp.status_code)
                     time.sleep(3)
             else:
                 break
