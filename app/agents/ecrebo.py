@@ -43,13 +43,11 @@ class Ecrebo(ApiMiner):
             except AttributeError:
                 latency_seconds = 0
             signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=login_path,
-                                               latency=latency_seconds,
-                                               response_code=e.response.status_code)
+                                               latency=latency_seconds, response_code=e.response.status_code)
             raise
         else:
             signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                               latency=resp.elapsed.total_seconds(),
-                                               response_code=resp.status_code)
+                                               latency=resp.elapsed.total_seconds(), response_code=resp.status_code)
 
         return resp.json()["token"]
 
@@ -70,13 +68,16 @@ class Ecrebo(ApiMiner):
             attempts -= 1
 
             resp = requests.get(url, headers=headers)
-            signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                               latency=resp.elapsed.total_seconds(),
-                                               response_code=resp.status_code)
             try:
                 resp.raise_for_status()
                 return resp.json()["data"]
-            except requests.HTTPError as ex:
+            except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
+                try:
+                    latency_seconds = ex.response.elapsed.total_seconds()
+                except AttributeError:
+                    latency_seconds = 0
+                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=endpoint,
+                                                   latency=latency_seconds, response_code=ex.response.status_code)
                 if ex.response.status_code == 404:
                     raise LoginError(STATUS_LOGIN_FAILED)
                 else:
@@ -86,6 +87,9 @@ class Ecrebo(ApiMiner):
                 if attempts == 0:
                     raise
                 else:
+                    signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
+                                                       latency=resp.elapsed.total_seconds(),
+                                                       response_code=resp.status_code)
                     time.sleep(3)
             else:
                 break
