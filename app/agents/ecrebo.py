@@ -134,11 +134,18 @@ class Ecrebo(ApiMiner):
         self.audit_logger.send_to_atlas()
 
         if resp.status_code == 409:
+            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
         else:
-            resp.raise_for_status()
-            json = resp.json()
-            message = json["publisher"][0]["message"]
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError:
+                signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                raise
+            else:
+                signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                json = resp.json()
+                message = json["publisher"][0]["message"]
 
         card_number, uid = self._get_card_number_and_uid(message)
 
