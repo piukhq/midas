@@ -107,9 +107,9 @@ class TestEcreboSignal(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_signal(self, mock_signal, mock_authenticate):
+    def test_get_membership_data_calls_signals(self, mock_signal, mock_authenticate):
         """
-        Check that correct params are passed to signal
+        Check that correct params are passed to signals when the call is OK
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -125,7 +125,10 @@ class TestEcreboSignal(unittest.TestCase):
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
-                        slug=self.whsmith.scheme_slug)
+                        slug=self.whsmith.scheme_slug),
+
+            call("log-in-success"),
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -138,9 +141,9 @@ class TestEcreboSignal(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_signal_on_error(self, mock_signal, mock_authenticate):
+    def test_get_membership_data_calls_signals_on_error(self, mock_signal, mock_authenticate):
         """
-        Check that correct params are passed to signal on HTTPError
+        Check that correct params are passed to signals on HTTPError
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -156,7 +159,9 @@ class TestEcreboSignal(unittest.TestCase):
             call("record-http-request"),
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
                         response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                        slug=self.whsmith.scheme_slug)
+                        slug=self.whsmith.scheme_slug),
+            call("log-in-fail"),
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -168,9 +173,9 @@ class TestEcreboSignal(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_signal_and_raises_login_error(self, mock_signal, mock_authenticate):
+    def test_get_membership_data_calls_signals_and_raises_login_error(self, mock_signal, mock_authenticate):
         """
-        Check that correct params are passed to signal and a login error is raised when the HTTP request returns 404
+        Check that correct params are passed to signals and a login error is raised when the HTTP request returns 404
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -186,7 +191,9 @@ class TestEcreboSignal(unittest.TestCase):
             call("record-http-request"),
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
                         response_code=HTTPStatus.NOT_FOUND,
-                        slug=self.whsmith.scheme_slug)
+                        slug=self.whsmith.scheme_slug),
+            call("log-in-fail"),
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
