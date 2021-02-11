@@ -30,7 +30,6 @@ from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from blinker import signal
 from gaia.user_token import UserTokenStore
-from requests import HTTPError
 from requests.exceptions import Timeout
 from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger
 from tenacity import (
@@ -1015,7 +1014,7 @@ class Acteol(ApiMiner):
 
         try:
             resp.raise_for_status()
-        except HTTPError as e:
+        except requests.HTTPError as e:
             if e.response.status_code == 401:
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif e.response.status_code == 403:
