@@ -81,7 +81,7 @@ class TestIce(unittest.TestCase):
     def setUpClass(cls):
         cls.b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '1020304050607087777',
+            'card_number': '6332040050607087777',
             'last_name': 'seven-digits, smith\'s',
             'postcode': 'mp7 1bb'
         }
