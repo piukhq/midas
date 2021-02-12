@@ -36,6 +36,17 @@ USER_STORE = {
         },
         'points': Decimal('380.01')
     },
+    '654321': {
+        'len_transactions': 1,
+        'credentials': {
+            'email': 'onetransaction@testbink.com',
+            'password': 'Password01',
+            'last_name': 'six',
+            'postcode': 'rg6 6bb',
+            'date_of_birth': '2000-01-01',
+        },
+        'points': Decimal('0')
+    },
     '666666': {
         'len_transactions': 6,
         'credentials': {

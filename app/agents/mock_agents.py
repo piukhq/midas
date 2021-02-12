@@ -111,6 +111,18 @@ class MockAgentHN(MockedMiner):
                 )
 
             return transactions_copy[:max_transactions]
+        elif self.user_info["credentials"]["email"] == "onetransaction@testbink.com":
+            # MER-939: if the user is "onetransaction@testbink.com", we will need a single
+            # transaction with a value of 0 and timestamp of 1612876767
+            transactions_single = [
+                {
+                    "date": arrow.get(1612876767),
+                    "description": 'Test transaction: 1 item',
+                    "points": Decimal('0'),
+                },
+            ]
+
+            return transactions_single
         else:
             return transactions[:max_transactions]
 
