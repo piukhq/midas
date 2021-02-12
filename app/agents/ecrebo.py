@@ -14,6 +14,8 @@ from app.encryption import hash_ids
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
 
+from blinker import signal
+
 
 class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
@@ -29,10 +31,24 @@ class Ecrebo(ApiMiner):
         """
         Returns an Ecrebo API auth token to use in subsequent requests.
         """
+        login_path = "/v1/auth/login"
         resp = requests.post(
-            f"{self.base_url}/v1/auth/login", json={"name": self.auth["username"], "password": self.auth["password"]}
+            f"{self.base_url}{login_path}", json={"name": self.auth["username"], "password": self.auth["password"]}
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:  # Try to capture as much as possible for metrics
+            try:
+                latency_seconds = e.response.elapsed.total_seconds()
+            except AttributeError:
+                latency_seconds = 0
+            signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=login_path,
+                                               latency=latency_seconds, response_code=e.response.status_code)
+            raise
+        else:
+            signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
+                                               latency=resp.elapsed.total_seconds(), response_code=resp.status_code)
+
         return resp.json()["token"]
 
     def _make_headers(self, token):
@@ -52,11 +68,21 @@ class Ecrebo(ApiMiner):
             attempts -= 1
 
             resp = requests.get(url, headers=headers)
-
             try:
                 resp.raise_for_status()
+                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
+                                                   latency=resp.elapsed.total_seconds(),
+                                                   response_code=resp.status_code)
+                signal("log-in-success").send(self, slug=self.scheme_slug)
                 return resp.json()["data"]
-            except requests.HTTPError as ex:
+            except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
+                try:
+                    latency_seconds = ex.response.elapsed.total_seconds()
+                except AttributeError:
+                    latency_seconds = 0
+                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=endpoint,
+                                                   latency=latency_seconds, response_code=ex.response.status_code)
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
                 if ex.response.status_code == 404:
                     raise LoginError(STATUS_LOGIN_FAILED)
                 else:
@@ -64,6 +90,7 @@ class Ecrebo(ApiMiner):
             except (requests.RequestException, KeyError):
                 # non-http errors will be retried a few times
                 if attempts == 0:
+                    signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
                 else:
                     time.sleep(3)
@@ -94,6 +121,10 @@ class Ecrebo(ApiMiner):
             headers=self._make_headers(self._authenticate()),
         )
 
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
+                                           latency=resp.elapsed.total_seconds(),
+                                           response_code=resp.status_code)
+
         self.audit_logger.add_response(
             response=resp,
             scheme_slug=self.scheme_slug,
@@ -106,11 +137,18 @@ class Ecrebo(ApiMiner):
         self.audit_logger.send_to_atlas()
 
         if resp.status_code == 409:
+            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
         else:
-            resp.raise_for_status()
-            json = resp.json()
-            message = json["publisher"][0]["message"]
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError:
+                signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                raise
+            else:
+                signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                json = resp.json()
+                message = json["publisher"][0]["message"]
 
         card_number, uid = self._get_card_number_and_uid(message)
 
