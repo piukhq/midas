@@ -126,9 +126,6 @@ class TestEcreboSignal(unittest.TestCase):
             call("record-http-request"),
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
                         slug=self.whsmith.scheme_slug),
-
-            call("log-in-success"),
-            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -160,8 +157,6 @@ class TestEcreboSignal(unittest.TestCase):
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
                         response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                         slug=self.whsmith.scheme_slug),
-            call("log-in-fail"),
-            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -192,8 +187,6 @@ class TestEcreboSignal(unittest.TestCase):
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
                         response_code=HTTPStatus.NOT_FOUND,
                         slug=self.whsmith.scheme_slug),
-            call("log-in-fail"),
-            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -298,6 +291,48 @@ class TestEcreboSignal(unittest.TestCase):
 
         # WHEN
         self.assertRaises(HTTPError, self.whsmith.register, credentials=self.whsmith.user_info["credentials"])
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_data")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_login_calls_signals(self, mock_signal, mock_get_membership_data):
+        """
+        Check that correct params are passed to signals when the login is successful
+        """
+        # GIVEN
+        mock_get_membership_data.return_value = {"username": "Mr A User", "uuid": uuid4()}
+        mock_credentials = {"card_number": 12345678}
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-success"),
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        membership_data = self.whsmith.login(credentials=mock_credentials)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_data", side_effect=HTTPError)
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_login_does_not_call_signal_on_exception(self, mock_signal, mock_get_membership_data):
+        """
+        Check that correct params are passed to signals when the login is successful
+        """
+        # GIVEN
+        # mock_get_membership_data.sid
+        mock_credentials = {"card_number": 12345678}
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(HTTPError, self.whsmith.login, credentials=mock_credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
