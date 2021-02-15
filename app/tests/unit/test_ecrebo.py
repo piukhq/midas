@@ -311,7 +311,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        membership_data = self.whsmith.login(credentials=mock_credentials)
+        self.whsmith.login(credentials=mock_credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
