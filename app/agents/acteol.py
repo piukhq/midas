@@ -676,6 +676,7 @@ class Acteol(ApiMiner):
             "Email": credentials["email"],
         }
 
+        self._create_audit_request_response(api_url, payload)
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
         for attempt in Retrying(
@@ -982,6 +983,37 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
+    def _create_audit_request_response(self, api_url, payload: Dict):
+
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
+        resp = self.make_request(
+            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
+        )
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
+
 
 def agent_consent_response(resp):
     """
@@ -1011,4 +1043,4 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER,)
