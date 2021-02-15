@@ -73,7 +73,6 @@ class Ecrebo(ApiMiner):
                 signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
                                                    latency=resp.elapsed.total_seconds(),
                                                    response_code=resp.status_code)
-                signal("log-in-success").send(self, slug=self.scheme_slug)
                 return resp.json()["data"]
             except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
                 try:
@@ -82,7 +81,6 @@ class Ecrebo(ApiMiner):
                     latency_seconds = 0
                 signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=endpoint,
                                                    latency=latency_seconds, response_code=ex.response.status_code)
-                signal("log-in-fail").send(self, slug=self.scheme_slug)
                 if ex.response.status_code == 404:
                     raise LoginError(STATUS_LOGIN_FAILED)
                 else:
@@ -90,7 +88,6 @@ class Ecrebo(ApiMiner):
             except (requests.RequestException, KeyError):
                 # non-http errors will be retried a few times
                 if attempts == 0:
-                    signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
                 else:
                     time.sleep(3)
@@ -163,8 +160,13 @@ class Ecrebo(ApiMiner):
 
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{credentials['card_number']}"
-            membership_data = self._get_membership_data(endpoint)
-
+            try:
+                membership_data = self._get_membership_data(endpoint)
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+            except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
+                # Any of these exceptions mean the login has failed
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                raise
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]
             self.identifier = {"merchant_identifier": membership_data["uuid"]}
