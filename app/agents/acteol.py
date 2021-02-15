@@ -675,8 +675,12 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
 
-        self._create_audit_request_response(api_url, payload)
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
         for attempt in Retrying(
@@ -686,9 +690,29 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
+                self.audit_logger.add_request(
+                    payload=payload,
+                    scheme_slug=self.scheme_slug,
+                    handler_type=Configuration.VALIDATE_HANDLER,
+                    integration_service=integration_service,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
+                )
+
                 resp = self.make_request(
                     api_url, method="get", timeout=self.API_TIMEOUT, json=payload
                 )
+
+                self.audit_logger.add_response(
+                    response=resp,
+                    scheme_slug=self.scheme_slug,
+                    handler_type=Configuration.JOIN_HANDLER,
+                    integration_service=integration_service,
+                    status_code=resp.status_code,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
+                )
+                self.audit_logger.send_to_atlas()
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -982,37 +1006,6 @@ class Acteol(ApiMiner):
                 f"Acteol card number has been deleted: Card number: {card_number}"
             )
             raise AgentError(NO_SUCH_RECORD)
-
-    def _create_audit_request_response(self, api_url, payload: Dict):
-
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[
-            Configuration.SYNC_INTEGRATION
-        ][1].upper()
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
-        resp = self.make_request(
-            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
-        )
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
 
 
 def agent_consent_response(resp):
