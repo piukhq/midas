@@ -1626,9 +1626,10 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._check_deleted_user(resp_json)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1654,10 +1655,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_authentication(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         # GIVEN
         # Mock us through authentication
@@ -1684,10 +1686,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_forbidden(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         # GIVEN
         # Mock us through authentication
@@ -1714,10 +1717,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_validation_error(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         """
         Test one of the LoginError scenarios
@@ -1754,9 +1758,12 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_error(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_error(
+            self, mock_authenticate, mock_retrying, mock_send_to_atlas
+    ):
         """
         Test _check_response_for_error
         """
