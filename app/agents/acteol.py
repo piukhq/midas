@@ -506,7 +506,34 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
+        payload = {"ctcid": ctcid}
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
+
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
