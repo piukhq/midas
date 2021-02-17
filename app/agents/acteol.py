@@ -3,14 +3,16 @@ import json
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
 
 import arrow
+import requests
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
+    IP_BLOCKED,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -26,8 +28,10 @@ from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
+from blinker import signal
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, logger, HERMES_URL, SERVICE_API_KEY
+from requests.exceptions import Timeout
+from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger
 from tenacity import (
     Retrying,
     retry,
@@ -231,7 +235,7 @@ class Acteol(ApiMiner):
             f"schemes/accounts/{scheme_account_id}/credentials",
         )
         headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
-        self.make_request(
+        super().make_request(  # Don't want to call any signals for internal calls
             api_url, method="put", timeout=self.API_TIMEOUT, json=self.identifier, headers=headers
         )
 
@@ -981,6 +985,43 @@ class Acteol(ApiMiner):
                 f"Acteol card number has been deleted: Card number: {card_number}"
             )
             raise AgentError(NO_SUCH_RECORD)
+
+    def make_request(self, url, method="get", timeout=5, **kwargs):
+        """
+        Overrides the parent method make_request() in order to call signal events
+        """
+        path = urlsplit(url).path  # Get the path part of the url for signal call
+
+        # Combine the passed kwargs with our headers and timeout values.
+        args = {
+            "headers": self.headers,
+            "timeout": timeout,
+        }
+        args.update(kwargs)
+
+        try:
+            resp = requests.request(method, url=url, **args)
+        except Timeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=path,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
+
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+            raise AgentError(END_SITE_DOWN) from e
+
+        return resp
 
 
 def agent_consent_response(resp):
