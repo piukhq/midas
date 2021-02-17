@@ -107,27 +107,39 @@ class Acteol(ApiMiner):
             user_email=user_email, origin_root=self.ORIGIN_ROOT
         )
 
-        # Check if account already exists
-        account_already_exists = self._account_already_exists(origin_id=origin_id)
-        if account_already_exists:
-            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
+        # These calls may result in various exceptions that mean the registration has failed. If so,
+        # call the signal event for failure
+        try:
+            # Check if account already exists
+            account_already_exists = self._account_already_exists(origin_id=origin_id)
+            if account_already_exists:
+                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
 
-        # The account does not exist, so we can create one
-        ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
+            # The account does not exist, so we can create one
+            ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
 
-        # Add the new member number to Acteol
-        member_number = self._add_member_number(ctcid=ctcid)
+            # Add the new member number to Acteol
+            member_number = self._add_member_number(ctcid=ctcid)
 
-        # Get customer details
-        customer_details = self._get_customer_details(origin_id=origin_id)
-        if not self._customer_fields_are_present(customer_details=customer_details):
-            logger.debug(
-                (
-                    "Expected fields not found in customer details during join: Email, CurrentMemberNumber, CustomerID "
-                    f"for user email: {user_email}"
+            # Get customer details
+            customer_details = self._get_customer_details(origin_id=origin_id)
+            if not self._customer_fields_are_present(customer_details=customer_details):
+                logger.debug(
+                    (
+                        "Expected fields not found in customer details during join: Email, "
+                        "CurrentMemberNumber, CustomerID for user email: {user_email}"
+                    )
                 )
+                raise RegistrationError(JOIN_ERROR)
+        except (AgentError, LoginError, RegistrationError):
+            signal("register-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel
             )
-            raise RegistrationError(JOIN_ERROR)
+            raise
+        else:
+            signal("register-success").send(
+                self, slug=self.scheme_slug, channel=self.channel
+            )
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         consents = credentials.get("consents", [{}])
@@ -228,15 +240,21 @@ class Acteol(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-        scheme_account_id = self.user_info['scheme_account_id']
+        scheme_account_id = self.user_info["scheme_account_id"]
         # for updating user ID credential you get for registering (e.g. getting issued a card number)
         api_url = urljoin(
-            HERMES_URL,
-            f"schemes/accounts/{scheme_account_id}/credentials",
+            HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
         )
-        headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + SERVICE_API_KEY,
+        }
         super().make_request(  # Don't want to call any signals for internal calls
-            api_url, method="put", timeout=self.API_TIMEOUT, json=self.identifier, headers=headers
+            api_url,
+            method="put",
+            timeout=self.API_TIMEOUT,
+            json=self.identifier,
+            headers=headers,
         )
 
     def parse_transaction(self, transaction: Dict) -> Dict:
