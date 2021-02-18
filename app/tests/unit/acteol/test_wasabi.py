@@ -824,7 +824,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        mock_validate_member_number.return_value = (None, None)
+        mock_validate_member_number.return_value = "54321"
 
         credentials = {
             "email": "dfelce@testbink.com",
@@ -918,7 +918,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        mock_validate_member_number.return_value = (None, None)
+        mock_validate_member_number.return_value = "54321"
 
         credentials = {
             "email": "dfelce@testbink.com",
@@ -935,6 +935,117 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert mock_validate_member_number.called_once()
+
+    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.Acteol._validate_member_number")
+    def test_login_add_path_calls_success_signals(
+        self, mock_validate_member_number, mock_authenticate, mock_signal
+    ):
+        """
+        Check that the call to login() calls signal events if we're on an ADD journey
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        mock_validate_member_number.return_value = "54321"
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+        # These two fields just won't be present in real requests, but set to false here to be more explicit
+        # about the fact we're on an ADD journey
+        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["merchant_identifier"] = False
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-success"),
+            call().send(self.wasabi, slug=self.wasabi.scheme_slug),
+        ]
+
+        # WHEN
+        self.wasabi.login(credentials=credentials)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch(
+        "app.agents.acteol.Acteol._validate_member_number",
+        side_effect=LoginError(STATUS_LOGIN_FAILED),
+    )
+    def test_login_add_path_calls_fail_signals_on_login_error(
+        self, mock_validate_member_number, mock_authenticate, mock_signal
+    ):
+        """
+        Check that the call to login() calls signal events if we're on an ADD journey but there's a LoginError
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+        # These two fields just won't be present in real requests, but set to false here to be more explicit
+        # about the fact we're on an ADD journey
+        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["merchant_identifier"] = False
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.wasabi, slug=self.wasabi.scheme_slug),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            LoginError, self.wasabi.login, credentials=credentials,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch(
+        "app.agents.acteol.Acteol._validate_member_number",
+        side_effect=AgentError(END_SITE_DOWN),
+    )
+    def test_login_add_path_calls_fail_signals_on_agent_error(
+        self, mock_validate_member_number, mock_authenticate, mock_signal
+    ):
+        """
+        Check that the call to login() calls signal events if we're on an ADD journey but there's an AgentError
+        """
+        # GIVEN
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+
+        credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
+        # These two fields just won't be present in real requests, but set to false here to be more explicit
+        # about the fact we're on an ADD journey
+        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["merchant_identifier"] = False
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.wasabi, slug=self.wasabi.scheme_slug),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError, self.wasabi.login, credentials=credentials,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
 
     def test_filter_bink_vouchers(self):
         """
@@ -1635,7 +1746,9 @@ class TestWasabi(unittest.TestCase):
     @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
+    def test_validate_member_number_timeout(
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
+    ):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1768,7 +1881,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_error(
-            self, mock_authenticate, mock_retrying, mock_send_to_atlas
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         """
         Test _check_response_for_error
