@@ -5,7 +5,7 @@ from uuid import uuid4
 import arrow
 from app.agents.base import MockedMiner
 from app.agents.exceptions import PRE_REGISTERED_CARD, LoginError
-from app.vouchers import VoucherType
+from app.vouchers import VoucherType, VoucherState, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"
 
@@ -77,6 +77,7 @@ class MockPerformanceVoucher(MockedMiner):
             date = arrow.now().shift(days=-count)
             vouchers.append(
                 {
+                    "state": voucher_state_names[VoucherState.ISSUED],
                     "issue_date": date,
                     "redeem_date": date,
                     "expiry_date": date,
