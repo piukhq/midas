@@ -4,7 +4,7 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
-from unittest.mock import patch
+from unittest.mock import ANY, call, patch
 from urllib.parse import urljoin
 
 import arrow
@@ -12,10 +12,16 @@ import httpretty
 import pytest
 from app.agents import schemas
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.agents.exceptions import (
+    END_SITE_DOWN,
+    STATUS_LOGIN_FAILED,
+    AgentError,
+    LoginError,
+    RegistrationError,
+)
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
-from tenacity import Retrying, stop_after_attempt
 from settings import HERMES_URL
+from tenacity import Retrying, stop_after_attempt
 
 
 class TestWasabi(unittest.TestCase):
@@ -230,7 +236,8 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert account_already_exists
-        querystring = httpretty.last_request().querystring
+        # Need to get the first (API) request, not the later Prometheus requests
+        querystring = httpretty.latest_requests()[0].querystring
         assert querystring["OriginID"][0] == origin_id
 
     @httpretty.activate
@@ -1441,8 +1448,7 @@ class TestWasabi(unittest.TestCase):
         ctcid = "54321"
         email = "testperson@bink.com"
         api_url = urljoin(
-            self.wasabi.base_url,
-            f"api/Contact/GetContactIDsByEmail?Email={email}"
+            self.wasabi.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
         )
         response_data = {
             "Response": True,
@@ -1478,9 +1484,7 @@ class TestWasabi(unittest.TestCase):
             "voucher": "null",
             "OfferCategories": "null",
             "response": "false",
-            "errors": [
-                "CustomerID is mandatory"
-            ]
+            "errors": ["CustomerID is mandatory"],
         }
         httpretty.register_uri(
             httpretty.GET,
@@ -1628,9 +1632,10 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._check_deleted_user(resp_json)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1656,10 +1661,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_authentication(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         # GIVEN
         # Mock us through authentication
@@ -1686,10 +1692,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_forbidden(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         # GIVEN
         # Mock us through authentication
@@ -1716,10 +1723,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_validation_error(
-        self, mock_authenticate, mock_retrying
+        self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         """
         Test one of the LoginError scenarios
@@ -1756,10 +1764,11 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_error(
-            self, mock_authenticate, mock_retrying
+            self, mock_authenticate, mock_retrying, mock_send_to_atlas
     ):
         """
         Test _check_response_for_error
@@ -1829,3 +1838,274 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert ctcid == expected_ctcid
+
+    @httpretty.activate
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_make_request_success_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for a successful request
+        """
+        # GIVEN
+        ctcid = "54321"
+        expected_member_number = "987654321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        response_data = {
+            "Response": True,
+            "MemberNumber": expected_member_number,
+            "Error": "",
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.wasabi.make_request(api_url, method="get", timeout=self.wasabi.API_TIMEOUT)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (AgentError) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(
+            httpretty.GET, api_url, status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (LoginError) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED)
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.UNAUTHORIZED,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            LoginError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch("app.agents.acteol.Acteol._account_already_exists")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_register_calls_signal_fail_for_registration_error(
+        self, mock_signal, mock_authenticate, mock_account_already_exists
+    ):
+        """
+        Test JOIN journey calls signal register fail
+        """
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+        mock_account_already_exists.return_value = True
+        credentials = {"email": "testman@thing.com"}
+        # GIVEN
+        expected_calls = [  # The expected call stack for signal, in order
+            call("register-fail"),
+            call().send(
+                self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            RegistrationError, self.wasabi.register, credentials=credentials
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch(
+        "app.agents.acteol.Acteol._create_account",
+        side_effect=AgentError(END_SITE_DOWN),
+    )
+    @patch("app.agents.acteol.Acteol._account_already_exists")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_register_calls_signal_fail_for_agent_error(
+        self,
+        mock_signal,
+        mock_authenticate,
+        mock_account_already_exists,
+        mock_create_account,
+    ):
+        """
+        Test JOIN journey calls signal register fail, have to mock through some of the earlier methods called in
+        register()
+        """
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+        mock_account_already_exists.return_value = False
+        credentials = {"email": "testman@thing.com"}
+        # GIVEN
+        expected_calls = [  # The expected call stack for signal, in order
+            call("register-fail"),
+            call().send(
+                self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(AgentError, self.wasabi.register, credentials=credentials)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch(
+        "app.agents.acteol.Acteol._add_member_number",
+        side_effect=LoginError(STATUS_LOGIN_FAILED),
+    )
+    @patch("app.agents.acteol.Acteol._create_account")
+    @patch("app.agents.acteol.Acteol._account_already_exists")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_register_calls_signal_fail_for_login_error(
+        self,
+        mock_signal,
+        mock_authenticate,
+        mock_account_already_exists,
+        mock_create_account,
+        mock_add_member_number,
+    ):
+        """
+        Test JOIN journey calls signal register fail, have to mock through some of the earlier methods called in
+        register()
+        """
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+        mock_account_already_exists.return_value = False
+        mock_create_account.return_value = "54321"
+        credentials = {"email": "testman@thing.com"}
+        # GIVEN
+        expected_calls = [  # The expected call stack for signal, in order
+            call("register-fail"),
+            call().send(
+                self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(LoginError, self.wasabi.register, credentials=credentials)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch("app.agents.acteol.Acteol._set_customer_preferences")
+    @patch("app.agents.acteol.Acteol._get_email_optin_from_consent")
+    @patch("app.agents.acteol.Acteol._customer_fields_are_present")
+    @patch("app.agents.acteol.Acteol._get_customer_details")
+    @patch("app.agents.acteol.Acteol._add_member_number")
+    @patch("app.agents.acteol.Acteol._create_account")
+    @patch("app.agents.acteol.Acteol._account_already_exists")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_register_calls_signal_success(
+        self,
+        mock_signal,
+        mock_authenticate,
+        mock_account_already_exists,
+        mock_create_account,
+        mock_add_member_number,
+        mock_get_customer_details,
+        mock_add_customer_fields_are_present,
+        mock_get_email_optin_from_consent,
+        mock_set_customer_preferences,
+    ):
+        """
+        Test JOIN journey calls signal register success if no exceptions raised. Need to mock several calls
+        to result in 'successful' registration
+        """
+        ctcid = "54321"
+        member_number = "123456789"
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+        mock_account_already_exists.return_value = False
+        mock_create_account.return_value = ctcid
+        mock_add_member_number.return_value = member_number
+        mock_get_customer_details.return_value = {
+            "Email": "me@there.com",
+            "CurrentMemberNumber": member_number,
+            "CustomerID": ctcid,
+        }
+        mock_add_customer_fields_are_present.return_value = True
+        mock_get_email_optin_from_consent.return_value = {"EmailOptIn": True}
+        credentials = {"email": "testman@thing.com"}
+        # GIVEN
+        expected_calls = [  # The expected call stack for signal, in order
+            call("register-success"),
+            call().send(
+                self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug
+            ),
+        ]
+
+        # WHEN
+        self.wasabi.register(credentials=credentials)
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)

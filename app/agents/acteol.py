@@ -3,14 +3,16 @@ import json
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict, List, Tuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
 
 import arrow
+import requests
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
+    IP_BLOCKED,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -26,8 +28,10 @@ from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
+from blinker import signal
 from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, logger, HERMES_URL, SERVICE_API_KEY
+from requests.exceptions import Timeout
+from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger
 from tenacity import (
     Retrying,
     retry,
@@ -103,27 +107,39 @@ class Acteol(ApiMiner):
             user_email=user_email, origin_root=self.ORIGIN_ROOT
         )
 
-        # Check if account already exists
-        account_already_exists = self._account_already_exists(origin_id=origin_id)
-        if account_already_exists:
-            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
+        # These calls may result in various exceptions that mean the registration has failed. If so,
+        # call the signal event for failure
+        try:
+            # Check if account already exists
+            account_already_exists = self._account_already_exists(origin_id=origin_id)
+            if account_already_exists:
+                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
 
-        # The account does not exist, so we can create one
-        ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
+            # The account does not exist, so we can create one
+            ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
 
-        # Add the new member number to Acteol
-        member_number = self._add_member_number(ctcid=ctcid)
+            # Add the new member number to Acteol
+            member_number = self._add_member_number(ctcid=ctcid)
 
-        # Get customer details
-        customer_details = self._get_customer_details(origin_id=origin_id)
-        if not self._customer_fields_are_present(customer_details=customer_details):
-            logger.debug(
-                (
-                    "Expected fields not found in customer details during join: Email, CurrentMemberNumber, CustomerID "
-                    f"for user email: {user_email}"
+            # Get customer details
+            customer_details = self._get_customer_details(origin_id=origin_id)
+            if not self._customer_fields_are_present(customer_details=customer_details):
+                logger.debug(
+                    (
+                        "Expected fields not found in customer details during join: Email, "
+                        "CurrentMemberNumber, CustomerID for user email: {user_email}"
+                    )
                 )
+                raise RegistrationError(JOIN_ERROR)
+        except (AgentError, LoginError, RegistrationError):
+            signal("register-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel
             )
-            raise RegistrationError(JOIN_ERROR)
+            raise
+        else:
+            signal("register-success").send(
+                self, slug=self.scheme_slug, channel=self.channel
+            )
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         consents = credentials.get("consents", [{}])
@@ -224,15 +240,21 @@ class Acteol(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-        scheme_account_id = self.user_info['scheme_account_id']
+        scheme_account_id = self.user_info["scheme_account_id"]
         # for updating user ID credential you get for registering (e.g. getting issued a card number)
         api_url = urljoin(
-            HERMES_URL,
-            f"schemes/accounts/{scheme_account_id}/credentials",
+            HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
         )
-        headers = {'Content-type': 'application/json', 'Authorization': 'token ' + SERVICE_API_KEY}
-        self.make_request(
-            api_url, method="put", timeout=self.API_TIMEOUT, json=self.identifier, headers=headers
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + SERVICE_API_KEY,
+        }
+        super().make_request(  # Don't want to call any signals for internal calls
+            api_url,
+            method="put",
+            timeout=self.API_TIMEOUT,
+            json=self.identifier,
+            headers=headers,
         )
 
     def parse_transaction(self, transaction: Dict) -> Dict:
@@ -502,7 +524,34 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
+        payload = {"ctcid": ctcid}
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
+
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+
+        self.audit_logger.add_response(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        self.audit_logger.send_to_atlas()
 
         if resp.status_code != HTTPStatus.OK:
             logger.debug(f"Error while adding member number, reason: {resp.reason}")
@@ -675,6 +724,11 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[
+            Configuration.SYNC_INTEGRATION
+        ][1].upper()
 
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
@@ -685,9 +739,29 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
+                self.audit_logger.add_request(
+                    payload=payload,
+                    scheme_slug=self.scheme_slug,
+                    handler_type=Configuration.VALIDATE_HANDLER,
+                    integration_service=integration_service,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
+                )
+
                 resp = self.make_request(
                     api_url, method="get", timeout=self.API_TIMEOUT, json=payload
                 )
+
+                self.audit_logger.add_response(
+                    response=resp,
+                    scheme_slug=self.scheme_slug,
+                    handler_type=Configuration.JOIN_HANDLER,
+                    integration_service=integration_service,
+                    status_code=resp.status_code,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
+                )
+                self.audit_logger.send_to_atlas()
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -982,6 +1056,43 @@ class Acteol(ApiMiner):
             )
             raise AgentError(NO_SUCH_RECORD)
 
+    def make_request(self, url, method="get", timeout=5, **kwargs):
+        """
+        Overrides the parent method make_request() in order to call signal events
+        """
+        path = urlsplit(url).path  # Get the path part of the url for signal call
+
+        # Combine the passed kwargs with our headers and timeout values.
+        args = {
+            "headers": self.headers,
+            "timeout": timeout,
+        }
+        args.update(kwargs)
+
+        try:
+            resp = requests.request(method, url=url, **args)
+        except Timeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=path,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
+
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+            raise AgentError(END_SITE_DOWN) from e
+
+        return resp
+
 
 def agent_consent_response(resp):
     """
@@ -1011,4 +1122,4 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER,)
