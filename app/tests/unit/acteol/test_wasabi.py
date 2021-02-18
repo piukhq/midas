@@ -1019,7 +1019,7 @@ class TestWasabi(unittest.TestCase):
         self, mock_validate_member_number, mock_authenticate, mock_signal
     ):
         """
-        Check that the call to login() calls signal events if we're on an ADD journey but there's a LoginError
+        Check that the call to login() calls signal events if we're on an ADD journey but there's an AgentError
         """
         # GIVEN
         # Mock us through authentication
