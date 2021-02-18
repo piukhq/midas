@@ -362,16 +362,21 @@ class Acteol(ApiMiner):
             and not self.user_info.get("from_register")
             and not credentials.get("merchant_identifier")
         ):
-            ctcid = self._validate_member_number(credentials)
-            self.identifier_type = (
-                "card_number"  # Not sure this is needed but the base class has one
-            )
-            # Set up attributes needed for the creation of an active membership card
-            self.identifier = {
-                "card_number": credentials["card_number"],
-                "merchant_identifier": ctcid,
-            }
-            credentials.update({"merchant_identifier": ctcid})
+            try:
+                ctcid = self._validate_member_number(credentials)
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+                self.identifier_type = (
+                    "card_number"  # Not sure this is needed but the base class has one
+                )
+                # Set up attributes needed for the creation of an active membership card
+                self.identifier = {
+                    "card_number": credentials["card_number"],
+                    "merchant_identifier": ctcid,
+                }
+                credentials.update({"merchant_identifier": ctcid})
+            except (AgentError, LoginError):
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                raise
 
         # Ensure credentials are available via the instance
         self.credentials = credentials
@@ -698,7 +703,7 @@ class Acteol(ApiMiner):
         else:
             return {}
 
-    def _validate_member_number(self, credentials: Dict) -> Tuple[str, str]:
+    def _validate_member_number(self, credentials: Dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
