@@ -2,7 +2,7 @@ import enum
 import json
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
 
