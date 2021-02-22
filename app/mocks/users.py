@@ -489,7 +489,7 @@ USER_STORE = {
         'len_transactions': 5,
         'credentials': {
             'last_name': 'testusertwenty',
-            'postcode': 'mp6 obb',
+            'postcode': 'mp6 0bb',
         },
         'points': Decimal('123456')
     },
