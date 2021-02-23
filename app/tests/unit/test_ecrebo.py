@@ -336,3 +336,33 @@ class TestEcreboSignal(unittest.TestCase):
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    @patch('app.audit.AuditLogger.add_request')
+    @patch('app.audit.AuditLogger.add_response')
+    def test_register_whsmith_audit(self, mock_add_response, mock_add_request, mock_send_to_atlas,
+                                    mock_authenticate, mock_get_card_number_and_uid):
+        """
+        Check that correct params are passed to the signals for a successful registration
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_get_card_number_and_uid.return_value = (987654321, str(uuid4()))
+        mock_endpoint = f"/v1/list/append_item/{self.whsmith.RETAILER_ID}/assets/membership"
+        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        httpretty.register_uri(
+            httpretty.POST,
+            mock_api_url,
+            responses=[httpretty.Response(body=json.dumps({"publisher": [{"message": "testingonetwothree"}]}))],
+            status=HTTPStatus.OK,
+        )
+
+        # WHEN
+        self.whsmith.register(credentials=self.whsmith.user_info["credentials"])
+
+        # THEN
+        assert mock_send_to_atlas.called_with(self.whsmith.user_info['credentials'])
