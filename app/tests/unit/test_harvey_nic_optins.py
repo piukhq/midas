@@ -283,11 +283,15 @@ class TestUserConsents(unittest.TestCase):
         self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
 
+    @mock.patch('app.audit.AuditLogger.add_request')
+    @mock.patch('app.audit.AuditLogger.add_response')
+    @mock.patch('app.audit.AuditLogger.send_to_atlas')
     @mock.patch('app.tasks.resend_consents.ReTryTaskStore', side_effect=MockedReTryTaskStore)
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_200_ok)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_200_on_lastretry)
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_retry(self, mock_login, mock_post, mock_put, mock_retry):
+    def test_harvey_nick_mock_login_retry(self, mock_login, mock_post, mock_put, mock_retry, mock_send_to_atlas,
+                                          mock_add_response, mock_add_request):
         global saved_consents_data
         user_info = {
             'scheme_account_id': 123,
@@ -343,11 +347,20 @@ class TestUserConsents(unittest.TestCase):
             self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
             self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]['data'])
 
+            # Check the audit logger calls
+            self.assertTrue(mock_add_request.called)
+            self.assertTrue(mock_add_response.called)
+            self.assertTrue(mock_send_to_atlas.called)
+
+    @mock.patch('app.audit.AuditLogger.add_request')
+    @mock.patch('app.audit.AuditLogger.add_response')
+    @mock.patch('app.audit.AuditLogger.send_to_atlas')
     @mock.patch('app.tasks.resend_consents.ReTryTaskStore', side_effect=MockedReTryTaskStore)
     @mock.patch('app.tasks.resend_consents.requests.put', side_effect=mocked_requests_put_200_ok)
     @mock.patch('app.tasks.resend_consents.requests.post', side_effect=mocked_requests_post_400)
     @mock.patch('app.agents.harvey_nichols.HarveyNichols.make_request', side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_agent_fails(self, mock_login, mock_post, mock_put, mock_retry):
+    def test_harvey_nick_mock_login_agent_fails(self, mock_login, mock_post, mock_put, mock_retry, mock_send_to_atlas,
+                                                mock_add_response, mock_add_request):
         user_info = {
             'scheme_account_id': 123,
             'status': 'pending',
@@ -400,6 +413,11 @@ class TestUserConsents(unittest.TestCase):
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
             self.assertIn('/schemes/user_consent/2', mock_put.call_args_list[1][0][0])
             self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]['data'])
+
+            # Check the audit logger calls
+            self.assertTrue(mock_add_request.called)
+            self.assertTrue(mock_add_response.called)
+            self.assertTrue(mock_send_to_atlas.called)
 
 
 class TestLoginJourneyTypes(unittest.TestCase):
