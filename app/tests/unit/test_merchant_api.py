@@ -186,33 +186,40 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_register.called)
         self.assertFalse(mock_update_pending_join_account.called)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_success_response(self, mock_request, mock_back_off, mock_encode, mock_decode):
+    def test_sync_outbound_success_response(self, mock_request, mock_back_off, mock_encode, mock_decode, mock_signal):
+        # GIVEN
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
 
-        response = MagicMock()
-        response.json.return_value = json.loads(self.json_data)
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        response = MagicMock(response=mock_response_obj)
         response.content = self.json_data
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
         response.status_code = 200
         response.history = None
-
         mock_request.return_value = response
+
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
+        # WHEN
         resp = self.m._sync_outbound(self.json_data)
 
+        # THEN
         self.assertEqual(resp, self.json_data)
+        self.assertTrue(mock_signal.return_value.send.called_once)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_audit_logs(self, mock_request, mock_back_off, mock_encode, mock_decode):
+    def test_sync_outbound_audit_logs(self, mock_request, mock_back_off, mock_encode, mock_decode, mock_signal):
+        # GIVEN
         msg_uid = str(uuid4())
         record_uid = 'pym1834v0zrqxnrz5e3wjdglepko5972'
 
@@ -243,52 +250,71 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': mock_json_data}
         mock_decode.return_value = mock_json_data
 
-        response = MagicMock()
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        response = MagicMock(response=mock_response_obj)
         response.json.return_value = mock_json_data
         response.content = json.dumps(mock_json_data)
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
         response.status_code = 200
         response.history = None
-
         mock_request.return_value = response
+
+        mock_signal.return_value.send.return_value = True
+
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
+        # WHEN
         resp = self.m._sync_outbound(mock_json_data)
 
+        # THEN
         self.assertEqual(resp, mock_json_data)
+        self.assertTrue(mock_signal.return_value.send.called_once)
+        self.assertTrue(mock_signal.return_value.send.called_once)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, 'decode', autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_logs_for_redirects(self, mock_request, mock_logger, mock_back_off, mock_encode, mock_decode):
+    def test_sync_outbound_logs_for_redirects(self, mock_request, mock_logger, mock_back_off, mock_encode, mock_decode,
+                                              mock_signal):
+        # GIVEN
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
-        response = requests.Response()
+
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        response = MagicMock(response=mock_response_obj)
         response.status_code = 200
         response.history = [requests.Response()]
         response.headers['Authorization'] = 'Signature {}'.format(self.signature)
-
         mock_request.return_value = response
+
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         self.m.record_uid = '123'
+
+        # WHEN
         resp = self.m._sync_outbound(self.json_data)
 
+        # THEN
         self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off, mock_encode):
+    def test_sync_outbound_returns_error_payload_on_system_errors(self, mock_request, mock_back_off, mock_encode,
+                                                                  mock_signal):
+        # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        response = requests.Response()
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        response = MagicMock(response=mock_response_obj)
         response.status_code = 503
-
         mock_request.return_value = response
+
         mock_back_off.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {
@@ -298,21 +324,26 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
+        # WHEN
         resp = self.m._sync_outbound(self.json_data)
 
+        # THEN
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_back_off.return_value.activate_cooldown.called)
+        self.assertTrue(mock_signal.return_value.send.called_once)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode):
+    def test_sync_outbound_general_errors(self, mock_request, mock_backoff, mock_encode, mock_signal):
+        # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        response = requests.Response()
-        response.status_code = 500
-
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        response = MagicMock(response=mock_response_obj, status_code=500)
         mock_request.return_value = response
+
         mock_backoff.return_value.is_on_cooldown.return_value = False
 
         expected_resp = {
@@ -322,10 +353,13 @@ class TestMerchantApi(FlaskTestCase):
             }]
         }
 
+        # WHEN
         resp = self.m._sync_outbound(self.json_data)
 
+        # THEN
         self.assertEqual(json.dumps(expected_resp), resp)
         self.assertTrue(mock_backoff.return_value.activate_cooldown.called)
+        self.assertTrue(mock_signal.return_value.send.called_once)
 
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
@@ -371,18 +405,23 @@ class TestMerchantApi(FlaskTestCase):
         self.m._sync_outbound(self.json_data)
         self.assertEqual(1, mock_send_request.call_count)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch('requests.post', autospec=True)
-    def test_send_request_raises_exception_on_unauthorised_response(self, mock_request):
-        mock_resp = Response()
-        mock_resp.status_code = 401
+    def test_send_request_raises_exception_on_unauthorised_response(self, mock_request, mock_signal):
+        # GIVEN
+        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
+        mock_resp = MagicMock(status_code=401, response=mock_response_obj)
         mock_request.return_value = mock_resp
-
+        mock_signal.return_value.send.return_value = True
         self.m.request = {"json": "{}"}
 
+        # WHEN
         with self.assertRaises(UnauthorisedError):
             self.m._send_request()
 
+            # THEN
             self.assertTrue(mock_request.called)
+            self.assertTrue(mock_signal.return_value.send.called_once)
 
     @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
