@@ -17,6 +17,8 @@ class PrometheusManager:
         signal("register-success").connect(self.register_success)
         signal("register-fail").connect(self.register_fail)
         signal("record-http-request").connect(self.record_http_request)
+        signal("callback-success").connect(self.callback_success)
+        signal("callback-fail").connect(self.callback_fail)
 
     def log_in_success(self, sender: t.Union[object, str], slug: str) -> None:
         """
@@ -58,6 +60,24 @@ class PrometheusManager:
         """
         counter = self.metric_types["counters"]["register_fail"]
         labels = {"slug": slug, "channel": channel}
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
+
+    def callback_success(self, sender: t.Union[object, str], slug: str) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        """
+        counter = self.metric_types["counters"]["callback_success"]
+        labels = {"slug": slug}
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
+
+    def callback_fail(self, sender: t.Union[object, str], slug: str) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        """
+        counter = self.metric_types["counters"]["callback_fail"]
+        labels = {"slug": slug}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
     def record_http_request(
@@ -119,6 +139,16 @@ class PrometheusManager:
                     name="register_fail",
                     documentation="Incremental count of failed registrations",
                     labelnames=("slug", "channel"),
+                ),
+                "callback_success": Counter(
+                    name="callback_success",
+                    documentation="Incremental count of successful callbacks to our system",
+                    labelnames=("slug",),
+                ),
+                "callback_fail": Counter(
+                    name="callback_fail",
+                    documentation="Incremental count of failed callbacks to our system",
+                    labelnames=("slug",),
                 ),
             },
             "histograms": {

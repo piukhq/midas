@@ -13,6 +13,7 @@ from random import randint
 
 import requests
 import arrow
+from blinker import signal
 from requests import Session, HTTPError
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ReadTimeout, Timeout
@@ -572,10 +573,11 @@ class MerchantApi(BaseMiner):
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
-
+            signal("callback-success").send(self, slug=self.scheme_slug)
             consent_status = ConsentStatus.SUCCESS
 
         except (AgentException, LoginError, AgentError):
+            signal("callback-fail").send(self, slug=self.scheme_slug)
             consent_status = ConsentStatus.FAILED
             raise
         finally:
@@ -754,6 +756,9 @@ class MerchantApi(BaseMiner):
 
         response = requests.post(f"{self.config.merchant_url}", **self.request)
         status = response.status_code
+
+        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=response.request.path_url,
+                                           latency=response.elapsed.total_seconds(), response_code=status)
 
         logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
