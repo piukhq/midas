@@ -1,6 +1,6 @@
 import json
 from collections import OrderedDict
-from unittest.mock import MagicMock, ANY
+from unittest.mock import call, MagicMock, ANY
 from uuid import uuid4
 
 import requests
@@ -502,8 +502,10 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseMiner, 'consent_confirmation')
-    def test_process_join_handles_errors(self, mock_consent_confirmation):
+    def test_process_join_handles_errors(self, mock_consent_confirmation, mock_signal):
+        # GIVEN
         self.m.record_uid = self.m.scheme_id
         self.m.message_uid = "test_message_uid"
         self.m.result = {
@@ -513,12 +515,48 @@ class TestMerchantApi(FlaskTestCase):
                 "description": errors[GENERAL_ERROR]['message']
             }]
         }
+        expected_calls = [  # The expected call stack for signal, in order
+            call("callback-fail"),
+            call().send(self.m, slug=self.m.scheme_slug),
+        ]
 
+        # WHEN
         with self.assertRaises(RegistrationError) as e:
             self.m.process_join_response()
 
+        # THEN
         self.assertEqual(e.exception.message, "General Error such as incorrect user details")
         self.assertTrue(mock_consent_confirmation.called)
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch.object(MerchantApi, "_check_for_error_response")
+    @mock.patch("app.agents.base.update_pending_join_account")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_process_join_calls_signal_success(self, mock_consent_confirmation, mock_signal,
+                                               mock_update_pending_join_account, mock_check_for_error_response):
+        # GIVEN
+        mock_update_pending_join_account.return_value = None
+        mock_check_for_error_response.return_value = None
+        self.m.record_uid = self.m.scheme_id
+        self.m.message_uid = "test_message_uid"
+        self.m.result = {
+            "message_uid": self.m.message_uid,
+            "error_codes": [{
+                "code": GENERAL_ERROR,
+                "description": errors[GENERAL_ERROR]['message']
+            }]
+        }
+        expected_calls = [  # The expected call stack for signal, in order
+            call("callback-success"),
+            call().send(self.m, slug=self.m.scheme_slug),
+        ]
+
+        # WHEN
+        self.m.process_join_response()
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
