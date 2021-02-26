@@ -12,9 +12,6 @@ from requests import HTTPError
 
 class TestEcreboSignal(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
-        pass
-
     def setUp(self) -> None:
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
@@ -155,8 +152,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        membership_data = self.whsmith._get_membership_data(endpoint=mock_endpoint)
-        membership_data = membership_data.json()["data"]
+        resp = self.whsmith._get_membership_data(endpoint=mock_endpoint)
+        membership_data = resp.json()["data"]
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -340,7 +337,7 @@ class TestEcreboSignal(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @patch("app.agents.ecrebo.WhSmith._get_membership_data", side_effect=HTTPError)
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_data", side_effect=HTTPError)
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_login_does_not_call_signal_on_exception(self, mock_signal, mock_get_membership_data):
         """

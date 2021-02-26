@@ -260,8 +260,8 @@ class Ecrebo(ApiMiner):
         endpoint = (
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
-        membership_data = self._get_membership_data(endpoint)
-        rewards = membership_data.json()["data"]
+        resp = self._get_membership_data(endpoint)
+        rewards = resp.json()["data"]
 
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
@@ -298,7 +298,7 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, )
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
