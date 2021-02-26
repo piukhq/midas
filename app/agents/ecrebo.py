@@ -168,7 +168,7 @@ class Ecrebo(ApiMiner):
         self.audit_logger.add_request(
             payload=data,
             scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
+            handler_type=Configuration.JOIN_HANDLER,
             integration_service=integration_service,
             message_uid=message_uid,
             record_uid=record_uid,
@@ -189,7 +189,7 @@ class Ecrebo(ApiMiner):
             self.audit_logger.add_response(
                 response=resp,
                 scheme_slug=self.scheme_slug,
-                handler_type=Configuration.VALIDATE_HANDLER,
+                handler_type=Configuration.JOIN_HANDLER,
                 integration_service=integration_service,
                 status_code=resp.status_code,
                 message_uid=message_uid,
@@ -298,7 +298,7 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, )
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
