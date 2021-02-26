@@ -255,6 +255,7 @@ class HarveyNichols(ApiMiner):
         """
         Retrieves user token and customer number, saving token in user token redis db.
         """
+        message_uid = str(uuid4())
         url = self.BASE_URL + "/SignOn"
         data = {
             "CustomerSignOnRequest": {
@@ -264,10 +265,35 @@ class HarveyNichols(ApiMiner):
             }
         }
 
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+
+        # Add in email, expected by Atlas
+        data["CustomerSignOnRequest"].update({"email": credentials["email"]})
+        self.audit_logger.add_request(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+        )
+
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
         signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=self.login_response.request.path_url,
                                            latency=self.login_response.elapsed.total_seconds(),
                                            response_code=self.login_response.status_code)
+
+        self.audit_logger.add_response(
+            response=self.login_response,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+            status_code=self.login_response.status_code
+        )
+        self.audit_logger.send_to_atlas()
 
         json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":
