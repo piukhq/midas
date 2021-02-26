@@ -13,6 +13,9 @@ from requests import HTTPError
 class TestEcreboSignal(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        pass
+
+    def setUp(self) -> None:
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
@@ -29,51 +32,50 @@ class TestEcreboSignal(unittest.TestCase):
             }
             mock_configuration.return_value = mock_config_object
 
-    def setUp(self) -> None:
-        MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH = [
-            1,
-            {
-                "scheme_account_id": 1,
-                "status": 1,
-                "user_set": "1,2",
-                "journey_type": None,
-                "credentials": {
-                    "email": "mrtestman@thing.com",
-                    "title": "Mr",
-                    "first_name": "Test",
-                    "last_name": "Man",
-                    "phone": 1234567890,
-                    "address_1": "1 The Street",
-                    "town_city": "Nowhereton",
-                    "postcode": "NW11NW",
-                    "card_number": "1234567",
+            MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH = [
+                1,
+                {
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": None,
+                    "credentials": {
+                        "email": "mrtestman@thing.com",
+                        "title": "Mr",
+                        "first_name": "Test",
+                        "last_name": "Man",
+                        "phone": 1234567890,
+                        "address_1": "1 The Street",
+                        "town_city": "Nowhereton",
+                        "postcode": "NW11NW",
+                        "card_number": "1234567",
+                    },
+                    "channel": "com.bink.wallet",
                 },
-                "channel": "com.bink.wallet",
-            },
-        ]
-        MOCK_AGENT_CLASS_ARGUMENTS_FATFACE = [
-            1,
-            {
-                "scheme_account_id": 1,
-                "status": 1,
-                "user_set": "1,2",
-                "journey_type": 2,
-                "credentials": {
-                    "email": "mrfatface@ecrebo.com",
-                    "first_name": "Test",
-                    "last_name": "FatFace",
-                    "join_date": "2021/02/24",
-                    "card_number": "1234567",
-                    "consents": [{"slug": "email_marketing", "value": True}],
+            ]
+            MOCK_AGENT_CLASS_ARGUMENTS_FATFACE = [
+                1,
+                {
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": 1,
+                    "credentials": {
+                        "email": "mrfatface@ecrebo.com",
+                        "first_name": "Test",
+                        "last_name": "FatFace",
+                        "join_date": "2021/02/24",
+                        "card_number": "1234567",
+                        "consents": [{"slug": "email_marketing", "value": True}],
+                    },
+                    "channel": "com.bink.wallet",
                 },
-                "channel": "com.bink.wallet",
-            },
-        ]
+            ]
 
-        self.fatface = FatFace(*MOCK_AGENT_CLASS_ARGUMENTS_FATFACE, scheme_slug="fatface")
-        self.whsmith = WhSmith(*MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH, scheme_slug="whsmith-rewards")
-        self.fatface.base_url = "https://london-capi-test.ecrebo.com"
-        self.whsmith.base_url = "https://london-capi-test.ecrebo.com"
+            self.fatface = FatFace(*MOCK_AGENT_CLASS_ARGUMENTS_FATFACE, scheme_slug="fatface")
+            self.whsmith = WhSmith(*MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH, scheme_slug="whsmith-rewards")
+            self.fatface.base_url = "https://london-capi-test.ecrebo.com"
+            self.whsmith.base_url = "https://london-capi-test.ecrebo.com"
 
     @httpretty.activate
     @patch("app.agents.ecrebo.signal", autospec=True)
