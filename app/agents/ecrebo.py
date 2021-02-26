@@ -58,7 +58,7 @@ class Ecrebo(ApiMiner):
         card_number, uid, *_ = message.split(":")
         return card_number, uid
 
-    def _get_membership_data(self, endpoint: str) -> dict:
+    def _get_membership_data(self, endpoint: str) -> requests.Response:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
@@ -73,7 +73,7 @@ class Ecrebo(ApiMiner):
                 signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
                                                    latency=resp.elapsed.total_seconds(),
                                                    response_code=resp.status_code)
-                return resp.json()["data"]
+                return resp
             except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
                 try:
                     latency_seconds = ex.response.elapsed.total_seconds()
@@ -157,16 +157,45 @@ class Ecrebo(ApiMiner):
 
     def login(self, credentials):
         self.credentials = credentials
+        consents = credentials.get("consents", [])
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+
+        consents_data = {c["slug"]: c["value"] for c in consents}
+        data = {"data": self._get_registration_credentials(credentials, consents_data)}
+
+        self.audit_logger.add_request(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
 
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{credentials['card_number']}"
             try:
-                membership_data = self._get_membership_data(endpoint)
+                resp = self._get_membership_data(endpoint)
+                membership_data = resp.json()["data"]
                 signal("log-in-success").send(self, slug=self.scheme_slug)
+
             except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
                 # Any of these exceptions mean the login has failed
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
+
+            self.audit_logger.add_response(
+                response=resp,
+                scheme_slug=self.scheme_slug,
+                handler_type=Configuration.VALIDATE_HANDLER,
+                integration_service=integration_service,
+                status_code=resp.status_code,
+                message_uid=message_uid,
+                record_uid=record_uid,
+            )
+            self.audit_logger.send_to_atlas()
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]
             self.identifier = {"merchant_identifier": membership_data["uuid"]}
@@ -231,7 +260,9 @@ class Ecrebo(ApiMiner):
         endpoint = (
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
-        rewards = self._get_membership_data(endpoint)["membership_data"]
+        membership_data = self._get_membership_data(endpoint)
+        rewards = membership_data.json()["data"]
+
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
             rewards = rewards["rewards"]
@@ -267,7 +298,7 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {

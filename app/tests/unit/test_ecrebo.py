@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 from uuid import uuid4
 
 import httpretty
-from app.agents.ecrebo import WhSmith
+from app.agents.ecrebo import WhSmith, FatFace
 from app.agents.exceptions import LoginError, RegistrationError
 from requests import HTTPError
 
@@ -28,28 +28,52 @@ class TestEcreboSignal(unittest.TestCase):
                 }
             }
             mock_configuration.return_value = mock_config_object
-            MOCK_AGENT_CLASS_ARGUMENTS = [
-                1,
-                {
-                    "scheme_account_id": 1,
-                    "status": 1,
-                    "user_set": "1,2",
-                    "journey_type": None,
-                    "credentials": {
-                        "email": "mrtestman@thing.com",
-                        "title": "Mr",
-                        "first_name": "Test",
-                        "last_name": "Man",
-                        "phone": 1234567890,
-                        "address_1": "1 The Street",
-                        "town_city": "Nowhereton",
-                        "postcode": "NW11NW",
-                    },
-                    "channel": "com.bink.wallet",
+
+    def setUp(self) -> None:
+        MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH = [
+            1,
+            {
+                "scheme_account_id": 1,
+                "status": 1,
+                "user_set": "1,2",
+                "journey_type": None,
+                "credentials": {
+                    "email": "mrtestman@thing.com",
+                    "title": "Mr",
+                    "first_name": "Test",
+                    "last_name": "Man",
+                    "phone": 1234567890,
+                    "address_1": "1 The Street",
+                    "town_city": "Nowhereton",
+                    "postcode": "NW11NW",
+                    "card_number": "1234567",
                 },
-            ]
-            cls.whsmith = WhSmith(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="whsmith-rewards")
-            cls.whsmith.base_url = "https://london-capi-test.ecrebo.com"
+                "channel": "com.bink.wallet",
+            },
+        ]
+        MOCK_AGENT_CLASS_ARGUMENTS_FATFACE = [
+            1,
+            {
+                "scheme_account_id": 1,
+                "status": 1,
+                "user_set": "1,2",
+                "journey_type": 2,
+                "credentials": {
+                    "email": "mrfatface@ecrebo.com",
+                    "first_name": "Test",
+                    "last_name": "FatFace",
+                    "join_date": "2021/02/24",
+                    "card_number": "1234567",
+                    "consents": [{"slug": "email_marketing", "value": True}],
+                },
+                "channel": "com.bink.wallet",
+            },
+        ]
+
+        self.fatface = FatFace(*MOCK_AGENT_CLASS_ARGUMENTS_FATFACE, scheme_slug="fatface")
+        self.whsmith = WhSmith(*MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH, scheme_slug="whsmith-rewards")
+        self.fatface.base_url = "https://london-capi-test.ecrebo.com"
+        self.whsmith.base_url = "https://london-capi-test.ecrebo.com"
 
     @httpretty.activate
     @patch("app.agents.ecrebo.signal", autospec=True)
@@ -115,7 +139,7 @@ class TestEcreboSignal(unittest.TestCase):
         mock_token = "amocktokenstring"
         mock_authenticate.return_value = mock_token
         mock_endpoint = "/v1/someendpoint"
-        mock_membership_data = {"username": "Mr A User"}
+        mock_membership_data = '{"data": {"data": {"username": "Mr A User"}}}'
         httpretty.register_uri(
             httpretty.GET,
             f"{self.whsmith.base_url}{mock_endpoint}",
@@ -130,6 +154,7 @@ class TestEcreboSignal(unittest.TestCase):
 
         # WHEN
         membership_data = self.whsmith._get_membership_data(endpoint=mock_endpoint)
+        membership_data = membership_data.json()["data"]
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -295,7 +320,6 @@ class TestEcreboSignal(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._get_membership_data")
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_login_calls_signals(self, mock_signal, mock_get_membership_data):
@@ -303,66 +327,59 @@ class TestEcreboSignal(unittest.TestCase):
         Check that correct params are passed to signals when the login is successful
         """
         # GIVEN
-        mock_get_membership_data.return_value = {"username": "Mr A User", "uuid": uuid4()}
-        mock_credentials = {"card_number": 12345678}
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-success"),
             call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
-        self.whsmith.login(credentials=mock_credentials)
+        self.whsmith.login(self.whsmith.user_info['credentials'])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @httpretty.activate
-    @patch("app.agents.ecrebo.Ecrebo._get_membership_data", side_effect=HTTPError)
+    @patch("app.agents.ecrebo.WhSmith._get_membership_data", side_effect=HTTPError)
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_login_does_not_call_signal_on_exception(self, mock_signal, mock_get_membership_data):
         """
         Check that correct params are passed to signals when the login is successful
         """
         # GIVEN
-        # mock_get_membership_data.sid
-        mock_credentials = {"card_number": 12345678}
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
             call().send(self.whsmith, slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith.login, credentials=mock_credentials)
+        self.assertRaises(HTTPError, self.whsmith.login, self.whsmith.user_info['credentials'])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
-    @patch("app.agents.ecrebo.Ecrebo._authenticate")
-    @patch("app.audit.AuditLogger.send_to_atlas")
-    @patch('app.audit.AuditLogger.add_request')
-    @patch('app.audit.AuditLogger.add_response')
-    def test_register_whsmith_audit(self, mock_add_response, mock_add_request, mock_send_to_atlas,
-                                    mock_authenticate, mock_get_card_number_and_uid):
+    @ patch("app.audit.AuditLogger.send_to_atlas")
+    @ patch('app.audit.AuditLogger.add_request')
+    @ patch('app.audit.AuditLogger.add_response')
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_data")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_login_fatface(self, mock_signal, mock_get_membership_data,
+                           mock_add_response, mock_add_request, mock_send_to_atlas):
         """
-        Check that correct params are passed to the signals for a successful registration
+        Testing FatFace login journey to ensure audit request/responses are created
         """
         # GIVEN
-        mock_token = "amocktokenstring"
-        mock_authenticate.return_value = mock_token
-        mock_get_card_number_and_uid.return_value = (987654321, str(uuid4()))
-        mock_endpoint = f"/v1/list/append_item/{self.whsmith.RETAILER_ID}/assets/membership"
-        mock_api_url = f"{self.whsmith.base_url}{mock_endpoint}"
+        card_number = "1234567"
+        path = "/v1/list/query_item/"
+
         httpretty.register_uri(
-            httpretty.POST,
-            mock_api_url,
-            responses=[httpretty.Response(body=json.dumps({"publisher": [{"message": "testingonetwothree"}]}))],
+            httpretty.GET,
+            f"{self.fatface.base_url}{path}{self.fatface.RETAILER_ID}/assets/membership/token/{card_number}",
             status=HTTPStatus.OK,
         )
 
         # WHEN
-        self.whsmith.register(credentials=self.whsmith.user_info["credentials"])
+        self.fatface.login(credentials=self.fatface.user_info["credentials"])
 
         # THEN
-        assert mock_send_to_atlas.called_with(self.whsmith.user_info['credentials'])
+        assert mock_send_to_atlas.called_with(self.fatface.user_info['credentials'])
+        assert mock_send_to_atlas.called
