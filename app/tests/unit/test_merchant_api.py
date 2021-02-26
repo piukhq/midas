@@ -197,11 +197,12 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.content = self.json_data
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
-        response.status_code = 200
         response.history = None
         mock_request.return_value = response
 
@@ -251,12 +252,13 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': mock_json_data}
         mock_decode.return_value = mock_json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.json.return_value = mock_json_data
         response.content = json.dumps(mock_json_data)
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
-        response.status_code = 200
         response.history = None
         mock_request.return_value = response
 
@@ -284,9 +286,10 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
-        response.status_code = 200
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.history = [requests.Response()]
         response.headers['Authorization'] = 'Signature {}'.format(self.signature)
         mock_request.return_value = response
@@ -311,9 +314,10 @@ class TestMerchantApi(FlaskTestCase):
         # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
-        response.status_code = 503
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.SERVICE_UNAVAILABLE, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         mock_back_off.return_value.is_on_cooldown.return_value = False
@@ -341,8 +345,10 @@ class TestMerchantApi(FlaskTestCase):
         # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj, status_code=500)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         mock_backoff.return_value.is_on_cooldown.return_value = False
@@ -414,9 +420,10 @@ class TestMerchantApi(FlaskTestCase):
         total_seconds = 2
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = 2
-        mock_resp = MagicMock(status_code=HTTPStatus.UNAUTHORIZED, request=MagicMock(path_url=path_url),
+        response = MagicMock(status_code=HTTPStatus.UNAUTHORIZED, request=MagicMock(path_url=path_url),
                               elapsed=MagicMock(total_seconds=mock_total_seconds))
-        mock_request.return_value = mock_resp
+        mock_request.return_value = response
+
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
@@ -444,9 +451,10 @@ class TestMerchantApi(FlaskTestCase):
         latency = 2.3
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = latency
-        mock_resp = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url=path_url),
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url=path_url),
                               elapsed=MagicMock(total_seconds=mock_total_seconds))
-        mock_request.return_value = mock_resp
+        mock_request.return_value = response
+
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
