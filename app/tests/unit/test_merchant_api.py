@@ -421,7 +421,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = 2
         response = MagicMock(status_code=HTTPStatus.UNAUTHORIZED, request=MagicMock(path_url=path_url),
-                              elapsed=MagicMock(total_seconds=mock_total_seconds))
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         self.m.request = {"json": "{}"}
@@ -452,7 +452,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = latency
         response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url=path_url),
-                              elapsed=MagicMock(total_seconds=mock_total_seconds))
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         self.m.request = {"json": "{}"}
