@@ -773,6 +773,9 @@ class MerchantApi(BaseMiner):
         )
 
         if status in [200, 202]:
+            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
                 inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             else:
@@ -783,10 +786,19 @@ class MerchantApi(BaseMiner):
 
             self.log_if_redirect(response, response_json)
         elif status == 401:
+            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+
             raise UnauthorisedError
         elif status in [503, 504, 408]:
+            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
         else:
+            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+
             response_json = create_error_response(UNKNOWN,
                                                   errors[UNKNOWN]['name'] + ' with status code {}'
                                                   .format(status))

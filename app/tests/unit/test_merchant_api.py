@@ -7,6 +7,7 @@ import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
+from http import HTTPStatus
 from hvac import Client
 from requests import Response
 
@@ -196,11 +197,12 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.content = self.json_data
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
-        response.status_code = 200
         response.history = None
         mock_request.return_value = response
 
@@ -250,12 +252,13 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': mock_json_data}
         mock_decode.return_value = mock_json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.json.return_value = mock_json_data
         response.content = json.dumps(mock_json_data)
         response.headers = {'Authorization': 'Signature {}'.format(self.signature)}
-        response.status_code = 200
         response.history = None
         mock_request.return_value = response
 
@@ -283,9 +286,10 @@ class TestMerchantApi(FlaskTestCase):
         mock_encode.return_value = {'json': self.json_data}
         mock_decode.return_value = self.json_data
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
-        response.status_code = 200
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         response.history = [requests.Response()]
         response.headers['Authorization'] = 'Signature {}'.format(self.signature)
         mock_request.return_value = response
@@ -310,9 +314,10 @@ class TestMerchantApi(FlaskTestCase):
         # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj)
-        response.status_code = 503
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.SERVICE_UNAVAILABLE, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         mock_back_off.return_value.is_on_cooldown.return_value = False
@@ -340,8 +345,10 @@ class TestMerchantApi(FlaskTestCase):
         # GIVEN
         mock_encode.return_value = {'json': self.json_data}
 
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        response = MagicMock(response=mock_response_obj, status_code=500)
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2.3
+        response = MagicMock(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, request=MagicMock(path_url="/some/path"),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
         mock_request.return_value = response
 
         mock_backoff.return_value.is_on_cooldown.return_value = False
@@ -409,19 +416,60 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch('requests.post', autospec=True)
     def test_send_request_raises_exception_on_unauthorised_response(self, mock_request, mock_signal):
         # GIVEN
-        mock_response_obj = MagicMock(request=MagicMock(path_url="/some/path"), elapsed=MagicMock(total_seconds=2))
-        mock_resp = MagicMock(status_code=401, response=mock_response_obj)
-        mock_request.return_value = mock_resp
-        mock_signal.return_value.send.return_value = True
+        path_url = "/some/path"
+        total_seconds = 2
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = 2
+        response = MagicMock(status_code=HTTPStatus.UNAUTHORIZED, request=MagicMock(path_url=path_url),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
+        mock_request.return_value = response
+
         self.m.request = {"json": "{}"}
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.m, endpoint=path_url, latency=total_seconds, response_code=HTTPStatus.UNAUTHORIZED,
+                        slug=self.m.scheme_slug),
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
 
         # WHEN
-        with self.assertRaises(UnauthorisedError):
-            self.m._send_request()
+        self.assertRaises(UnauthorisedError, self.m._send_request)
 
-            # THEN
-            self.assertTrue(mock_request.called)
-            self.assertTrue(mock_signal.return_value.send.called_once)
+        # THEN
+        self.assertTrue(mock_request.called)
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch.object(MerchantApi, "log_if_redirect")
+    @mock.patch("app.agents.base.get_security_agent")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch('requests.post', autospec=True)
+    def test_send_request_calls_signals_on_success(self, mock_request, mock_signal, mock_get_security_agent,
+                                                   mock_log_if_redirect):
+        # GIVEN
+        path_url = "/some/path"
+        latency = 2.3
+        mock_total_seconds = MagicMock()
+        mock_total_seconds.return_value = latency
+        response = MagicMock(status_code=HTTPStatus.OK, request=MagicMock(path_url=path_url),
+                             elapsed=MagicMock(total_seconds=mock_total_seconds))
+        mock_request.return_value = response
+
+        self.m.request = {"json": "{}"}
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK,
+                        slug=self.m.scheme_slug),
+            call("log-in-success"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m._send_request()
+
+        # THEN
+        self.assertTrue(mock_request.called)
+        mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
