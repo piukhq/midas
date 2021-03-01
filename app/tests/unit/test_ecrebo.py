@@ -152,7 +152,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        resp = self.whsmith._get_membership_data(endpoint=mock_endpoint)
+        resp = self.whsmith._get_membership_response(endpoint=mock_endpoint)
         membership_data = resp.json()["data"]
 
         # THEN
@@ -184,7 +184,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith._get_membership_data, endpoint=mock_endpoint)
+        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -214,7 +214,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.whsmith._get_membership_data, endpoint=mock_endpoint)
+        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -319,9 +319,9 @@ class TestEcreboSignal(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @patch("app.agents.ecrebo.Ecrebo._get_membership_data")
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_response")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_login_calls_signals(self, mock_signal, mock_get_membership_data):
+    def test_login_calls_signals(self, mock_signal, mock_get_membership_response):
         """
         Check that correct params are passed to signals when the login is successful
         """
@@ -337,9 +337,9 @@ class TestEcreboSignal(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @patch("app.agents.ecrebo.Ecrebo._get_membership_data", side_effect=HTTPError)
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_response", side_effect=HTTPError)
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_login_does_not_call_signal_on_exception(self, mock_signal, mock_get_membership_data):
+    def test_login_does_not_call_signal_on_exception(self, mock_signal, mock_get_membership_response):
         """
         Check that correct params are passed to signals when the login is successful
         """
@@ -359,9 +359,9 @@ class TestEcreboSignal(unittest.TestCase):
     @ patch("app.audit.AuditLogger.send_to_atlas")
     @ patch('app.audit.AuditLogger.add_request')
     @ patch('app.audit.AuditLogger.add_response')
-    @patch("app.agents.ecrebo.Ecrebo._get_membership_data")
+    @patch("app.agents.ecrebo.Ecrebo._get_membership_response")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_login_fatface(self, mock_signal, mock_get_membership_data,
+    def test_login_fatface(self, mock_signal, mock_get_membership_response,
                            mock_add_response, mock_add_request, mock_send_to_atlas):
         """
         Testing FatFace login journey to ensure audit request/responses are created

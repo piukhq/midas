@@ -58,7 +58,7 @@ class Ecrebo(ApiMiner):
         card_number, uid, *_ = message.split(":")
         return card_number, uid
 
-    def _get_membership_data(self, endpoint: str) -> requests.Response:
+    def _get_membership_response(self, endpoint: str) -> requests.Response:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
@@ -177,7 +177,7 @@ class Ecrebo(ApiMiner):
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{credentials['card_number']}"
             try:
-                resp = self._get_membership_data(endpoint)
+                resp = self._get_membership_response(endpoint)
                 membership_data = resp.json()["data"]
                 signal("log-in-success").send(self, slug=self.scheme_slug)
 
@@ -260,8 +260,8 @@ class Ecrebo(ApiMiner):
         endpoint = (
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
-        resp = self._get_membership_data(endpoint)
-        rewards = resp.json()["data"]
+        resp = self._get_membership_response(endpoint)
+        rewards = resp.json()["data"]["membership_rewards"]
 
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
