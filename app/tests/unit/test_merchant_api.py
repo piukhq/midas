@@ -429,8 +429,6 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=total_seconds, response_code=HTTPStatus.UNAUTHORIZED,
                         slug=self.m.scheme_slug),
-            call("log-in-fail"),
-            call().send(self.m, slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -460,8 +458,6 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK,
                         slug=self.m.scheme_slug),
-            call("log-in-success"),
-            call().send(self.m, slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -811,6 +807,63 @@ class TestMerchantApi(FlaskTestCase):
             self.m.register({})
         self.assertEqual(e.exception.message, errors[GENERAL_ERROR]['message'])
         self.assertTrue(mock_consent_confirmation.called)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_retry_fail(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {}
+        self.m.scheme_slug = 'iceland-bonus-card'
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m.login({'card_number': '1234'})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_fail(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {
+            "message_uid": self.m.message_uid,
+            "error_codes": [{
+                "code": GENERAL_ERROR,
+                "description": errors[GENERAL_ERROR]["message"],
+            }]
+        }
+        self.m.scheme_slug = "iceland-bonus-card"
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(LoginError, self.m.login, credentials={"card_number": "1234"})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_success(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {"success": True}
+        self.m.scheme_slug = 'iceland-bonus-card'
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-success"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m.login({'card_number': '1234'})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
