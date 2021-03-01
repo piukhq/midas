@@ -10,6 +10,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import uuid4
 from random import randint
+from redis import RedisError
 
 import requests
 import arrow
@@ -732,7 +733,13 @@ class MerchantApi(BaseMiner):
 
         response_json = None
         for retry_count in range(1 + self.config.retry_limit):
-            if back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.handler_type):
+            try:
+                service_on_cooldown = back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.scheme_slug)
+            except RedisError as ex:
+                logger.warning(f"Backoff service error. Presuming not on cool down: {ex}")
+                service_on_cooldown = False
+
+            if service_on_cooldown:
                 error_desc = '{} {} is currently on cooldown'.format(errors[NOT_SENT]['name'], self.config.scheme_slug)
                 response_json = create_error_response(NOT_SENT, error_desc)
                 break
@@ -746,9 +753,14 @@ class MerchantApi(BaseMiner):
                     response_json = create_error_response(VALIDATION,
                                                           errors[VALIDATION]['name'])
                 if retry_count == self.config.retry_limit:
-                    back_off_service.activate_cooldown(self.config.scheme_slug,
-                                                       self.config.handler_type,
-                                                       BACK_OFF_COOLDOWN)
+                    try:
+                        back_off_service.activate_cooldown(
+                            self.config.scheme_slug,
+                            self.config.handler_type,
+                            BACK_OFF_COOLDOWN)
+                    except RedisError as ex:
+                        logger.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
+
         return response_json
 
     def _send_request(self):
