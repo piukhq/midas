@@ -217,15 +217,15 @@ class Ecrebo(ApiMiner):
         voucher = {
             "state": voucher_state_names[state],
             "type": voucher_type.value,
-            "issue_date": issue_date.timestamp,
-            "expiry_date": expiry_date.timestamp,
+            "issue_date": issue_date.int_timestamp,
+            "expiry_date": expiry_date.int_timestamp,
             "code": json["code"],
             "value": target_value,
             "target_value": target_value,
         }
 
         if redeem_date:
-            voucher["redeem_date"] = redeem_date.timestamp
+            voucher["redeem_date"] = redeem_date.int_timestamp
 
         return voucher
 

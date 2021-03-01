@@ -1079,16 +1079,6 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 520)
 
     @mock.patch('requests.get', autospec=True)
-    def test_config_service_raises_exception_on_fail_response(self, mock_request):
-        # Should error on any status code other than 200 i.e if helios is down or no config found etc.
-        mock_request.return_value.status_code = 404
-
-        with self.assertRaises(AgentError) as e:
-            Configuration('', 1)
-
-        self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
-
-    @mock.patch('requests.get', autospec=True)
     def test_config_service_handles_connection_error(self, mock_request):
         mock_request.side_effect = requests.ConnectionError
 
@@ -1102,18 +1092,36 @@ class TestMerchantApi(FlaskTestCase):
         mock_client.side_effect = requests.ConnectionError
 
         with self.assertRaises(AgentError) as e:
-            Configuration.get_security_credentials([{'storage_key': 'value'}])
+            Configuration("", 0).get_security_credentials([{'storage_key': 'value'}])
 
         self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
-        self.assertEqual(e.exception.message, 'Error connecting to vault.')
+        self.assertEqual(e.exception.message, 'Error connecting to configuration service.')
 
+    @mock.patch('requests.get', autospec=True)
     @mock.patch('hvac.Client.read')
-    def test_vault_credentials_not_found_raises_error(self, mock_client):
+    def test_vault_credentials_not_found_raises_error(self, mock_client, mock_request):
+        mock_request.return_value.status_code = 200
+        mock_request.return_value.json.return_value = {
+            'id': 2,
+            'merchant_id': 'fake-merchant',
+            'merchant_url': '',
+            'handler_type': 1,
+            'integration_service': 1,
+            'callback_url': None,
+            'retry_limit': 0,
+            'log_level': 2,
+            'country': 'GB',
+            'security_credentials': self.config.security_credentials
+        }
+
         # vault returns None type if there is nothing stored for the key provided
         mock_client.side_effect = TypeError
 
         with self.assertRaises(AgentError) as e:
-            Configuration.get_security_credentials([{'storage_key': 'value'}])
+            Configuration(
+                'fake-merchant',
+                Configuration.JOIN_HANDLER
+            ).get_security_credentials([{'storage_key': 'value'}])
 
         self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
         self.assertEqual(e.exception.message, 'Could not locate security credentials in vault.')
