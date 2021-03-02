@@ -10,6 +10,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import uuid4
 from random import randint
+from redis import RedisError
 
 import requests
 import arrow
@@ -489,11 +490,18 @@ class MerchantApi(BaseMiner):
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
-        self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+        # Will be an empty dict if retries exhausted, or a dict that can be checked for an error
+        self.result: t.Dict = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
         error = self._check_for_error_response(self.result)
         if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
             self._handle_errors(error[0]['code'], exception_type=LoginError)
+        else:  # Login will have succeeded, unless an empty dict was returned by _outbound_handler()
+            if self.result:
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+            else:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -586,7 +594,7 @@ class MerchantApi(BaseMiner):
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey='join')
 
-    def _outbound_handler(self, data, scheme_slug, handler_type):
+    def _outbound_handler(self, data, scheme_slug, handler_type) -> t.Dict:
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and
         handles response. Configuration service is called to retrieve merchant config.
@@ -633,7 +641,7 @@ class MerchantApi(BaseMiner):
 
         logger.info(json.dumps(logging_info))
 
-        response_json = self._sync_outbound(payload)
+        response_json: [None, str] = self._sync_outbound(payload)
 
         response_data = {}
         if response_json:
@@ -725,7 +733,13 @@ class MerchantApi(BaseMiner):
 
         response_json = None
         for retry_count in range(1 + self.config.retry_limit):
-            if back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.handler_type):
+            try:
+                service_on_cooldown = back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.scheme_slug)
+            except RedisError as ex:
+                logger.warning(f"Backoff service error. Presuming not on cool down: {ex}")
+                service_on_cooldown = False
+
+            if service_on_cooldown:
                 error_desc = '{} {} is currently on cooldown'.format(errors[NOT_SENT]['name'], self.config.scheme_slug)
                 response_json = create_error_response(NOT_SENT, error_desc)
                 break
@@ -739,9 +753,14 @@ class MerchantApi(BaseMiner):
                     response_json = create_error_response(VALIDATION,
                                                           errors[VALIDATION]['name'])
                 if retry_count == self.config.retry_limit:
-                    back_off_service.activate_cooldown(self.config.scheme_slug,
-                                                       self.config.handler_type,
-                                                       BACK_OFF_COOLDOWN)
+                    try:
+                        back_off_service.activate_cooldown(
+                            self.config.scheme_slug,
+                            self.config.handler_type,
+                            BACK_OFF_COOLDOWN)
+                    except RedisError as ex:
+                        logger.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
+
         return response_json
 
     def _send_request(self):
@@ -773,9 +792,6 @@ class MerchantApi(BaseMiner):
         )
 
         if status in [200, 202]:
-            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
-                signal("log-in-success").send(self, slug=self.scheme_slug)
-
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
                 inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             else:
@@ -786,19 +802,10 @@ class MerchantApi(BaseMiner):
 
             self.log_if_redirect(response, response_json)
         elif status == 401:
-            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
-                signal("log-in-fail").send(self, slug=self.scheme_slug)
-
             raise UnauthorisedError
         elif status in [503, 504, 408]:
-            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
-                signal("log-in-fail").send(self, slug=self.scheme_slug)
-
             response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
         else:
-            if self.user_info.get("journey_type") == JourneyTypes.LINK.value:
-                signal("log-in-fail").send(self, slug=self.scheme_slug)
-
             response_json = create_error_response(UNKNOWN,
                                                   errors[UNKNOWN]['name'] + ' with status code {}'
                                                   .format(status))

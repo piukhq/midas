@@ -9,6 +9,7 @@ from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
 from http import HTTPStatus
 from hvac import Client
+from redis import RedisError
 from requests import Response
 
 from app import create_app
@@ -404,6 +405,23 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(RSA, 'encode', autospec=True)
     @mock.patch('app.agents.base.BackOffService', autospec=True)
     @mock.patch('app.agents.base.MerchantApi._send_request', autospec=True)
+    def test_sync_outbound_redis_error_back_off_service(self, mock_send_request, mock_back_off, mock_encode):
+        mock_encode.return_value = {'json': self.json_data}
+        mock_back_off.return_value.is_on_cooldown.side_effect = RedisError
+        mock_back_off.return_value.activate_cooldown.side_effect = RedisError
+        mock_send_request.side_effect = UnauthorisedError
+
+        resp = self.m._sync_outbound(self.json_data)
+
+        expected_resp = {"error_codes": [{"code": VALIDATION, "description": errors[VALIDATION]["name"]}]}
+
+        self.assertEqual(mock_send_request.call_count, 6)
+        self.assertEqual(mock_encode.call_count, 6)
+        self.assertEqual(resp, json.dumps(expected_resp))
+
+    @mock.patch.object(RSA, 'encode', autospec=True)
+    @mock.patch('app.agents.base.BackOffService', autospec=True)
+    @mock.patch('app.agents.base.MerchantApi._send_request', autospec=True)
     def test_sync_outbound_doesnt_retry_on_202(self, mock_send_request, mock_back_off, mock_encode):
         mock_encode.return_value = {'json': self.json_data}
         mock_send_request.return_value = requests.Response(), 202
@@ -429,8 +447,6 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=total_seconds, response_code=HTTPStatus.UNAUTHORIZED,
                         slug=self.m.scheme_slug),
-            call("log-in-fail"),
-            call().send(self.m, slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -460,8 +476,6 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK,
                         slug=self.m.scheme_slug),
-            call("log-in-success"),
-            call().send(self.m, slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -811,6 +825,63 @@ class TestMerchantApi(FlaskTestCase):
             self.m.register({})
         self.assertEqual(e.exception.message, errors[GENERAL_ERROR]['message'])
         self.assertTrue(mock_consent_confirmation.called)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_retry_fail(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {}
+        self.m.scheme_slug = 'iceland-bonus-card'
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m.login({'card_number': '1234'})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_fail(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {
+            "message_uid": self.m.message_uid,
+            "error_codes": [{
+                "code": GENERAL_ERROR,
+                "description": errors[GENERAL_ERROR]["message"],
+            }]
+        }
+        self.m.scheme_slug = "iceland-bonus-card"
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.assertRaises(LoginError, self.m.login, credentials={"card_number": "1234"})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_signal_called_on_login_success(self, mock_outbound_handler, mock_signal):
+        # GIVEN
+        mock_outbound_handler.return_value = {"success": True}
+        self.m.scheme_slug = 'iceland-bonus-card'
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-success"),
+            call().send(self.m, slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m.login({'card_number': '1234'})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch('app.configuration.Configuration.get_security_credentials')
     @mock.patch('requests.get', autospec=True)
