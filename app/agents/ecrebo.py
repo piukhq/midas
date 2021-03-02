@@ -261,7 +261,7 @@ class Ecrebo(ApiMiner):
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
         resp = self._get_membership_response(endpoint)
-        rewards = resp.json()["data"]["membership_rewards"]
+        rewards = resp.json()["data"]["membership_data"]
 
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
