@@ -166,7 +166,6 @@ class Ecrebo(ApiMiner):
             try:
                 resp = self._get_membership_response(endpoint)
                 membership_data = resp.json()["data"]
-                payload = resp.request.json()
                 signal("log-in-success").send(self, slug=self.scheme_slug)
 
             except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
@@ -175,7 +174,7 @@ class Ecrebo(ApiMiner):
                 raise
 
             self.audit_logger.add_request(
-                payload=payload,
+                payload={},
                 scheme_slug=self.scheme_slug,
                 handler_type=Configuration.JOIN_HANDLER,
                 integration_service=integration_service,
