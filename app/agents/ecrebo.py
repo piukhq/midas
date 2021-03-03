@@ -157,22 +157,9 @@ class Ecrebo(ApiMiner):
 
     def login(self, credentials):
         self.credentials = credentials
-        consents = credentials.get("consents", [])
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
-        consents_data = {c["slug"]: c["value"] for c in consents}
-        data = {"data": self._get_registration_credentials(credentials, consents_data)}
-
-        self.audit_logger.add_request(
-            payload=data,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
 
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{credentials['card_number']}"
@@ -185,6 +172,15 @@ class Ecrebo(ApiMiner):
                 # Any of these exceptions mean the login has failed
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
+
+            self.audit_logger.add_request(
+                payload={},
+                scheme_slug=self.scheme_slug,
+                handler_type=Configuration.JOIN_HANDLER,
+                integration_service=integration_service,
+                message_uid=message_uid,
+                record_uid=record_uid,
+            )
 
             self.audit_logger.add_response(
                 response=resp,
