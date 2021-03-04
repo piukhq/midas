@@ -160,9 +160,12 @@ class Ecrebo(ApiMiner):
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        card_number = credentials['card_number']
+        journey = self.user_info['journey_type']
+        journey_type = Configuration.JOIN_HANDLER if journey == 0 else Configuration.VALIDATE_HANDLER
 
         if "merchant_identifier" not in credentials:
-            endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{credentials['card_number']}"
+            endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
             try:
                 resp = self._get_membership_response(endpoint)
                 membership_data = resp.json()["data"]
@@ -174,9 +177,9 @@ class Ecrebo(ApiMiner):
                 raise
 
             self.audit_logger.add_request(
-                payload={},
+                payload={'card_number': card_number},
                 scheme_slug=self.scheme_slug,
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=journey_type,
                 integration_service=integration_service,
                 message_uid=message_uid,
                 record_uid=record_uid,
@@ -185,7 +188,7 @@ class Ecrebo(ApiMiner):
             self.audit_logger.add_response(
                 response=resp,
                 scheme_slug=self.scheme_slug,
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=journey_type,
                 integration_service=integration_service,
                 status_code=resp.status_code,
                 message_uid=message_uid,
@@ -294,7 +297,7 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {

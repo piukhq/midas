@@ -56,7 +56,7 @@ class TestEcreboSignal(unittest.TestCase):
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
-                    "journey_type": 1,
+                    "journey_type": 2,
                     "credentials": {
                         "email": "mrfatface@ecrebo.com",
                         "first_name": "Test",
