@@ -297,7 +297,7 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
 
     def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
