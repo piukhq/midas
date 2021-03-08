@@ -35,7 +35,7 @@ class TestEcreboSignal(unittest.TestCase):
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
-                    "journey_type": None,
+                    "journey_type": 1,
                     "credentials": {
                         "email": "mrtestman@thing.com",
                         "title": "Mr",
@@ -152,8 +152,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        resp = self.whsmith._get_membership_response(endpoint=mock_endpoint)
-        membership_data = resp.json()["data"]
+        membership_data = self.whsmith._get_membership_response(endpoint=mock_endpoint,
+                                                                journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -184,7 +184,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
+        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -214,7 +215,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
+        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
