@@ -492,7 +492,7 @@ def registration(scheme_slug, user_info, tid):
             update_pending_join_account(user_info, str(e.args[0]), tid, scheme_slug=scheme_slug,
                                         consent_ids=consent_ids)
         else:
-            publish.zero_balance(user_info['scheme_account_id'], user_info['user_id'], tid)
+            publish.zero_balance(user_info['scheme_account_id'], user_info['user_set'], tid)
         return True
 
     status = SchemeAccountStatus.ACTIVE
