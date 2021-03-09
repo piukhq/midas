@@ -58,7 +58,9 @@ class Ecrebo(ApiMiner):
         card_number, uid, *_ = message.split(":")
         return card_number, uid
 
-    def _get_membership_response(self, endpoint: str) -> requests.Response:
+    def _get_membership_response(self, endpoint: str, journey_type: int, from_login: bool = False,
+                                 integration_service: str = "", message_uid: str = "",
+                                 record_uid: str = "") -> requests.Response:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
@@ -73,7 +75,8 @@ class Ecrebo(ApiMiner):
                 signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
                                                    latency=resp.elapsed.total_seconds(),
                                                    response_code=resp.status_code)
-                return resp
+                membership_data = resp.json()["data"]
+                return membership_data
             except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
                 try:
                     latency_seconds = ex.response.elapsed.total_seconds()
@@ -91,8 +94,17 @@ class Ecrebo(ApiMiner):
                     raise
                 else:
                     time.sleep(3)
-            else:
-                break
+            finally:
+                if from_login:
+                    self.audit_logger.add_response(
+                        response=resp,
+                        scheme_slug=self.scheme_slug,
+                        handler_type=journey_type,
+                        integration_service=integration_service,
+                        status_code=resp.status_code,
+                        message_uid=message_uid,
+                        record_uid=record_uid,
+                    )
 
     def register(self, credentials):
         consents = credentials.get("consents", [])
@@ -166,15 +178,6 @@ class Ecrebo(ApiMiner):
 
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
-            try:
-                resp = self._get_membership_response(endpoint)
-                membership_data = resp.json()["data"]
-                signal("log-in-success").send(self, slug=self.scheme_slug)
-
-            except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
-                # Any of these exceptions mean the login has failed
-                signal("log-in-fail").send(self, slug=self.scheme_slug)
-                raise
 
             self.audit_logger.add_request(
                 payload={'card_number': card_number},
@@ -185,16 +188,21 @@ class Ecrebo(ApiMiner):
                 record_uid=record_uid,
             )
 
-            self.audit_logger.add_response(
-                response=resp,
-                scheme_slug=self.scheme_slug,
-                handler_type=journey_type,
-                integration_service=integration_service,
-                status_code=resp.status_code,
-                message_uid=message_uid,
-                record_uid=record_uid,
-            )
-            self.audit_logger.send_to_atlas()
+            try:
+                membership_data = self._get_membership_response(endpoint=endpoint, journey_type=journey_type,
+                                                                from_login=True,
+                                                                integration_service=integration_service,
+                                                                message_uid=message_uid,
+                                                                record_uid=record_uid)
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+
+            except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
+                # Any of these exceptions mean the login has failed
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                raise
+            finally:
+                self.audit_logger.send_to_atlas()
+
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]
             self.identifier = {"merchant_identifier": membership_data["uuid"]}
@@ -259,8 +267,9 @@ class Ecrebo(ApiMiner):
         endpoint = (
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
-        resp = self._get_membership_response(endpoint)
-        rewards = resp.json()["data"]["membership_data"]
+        journey_type = self.user_info["journey_type"]
+        membership_data = self._get_membership_response(endpoint=endpoint, journey_type=journey_type)
+        rewards = membership_data["membership_data"]
 
         # sometimes this data is in a sub-object called "rewards", so use that if it's present.
         if "rewards" in rewards:
