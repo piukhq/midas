@@ -174,7 +174,7 @@ class AuditLogger:
         handler_type_str = Configuration.handler_type_as_str(handler_type)
 
         def _build_audit_log(log_data: Union[dict, str]) -> Union[RequestAuditLog, ResponseAuditLog]:
-            timestamp = arrow.utcnow().timestamp
+            timestamp = arrow.utcnow().int_timestamp
 
             if log_type == AuditLogType.REQUEST:
                 audit_log = self._build_request_audit_log(

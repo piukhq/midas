@@ -1330,7 +1330,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         now = arrow.now()
         one_month_from_now = arrow.now().shift(months=1)
-        one_month_from_now_timestamp = one_month_from_now.timestamp
+        one_month_from_now_timestamp = one_month_from_now.int_timestamp
 
         voucher = {
             "VoucherID": 1,
@@ -1381,7 +1381,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": now.timestamp,  # voucher URD as timestamp
+            "issue_date": now.int_timestamp,  # voucher URD as timestamp
             "expiry_date": one_month_from_now_timestamp,
         }
 
@@ -1399,7 +1399,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         now = arrow.now()
         one_month_ago = arrow.now().shift(months=-1)
-        one_month_ago_timestamp = one_month_ago.timestamp
+        one_month_ago_timestamp = one_month_ago.int_timestamp
 
         voucher = {
             "VoucherID": 1,
@@ -1450,7 +1450,7 @@ class TestWasabi(unittest.TestCase):
             "code": voucher["VoucherCode"],
             "target_value": None,
             "value": None,
-            "issue_date": now.timestamp,  # voucher URD as timestamp
+            "issue_date": now.int_timestamp,  # voucher URD as timestamp
             "expiry_date": one_month_ago_timestamp,
         }
 

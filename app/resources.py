@@ -7,7 +7,6 @@ from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
 from flask_restful_swagger import swagger
-from influxdb.exceptions import InfluxDBClientError
 from werkzeug.exceptions import NotFound
 
 import settings
@@ -21,7 +20,6 @@ from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account, delete_scheme_account
 from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent, JourneyTypes
-from cron_test_results import get_formatted_message, handle_helios_request, resolve_issue, test_single_agent
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
 
 scheme_account_id_doc = {
@@ -340,19 +338,6 @@ class TestResults(Resource):
         return response
 
 
-class ResolveAgentIssue(Resource):
-    """
-    Called by clicking a 'resolve' link in slack.
-    """
-
-    def get(self, classname):
-        try:
-            resolve_issue(classname)
-        except InfluxDBClientError:
-            pass
-        return 'The specified issue has been resolved.'
-
-
 class AgentQuestions(Resource):
 
     def post(self):
@@ -365,20 +350,6 @@ class AgentQuestions(Resource):
 
         agent = get_agent_class(scheme_slug)(1, {'scheme_account_id': 1, 'status': 1}, scheme_slug)
         return agent.update_questions(questions)
-
-
-class AgentsErrorResults(Resource):
-    @staticmethod
-    def get():
-        thread_pool_executor.submit(handle_helios_request)
-        return dict(success=True, errors=None)
-
-
-class SingleAgentErrorResult(Resource):
-    @staticmethod
-    def get(agent):
-        path = test_single_agent(agent)
-        return get_formatted_message(path)
 
 
 def decrypt_credentials(credentials):
