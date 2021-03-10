@@ -1,18 +1,13 @@
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
-from urllib.parse import urljoin
 
 import arrow
 import httpretty
 from app.agents.avios import Avios
 from app.agents.base import ApiMiner, RoboBrowserMiner
-from app.agents.exceptions import AgentError, LoginError, RetryLimitError
-from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
-    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION, UnauthorisedError
-from app.exceptions import AgentException
+from app.agents.exceptions import (
+    END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError, RetryLimitError)
 
 
 class TestBase(TestCase):
