@@ -7,7 +7,7 @@ from uuid import uuid4
 import httpretty
 from app.agents.ecrebo import WhSmith, FatFace
 from app.agents.exceptions import LoginError, RegistrationError
-from requests import HTTPError
+from requests import HTTPError, RequestException
 
 
 class TestEcreboSignal(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestEcreboSignal(unittest.TestCase):
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
-                    "journey_type": None,
+                    "journey_type": 1,
                     "credentials": {
                         "email": "mrtestman@thing.com",
                         "title": "Mr",
@@ -152,8 +152,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        resp = self.whsmith._get_membership_response(endpoint=mock_endpoint)
-        membership_data = resp.json()["data"]
+        membership_data = self.whsmith._get_membership_response(endpoint=mock_endpoint,
+                                                                journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -184,7 +184,8 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
+        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -214,10 +215,92 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint)
+        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.audit.AuditLogger.add_response")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_audit_add_response(self, mock_signal, mock_authenticate, mock_add_response):
+        """
+        Check that correct params are passed to signals when the call is OK
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/someendpoint"
+        mock_membership_data = '{"data": {"data": {"username": "Mr A User"}}}'
+        httpretty.register_uri(
+            httpretty.GET,
+            f"{self.whsmith.base_url}{mock_endpoint}",
+            responses=[httpretty.Response(body=json.dumps({"data": mock_membership_data}))],
+            status=HTTPStatus.OK,
+        )
+
+        # WHEN
+        membership_data = self.whsmith._get_membership_response(endpoint=mock_endpoint,
+                                                                journey_type=self.whsmith.user_info["journey_type"],
+                                                                from_login=True)
+
+        # THEN
+        assert mock_add_response.called
+        assert membership_data == mock_membership_data
+
+    @httpretty.activate
+    @patch("app.audit.AuditLogger.add_response")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_audit_add_response_on_http_error(self, mock_signal, mock_authenticate,
+                                                                        mock_add_response):
+        """
+        Check that correct params are passed to signals when the call is OK
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/someendpoint"
+        httpretty.register_uri(
+            httpretty.GET,
+            f"{self.whsmith.base_url}{mock_endpoint}",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+        # WHEN
+        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"], from_login=True)
+
+        # THEN
+        assert mock_add_response.called
+
+    @httpretty.activate
+    @patch("app.audit.AuditLogger.add_response")
+    @patch("app.agents.ecrebo.Ecrebo._authenticate")
+    @patch("app.agents.ecrebo.signal", autospec=True)
+    def test_get_membership_data_calls_audit_add_response_on_requests_exceptions(self, mock_signal, mock_authenticate,
+                                                                                 mock_add_response):
+        """
+        Check that correct params are passed to signals when the call is OK
+        """
+        # GIVEN
+        mock_token = "amocktokenstring"
+        mock_authenticate.return_value = mock_token
+        mock_endpoint = "/v1/someendpoint"
+        httpretty.register_uri(
+            httpretty.GET,
+            f"{self.whsmith.base_url}{mock_endpoint}",
+            status=HTTPStatus.GATEWAY_TIMEOUT,
+        )
+
+        # WHEN
+        self.assertRaises(RequestException, self.whsmith._get_membership_response, endpoint=mock_endpoint,
+                          journey_type=self.whsmith.user_info["journey_type"], from_login=True)
+
+        # THEN
+        assert mock_add_response.called
 
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")

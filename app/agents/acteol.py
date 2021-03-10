@@ -65,7 +65,7 @@ class Acteol(ApiMiner):
         :return: valid token dict
         """
         have_valid_token = False  # Assume no good token to begin with
-        current_timestamp = arrow.utcnow().timestamp
+        current_timestamp = arrow.utcnow().int_timestamp
         token = {}
         try:
             token: Dict = json.loads(self.token_store.get(self.scheme_id))
@@ -268,7 +268,7 @@ class Acteol(ApiMiner):
             money_value=transaction["TotalCost"]
         )
 
-        order_date = arrow.get(transaction["OrderDate"]).timestamp
+        order_date = arrow.get(transaction["OrderDate"]).int_timestamp
         points = self._decimalise_to_two_places(transaction["PointEarned"])
         description = self._make_transaction_description(
             location_name=transaction["LocationName"],
@@ -893,9 +893,9 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).timestamp,
-                "redeem_date": arrow.get(voucher["RedemptionDate"]).timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
+                "redeem_date": arrow.get(voucher["RedemptionDate"]).int_timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
             }
 
         return None
@@ -915,8 +915,8 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
             }
 
         return None
@@ -944,8 +944,8 @@ class Acteol(ApiMiner):
                 "code": voucher["VoucherCode"],
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
             }
 
         return None
@@ -968,8 +968,8 @@ class Acteol(ApiMiner):
                 "code": voucher.get("VoucherCode"),
                 "target_value": None,  # None == will be set to Earn Target Value in Hermes
                 "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).timestamp,
+                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
+                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
             }
 
         return None

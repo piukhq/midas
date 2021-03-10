@@ -36,16 +36,13 @@ REDIS_PASSWORD = env_var('REDIS_PASSWORD', '')
 REDIS_HOST = env_var('REDIS_HOST', 'localhost')
 REDIS_PORT = env_var('REDIS_PORT', '6379')
 REDIS_DB = env_var('REDIS_DB', '0')
-REDIS_URL = 'redis://:{password}@{host}:{port}/{db}'.format(**{
-    'password': REDIS_PASSWORD,
-    'host': REDIS_HOST,
-    'port': REDIS_PORT,
-    'db': REDIS_DB
-})
+REDIS_URL = env_var('REDIS_URL',
+                    f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
 
 RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
 REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
-CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
+CELERY_BROKER_URL = env_var('CELERY_BROKER_URL',
+                            f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}')
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {

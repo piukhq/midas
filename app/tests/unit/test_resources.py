@@ -1,9 +1,7 @@
-import builtins
 import json
 import time
 from decimal import Decimal
 from unittest import mock
-from unittest.mock import mock_open
 
 from flask_testing import TestCase
 
@@ -251,14 +249,6 @@ class TestResources(TestCase):
                                                       'of login tries please wait 15 minutes.')
         self.assertEqual(e.exception.args[0].code, 429)
         self.assertEqual(e.exception.args[0].name, 'Retry limit reached')
-
-    @mock.patch.object(builtins, 'open', mock_open(read_data='<xml></xml>'))
-    def test_test_results(self):
-        url = "/test_results"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b'<xml></xml>')
-        self.assertEqual(response.content_type, 'text/xml')
 
     def test_tier2_agent_questions(self):
         resp = self.client.post('/agent_questions', data={
