@@ -321,15 +321,27 @@ class ApiMiner(BaseMiner):
         try:
             resp = requests.request(method, url=url, **args)
         except Timeout as exception:
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error="Timeout"
+            )
             raise AgentError(END_SITE_DOWN) from exception
 
         try:
             resp.raise_for_status()
         except HTTPError as e:
             if e.response.status_code == 401:
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
+                )
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif e.response.status_code == 403:
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED
+                )
                 raise AgentError(IP_BLOCKED) from e
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN
+            )
             raise AgentError(END_SITE_DOWN) from e
 
         return resp
