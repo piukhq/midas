@@ -44,6 +44,9 @@ class Ecrebo(ApiMiner):
                 latency_seconds = 0
             signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=login_path,
                                                latency=latency_seconds, response_code=e.response.status_code)
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason
+            )
             raise
         else:
             signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
@@ -60,7 +63,7 @@ class Ecrebo(ApiMiner):
 
     def _get_membership_response(self, endpoint: str, journey_type: int, from_login: bool = False,
                                  integration_service: str = "", message_uid: str = "",
-                                 record_uid: str = "") -> requests.Response:
+                                 record_uid: str = "") -> t.Dict:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
@@ -84,6 +87,9 @@ class Ecrebo(ApiMiner):
                     latency_seconds = 0
                 signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=endpoint,
                                                    latency=latency_seconds, response_code=ex.response.status_code)
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=ex.response.reason
+                )
                 if ex.response.status_code == 404:
                     raise LoginError(STATUS_LOGIN_FAILED)
                 else:
@@ -91,6 +97,9 @@ class Ecrebo(ApiMiner):
             except (requests.RequestException, KeyError):
                 # non-http errors will be retried a few times
                 if attempts == 0:
+                    signal("request-fail").send(
+                        self, slug=self.scheme_slug, channel=self.channel, error="Retry limit reached"
+                    )
                     raise
                 else:
                     time.sleep(3)
@@ -147,12 +156,18 @@ class Ecrebo(ApiMiner):
 
         if resp.status_code == 409:
             signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error=ACCOUNT_ALREADY_EXISTS
+            )
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
         else:
             try:
                 resp.raise_for_status()
-            except requests.HTTPError:
+            except requests.HTTPError as e:
                 signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason
+                )
                 raise
             else:
                 signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
@@ -195,7 +210,6 @@ class Ecrebo(ApiMiner):
                                                                 message_uid=message_uid,
                                                                 record_uid=record_uid)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
-
             except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
                 # Any of these exceptions mean the login has failed
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
