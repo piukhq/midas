@@ -438,8 +438,9 @@ class TestMerchantApi(FlaskTestCase):
         total_seconds = 2
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = 2
+        mock_reason = "Unauthorized"
         response = MagicMock(status_code=HTTPStatus.UNAUTHORIZED, request=MagicMock(path_url=path_url),
-                             elapsed=MagicMock(total_seconds=mock_total_seconds))
+                             elapsed=MagicMock(total_seconds=mock_total_seconds), reason=mock_reason)
         mock_request.return_value = response
 
         self.m.request = {"json": "{}"}
@@ -447,6 +448,9 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=total_seconds, response_code=HTTPStatus.UNAUTHORIZED,
                         slug=self.m.scheme_slug),
+            call("request-fail"),
+            call().send(self.m, channel=self.m.user_info["channel"], error=mock_reason,
+                        slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -826,19 +830,27 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(e.exception.message, errors[GENERAL_ERROR]['message'])
         self.assertTrue(mock_consent_confirmation.called)
 
+    @mock.patch.object(MerchantApi, "_check_for_error_response")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(MerchantApi, '_outbound_handler')
-    def test_signal_called_on_login_retry_fail(self, mock_outbound_handler, mock_signal):
+    def test_signal_called_on_login_retry_fail(self, mock_outbound_handler, mock_signal, mock_check_for_error_response):
         # GIVEN
-        mock_outbound_handler.return_value = {}
+        mock_outbound_handler.return_value = None
+        mock_check_for_error_response.return_value = [{
+            "code": GENERAL_ERROR,
+            "description": errors[GENERAL_ERROR]['message']
+        }]
         self.m.scheme_slug = 'iceland-bonus-card'
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
-            call().send(self.m, slug=self.m.scheme_slug)
+            call().send(self.m, slug=self.m.scheme_slug),
+            call("request-fail"),
+            call().send(self.m, channel=self.m.user_info["channel"], error=GENERAL_ERROR,
+                        slug=self.m.scheme_slug)
         ]
 
         # WHEN
-        self.m.login({'card_number': '1234'})
+        self.assertRaises(LoginError, self.m.login, credentials={"card_number": "1234"})
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -857,11 +869,41 @@ class TestMerchantApi(FlaskTestCase):
         self.m.scheme_slug = "iceland-bonus-card"
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
-            call().send(self.m, slug=self.m.scheme_slug)
+            call().send(self.m, slug=self.m.scheme_slug),
+            call("request-fail"),
+            call().send(self.m, channel=self.m.user_info["channel"], error=GENERAL_ERROR,
+                        slug=self.m.scheme_slug)
         ]
 
         # WHEN
         self.assertRaises(LoginError, self.m.login, credentials={"card_number": "1234"})
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @mock.patch.object(MerchantApi, "_get_identifiers")
+    @mock.patch.object(MerchantApi, "_check_for_error_response")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(MerchantApi, '_outbound_handler')
+    def test_request_fail_signal_called_on_login_retry_limit_reached(self, mock_outbound_handler, mock_signal,
+                                                                     mock_check_for_error_response,
+                                                                     mock_get_identifiers):
+        # GIVEN
+        mock_outbound_handler.return_value = None
+        mock_check_for_error_response.return_value = None
+        mock_get_identifiers.return_value = {}
+        self.m.scheme_slug = "iceland-bonus-card"
+        self.m.result = {}
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-fail"),
+            call().send(self.m, slug=self.m.scheme_slug),
+            call("request-fail"),
+            call().send(self.m, channel=self.m.user_info["channel"], error="Retry limit reached",
+                        slug=self.m.scheme_slug)
+        ]
+
+        # WHEN
+        self.m.login(credentials={"card_number": "1234"})
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)

@@ -321,15 +321,27 @@ class ApiMiner(BaseMiner):
         try:
             resp = requests.request(method, url=url, **args)
         except Timeout as exception:
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error="Timeout"
+            )
             raise AgentError(END_SITE_DOWN) from exception
 
         try:
             resp.raise_for_status()
         except HTTPError as e:
             if e.response.status_code == 401:
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
+                )
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif e.response.status_code == 403:
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED
+                )
                 raise AgentError(IP_BLOCKED) from e
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN
+            )
             raise AgentError(END_SITE_DOWN) from e
 
         return resp
@@ -496,12 +508,18 @@ class MerchantApi(BaseMiner):
         error = self._check_for_error_response(self.result)
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._handle_errors(error[0]['code'], exception_type=LoginError)
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error=error[0]["code"]
+            )
+            self._handle_errors(error[0]["code"], exception_type=LoginError)
         else:  # Login will have succeeded, unless an empty dict was returned by _outbound_handler()
             if self.result:
                 signal("log-in-success").send(self, slug=self.scheme_slug)
             else:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
+                signal("request-fail").send(
+                    self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error="Retry limit reached"
+                )
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
         identifiers = self._get_identifiers(self.result)
@@ -790,6 +808,12 @@ class MerchantApi(BaseMiner):
             integration_service=self.config.integration_service,
             status_code=status,
         )
+
+        # Send signal for fail if not 2XX response
+        if status not in [200, 202]:
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error=response.reason
+            )
 
         if status in [200, 202]:
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
