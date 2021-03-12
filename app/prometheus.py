@@ -19,6 +19,7 @@ class PrometheusManager:
         signal("record-http-request").connect(self.record_http_request)
         signal("callback-success").connect(self.callback_success)
         signal("callback-fail").connect(self.callback_fail)
+        signal("request-fail").connect(self.request_fail)
 
     def log_in_success(self, sender: t.Union[object, str], slug: str) -> None:
         """
@@ -78,6 +79,17 @@ class PrometheusManager:
         """
         counter = self.metric_types["counters"]["callback_fail"]
         labels = {"slug": slug}
+        self._increment_counter(counter=counter, increment_by=1, labels=labels)
+
+    def request_fail(self, sender: t.Union[object, str], slug: str, channel: str, error: str) -> None:
+        """
+        :param sender: Could be an agent, or a string description of who the sender is
+        :param slug: A slug, e.g. 'harvey-nichols'
+        :param channel: The origin of this request e.g. 'com.bink.wallet'
+        :param error: The connection error encountered
+        """
+        counter = self.metric_types["counters"]["request_fail"]
+        labels = {"slug": slug, "channel": channel, "error": error}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
     def record_http_request(
@@ -149,6 +161,11 @@ class PrometheusManager:
                     name="callback_fail",
                     documentation="Incremental count of failed callbacks to our system",
                     labelnames=("slug",),
+                ),
+                "request_fail": Counter(
+                    name="request_fail",
+                    documentation="Incremental count of failed HTTP requests from our system",
+                    labelnames=("slug", "channel", "error"),
                 ),
             },
             "histograms": {

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import httpretty
 from app.agents.ecrebo import WhSmith, FatFace
-from app.agents.exceptions import LoginError, RegistrationError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, LoginError, RegistrationError
 from requests import HTTPError, RequestException
 
 
@@ -89,6 +89,9 @@ class TestEcreboSignal(unittest.TestCase):
             call("record-http-request"),
             call().send(self.whsmith, endpoint=login_path, latency=ANY,
                         response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        slug=self.whsmith.scheme_slug),
+            call("request-fail"),
+            call().send(self.whsmith, channel=self.whsmith.channel, error="Internal Server Error",
                         slug=self.whsmith.scheme_slug)
         ]
 
@@ -181,6 +184,9 @@ class TestEcreboSignal(unittest.TestCase):
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
                         response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                         slug=self.whsmith.scheme_slug),
+            call("request-fail"),
+            call().send(self.whsmith, channel=self.whsmith.channel, error="Internal Server Error",
+                        slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -360,7 +366,10 @@ class TestEcreboSignal(unittest.TestCase):
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.CONFLICT,
                         slug=self.whsmith.scheme_slug),
             call("register-fail"),
-            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
+            call("request-fail"),
+            call().send(self.whsmith, channel=self.whsmith.channel, error=ACCOUNT_ALREADY_EXISTS,
+                        slug=self.whsmith.scheme_slug)
         ]
 
         # WHEN
@@ -393,7 +402,10 @@ class TestEcreboSignal(unittest.TestCase):
             call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.GATEWAY_TIMEOUT,
                         slug=self.whsmith.scheme_slug),
             call("register-fail"),
-            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
+            call("request-fail"),
+            call().send(self.whsmith, channel=self.whsmith.channel, error="Gateway Timeout",
+                        slug=self.whsmith.scheme_slug),
         ]
 
         # WHEN
