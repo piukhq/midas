@@ -139,7 +139,7 @@ class MockAgentHN(MockedMiner):
 
 class MockAgentIce(MockedMiner):
     existing_card_numbers = card_numbers.ICELAND
-    ghost_card_prefix = "633204123123123"
+    ghost_card_prefix = "633204003123123"
     join_fields = {
         "title",
         "first_name",
