@@ -600,10 +600,12 @@ class MerchantApi(BaseMiner):
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
             signal("callback-success").send(self, slug=self.scheme_slug)
+            signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             consent_status = ConsentStatus.SUCCESS
 
         except (AgentException, LoginError, AgentError):
             signal("callback-fail").send(self, slug=self.scheme_slug)
+            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             consent_status = ConsentStatus.FAILED
             raise
         finally:

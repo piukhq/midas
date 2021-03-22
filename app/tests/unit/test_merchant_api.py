@@ -584,6 +584,8 @@ class TestMerchantApi(FlaskTestCase):
         expected_calls = [  # The expected call stack for signal, in order
             call("callback-fail"),
             call().send(self.m, slug=self.m.scheme_slug),
+            call("register-fail"),
+            call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),
         ]
 
         # WHEN
@@ -616,6 +618,8 @@ class TestMerchantApi(FlaskTestCase):
         expected_calls = [  # The expected call stack for signal, in order
             call("callback-success"),
             call().send(self.m, slug=self.m.scheme_slug),
+            call("register-success"),
+            call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),
         ]
 
         # WHEN
