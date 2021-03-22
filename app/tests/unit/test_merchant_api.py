@@ -97,10 +97,9 @@ class TestMerchantApi(FlaskTestCase):
             }
         }
         self.config = mock_configuration
-        with mock.patch("app.agents.base.AuditLogger", autospec=True):
-            self.m = MerchantApi(1, self.user_info)
-            self.m_user_set = MerchantApi(1, self.user_info_user_set)
-            self.m.config = self.config
+        self.m = MerchantApi(1, self.user_info)
+        self.m_user_set = MerchantApi(1, self.user_info_user_set)
+        self.m.config = self.config
 
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, '_sync_outbound')
