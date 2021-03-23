@@ -599,11 +599,9 @@ class MerchantApi(BaseMiner):
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
-            signal("callback-success").send(self, slug=self.scheme_slug)
             consent_status = ConsentStatus.SUCCESS
 
         except (AgentException, LoginError, AgentError):
-            signal("callback-fail").send(self, slug=self.scheme_slug)
             consent_status = ConsentStatus.FAILED
             raise
         finally:
@@ -715,8 +713,13 @@ class MerchantApi(BaseMiner):
 
         try:
             response = self.process_join_response()
+            signal("callback-success").send(self, slug=self.scheme_slug)
         except AgentError as e:
+            signal("callback-fail").send(self, slug=self.scheme_slug)
             update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
+            raise
+        except (AgentException, LoginError):
+            signal("callback-fail").send(self, slug=self.scheme_slug)
             raise
 
         return response
@@ -816,6 +819,7 @@ class MerchantApi(BaseMiner):
             )
 
         if status in [200, 202]:
+            signal("request-success").send(self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""))
             if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
                 inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             else:

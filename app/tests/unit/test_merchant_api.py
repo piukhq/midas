@@ -18,7 +18,7 @@ from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
-    RegistrationError, CONFIGURATION_ERROR, VALIDATION, UnauthorisedError
+    RegistrationError, CONFIGURATION_ERROR, VALIDATION, UnauthorisedError, END_SITE_DOWN
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.resources import agent_register
@@ -480,6 +480,8 @@ class TestMerchantApi(FlaskTestCase):
             call("record-http-request"),
             call().send(self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK,
                         slug=self.m.scheme_slug),
+            call("request-success"),
+            call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug)
         ]
 
         # WHEN
@@ -489,19 +491,25 @@ class TestMerchantApi(FlaskTestCase):
         self.assertTrue(mock_request.called)
         mock_signal.assert_has_calls(expected_calls)
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch.object(MerchantApi, 'process_join_response', autospec=True)
-    def test_async_inbound_success(self, mock_process_join, mock_logger, mock_session_post):
+    def test_async_inbound_success(self, mock_process_join, mock_logger, mock_session_post, mock_signal):
         mock_process_join.return_value = ''
         self.m.config = self.config
         self.m.record_uid = self.m.scheme_id
+        expected_calls = [  # The expected call stack for signal, in order
+            call("callback-success"),
+            call().send(self.m, slug=self.m.scheme_slug),
+        ]
 
         resp = self.m._inbound_handler(json.loads(self.json_data), '')
 
         self.assertTrue(mock_logger.info.called)
         self.assertTrue(mock_session_post.called)
         self.assertEqual(resp, '')
+        mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.logger', autospec=True)
@@ -544,12 +552,13 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(SchemeAccountStatus.ENROL_FAILED,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
+    @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch('requests.Session.post')
     @mock.patch('app.agents.base.send_consent_status', autospec=True)
     @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch('app.scheme_account.requests', autospec=True)
     def test_async_inbound_error_account_already_exists_updates_status(self, mock_requests, mock_logger, mock_consents,
-                                                                       mock_session_post):
+                                                                       mock_session_post, mock_signal):
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
         self.m.consents_data = []
@@ -568,61 +577,57 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS,
                          json.loads(mock_requests.post.call_args[1]['data'])['status'])
 
+    @mock.patch("app.agents.base.update_pending_join_account")
+    @mock.patch.object(MerchantApi, "_check_for_error_response")
+    @mock.patch.object(MerchantApi, "process_join_response")
+    @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, 'consent_confirmation')
-    def test_process_join_handles_errors(self, mock_consent_confirmation, mock_signal):
+    def test_async_inbound_agent_error_calls_signals(self, mock_signal, mock_logger, mock_process_join_response,
+                                                     mock_check_for_error_response, mock_update_pending_join_account):
         # GIVEN
+        mock_check_for_error_response.return_value = False
+        mock_process_join_response.side_effect = AgentError(END_SITE_DOWN)
         self.m.record_uid = self.m.scheme_id
-        self.m.message_uid = "test_message_uid"
-        self.m.result = {
-            "message_uid": self.m.message_uid,
-            "error_codes": [{
-                "code": GENERAL_ERROR,
-                "description": errors[GENERAL_ERROR]['message']
-            }]
-        }
+        self.m.config = self.config
+        self.m.consents_data = []
+        data = json.loads(self.json_data)
         expected_calls = [  # The expected call stack for signal, in order
             call("callback-fail"),
             call().send(self.m, slug=self.m.scheme_slug),
         ]
 
         # WHEN
-        with self.assertRaises(RegistrationError) as e:
-            self.m.process_join_response()
+        with self.assertRaises(AgentError):
+            self.m._inbound_handler(data, "")
 
-        # THEN
-        self.assertEqual(e.exception.message, "General Error such as incorrect user details")
-        self.assertTrue(mock_consent_confirmation.called)
-        mock_signal.assert_has_calls(expected_calls)
+            # THEN
+            mock_signal.assert_has_calls(expected_calls)
 
-    @mock.patch.object(MerchantApi, "_check_for_error_response")
     @mock.patch("app.agents.base.update_pending_join_account")
+    @mock.patch.object(MerchantApi, "_check_for_error_response")
+    @mock.patch.object(MerchantApi, "process_join_response")
+    @mock.patch('app.agents.base.logger', autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_process_join_calls_signal_success(self, mock_consent_confirmation, mock_signal,
-                                               mock_update_pending_join_account, mock_check_for_error_response):
+    def test_async_inbound_login_error_calls_signals(self, mock_signal, mock_logger, mock_process_join_response,
+                                                     mock_check_for_error_response, mock_update_pending_join_account):
         # GIVEN
-        mock_update_pending_join_account.return_value = None
-        mock_check_for_error_response.return_value = None
+        mock_check_for_error_response.return_value = False
+        mock_process_join_response.side_effect = LoginError(STATUS_LOGIN_FAILED)
         self.m.record_uid = self.m.scheme_id
-        self.m.message_uid = "test_message_uid"
-        self.m.result = {
-            "message_uid": self.m.message_uid,
-            "error_codes": [{
-                "code": GENERAL_ERROR,
-                "description": errors[GENERAL_ERROR]['message']
-            }]
-        }
+        self.m.config = self.config
+        self.m.consents_data = []
+        data = json.loads(self.json_data)
         expected_calls = [  # The expected call stack for signal, in order
-            call("callback-success"),
+            call("callback-fail"),
             call().send(self.m, slug=self.m.scheme_slug),
         ]
 
         # WHEN
-        self.m.process_join_response()
+        with self.assertRaises(LoginError):
+            self.m._inbound_handler(data, "")
 
-        # THEN
-        mock_signal.assert_has_calls(expected_calls)
+            # THEN
+            mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch.object(MerchantApi, '_outbound_handler')
     def test_login_success_does_not_raise_exceptions(self, mock_outbound_handler):
