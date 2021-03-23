@@ -106,3 +106,15 @@ class TestPrometheus(TestCase):
         signal("request-fail").send(self, slug="test-prometheus", channel="com.bink.wallet", error="TIMEOUT")
         # THEN
         mock_prometheus_counter_inc.assert_called_once()
+
+    @mock.patch("app.prometheus.Counter.inc", autospec=True)
+    def test_request_success(self, mock_prometheus_counter_inc):
+        """
+        Test that the request success counter increments
+        """
+        # GIVEN
+        settings.PUSH_PROMETHEUS_METRICS = False  # Disable the attempted push
+        # WHEN
+        signal("request-success").send(self, slug="test-prometheus", channel="com.bink.wallet")
+        # THEN
+        mock_prometheus_counter_inc.assert_called_once()
