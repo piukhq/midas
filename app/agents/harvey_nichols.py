@@ -208,7 +208,6 @@ class HarveyNichols(ApiMiner):
                 "forename": credentials["first_name"],
                 "surname": credentials["last_name"],
                 "applicationId": "BINK_APP",
-                "url": url,
             }
         }
         if credentials.get("phone"):
@@ -217,8 +216,11 @@ class HarveyNichols(ApiMiner):
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
+        payload = data.copy()
+        payload['url'] = url
+
         self.audit_logger.add_request(
-            payload=data,
+            payload=payload,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
             record_uid=record_uid,
@@ -263,17 +265,18 @@ class HarveyNichols(ApiMiner):
                 "username": credentials["email"],
                 "password": credentials["password"],
                 "applicationId": "BINK_APP",
-                "url": url,
             }
         }
 
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        payload = data.copy()
+        payload['url'] = url
 
         # Add in email, expected by Atlas
         data["CustomerSignOnRequest"].update({"email": credentials["email"]})
         self.audit_logger.add_request(
-            payload=data,
+            payload=payload,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
             record_uid=record_uid,

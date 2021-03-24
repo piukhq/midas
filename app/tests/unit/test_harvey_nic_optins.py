@@ -147,7 +147,6 @@ class TestUserConsents(unittest.TestCase):
                 'forename': 'test',
                 'surname': 'user',
                 'applicationId': 'BINK_APP',
-                'url': 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignUp'
             }
         }
 
