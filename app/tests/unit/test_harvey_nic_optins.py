@@ -122,7 +122,7 @@ class TestUserConsents(unittest.TestCase):
         hn.scheme_id = 123
         hn.token_store = MockStore()
         credentials = {
-            'email': 'test@user.email',
+            'email': 'test2@user.email',
             'password': 'testPassword',
             'title': 'Dr',
             'first_name': 'test',
@@ -146,7 +146,8 @@ class TestUserConsents(unittest.TestCase):
                 'title': 'Dr',
                 'forename': 'test',
                 'surname': 'user',
-                'applicationId': 'BINK_APP'
+                'applicationId': 'BINK_APP',
+                'url': 'https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignUp'
             }
         }
 

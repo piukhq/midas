@@ -208,6 +208,7 @@ class HarveyNichols(ApiMiner):
                 "forename": credentials["first_name"],
                 "surname": credentials["last_name"],
                 "applicationId": "BINK_APP",
+                "url": url,
             }
         }
         if credentials.get("phone"):
@@ -262,6 +263,7 @@ class HarveyNichols(ApiMiner):
                 "username": credentials["email"],
                 "password": credentials["password"],
                 "applicationId": "BINK_APP",
+                "url": url,
             }
         }
 
