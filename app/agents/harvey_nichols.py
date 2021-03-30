@@ -216,8 +216,8 @@ class HarveyNichols(ApiMiner):
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
-        payload = data.copy()
-        payload['url'] = url
+        payload = deepcopy(data)
+        payload["CustomerSignUpRequest"].update({"url": url})
 
         self.audit_logger.add_request(
             payload=payload,
@@ -270,11 +270,13 @@ class HarveyNichols(ApiMiner):
 
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        payload = data.copy()
-        payload['url'] = url
-
         # Add in email, expected by Atlas
         data["CustomerSignOnRequest"].update({"email": credentials["email"]})
+        payload = deepcopy(data)
+        payload["CustomerSignOnRequest"].update({"url": url})
+        payload["CustomerSignOnRequest"].update({"password": "********"})
+
+
         self.audit_logger.add_request(
             payload=payload,
             scheme_slug=self.scheme_slug,
