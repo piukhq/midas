@@ -276,7 +276,6 @@ class HarveyNichols(ApiMiner):
         payload["CustomerSignOnRequest"].update({"url": url})
         payload["CustomerSignOnRequest"].update({"password": "********"})
 
-
         self.audit_logger.add_request(
             payload=payload,
             scheme_slug=self.scheme_slug,
