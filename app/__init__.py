@@ -8,7 +8,7 @@ from app.prometheus import PrometheusManager
 import settings
 from app.retry import redis
 
-celery = Celery(backend=settings.CELERY_RESULT_BACKEND, broker=settings.CELERY_BROKER_URL, config_source=settings)
+celery = Celery(broker=settings.CELERY_BROKER_URL, config_source=settings)
 prometheus_manager = PrometheusManager()
 
 
