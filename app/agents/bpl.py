@@ -19,6 +19,7 @@ class Trenette(ApiMiner):
         }
 
         self.make_request(self.base_url, method="post", json=payload)
+        self.expecting_callback = True
 
     def login(self, credentials):
         pass
