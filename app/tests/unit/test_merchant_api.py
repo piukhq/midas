@@ -18,7 +18,7 @@ from unittest import mock, TestCase
 
 from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentError, NO_SUCH_RECORD, \
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
-    RegistrationError, CONFIGURATION_ERROR, VALIDATION, UnauthorisedError, END_SITE_DOWN
+    RegistrationError, VALIDATION, UnauthorisedError, END_SITE_DOWN
 from app.back_off_service import BackOffService
 from app.configuration import Configuration
 from app.resources import agent_register
