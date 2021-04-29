@@ -153,10 +153,11 @@ class AgentError(Exception):
     """Exception raised for errors in the input.
     """
 
-    def __init__(self, name, message=None):
+    def __init__(self, name, message=None, response=None):
         self.name = errors[name]['name']
         self.message = message or errors[name]['message']
         self.code = errors[name]['code']
+        self.response = response
 
     def __str__(self):
         return "{0}: {1} code: {2}".format(self.name, self.message, self.code)

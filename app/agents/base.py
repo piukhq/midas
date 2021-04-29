@@ -333,16 +333,17 @@ class ApiMiner(BaseMiner):
                 signal("request-fail").send(
                     self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
                 )
-                raise LoginError(STATUS_LOGIN_FAILED)
+                raise LoginError(STATUS_LOGIN_FAILED, response=e.response)
+
             elif e.response.status_code == 403:
                 signal("request-fail").send(
                     self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED
                 )
-                raise AgentError(IP_BLOCKED) from e
+                raise AgentError(IP_BLOCKED, response=e.response) from e
             signal("request-fail").send(
                 self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN
             )
-            raise AgentError(END_SITE_DOWN) from e
+            raise AgentError(END_SITE_DOWN, response=e.response) from e
 
         return resp
 
