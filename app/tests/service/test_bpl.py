@@ -2,13 +2,9 @@ import unittest
 import json
 import httpretty
 from app.agents.bpl import Trenette
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
-from unittest.mock import patch, MagicMock
-from app.agents.exceptions import (
-    AgentError, LoginError, RegistrationError,
-    GENERAL_ERROR,
-    ACCOUNT_ALREADY_EXISTS,
-)
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
+from unittest.mock import MagicMock
+from app.agents.exceptions import (AgentError, LoginError)
 
 
 class TestBPL(unittest.TestCase):
@@ -18,7 +14,7 @@ class TestBPL(unittest.TestCase):
 
     def test_register_happy_path(self):
         credentials = {
-            "email": "bplusere@binktest.com",
+            "email": "bpluserf@binktest.com",
             "first_name": "BPL",
             "last_name": "Smith"}
         self.agent.register(credentials)
@@ -153,7 +149,7 @@ class TestBPL(unittest.TestCase):
                     "last_name": "Smith",
                 }
             )
-        self.assertEqual(e.exception.name, "General Error preventing join")
+        self.assertEqual(e.exception.name, "Invalid credentials entered i.e password too short")
 
     @httpretty.activate
     def test_register_422_VALIDATION_FAILED(self):
@@ -183,11 +179,34 @@ class TestBPL(unittest.TestCase):
                     "last_name": "Smith",
                 }
             )
-        self.assertEqual(e.exception.name, "General Error preventing join")
+        self.assertEqual(e.exception.name, "Invalid credentials entered i.e password too short")
+
+    @httpretty.activate
+    def test_register_SERVICE_ERRORS(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
+        error_response = {
+            "display_message": "The requestor does not access to this retailer.",
+            "error": "any error will do"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=500)]
+        )
+
+        with self.assertRaises(AgentError) as e:
+            self.agent.register(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "first_name": "BPL",
+                    "last_name": "Smith",
+                }
+            )
+
+        self.assertEqual(e.exception.name, "General Error")
 
 
 if __name__ == "__main__":
     unittest.main()
-
-
-

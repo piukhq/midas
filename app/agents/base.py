@@ -347,11 +347,11 @@ class ApiMiner(BaseMiner):
 
         return resp
 
-    def handle_errors(self, response, exception_type=LoginError):
+    def handle_errors(self, response, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
         for key, values in self.errors.items():
             if response in values:
                 raise exception_type(key)
-        raise AgentError(UNKNOWN)
+        raise AgentError(unhandled_exception_code)
 
 
 # Based on Selenium library and headless Firefox

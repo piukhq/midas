@@ -1,10 +1,10 @@
 from app.agents.base import ApiMiner
 from app.configuration import Configuration
 from app.agents.exceptions import (
-    AgentError, LoginError, RegistrationError,
+    AgentError, LoginError,
     GENERAL_ERROR,
     ACCOUNT_ALREADY_EXISTS,
-    JOIN_ERROR
+    STATUS_REGISTRATION_FAILED
 )
 
 
@@ -19,7 +19,7 @@ class Trenette(ApiMiner):
         self.errors = {
             GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
-            JOIN_ERROR: ["MISSING_FIELDS", "VALIDATION_FAILED"]
+            STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"]
         }
 
     def register(self, credentials):
@@ -32,7 +32,7 @@ class Trenette(ApiMiner):
         try:
             self.make_request(self.base_url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["error"])
+            self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
 
