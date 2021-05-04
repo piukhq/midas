@@ -307,10 +307,6 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
 
-        # The API can return a dict if there's an error but a List normally returned.
-        if isinstance(resp_json, Dict):
-            self._check_response_for_error(resp_json)
-
         return resp_json
 
     @retry(
@@ -411,8 +407,6 @@ class Acteol(ApiMiner):
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
-        self._check_response_for_error(resp_json)
-
         return resp_json
 
     # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
@@ -811,9 +805,6 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
 
-        # The API can return a list if there's an error.
-        self._check_voucher_response_for_errors(resp_json)
-
         vouchers: List = resp_json["voucher"]
 
         return vouchers
@@ -1035,18 +1026,7 @@ class Acteol(ApiMiner):
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
-    def _check_voucher_response_for_errors(self, resp_json: Dict):
-        """
-        Handle voucher response errors
-        """
-        error_list = resp_json.get("errors")
-
-        if error_list:
-            logger.error(f"End Site Down Error: {str(error_list)}")
-            raise AgentError(END_SITE_DOWN)
-
     def _check_deleted_user(self, resp_json: Dict):
-
         # When calling a GET Balance set of calls and the response is successful
         # BUT the CustomerID = “0”then this is how Acteol return a deleted account
         card_number = str(resp_json["CurrentMemberNumber"])
