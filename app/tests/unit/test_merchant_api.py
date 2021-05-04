@@ -8,7 +8,6 @@ from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
 from http import HTTPStatus
-from hvac import Client
 from redis import RedisError
 from requests import Response
 
@@ -1135,10 +1134,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
 
-    @mock.patch('hvac.Client.read')
-    def test_vault_connection_error_is_handled(self, mock_client):
-        mock_client.side_effect = requests.ConnectionError
-
+    def test_vault_connection_error_is_handled(self):
         with self.assertRaises(AgentError) as e:
             Configuration("", 0).get_security_credentials([{'storage_key': 'value'}])
 
@@ -1175,9 +1171,8 @@ class TestMerchantApi(FlaskTestCase):
     #     self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
     #     self.assertEqual(e.exception.message, 'Could not locate security credentials in vault.')
 
-    @mock.patch.object(Client, 'read')
     @mock.patch('requests.get', autospec=True)
-    def test_exception_is_raised_if_credentials_not_in_vault(self, mock_request, mock_vault_client):
+    def test_exception_is_raised_if_credentials_not_in_vault(self, mock_request):
         mock_request.return_value.status_code = 200
         mock_request.return_value.json.return_value = {
             'id': 2,
@@ -1191,8 +1186,6 @@ class TestMerchantApi(FlaskTestCase):
             'country': 'GB',
             'security_credentials': self.config.security_credentials
         }
-
-        mock_vault_client.return_value = None
 
         with self.assertRaises(AgentError):
             Configuration('', 1)
