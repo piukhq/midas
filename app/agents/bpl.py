@@ -1,5 +1,11 @@
 from app.agents.base import ApiMiner
 from app.configuration import Configuration
+from app.agents.exceptions import (
+    AgentError, LoginError,
+    GENERAL_ERROR,
+    ACCOUNT_ALREADY_EXISTS,
+    STATUS_REGISTRATION_FAILED
+)
 
 
 class Trenette(ApiMiner):
@@ -10,6 +16,11 @@ class Trenette(ApiMiner):
         self.callback_url = config.callback_url
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.headers = {"bpl-user-channel": self.channel, "Authorization": f"Token {self.auth}"}
+        self.errors = {
+            GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
+            ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
+            STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"]
+        }
 
     def register(self, credentials):
         payload = {
@@ -18,8 +29,12 @@ class Trenette(ApiMiner):
             "callback_url": self.callback_url,
         }
 
-        self.make_request(self.base_url, method="post", json=payload)
-        self.expecting_callback = True
+        try:
+            self.make_request(self.base_url, method="post", json=payload)
+        except (LoginError, AgentError) as ex:
+            self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
+        else:
+            self.expecting_callback = True
 
     def login(self, credentials):
         pass
