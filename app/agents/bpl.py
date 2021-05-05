@@ -22,14 +22,13 @@ class Trenette(ApiMiner):
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"]
         }
-        self.scheme_account_id = user_info['scheme_account_id']
 
     def register(self, credentials):
         payload = {
             "credentials": credentials,
             "marketing_preferences": [],
             "callback_url": self.callback_url,
-            "third_party_identifier": hash_ids.encode(self.scheme_account_id),
+            "third_party_identifier": hash_ids.encode(self.user_info['scheme_account_id']),
         }
 
         try:
