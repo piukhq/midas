@@ -6,6 +6,7 @@ from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     STATUS_REGISTRATION_FAILED
 )
+from app.encryption import hash_ids
 
 
 class Trenette(ApiMiner):
@@ -27,6 +28,7 @@ class Trenette(ApiMiner):
             "credentials": credentials,
             "marketing_preferences": [],
             "callback_url": self.callback_url,
+            "third_party_identifier": hash_ids.encode(self.user_info['scheme_account_id']),
         }
 
         try:
