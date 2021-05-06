@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import arrow
 import requests
+import sentry_sdk
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -118,19 +119,25 @@ class Acteol(ApiMiner):
             # The account does not exist, so we can create one
             ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
 
-            # Add the new member number to Acteol
-            member_number = self._add_member_number(ctcid=ctcid)
+            try:
+                # Add the new member number to Acteol
+                member_number = self._add_member_number(ctcid=ctcid)
+                # Get customer details
+                customer_details = self._get_customer_details(origin_id=origin_id)
 
-            # Get customer details
-            customer_details = self._get_customer_details(origin_id=origin_id)
-            if not self._customer_fields_are_present(customer_details=customer_details):
-                logger.debug(
-                    (
-                        "Expected fields not found in customer details during join: Email, "
-                        "CurrentMemberNumber, CustomerID for user email: {user_email}"
+                if not self._customer_fields_are_present(customer_details=customer_details):
+                    logger.debug(
+                        (
+                            "Expected fields not found in customer details during join: Email, "
+                            "CurrentMemberNumber, CustomerID for user email: {user_email}"
+                        )
                     )
-                )
-                raise RegistrationError(JOIN_ERROR)
+                    raise RegistrationError(JOIN_ERROR)
+
+            except AgentError as ex:
+                sentry_sdk.capture_exception()
+                logger.error(f"Register Error: {ex.message}")
+
         except (AgentError, LoginError, RegistrationError):
             signal("register-fail").send(
                 self, slug=self.scheme_slug, channel=self.channel
@@ -180,8 +187,13 @@ class Acteol(ApiMiner):
             user_email=user_email, origin_root=self.ORIGIN_ROOT
         )
 
-        # Get customer details
-        customer_details = self._get_customer_details(origin_id=origin_id)
+        try:
+            # Get customer details
+            customer_details = self._get_customer_details(origin_id=origin_id)
+        except AgentError as ex:
+            sentry_sdk.capture_exception()
+            logger.error(f"Balance Error: {ex.message}")
+
         if not self._customer_fields_are_present(customer_details=customer_details):
             logger.debug(
                 (
@@ -399,7 +411,7 @@ class Acteol(ApiMiner):
         api_url = urljoin(
             self.base_url,
             (
-                "api/Loyalty/GetustomerDetailsByExternalCustomerID"
+                "api/Loyalty/GetCustomerDetailsByExternalCustomerID"
                 f"?externalcustomerid={origin_id}&partnerid=BinkPlatform"
             ),
         )
@@ -411,12 +423,8 @@ class Acteol(ApiMiner):
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
-        error_msg = resp_json.get("Error")
 
-        if error_msg:
-            logger.error(f"End Site Down Error: {error_msg}")
-
-        # self._check_response_for_error(resp_json)
+        self._check_response_for_error(resp_json)
 
         return resp_json
 
@@ -1047,8 +1055,7 @@ class Acteol(ApiMiner):
         error_list = resp_json.get("errors")
 
         if error_list:
-            logger.error(f"End Site Down Error: {str(error_list)}")
-            raise AgentError(END_SITE_DOWN)
+            logger.error(f"Voucher Error: {str(error_list)}")
 
     def _check_deleted_user(self, resp_json: Dict):
         # When calling a GET Balance set of calls and the response is successful
