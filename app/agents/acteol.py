@@ -419,7 +419,6 @@ class Acteol(ApiMiner):
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
-
         self._check_response_for_error(resp_json)
 
         return resp_json

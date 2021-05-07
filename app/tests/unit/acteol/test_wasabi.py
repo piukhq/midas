@@ -486,9 +486,6 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
 
-        # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
-
         # WHEN
         customer_details = self.wasabi._get_customer_details(origin_id=origin_id)
 
@@ -1894,7 +1891,7 @@ class TestWasabi(unittest.TestCase):
         Test _check_response_for_error
         """
         # GIVEN
-        # Mock us through authenticationVoucher Error
+        # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
