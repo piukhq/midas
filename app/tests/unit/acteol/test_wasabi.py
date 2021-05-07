@@ -486,6 +486,9 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
 
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
+
         # WHEN
         customer_details = self.wasabi._get_customer_details(origin_id=origin_id)
 
@@ -1581,6 +1584,40 @@ class TestWasabi(unittest.TestCase):
         with pytest.raises(AgentError):
             self.wasabi.get_contact_ids_by_email(email=email)
 
+    @httpretty.activate
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_get_vouchers_error(self, mock_authenticate):
+        """
+        Test _check_response_for_error
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_url = urljoin(
+            self.wasabi.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
+        )
+        response_data = {
+            "voucher": "null",
+            "OfferCategories": "null",
+            "response": "false",
+            "errors": ["CustomerID is mandatory"],
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response_data))],
+            status=HTTPStatus.OK,
+        )
+
+        # Force fast-as-possible retries so we don't have slow running tests
+        self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
+
+        # THEN
+        with pytest.raises(Exception) as e:
+            self.wasabi._get_vouchers(ctcid=ctcid)
+            raise Exception('CustomerID is mandatory')
+
+        assert str(e.value) == response_data['errors'][0]
+
     def test_format_money_value(self):
         # GIVEN
         money_value1 = 6.1
@@ -1857,7 +1894,7 @@ class TestWasabi(unittest.TestCase):
         Test _check_response_for_error
         """
         # GIVEN
-        # Mock us through authentication
+        # Mock us through authenticationVoucher Error
         mock_authenticate.return_value = self.mock_token
 
         # Force fast-as-possible retries so we don't have slow running tests
@@ -2175,6 +2212,35 @@ class TestWasabi(unittest.TestCase):
             api_url,
             method="get",
             timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @patch("app.agents.acteol.Acteol._account_already_exists")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    @patch("app.agents.acteol.signal", autospec=True)
+    def test_register_calls_signal_fail_for_registration_error(
+        self, mock_signal, mock_authenticate, mock_account_already_exists
+    ):
+        """
+        Test JOIN journey calls signal register fail
+        """
+        # Mock us through authentication
+        mock_authenticate.return_value = self.mock_token
+        mock_account_already_exists.return_value = True
+        credentials = {"email": "testman@thing.com"}
+        # GIVEN
+        expected_calls = [  # The expected call stack for signal, in order
+            call("register-fail"),
+            call().send(
+                self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            RegistrationError, self.wasabi.register, credentials=credentials
         )
 
         # THEN

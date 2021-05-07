@@ -119,25 +119,19 @@ class Acteol(ApiMiner):
             # The account does not exist, so we can create one
             ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
 
-            try:
-                # Add the new member number to Acteol
-                member_number = self._add_member_number(ctcid=ctcid)
-                # Get customer details
-                customer_details = self._get_customer_details(origin_id=origin_id)
+            # Add the new member number to Acteol
+            member_number = self._add_member_number(ctcid=ctcid)
 
-                if not self._customer_fields_are_present(customer_details=customer_details):
-                    logger.debug(
-                        (
-                            "Expected fields not found in customer details during join: Email, "
-                            "CurrentMemberNumber, CustomerID for user email: {user_email}"
-                        )
+            # Get customer details
+            customer_details = self._get_customer_details(origin_id=origin_id)
+            if not self._customer_fields_are_present(customer_details=customer_details):
+                logger.debug(
+                    (
+                        "Expected fields not found in customer details during join: Email, "
+                        "CurrentMemberNumber, CustomerID for user email: {user_email}"
                     )
-                    raise RegistrationError(JOIN_ERROR)
-
-            except AgentError as ex:
-                sentry_sdk.capture_exception()
-                logger.error(f"Register Error: {ex.message}")
-
+                )
+                raise RegistrationError(JOIN_ERROR)
         except (AgentError, LoginError, RegistrationError):
             signal("register-fail").send(
                 self, slug=self.scheme_slug, channel=self.channel
@@ -191,8 +185,10 @@ class Acteol(ApiMiner):
             # Get customer details
             customer_details = self._get_customer_details(origin_id=origin_id)
         except AgentError as ex:
-            sentry_sdk.capture_exception()
-            logger.error(f"Balance Error: {ex.message}")
+            sentry_issue_id = sentry_sdk.capture_exception(ex)
+            logger.error(
+                f"Balance Error: {ex.message},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
+                f"Scheme Account ID: {self.scheme_id}")
 
         if not self._customer_fields_are_present(customer_details=customer_details):
             logger.debug(
@@ -1055,7 +1051,10 @@ class Acteol(ApiMiner):
         error_list = resp_json.get("errors")
 
         if error_list:
-            logger.error(f"Voucher Error: {str(error_list)}")
+            sentry_issue_id = sentry_sdk.capture_exception()
+            logger.error(
+                f"Voucher Error: {str(error_list)},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
+                f"Scheme Account ID: {self.scheme_id}")
 
     def _check_deleted_user(self, resp_json: Dict):
         # When calling a GET Balance set of calls and the response is successful
