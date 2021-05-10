@@ -317,7 +317,12 @@ class Acteol(ApiMiner):
 
         # The API can return a dict if there's an error but a List normally returned.
         if isinstance(resp_json, Dict):
-            self._check_response_for_error(resp_json)
+            error_msg = resp_json.get("Error")
+            if error_msg:
+                sentry_issue_id = sentry_sdk.capture_exception()
+                logger.error(
+                    f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
+                    f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}")
 
         return resp_json
 
