@@ -189,6 +189,7 @@ class Acteol(ApiMiner):
             logger.error(
                 f"Balance Error: {ex.message},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}")
+            return
 
         if not self._customer_fields_are_present(customer_details=customer_details):
             logger.debug(
@@ -323,6 +324,7 @@ class Acteol(ApiMiner):
                 logger.error(
                     f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
                     f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}")
+                return
 
         return resp_json
 
@@ -1059,6 +1061,7 @@ class Acteol(ApiMiner):
             logger.error(
                 f"Voucher Error: {str(error_list)},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}")
+            return
 
     def _check_deleted_user(self, resp_json: Dict):
         # When calling a GET Balance set of calls and the response is successful
