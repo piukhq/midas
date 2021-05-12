@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import arrow
 import requests
+import sentry_sdk
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -180,8 +181,16 @@ class Acteol(ApiMiner):
             user_email=user_email, origin_root=self.ORIGIN_ROOT
         )
 
-        # Get customer details
-        customer_details = self._get_customer_details(origin_id=origin_id)
+        try:
+            # Get customer details
+            customer_details = self._get_customer_details(origin_id=origin_id)
+        except AgentError as ex:
+            sentry_issue_id = sentry_sdk.capture_exception(ex)
+            logger.error(
+                f"Balance Error: {ex.message},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
+                f"Scheme Account ID: {self.scheme_id}")
+            return
+
         if not self._customer_fields_are_present(customer_details=customer_details):
             logger.debug(
                 (
@@ -309,7 +318,13 @@ class Acteol(ApiMiner):
 
         # The API can return a dict if there's an error but a List normally returned.
         if isinstance(resp_json, Dict):
-            self._check_response_for_error(resp_json)
+            error_msg = resp_json.get("Error")
+            if error_msg:
+                sentry_issue_id = sentry_sdk.capture_exception()
+                logger.error(
+                    f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
+                    f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}")
+                return
 
         return resp_json
 
@@ -1042,11 +1057,13 @@ class Acteol(ApiMiner):
         error_list = resp_json.get("errors")
 
         if error_list:
-            logger.error(f"End Site Down Error: {str(error_list)}")
-            raise AgentError(END_SITE_DOWN)
+            sentry_issue_id = sentry_sdk.capture_exception()
+            logger.error(
+                f"Voucher Error: {str(error_list)},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
+                f"Scheme Account ID: {self.scheme_id}")
+            return
 
     def _check_deleted_user(self, resp_json: Dict):
-
         # When calling a GET Balance set of calls and the response is successful
         # BUT the CustomerID = “0”then this is how Acteol return a deleted account
         card_number = str(resp_json["CurrentMemberNumber"])

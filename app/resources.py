@@ -149,6 +149,8 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     finally:
         if user_info.get('pending') and not status == SchemeAccountStatus.ACTIVE:
             pass
+        elif status is None:
+            pass
         else:
             threads.append(
                 thread_pool_executor.submit(publish.status, scheme_account_id, status, tid, user_info,
@@ -183,7 +185,11 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         if agent_instance.identifier:
             update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
 
-        balance = publish.balance(agent_instance.balance(), scheme_account_id, user_info['user_set'], tid)
+        balance_result = agent_instance.balance()
+        if not balance_result:
+            return None, None, None
+
+        balance = publish.balance(balance_result, scheme_account_id, user_info['user_set'], tid)
 
         # Asynchronously get the transactions for the a user
         threads.append(thread_pool_executor.submit(publish_transactions, agent_instance, scheme_account_id,

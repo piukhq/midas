@@ -1609,8 +1609,11 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(Exception) as e:
             self.wasabi._get_vouchers(ctcid=ctcid)
+            raise Exception('CustomerID is mandatory')
+
+        assert str(e.value) == response_data['errors'][0]
 
     def test_format_money_value(self):
         # GIVEN
