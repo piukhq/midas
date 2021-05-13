@@ -51,3 +51,4 @@ httpretty = "*"
 SQLAlchemy = "*"
 ipdb = "*"
 ipython = "*"
+azure-oidc
