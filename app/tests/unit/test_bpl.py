@@ -3,8 +3,8 @@ from flask_testing import TestCase
 from unittest import mock
 
 settings.API_AUTH_ENABLED = False
-from app.bpl_callback import JoinCallbackBpl
-from app import create_app
+from app.bpl_callback import JoinCallbackBpl  # noqa
+from app import create_app  # noqa
 
 
 data = {"UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
