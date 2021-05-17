@@ -4,12 +4,9 @@ import requests
 import settings
 from flask import request
 from flask_restful import Resource
-from app import configuration
-from app.configuration import Configuration
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
 from app.resources import create_response
-from app.security.utils import get_security_agent
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from azure_oidc import OIDCConfig
 from app.utils import get_headers
@@ -44,20 +41,9 @@ requires_auth = auth_decorator()
 class JoinCallbackBpl(Resource):
     @requires_auth()
     def post(self, scheme_slug):
-
-        data = self.json_data(scheme_slug, request)
-
+        data = json.loads(request.get_data())
         self.update_hermes(data)
-
         return create_response({"success": True})
-
-    def json_data(self, scheme_slug, callback_request):
-        join_config = configuration.Configuration(scheme_slug, Configuration.JOIN_HANDLER)
-        security_agent = get_security_agent(
-            join_config.security_credentials["inbound"]["service"], config.security_credentials
-        )
-
-        return json.loads(security_agent.decode(callback_request.headers, callback_request.get_data().decode("utf8")))
 
     def update_hermes(self, data):
         scheme_account_id = hash_ids.decode(data["third_party_identifier"])
