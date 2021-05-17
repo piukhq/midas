@@ -1,4 +1,5 @@
 import settings
+import json
 from flask_testing import TestCase
 from unittest import mock
 
@@ -24,7 +25,7 @@ class TestBplCallback(TestCase):
     @mock.patch.object(JoinCallbackBpl, 'update_hermes')
     def test_post(self, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
-        response = self.client.post(url, data=data, headers=headers)
+        response = self.client.post(url, data=json.dumps(data), headers=headers)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
