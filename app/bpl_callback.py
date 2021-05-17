@@ -4,12 +4,9 @@ import requests
 import settings
 from flask import request
 from flask_restful import Resource
-from app import configuration
-from app.configuration import Configuration
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
 from app.resources import create_response
-from app.security.utils import get_security_agent
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from azure_oidc import OIDCConfig
 from app.utils import get_headers
