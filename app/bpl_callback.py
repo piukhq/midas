@@ -44,20 +44,9 @@ requires_auth = auth_decorator()
 class JoinCallbackBpl(Resource):
     @requires_auth()
     def post(self, scheme_slug):
-
-        data = self.json_data(scheme_slug, request)
-
+        data = json.loads(request.get_data())
         self.update_hermes(data)
-
         return create_response({"success": True})
-
-    def json_data(self, scheme_slug, callback_request):
-        join_config = configuration.Configuration(scheme_slug, Configuration.JOIN_HANDLER)
-        security_agent = get_security_agent(
-            join_config.security_credentials["inbound"]["service"], config.security_credentials
-        )
-
-        return json.loads(security_agent.decode(callback_request.headers, callback_request.get_data().decode("utf8")))
 
     def update_hermes(self, data):
         scheme_account_id = hash_ids.decode(data["third_party_identifier"])

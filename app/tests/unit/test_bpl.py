@@ -22,9 +22,7 @@ class TestBplCallback(TestCase):
         return create_app(self)
 
     @mock.patch.object(JoinCallbackBpl, 'update_hermes')
-    @mock.patch.object(JoinCallbackBpl, 'json_data')
-    def test_post(self, mock_json_data, mock_update_hermes):
-        mock_json_data.return_value = data
+    def test_post(self, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
         response = self.client.post(url, data=data, headers=headers)
 
