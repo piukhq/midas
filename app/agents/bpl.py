@@ -1,4 +1,3 @@
-import requests
 from decimal import Decimal
 
 

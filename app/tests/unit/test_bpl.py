@@ -64,7 +64,6 @@ class TestBplCallback(TestCase):
             self.trenette = Trenette(*MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE, scheme_slug="bpl-trenette")
             self.trenette.base_url = "https://london-capi-test.ecrebo.com"
 
-
     @mock.patch.object(JoinCallbackBpl, 'update_hermes')
     def test_post(self, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
