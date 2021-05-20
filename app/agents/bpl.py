@@ -39,25 +39,19 @@ class Trenette(ApiMiner):
             self.expecting_callback = True
 
     def login(self, credentials):
-        self.credentials = credentials
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        card_number = credentials['card_number']
-        journey = self.user_info['journey_type']
-        journey_type = Configuration.JOIN_HANDLER if journey == 0 else Configuration.VALIDATE_HANDLER
+        # endpoint = f"/bpl/loyalty/trenette/accounts/getbycredentials"
+        # url = f"{self.base_url}{endpoint}"
+        self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
+        url = f"https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        payload = {
+            "email": credentials["email"],
+            "account_number": credentials["card_number"],
+        }
 
-        if "merchant_identifier" not in credentials:
-            endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
+        resp = self.make_request(url, method="post", json=payload)
 
-            membership_data = self._get_membership_response(endpoint=endpoint, journey_type=journey_type,
-                                                            from_login=True,
-                                                            integration_service=integration_service,
-                                                            message_uid=message_uid,
-                                                            record_uid=record_uid)
+        membership_data = resp.json()
+        # self.credentials["merchant_identifier"] = membership_data["uuid"]
+        # self.identifier = {"merchant_identifier": membership_data["uuid"]}
+        # self.user_info["credentials"].update(self.identifier)
 
-
-            # TODO: do we actually need all three of these
-            self.credentials["merchant_identifier"] = membership_data["uuid"]
-            self.identifier = {"merchant_identifier": membership_data["uuid"]}
-            self.user_info["credentials"].update(self.identifier)
