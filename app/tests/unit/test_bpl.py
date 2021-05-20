@@ -1,6 +1,12 @@
 import settings
+import json
+import httpretty
+from http import HTTPStatus
+
 from flask_testing import TestCase
 from unittest import mock
+from unittest.mock import MagicMock
+from app.agents.bpl import Trenette
 
 settings.API_AUTH_ENABLED = False
 from app.bpl_callback import JoinCallbackBpl  # noqa
@@ -21,12 +27,68 @@ class TestBplCallback(TestCase):
     def create_app(self):
         return create_app(self)
 
+    def setUp(self) -> None:
+        with mock.patch("app.agents.bpl.Configuration") as mock_configuration:
+            mock_config_object = MagicMock()
+            mock_config_object.security_credentials = {
+                "outbound": {
+                    "credentials": [
+                        {
+                            "value": {
+                                "token": "kasjfaksjha",
+                            }
+                        }
+                    ]
+                }
+            }
+            mock_configuration.return_value = mock_config_object
+
+            MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE = [
+                1,
+                {
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": 2,
+                    "credentials": {
+                        "email": "ncostaE@bink.com",
+                        "first_name": "Test",
+                        "last_name": "FatFace",
+                        "join_date": "2021/02/24",
+                        "card_number": "TRNT9276336436",
+                        "consents": [{"slug": "email_marketing", "value": True}],
+                        "merchant_identifier": "54a259f2-3602-4cc8-8f57-1239de7e5700"
+                    },
+                    "channel": "com.bink.wallet",
+                },
+            ]
+
+            self.trenette = Trenette(*MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE, scheme_slug="bpl-trenette")
+            self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
+
     @mock.patch.object(JoinCallbackBpl, 'update_hermes')
-    @mock.patch.object(JoinCallbackBpl, 'json_data')
-    def test_post(self, mock_json_data, mock_update_hermes):
-        mock_json_data.return_value = data
+    def test_post(self, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
-        response = self.client.post(url, data=data, headers=headers)
+        response = self.client.post(url, data=json.dumps(data), headers=headers)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
+
+    @httpretty.activate
+    def test_balance(self):
+        url = f"{self.trenette.base_url}{'54a259f2-3602-4cc8-8f57-1239de7e5700'}"
+        response_data = {"current_balances": [{
+            "points": 0.0,
+            "value": 0.0,
+            "value_label": "",
+            "vouchers": [],
+        }]}
+        httpretty.register_uri(
+            httpretty.GET,
+            url,
+            status=HTTPStatus.OK,
+            responses=[httpretty.Response(body=json.dumps(response_data))]
+
+        )
+        balance = self.trenette.balance()
+        self.assertEqual(balance["value"], 0)
