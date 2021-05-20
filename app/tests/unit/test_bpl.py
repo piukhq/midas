@@ -3,6 +3,7 @@ import json
 import httpretty
 from http import HTTPStatus
 
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from flask_testing import TestCase
 from unittest import mock
 from unittest.mock import MagicMock
@@ -78,10 +79,16 @@ class TestBplCallback(TestCase):
     def test_balance(self):
         url = f"{self.trenette.base_url}{'54a259f2-3602-4cc8-8f57-1239de7e5700'}"
         response_data = {"current_balances": [{
-            "points": 0.0,
-            "value": 0.0,
+            "points": 0.1,
+            "value": 0.1,
             "value_label": "",
-            "vouchers": [],
+            "vouchers": [
+                {"state": voucher_state_names[VoucherState.IN_PROGRESS],
+                 "type": VoucherType.STAMPS.value,
+                 "value": 0.1,
+                 "target_value": None},
+
+            ],
         }]}
         httpretty.register_uri(
             httpretty.GET,
@@ -91,4 +98,5 @@ class TestBplCallback(TestCase):
 
         )
         balance = self.trenette.balance()
-        self.assertEqual(balance["value"], 0)
+        self.assertEqual(balance["value"], 0.1)
+        self.assertEqual(balance["vouchers"][0]["value"], 0.1)
