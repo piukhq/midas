@@ -45,7 +45,6 @@ class Trenette(ApiMiner):
         pass
 
     def balance(self):
-        self.get_handler("balance")
         credentials = self.user_info["credentials"]
         merchant_id = credentials["merchant_identifier"]
         url = f"{self.base_url}{merchant_id}"
@@ -58,17 +57,3 @@ class Trenette(ApiMiner):
             "value_label": "",
             "vouchers": [],
         }
-
-    def get_handler(self, journey_config):
-        if journey_config:
-            if journey_config == "balance":
-                config = Configuration(self.scheme_slug, Configuration.UPDATE_HANDLER)
-            elif journey_config == "login":
-                config = Configuration(self.scheme_slug, Configuration.VALIDATE_HANDLER)
-            else:
-                config = Configuration(self.scheme_slug, Configuration.JOIN_HANDLER)
-
-        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
-        self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
-        self.base_url = config.merchant_url
-        self.callback_url = config.callback_url

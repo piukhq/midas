@@ -1,5 +1,7 @@
 import settings
 import json
+import httpretty
+from http import HTTPStatus
 
 from flask_testing import TestCase
 from unittest import mock
@@ -33,7 +35,7 @@ class TestBplCallback(TestCase):
                     "credentials": [
                         {
                             "value": {
-                                "token": "kasjfaksjha"
+                                "token": "kasjfaksjha",
                             }
                         }
                     ]
@@ -62,7 +64,7 @@ class TestBplCallback(TestCase):
             ]
 
             self.trenette = Trenette(*MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE, scheme_slug="bpl-trenette")
-            self.trenette.base_url = "https://london-capi-test.ecrebo.com"
+            self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
 
     @mock.patch.object(JoinCallbackBpl, 'update_hermes')
     def test_post(self, mock_update_hermes):
@@ -72,6 +74,21 @@ class TestBplCallback(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
 
+    @httpretty.activate
     def test_balance(self):
+        url = f"{self.trenette.base_url}{'54a259f2-3602-4cc8-8f57-1239de7e5700'}"
+        response_data = {"current_balances": [{
+            "points": 0.0,
+            "value": 0.0,
+            "value_label": "",
+            "vouchers": [],
+        }]}
+        httpretty.register_uri(
+            httpretty.GET,
+            url,
+            status=HTTPStatus.OK,
+            responses=[httpretty.Response(body=json.dumps(response_data))]
+
+        )
         balance = self.trenette.balance()
         self.assertEqual(balance["value"], 0)
