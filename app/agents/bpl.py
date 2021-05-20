@@ -1,6 +1,4 @@
 from decimal import Decimal
-
-
 from app.agents.base import ApiMiner
 from app.configuration import Configuration
 from app.agents.exceptions import (
@@ -27,6 +25,7 @@ class Trenette(ApiMiner):
         }
 
     def register(self, credentials):
+        url = f"{self.base_url}enrolment"
         payload = {
             "credentials": credentials,
             "marketing_preferences": [],
@@ -35,17 +34,16 @@ class Trenette(ApiMiner):
         }
 
         try:
-            self.make_request(self.base_url, method="post", json=payload)
+            self.make_request(url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
 
     def login(self, credentials):
-        # endpoint = f"/bpl/loyalty/trenette/accounts/getbycredentials"
-        # url = f"{self.base_url}{endpoint}"
+        # Channel not available for ADD journey.
         self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
-        url = f"https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        url = f"{self.base_url}getbycredentials"
         payload = {
             "email": credentials["email"],
             "account_number": credentials["card_number"],
@@ -54,9 +52,9 @@ class Trenette(ApiMiner):
         resp = self.make_request(url, method="post", json=payload)
 
         membership_data = resp.json()
-        # self.credentials["merchant_identifier"] = membership_data["uuid"]
-        # self.identifier = {"merchant_identifier": membership_data["uuid"]}
-        # self.user_info["credentials"].update(self.identifier)
+        credentials["merchant_identifier"] = membership_data["UUID"]
+        self.identifier = {"merchant_identifier": membership_data["UUID"]}
+        self.user_info["credentials"].update(self.identifier)
 
     def balance(self):
         credentials = self.user_info["credentials"]
@@ -71,4 +69,3 @@ class Trenette(ApiMiner):
             "value_label": "",
             "vouchers": [],
         }
-
