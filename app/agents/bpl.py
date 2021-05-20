@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
 from app.configuration import Configuration
@@ -50,8 +52,8 @@ class Trenette(ApiMiner):
 
         balance = resp.json()["current_balances"][0]["value"]
         return {
-            "points": balance,
-            "value": balance,
+            "points": Decimal(balance),
+            "value": Decimal(balance),
             "value_label": "",
             "vouchers": [
                 {"state": voucher_state_names[VoucherState.IN_PROGRESS],
