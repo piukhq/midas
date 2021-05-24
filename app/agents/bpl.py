@@ -1,4 +1,7 @@
 from decimal import Decimal
+from urllib.parse import urljoin
+
+import settings
 
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
@@ -49,17 +52,47 @@ class Trenette(ApiMiner):
         merchant_id = credentials["merchant_identifier"]
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
+        bpl_data = resp.json()
+        self.update_hermes_credentials(bpl_data)
+        if len(bpl_data["current_balances"] == 0):
+            return None
 
-        balance = resp.json()["current_balances"][0]["value"]
+        balance = bpl_data["current_balances"][0]["value"]
+
         return {
             "points": Decimal(balance),
             "value": Decimal(balance),
             "value_label": "",
             "vouchers": [
                 {"state": voucher_state_names[VoucherState.IN_PROGRESS],
-                 "type": VoucherType.STAMPS,
+                 "type": VoucherType.STAMPS.value,
                  "value": balance,
                  "target_value": 0.0},
 
             ],
         }
+
+    def update_hermes_credentials(self, customer_details):
+        self.credentials["card_number"] = customer_details["account_number"]
+
+        self.identifier = {
+            "card_number": self.credentials["card_number"],
+        }
+        self.user_info["credentials"].update(self.identifier)
+
+        scheme_account_id = self.user_info["scheme_account_id"]
+        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+        api_url = urljoin(
+            settings.HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
+        )
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + settings.SERVICE_API_KEY,
+        }
+        super().make_request(  # Don't want to call any signals for internal calls
+            api_url,
+            method="put",
+            timeout=self.API_TIMEOUT,
+            json=self.identifier,
+            headers=headers,
+        )
