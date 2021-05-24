@@ -53,8 +53,8 @@ class Trenette(ApiMiner):
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
         bpl_data = resp.json()
-        self.update_hermes_credentials(bpl_data)
-        if len(bpl_data["current_balances"] == 0):
+        self.update_hermes_credentials(bpl_data, credentials)
+        if len(bpl_data["current_balances"]) == 0:
             return None
 
         balance = bpl_data["current_balances"][0]["value"]
@@ -72,11 +72,11 @@ class Trenette(ApiMiner):
             ],
         }
 
-    def update_hermes_credentials(self, customer_details):
-        self.credentials["card_number"] = customer_details["account_number"]
+    def update_hermes_credentials(self, customer_details, credentials):
+        credentials["card_number"] = customer_details["account_number"]
 
         self.identifier = {
-            "card_number": self.credentials["card_number"],
+            "card_number": credentials["card_number"],
         }
         self.user_info["credentials"].update(self.identifier)
 
@@ -92,7 +92,7 @@ class Trenette(ApiMiner):
         super().make_request(  # Don't want to call any signals for internal calls
             api_url,
             method="put",
-            timeout=self.API_TIMEOUT,
+            timeout=10,
             json=self.identifier,
             headers=headers,
         )
