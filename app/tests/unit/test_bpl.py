@@ -2,6 +2,7 @@ import settings
 import json
 import httpretty
 from http import HTTPStatus
+from urllib.parse import urljoin
 
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from flask_testing import TestCase
@@ -78,24 +79,34 @@ class TestBplCallback(TestCase):
     @httpretty.activate
     def test_balance(self):
         url = f"{self.trenette.base_url}{'54a259f2-3602-4cc8-8f57-1239de7e5700'}"
-        response_data = {"current_balances": [{
-            "points": 0.1,
-            "value": 0.1,
-            "value_label": "",
-            "vouchers": [
-                {"state": voucher_state_names[VoucherState.IN_PROGRESS],
-                 "type": VoucherType.STAMPS.value,
-                 "value": 0.1,
-                 "target_value": None},
-
+        response_data = {
+            "UUID": "54a259f2-3602-4cc8-8f57-7839de7e5700",
+            "email": "johnb@bink.com",
+            "created_date": 1621266592,
+            "status": "active",
+            "account_number": "TRNT9288336436",
+            "current_balances": [
+                {
+                    "value": 0.1,
+                    "campaign_slug": "mocked-trenette-active-campaign"
+                }
             ],
-        }]}
+            "transaction_history": [],
+            "vouchers": [{"state": voucher_state_names[VoucherState.IN_PROGRESS],
+                          "type": VoucherType.STAMPS.value,
+                          "value": 0.1,
+                          "target_value": None}]
+        }
         httpretty.register_uri(
             httpretty.GET,
             url,
             status=HTTPStatus.OK,
             responses=[httpretty.Response(body=json.dumps(response_data))]
 
+        )
+        api_url = urljoin(settings.HERMES_URL, "schemes/accounts/1/credentials")
+        httpretty.register_uri(
+            httpretty.PUT, api_url, status=HTTPStatus.OK,
         )
         balance = self.trenette.balance()
         self.assertEqual(balance["value"], 0.1)
