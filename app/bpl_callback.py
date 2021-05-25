@@ -1,15 +1,21 @@
 import json
 import requests
+import sentry_sdk
 
 import settings
 from flask import request
 from flask_restful import Resource
+
+from app import AgentException, UnknownException
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
-from app.resources import create_response
+from app.resources import create_response, get_agent_class
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from azure_oidc import OIDCConfig
+
+from app.scheme_account import update_pending_join_account
 from app.utils import get_headers
+from app.agents.exceptions import AgentError
 
 tenant_id = "a6e2367a-92ea-4e5a-b565-723830bcc095"
 config = OIDCConfig(
@@ -43,6 +49,8 @@ class JoinCallbackBpl(Resource):
     def post(self, scheme_slug):
         data = json.loads(request.get_data())
         self.update_hermes(data)
+        scheme_account_id = hash_ids.decode(data["third_party_identifier"])
+        self.update_balance(scheme_account_id, scheme_slug)
         return create_response({"success": True})
 
     def update_hermes(self, data):
@@ -56,3 +64,19 @@ class JoinCallbackBpl(Resource):
             data=identifier_data,
             headers=headers,
         )
+
+    def update_balance(self, scheme_account_id, scheme_slug):
+
+        def update_failed_scheme_account(exception):
+            update_pending_join_account(scheme_account_id, exception.args[0], 123, scheme_slug=scheme_slug,
+                                        consent_ids=(), raise_exception=False)
+            sentry_sdk.capture_exception()
+
+        try:
+            get_agent_class(scheme_slug)
+        except AgentError as e:
+            update_failed_scheme_account(e)
+            raise AgentException(e)
+        except Exception as e:
+            update_failed_scheme_account(e)
+            raise UnknownException(e)
