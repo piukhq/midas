@@ -95,7 +95,7 @@ class TestBplCallback(TestCase):
             "vouchers": [{"state": voucher_state_names[VoucherState.IN_PROGRESS],
                           "type": VoucherType.STAMPS.value,
                           "value": 0.1,
-                          "target_value": None}]
+                          "target_value": 0.1}]
         }
         httpretty.register_uri(
             httpretty.GET,

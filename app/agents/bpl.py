@@ -81,7 +81,7 @@ class Trenette(ApiMiner):
                 {"state": voucher_state_names[VoucherState.IN_PROGRESS],
                  "type": VoucherType.STAMPS.value,
                  "value": balance,
-                 "target_value": 0.0},
+                 "target_value": Decimal(balance)},
             ],
         }
 
