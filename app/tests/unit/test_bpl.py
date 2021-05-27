@@ -68,8 +68,8 @@ class TestBplCallback(TestCase):
             self.trenette = Trenette(*MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE, scheme_slug="bpl-trenette")
             self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
 
-    @mock.patch.object(JoinCallbackBpl, 'update_hermes')
-    def test_post(self, mock_update_hermes):
+    @mock.patch.object(JoinCallbackBpl, 'process_join_callback')
+    def test_post(self, mock_process_join_callback):
         url = "join/bpl/bpl-trenette"
         response = self.client.post(url, data=json.dumps(data), headers=headers)
 
