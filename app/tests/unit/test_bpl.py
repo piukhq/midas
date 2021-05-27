@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 from app.agents.bpl import Trenette
 
 settings.API_AUTH_ENABLED = False
-from app.bpl_callback import JoinCallbackBpl  # noqa
+from app.bpl_callback import JoinCallbackBpl # noqa
 from app import create_app  # noqa
 
 
@@ -72,7 +72,7 @@ class TestBplCallback(TestCase):
     def test_post(self, mock_process_join_callback):
         url = "join/bpl/bpl-trenette"
         response = self.client.post(url, data=json.dumps(data), headers=headers)
-
+        self.assertTrue(mock_process_join_callback.called)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'success': True})
 
@@ -111,3 +111,9 @@ class TestBplCallback(TestCase):
         balance = self.trenette.balance()
         self.assertEqual(balance["value"], 0.1)
         self.assertEqual(balance["vouchers"][0]["value"], 0.1)
+
+    @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
+    def test_requests_retry_session(self, mock_collect_credentials):
+        url = "join/bpl/bpl-trenette"
+        self.client.post(url, data=json.dumps(data), headers=headers)
+        self.assertTrue(mock_collect_credentials.called)

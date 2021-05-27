@@ -54,7 +54,7 @@ class JoinCallbackBpl(Resource):
         scheme_account_id = decoded_scheme_account[0]
 
         user_info = {
-            'credentials': self._collect_credentials(scheme_account_id),
+            'credentials': collect_credentials(scheme_account_id),
             'status': SchemeAccountStatus.PENDING,
             'scheme_account_id': scheme_account_id,
             'journey_type': JourneyTypes.JOIN.value,
@@ -70,20 +70,20 @@ class JoinCallbackBpl(Resource):
         except Exception as e:
             raise UnknownException(e)
 
-    @staticmethod
-    def _collect_credentials(scheme_account_id):
-        session = requests_retry_session()
-        response = session.get('{0}/schemes/accounts/{1}/credentials'.format(settings.HERMES_URL, scheme_account_id),
-                               headers={'Authorization': f'Token {settings.SERVICE_API_KEY}'})
 
-        try:
-            response.raise_for_status()
-        except Exception as ex:
-            raise AgentError(settings.UNKNOWN) from ex
+def collect_credentials(scheme_account_id):
+    session = requests_retry_session()
+    response = session.get('{0}/schemes/accounts/{1}/credentials'.format(settings.HERMES_URL, scheme_account_id),
+                           headers={'Authorization': f'Token {settings.SERVICE_API_KEY}'})
 
-        credentials = decrypt_credentials(response.json()['credentials'])
+    try:
+        response.raise_for_status()
+    except Exception as ex:
+        raise AgentError(settings.UNKNOWN) from ex
 
-        return credentials
+    credentials = decrypt_credentials(response.json()['credentials'])
+
+    return credentials
 
 
 def requests_retry_session(retries: int = 3,
