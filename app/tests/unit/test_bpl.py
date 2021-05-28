@@ -112,8 +112,9 @@ class TestBplCallback(TestCase):
         self.assertEqual(balance["value"], 0.1)
         self.assertEqual(balance["vouchers"][0]["value"], 0.1)
 
+    @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
-    def test_requests_retry_session(self, mock_collect_credentials):
+    def test_requests_retry_session(self, mock_collect_credentials, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_collect_credentials.called)
