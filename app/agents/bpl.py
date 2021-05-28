@@ -1,7 +1,9 @@
+from uuid import uuid4
 from decimal import Decimal
 from urllib.parse import urljoin
 
 import settings
+from app import publish
 
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
@@ -13,9 +15,10 @@ from app.agents.exceptions import (
     STATUS_REGISTRATION_FAILED
 )
 from app.encryption import hash_ids
+from app.utils import SchemeAccountStatus
 
 
-class Trenette(ApiMiner):
+class BplBase(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
         self.base_url = config.merchant_url
@@ -29,7 +32,43 @@ class Trenette(ApiMiner):
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"]
         }
 
+    def update_async_join(self, data):
+        decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
+        scheme_account_id = decoded_scheme_account[0]
+        self.update_hermes_credentials(data, scheme_account_id)
+        status = SchemeAccountStatus.ACTIVE
+        publish.status(scheme_account_id, status, uuid4(), self.user_info, journey='join')
+
+    def update_hermes_credentials(self, customer_details, scheme_account_id):
+
+        self.identifier = {
+            "card_number": customer_details["account_number"], "merchant_identifier": customer_details["UUID"]
+        }
+        self.user_info["credentials"].update(self.identifier)
+
+        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+        api_url = urljoin(
+            settings.HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
+        )
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + settings.SERVICE_API_KEY,
+        }
+        super().make_request(  # Don't want to call any signals for internal calls
+            api_url,
+            method="put",
+            timeout=10,
+            json=self.identifier,
+            headers=headers,
+        )
+
+
+class Trenette(BplBase):
+    def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+
     def register(self, credentials):
+
         url = f"{self.base_url}enrolment"
         payload = {
             "credentials": credentials,
@@ -67,7 +106,8 @@ class Trenette(ApiMiner):
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
         bpl_data = resp.json()
-        self.update_hermes_credentials(bpl_data, credentials)
+        scheme_account_id = self.user_info["scheme_account_id"]
+        self.update_hermes_credentials(bpl_data, scheme_account_id)
         if len(bpl_data["current_balances"]) == 0:
             return None
 
@@ -80,32 +120,7 @@ class Trenette(ApiMiner):
             "vouchers": [
                 {"state": voucher_state_names[VoucherState.IN_PROGRESS],
                  "type": VoucherType.STAMPS.value,
-                 "value": balance,
-                 "target_value": 0.0},
+                 "target_value": None,
+                 "value": Decimal(balance)},
             ],
         }
-
-    def update_hermes_credentials(self, customer_details, credentials):
-        credentials["card_number"] = customer_details["account_number"]
-
-        self.identifier = {
-            "card_number": credentials["card_number"],
-        }
-        self.user_info["credentials"].update(self.identifier)
-
-        scheme_account_id = self.user_info["scheme_account_id"]
-        # for updating user ID credential you get for registering (e.g. getting issued a card number)
-        api_url = urljoin(
-            settings.HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
-        )
-        headers = {
-            "Content-type": "application/json",
-            "Authorization": "token " + settings.SERVICE_API_KEY,
-        }
-        super().make_request(  # Don't want to call any signals for internal calls
-            api_url,
-            method="put",
-            timeout=10,
-            json=self.identifier,
-            headers=headers,
-        )
