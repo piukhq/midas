@@ -2,18 +2,20 @@ import json
 import requests
 import typing as t
 
+
 import settings
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 from flask import request
 from flask_restful import Resource
 from app import retry, UnknownException
-from app.agents.exceptions import AgentError
+from app.agents.exceptions import AgentError, UNKNOWN
+from app.encoding import JsonEncoder
 from app.encryption import hash_ids
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from azure_oidc import OIDCConfig
-from app.utils import SchemeAccountStatus, JourneyTypes
+from app.utils import SchemeAccountStatus, JourneyTypes, get_headers
 
 tenant_id = "a6e2367a-92ea-4e5a-b565-723830bcc095"
 config = OIDCConfig(
@@ -49,10 +51,21 @@ class JoinCallbackBpl(Resource):
         self.process_join_callback(scheme_slug, data)
         return create_response({"success": True})
 
+    def update_hermes(self, data, scheme_account_id):
+        identifier = {"card_number": data["account_number"], "merchant_identifier": data["UUID"]}
+        identifier_data = json.dumps(identifier, cls=JsonEncoder)
+        headers = get_headers("success")
+
+        requests.put(
+            "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
+            data=identifier_data,
+            headers=headers,
+        )
+
     def process_join_callback(self, scheme_slug, data):
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]
-
+        self.update_hermes(data, scheme_account_id)
         user_info = {
             'credentials': collect_credentials(scheme_account_id),
             'status': SchemeAccountStatus.PENDING,
@@ -79,7 +92,7 @@ def collect_credentials(scheme_account_id):
     try:
         response.raise_for_status()
     except Exception as ex:
-        raise AgentError(settings.UNKNOWN) from ex
+        raise AgentError(UNKNOWN) from ex
 
     credentials = decrypt_credentials(response.json()['credentials'])
 
