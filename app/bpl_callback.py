@@ -51,21 +51,10 @@ class JoinCallbackBpl(Resource):
         self.process_join_callback(scheme_slug, data)
         return create_response({"success": True})
 
-    def update_hermes(self, data, scheme_account_id):
-        identifier = {"card_number": data["account_number"], "merchant_identifier": data["UUID"]}
-        identifier_data = json.dumps(identifier, cls=JsonEncoder)
-        headers = get_headers("success")
-
-        requests.put(
-            "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
-            data=identifier_data,
-            headers=headers,
-        )
-
     def process_join_callback(self, scheme_slug, data):
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]
-        self.update_hermes(data, scheme_account_id)
+        update_hermes(data, scheme_account_id)
         user_info = {
             'credentials': collect_credentials(scheme_account_id),
             'status': SchemeAccountStatus.PENDING,
@@ -82,6 +71,18 @@ class JoinCallbackBpl(Resource):
             agent_instance.update_async_join(data)
         except Exception as e:
             raise UnknownException(e)
+
+
+def update_hermes(data, scheme_account_id):
+    identifier = {"card_number": data["account_number"], "merchant_identifier": data["UUID"]}
+    identifier_data = json.dumps(identifier, cls=JsonEncoder)
+    headers = get_headers("success")
+
+    requests.put(
+        "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
+        data=identifier_data,
+        headers=headers,
+    )
 
 
 def collect_credentials(scheme_account_id):
