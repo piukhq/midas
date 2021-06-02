@@ -85,6 +85,9 @@ class Trenette(BplBase):
             self.expecting_callback = True
 
     def login(self, credentials):
+        # If merchant_identifier already exists do not get by credentials
+        if "merchant_identifier" in credentials.keys():
+            return
         # Channel not available for ADD journey.
         self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
         url = f"{self.base_url}getbycredentials"
@@ -103,6 +106,7 @@ class Trenette(BplBase):
     def balance(self):
         credentials = self.user_info["credentials"]
         merchant_id = credentials["merchant_identifier"]
+        self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
         bpl_data = resp.json()
