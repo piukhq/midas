@@ -300,7 +300,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "Account does not exist")
 
     @httpretty.activate
-    def test_register_422_MISSING_FIELDS(self):
+    def test_login_422_MISSING_FIELDS(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
         error_response = {
