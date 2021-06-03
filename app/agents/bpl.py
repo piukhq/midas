@@ -12,7 +12,8 @@ from app.agents.exceptions import (
     AgentError, LoginError,
     GENERAL_ERROR,
     ACCOUNT_ALREADY_EXISTS,
-    STATUS_REGISTRATION_FAILED
+    STATUS_REGISTRATION_FAILED,
+    NO_SUCH_RECORD
 )
 from app.encryption import hash_ids
 from app.utils import SchemeAccountStatus
@@ -29,7 +30,8 @@ class BplBase(ApiMiner):
         self.errors = {
             GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
-            STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"]
+            STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
+            NO_SUCH_RECORD: ["NO_ACCOUNT_FOUND"]
         }
 
     def update_async_join(self, data):
@@ -98,7 +100,12 @@ class Trenette(BplBase):
             "account_number": credentials["card_number"],
         }
 
-        resp = self.make_request(url, method="post", json=payload)
+        try:
+            resp = self.make_request(url, method="post", json=payload)
+        except (LoginError, AgentError) as ex:
+            self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
+        else:
+            self.expecting_callback = True
 
         membership_data = resp.json()
         credentials["merchant_identifier"] = membership_data["UUID"]
