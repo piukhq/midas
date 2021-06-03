@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import settings
 from app import publish
-
+from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
 from app.configuration import Configuration
@@ -68,7 +68,7 @@ class Trenette(BplBase):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
     def register(self, credentials):
-
+        consents = credentials.get("consents", [])
         url = f"{self.base_url}enrolment"
         payload = {
             "credentials": credentials,
@@ -83,6 +83,8 @@ class Trenette(BplBase):
             self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
+            if consents:
+                self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     def login(self, credentials):
         # If merchant_identifier already exists do not get by credentials
