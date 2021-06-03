@@ -207,6 +207,151 @@ class TestBPL(unittest.TestCase):
 
         self.assertEqual(e.exception.name, "General Error")
 
+    @httpretty.activate
+    def test_login_400(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "Malformed request.",
+            "error": "MALFORMED_REQUEST"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=400)]
+        )
+        with self.assertRaises(LoginError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+        self.assertEqual(e.exception.name, "General Error")
+
+    @httpretty.activate
+    def test_login_401(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "Supplied token is invalid.",
+            "error": "INVALID_TOKEN"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=401)]
+        )
+        with self.assertRaises(LoginError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+        self.assertEqual(e.exception.name, "General Error")
+
+    @httpretty.activate
+    def test_login_403(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "The requestor does not access to this retailer.",
+            "error": "FORBIDDEN"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=403)]
+        )
+        with self.assertRaises(LoginError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+        self.assertEqual(e.exception.name, "General Error")
+
+    @httpretty.activate
+    def test_login_404(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "Account not found for provided credentials.",
+            "error": "NO_ACCOUNT_FOUND"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=404)]
+        )
+        with self.assertRaises(LoginError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+        self.assertEqual(e.exception.name, "Account does not exist")
+
+    @httpretty.activate
+    def test_register_422_MISSING_FIELDS(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "Missing credentials from request.",
+            "error": "MISSING_FIELDS",
+            "fields": [
+                "address_line1",
+                "postcode",
+            ]
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=422)]
+        )
+
+        with self.assertRaises(LoginError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+        self.assertEqual(e.exception.name, "Invalid credentials entered i.e password too short")
+
+    @httpretty.activate
+    def test_login_SERVICE_ERRORS(self):
+        conf = MagicMock()
+        conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
+        error_response = {
+            "display_message": "The requestor does not access to this retailer.",
+            "error": "any error will do"
+        }
+
+        httpretty.register_uri(
+            httpretty.POST,
+            conf.merchant_url,
+            responses=[httpretty.Response(body=json.dumps(error_response), status=400)]
+        )
+
+        with self.assertRaises(AgentError) as e:
+            self.agent.login(
+                {
+                    "email": "bpluserd@binktest.com",
+                    "card_number": "TRNT5665162796",
+                }
+            )
+
+        self.assertEqual(e.exception.name, "General Error")
+
 
 if __name__ == "__main__":
     unittest.main()
