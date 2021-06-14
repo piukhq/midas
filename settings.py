@@ -41,8 +41,10 @@ REDIS_URL = env_var('REDIS_URL',
 
 RETRY_PERIOD = env_var('RETRY_PERIOD', '1800')
 REDIS_CELERY_DB = env_var('REDIS_CELERY_DB', '1')
-CELERY_BROKER_URL = env_var('CELERY_BROKER_URL',
-                            f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}')
+CELERY_BROKER_URL = env_var(
+    'AMQP_DSN',
+    f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
+)
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {
     'retry_tasks': {
