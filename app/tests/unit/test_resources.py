@@ -11,7 +11,6 @@ from app.agents.base import BaseMiner
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS, \
     SCHEME_REQUESTED_DELETE
-from app.agents.cooperative_merchant_integration import Cooperative
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
@@ -24,7 +23,6 @@ from settings import AES_KEY
 CREDENTIALS = {
     "tesco-clubcard": {},
     "health-beautycard": {},
-    "advantage-card": {},
     "harvey-nichols": {}
 }
 
@@ -188,22 +186,6 @@ class TestResources(TestCase):
         self.assertEqual(response.json['message'], errors[STATUS_LOGIN_FAILED]['message'])
         self.assertEqual(response.json['code'], errors[STATUS_LOGIN_FAILED]['code'])
 
-    @mock.patch('app.publish.transactions', auto_spec=True)
-    @mock.patch('app.publish.balance', auto_spec=True)
-    @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_account_overview(self, mock_agent_login, mock_publish_balance, mock_publish_transactions):
-        mock_agent_login.return_value.account_overview.return_value = {"balance": {},
-                                                                       "transactions": []}
-        credentials = encrypt("advantage-card")
-        url = "/advantage-card/account_overview?credentials={0}&user_id={1}&scheme_account_id={2}".format(
-            credentials, 1, 2)
-        response = self.client.get(url)
-
-        self.assertTrue(mock_publish_balance.called)
-        self.assertTrue(mock_publish_transactions.called)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'balance': {}, 'transactions': []})
-
     def test_bad_agent(self):
         url = "/bad-agent-key/transactions?credentials=234&scheme_account_id=1"
         response = self.client.get(url)
@@ -226,19 +208,6 @@ class TestResources(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
-
-    def test_tier2_agent_questions(self):
-        resp = self.client.post('/agent_questions', data={
-            'scheme_slug': 'advantage-card',
-            'username': 'test-username',
-            'password': 'test-password',
-        })
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn('username', resp.json)
-        self.assertIn('password', resp.json)
-        self.assertEqual(resp.json['username'], 'test-username')
-        self.assertEqual(resp.json['password'], 'test-password')
 
     @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
     def test_register_view(self, mock_pool):
@@ -668,26 +637,6 @@ class TestResources(TestCase):
             'value_label': 'Pending'
         }
         self.assertEqual(balance, expected_balance)
-
-    @mock.patch('app.resources.delete_scheme_account', auto_spec=True)
-    @mock.patch('app.resources.agent_login', auto_spec=False)
-    @mock.patch('app.publish.status', auto_spec=True)
-    @mock.patch('app.publish.balance', auto_spec=False)
-    @mock.patch('app.publish.transactions', auto_spec=True)
-    def test_get_balance_and_publish_delete_error(self, mock_transactions, mock_publish_balance, mock_publish_status,
-                                                  mock_login, mock_delete):
-        mock_login.side_effect = LoginError(SCHEME_REQUESTED_DELETE)
-        user_info = self.user_info
-        user_info['pending'] = False
-
-        with self.assertRaises(AgentException):
-            get_balance_and_publish(Cooperative, 'scheme_slug', self.user_info, 'tid')
-
-        self.assertTrue(mock_login.called)
-        self.assertFalse(mock_publish_balance.called)
-        self.assertFalse(mock_transactions.called)
-        self.assertTrue(mock_publish_status.called)
-        self.assertTrue(mock_delete.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
