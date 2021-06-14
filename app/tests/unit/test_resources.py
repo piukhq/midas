@@ -7,7 +7,6 @@ from flask_testing import TestCase
 
 from app import create_app, AgentException, UnknownException
 from app import publish
-from app.agents.avios import Avios
 from app.agents.base import BaseMiner
 from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
     errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS, \
@@ -227,28 +226,6 @@ class TestResources(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
-
-    @mock.patch('app.resources.retry', autospec=True)
-    @mock.patch.object(Avios, 'attempt_login')
-    def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
-        mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
-        with self.assertRaises(AgentException):
-            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
-        self.assertTrue(mock_retry.max_out_count.called)
-
-    @mock.patch('app.resources.retry', autospec=True)
-    @mock.patch.object(Avios, 'attempt_login')
-    @mock.patch.object(Avios, 'identifier')
-    def test_agent_login_inc(self, mock_identifier, mock_attempt_login, mock_retry):
-        mock_identifier.value = None
-        mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
-        with self.assertRaises(AgentException) as e:
-            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
-        self.assertTrue(mock_retry.inc_count.called)
-        self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
-                                                      'of login tries please wait 15 minutes.')
-        self.assertEqual(e.exception.args[0].code, 429)
-        self.assertEqual(e.exception.args[0].name, 'Retry limit reached')
 
     def test_tier2_agent_questions(self):
         resp = self.client.post('/agent_questions', data={

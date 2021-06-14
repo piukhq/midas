@@ -4,7 +4,6 @@ from unittest import TestCase, mock
 
 import arrow
 import httpretty
-from app.agents.avios import Avios
 from app.agents.base import ApiMiner, RoboBrowserMiner
 from app.agents.exceptions import (
     END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError, RetryLimitError)
@@ -117,17 +116,6 @@ class TestBase(TestCase):
         self.assertEqual('2 candies', m.format_label(2, 'cand', 'y,ies'))
 
         self.assertEqual('', m.format_label(0, 'vote'))
-
-    @mock.patch.object(Avios, 'open_url')
-    def test_agent_login_missing_credentials(self, mock_open_url):
-        user_info = {'scheme_account_id': 2,
-                     'status': ''}
-        m = Avios(1, user_info)
-        m.browser = mock.MagicMock()
-
-        with self.assertRaises(Exception) as e:
-            m.attempt_login(credentials={})
-        self.assertEqual(e.exception.args[0], "missing the credential 'email'")
 
     @mock.patch.object(ApiMiner, 'register')
     def test_attempt_register(self, mocked_register):
