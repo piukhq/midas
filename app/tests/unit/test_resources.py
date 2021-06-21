@@ -8,8 +8,8 @@ from flask_testing import TestCase
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
-from app.agents.exceptions import AgentError, STATUS_LOGIN_FAILED, \
-    RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
+from app.agents.exceptions import AgentError, LoginError, STATUS_LOGIN_FAILED, \
+    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
@@ -20,6 +20,7 @@ from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
 CREDENTIALS = {
+    "bpl-trenette": {},
     "harvey-nichols": {}
 }
 
@@ -63,6 +64,125 @@ class TestResources(TestCase):
 
     def create_app(self):
         return create_app(self, )
+
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    @mock.patch('app.resources.async_get_balance_and_publish', autospec=True)
+    def test_user_balances(self, mock_async_balance_and_publish, mock_update_pending_join_account, mock_pool,
+                           mock_agent_login, mock_publish_balance):
+        mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_update_pending_join_account.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'user_id': 2, 'scheme_account_id': 4})
+        self.assertFalse(mock_async_balance_and_publish.called)
+
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_none_exception(self, mock_update_pending_join_account, mock_pool,
+                                    mock_agent_login, mock_publish_balance):
+        mock_publish_balance.return_value = None
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_update_pending_join_account)
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json)
+
+    @mock.patch('app.publish.balance', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.resources.update_pending_join_account', auto_spec=True)
+    def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login,
+                                   mock_publish_balance):
+        mock_publish_balance.side_effect = Exception('test error')
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_update_pending_join_account)
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json['name'], 'Unknown Error')
+        self.assertEqual(response.json['message'], 'test error')
+        self.assertEqual(response.json['code'], 520)
+
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
+        mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, [{'points': 10.0}, ])
+
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
+        mock_publish_transactions.return_value = None
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+        mock_publish_transactions.side_effect = Exception('test error')
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 520)
+        self.assertEqual(response.json['name'], 'Unknown Error')
+        self.assertEqual(response.json['message'], 'test error')
+        self.assertEqual(response.json['code'], 520)
+
+    @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
+    @mock.patch('app.publish.transactions', auto_spec=True)
+    @mock.patch('app.resources.agent_login', auto_spec=True)
+    def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+        mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+            credentials, 3, 5)
+        response = self.client.get(url)
+
+        self.assertTrue(mock_agent_login.called)
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json['name'], errors[STATUS_LOGIN_FAILED]['name'])
+        self.assertEqual(response.json['message'], errors[STATUS_LOGIN_FAILED]['message'])
+        self.assertEqual(response.json['code'], errors[STATUS_LOGIN_FAILED]['code'])
 
     def test_bad_agent(self):
         url = "/bad-agent-key/transactions?credentials=234&scheme_account_id=1"
