@@ -40,6 +40,3 @@ class TestUtils(unittest.TestCase):
         headers = get_headers("success")
 
         self.assertEqual(headers['transaction'], "success")
-
-
-
