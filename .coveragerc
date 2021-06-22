@@ -3,6 +3,10 @@ omit = *migrations*
        *tests*
        app/agents*
        app/tasks/resend.py
+       setup.py
+       wsgi.py
+       manage.py
+       local_credentials.py
 
 branch = True
 

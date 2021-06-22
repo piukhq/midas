@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from app.utils import extract_decimal, generate_random_key, minify_number
+from app.utils import extract_decimal, generate_random_key, minify_number, create_error_response, get_headers
 
 
 class TestUtils(unittest.TestCase):
@@ -30,3 +30,16 @@ class TestUtils(unittest.TestCase):
         for test_case in test_cases:
             n = minify_number(test_case[0])
             self.assertEqual(n, test_case[1])
+
+    def test_create_error_response(self):
+        response_json = create_error_response("NOT_SENT", "This is a test error")
+
+        self.assertIn('NOT_SENT', response_json)
+
+    def test_get_headers(self):
+        headers = get_headers("success")
+
+        self.assertEqual(headers['transaction'], "success")
+
+
+
