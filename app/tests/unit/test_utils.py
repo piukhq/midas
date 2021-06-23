@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from app.utils import extract_decimal, generate_random_key, minify_number, create_error_response, get_headers
+from app.utils import extract_decimal, generate_random_key, minify_number, create_error_response, get_headers, log_task
 
 
 class TestUtils(unittest.TestCase):
@@ -40,3 +40,10 @@ class TestUtils(unittest.TestCase):
         headers = get_headers("success")
 
         self.assertEqual(headers['transaction'], "success")
+
+    def test_log_task(self):
+        @log_task
+        def decorated(x):
+            return x
+
+        self.assertEqual(decorated.__name__, "logged_func")
