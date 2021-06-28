@@ -7,12 +7,9 @@ from flask_testing import TestCase
 
 from app import create_app, AgentException, UnknownException
 from app import publish
-from app.agents.avios import Avios
 from app.agents.base import BaseMiner
-from app.agents.exceptions import AgentError, RetryLimitError, RETRY_LIMIT_REACHED, LoginError, STATUS_LOGIN_FAILED, \
-    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS, \
-    SCHEME_REQUESTED_DELETE
-from app.agents.cooperative_merchant_integration import Cooperative
+from app.agents.exceptions import AgentError, LoginError, STATUS_LOGIN_FAILED, \
+    errors, RegistrationError, NO_SUCH_RECORD, STATUS_REGISTRATION_FAILED, ACCOUNT_ALREADY_EXISTS
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
@@ -23,9 +20,7 @@ from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
 CREDENTIALS = {
-    "tesco-clubcard": {},
-    "health-beautycard": {},
-    "advantage-card": {},
+    "bpl-trenette": {},
     "harvey-nichols": {}
 }
 
@@ -78,8 +73,8 @@ class TestResources(TestCase):
     def test_user_balances(self, mock_async_balance_and_publish, mock_update_pending_join_account, mock_pool,
                            mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
-        credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -96,8 +91,8 @@ class TestResources(TestCase):
     def test_balance_none_exception(self, mock_update_pending_join_account, mock_pool,
                                     mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
-        credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -113,8 +108,8 @@ class TestResources(TestCase):
     def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login,
                                    mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
-        credentials = encrypt("tesco-clubcard")
-        url = "/tesco-clubcard/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -130,8 +125,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
-        credentials = encrypt("health-beautycard")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
 
@@ -145,8 +140,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
-        credentials = encrypt("health-beautycard")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
 
@@ -160,8 +155,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = Exception('test error')
-        credentials = encrypt("health-beautycard")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
 
@@ -177,8 +172,8 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
-        credentials = encrypt("health-beautycard")
-        url = "/health-beautycard/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
+        credentials = encrypt("bpl-trenette")
+        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
 
@@ -188,22 +183,6 @@ class TestResources(TestCase):
         self.assertEqual(response.json['name'], errors[STATUS_LOGIN_FAILED]['name'])
         self.assertEqual(response.json['message'], errors[STATUS_LOGIN_FAILED]['message'])
         self.assertEqual(response.json['code'], errors[STATUS_LOGIN_FAILED]['code'])
-
-    @mock.patch('app.publish.transactions', auto_spec=True)
-    @mock.patch('app.publish.balance', auto_spec=True)
-    @mock.patch('app.resources.agent_login', auto_spec=True)
-    def test_account_overview(self, mock_agent_login, mock_publish_balance, mock_publish_transactions):
-        mock_agent_login.return_value.account_overview.return_value = {"balance": {},
-                                                                       "transactions": []}
-        credentials = encrypt("advantage-card")
-        url = "/advantage-card/account_overview?credentials={0}&user_id={1}&scheme_account_id={2}".format(
-            credentials, 1, 2)
-        response = self.client.get(url)
-
-        self.assertTrue(mock_publish_balance.called)
-        self.assertTrue(mock_publish_transactions.called)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'balance': {}, 'transactions': []})
 
     def test_bad_agent(self):
         url = "/bad-agent-key/transactions?credentials=234&scheme_account_id=1"
@@ -223,45 +202,10 @@ class TestResources(TestCase):
         mock_submit.assert_called_with(publish.status, 1, 10, None, user_info)
 
     def test_bad_parameters(self):
-        url = "/tesco-clubcard/transactions?credentials=234"
+        url = "/harvey-nichols/transactions?credentials=234"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
-
-    @mock.patch('app.resources.retry', autospec=True)
-    @mock.patch.object(Avios, 'attempt_login')
-    def test_agent_login_retry_limit(self, mock_attempt_login, mock_retry):
-        mock_attempt_login.side_effect = RetryLimitError(RETRY_LIMIT_REACHED)
-        with self.assertRaises(AgentException):
-            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
-        self.assertTrue(mock_retry.max_out_count.called)
-
-    @mock.patch('app.resources.retry', autospec=True)
-    @mock.patch.object(Avios, 'attempt_login')
-    @mock.patch.object(Avios, 'identifier')
-    def test_agent_login_inc(self, mock_identifier, mock_attempt_login, mock_retry):
-        mock_identifier.value = None
-        mock_attempt_login.side_effect = AgentError(RETRY_LIMIT_REACHED)
-        with self.assertRaises(AgentException) as e:
-            agent_login(Avios, {'scheme_account_id': 2, 'status': SchemeAccountStatus.ACTIVE, 'credentials': {}})
-        self.assertTrue(mock_retry.inc_count.called)
-        self.assertEqual(e.exception.args[0].message, 'You have reached your maximum amount '
-                                                      'of login tries please wait 15 minutes.')
-        self.assertEqual(e.exception.args[0].code, 429)
-        self.assertEqual(e.exception.args[0].name, 'Retry limit reached')
-
-    def test_tier2_agent_questions(self):
-        resp = self.client.post('/agent_questions', data={
-            'scheme_slug': 'advantage-card',
-            'username': 'test-username',
-            'password': 'test-password',
-        })
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn('username', resp.json)
-        self.assertIn('password', resp.json)
-        self.assertEqual(resp.json['username'], 'test-username')
-        self.assertEqual(resp.json['password'], 'test-password')
 
     @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
     def test_register_view(self, mock_pool):
@@ -515,64 +459,10 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
-    @mock.patch('app.resources.async_get_balance_and_publish')
-    @mock.patch('app.publish.zero_balance', autospec=True)
-    @mock.patch('app.publish.status', auto_spec=True)
-    def test_wallet_only_accounts_get_set_to_pending_when_async(self, mock_publish_status, mock_publish_zero_balance,
-                                                                mock_async_balance_and_publish):
-
-        mock_publish_zero_balance.return_value = {'balance': '0'}
-        credentials = {
-            "username": "la@loyaltyangels.com",
-            "password": "YSHansbrics6",
-        }
-        aes = AESCipher(AES_KEY.encode())
-        credentials = aes.encrypt(json.dumps(credentials)).decode()
-
-        url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}&status={3}".format(
-            credentials, 1, 2, SchemeAccountStatus.WALLET_ONLY
-        )
-        resp = self.client.get(url)
-
-        self.assertTrue(mock_publish_zero_balance.called)
-        self.assert_mock_called_with_delay(2, mock_async_balance_and_publish)
-        self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 4)
-        self.assertEqual(resp.json, mock_publish_zero_balance.return_value)
-
-    @mock.patch('app.resources.get_hades_balance', auto_spec=False)
-    @mock.patch('app.resources.async_get_balance_and_publish', autospec=True)
-    @mock.patch('app.publish.zero_balance', autospec=True)
-    @mock.patch('app.publish.status', auto_spec=True)
-    def test_non_wallet_only_cards_dont_get_set_to_pending_when_async(self, mock_publish_status,
-                                                                      mock_publish_zero_balance,
-                                                                      mock_async_balance_and_publish,
-                                                                      mock_get_hades_balance):
-
-        mock_get_hades_balance.return_value = {
-            'points': 0,
-            'value_label': '',
-        }
-        credentials = {
-            "username": "la@loyaltyangels.com",
-            "password": "YSHansbrics6",
-        }
-        aes = AESCipher(AES_KEY.encode())
-        credentials = aes.encrypt(json.dumps(credentials)).decode()
-
-        url = "/rewards-club/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
-        resp = self.client.get(url)
-
-        self.assertFalse(mock_publish_zero_balance.called)
-        self.assertFalse(mock_publish_status.called)
-        self.assertTrue(mock_get_hades_balance.called)
-        self.assert_mock_called_with_delay(2, mock_async_balance_and_publish)
-        self.assertEqual(len(mock_async_balance_and_publish.call_args[0]), 4)
-        self.assertEqual(resp.json, mock_get_hades_balance.return_value)
-
     @mock.patch('app.resources.update_pending_link_account', auto_spec=True)
     @mock.patch('app.resources.get_balance_and_publish', autospec=False)
     def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_pending_link_account):
-        scheme_slug = 'tesco'
+        scheme_slug = 'harvey-nichols'
         mock_balance_and_publish.side_effect = AgentException('Linking error')
 
         with self.assertRaises(AgentException):
@@ -691,26 +581,6 @@ class TestResources(TestCase):
             'value_label': 'Pending'
         }
         self.assertEqual(balance, expected_balance)
-
-    @mock.patch('app.resources.delete_scheme_account', auto_spec=True)
-    @mock.patch('app.resources.agent_login', auto_spec=False)
-    @mock.patch('app.publish.status', auto_spec=True)
-    @mock.patch('app.publish.balance', auto_spec=False)
-    @mock.patch('app.publish.transactions', auto_spec=True)
-    def test_get_balance_and_publish_delete_error(self, mock_transactions, mock_publish_balance, mock_publish_status,
-                                                  mock_login, mock_delete):
-        mock_login.side_effect = LoginError(SCHEME_REQUESTED_DELETE)
-        user_info = self.user_info
-        user_info['pending'] = False
-
-        with self.assertRaises(AgentException):
-            get_balance_and_publish(Cooperative, 'scheme_slug', self.user_info, 'tid')
-
-        self.assertTrue(mock_login.called)
-        self.assertFalse(mock_publish_balance.called)
-        self.assertFalse(mock_transactions.called)
-        self.assertTrue(mock_publish_status.called)
-        self.assertTrue(mock_delete.called)
 
     @mock.patch('app.resources.update_pending_join_account', auto_spec=False)
     @mock.patch('app.resources.agent_login', auto_spec=False)
