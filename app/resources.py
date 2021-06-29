@@ -6,7 +6,6 @@ import sentry_sdk
 from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
-from flask_restful_swagger import swagger
 from werkzeug.exceptions import NotFound
 
 import settings
@@ -48,24 +47,6 @@ credentials_doc = {
 }
 
 
-def validate_parameters(method):
-    """
-    Checks swaggers defined parameters exist in query string
-    """
-
-    @functools.wraps(method)
-    def f(*args, **kwargs):
-        for parameter in method.__swagger_attr['parameters']:
-            if not parameter["required"] or parameter["paramType"] != "query":
-                continue
-            if parameter["name"] not in request.args:
-                abort(400, message="Missing required query parameter '{0}'".format(parameter["name"]))
-
-        return method(*args, **kwargs)
-
-    return f
-
-
 class Healthz(Resource):
     def get(self):
         return ''
@@ -73,12 +54,6 @@ class Healthz(Resource):
 
 class Balance(Resource):
 
-    @validate_parameters
-    @swagger.operation(
-        responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
-        notes="Return a users balance for a specific agent"
-    )
     def get(self, scheme_slug):
         status = request.args.get('status')
         journey_type = request.args.get('journey_type')
@@ -249,12 +224,6 @@ class Register(Resource):
 
 class Transactions(Resource):
 
-    @validate_parameters
-    @swagger.operation(
-        responseMessages=list(errors.values()),
-        notes="Return a users latest transactions for a specific agent",
-        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
-    )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
         user_set = get_user_set_from_request(request.args)
@@ -294,11 +263,6 @@ class Transactions(Resource):
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
 
-    @validate_parameters
-    @swagger.operation(
-        responseMessages=list(errors.values()),
-        parameters=[scheme_account_id_doc, user_set_doc, user_id_doc, credentials_doc],
-    )
     def get(self, scheme_slug):
         agent_class = get_agent_class(scheme_slug)
         user_set = get_user_set_from_request(request.args)
