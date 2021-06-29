@@ -118,3 +118,4 @@ class TestBplCallback(TestCase):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_collect_credentials.called)
+        self.assertTrue(mock_update_hermes.called)

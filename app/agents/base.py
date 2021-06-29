@@ -1,28 +1,19 @@
-import _ssl
 import hashlib
 import json
-import os
 import time
 import typing as t
 from collections import defaultdict
-from contextlib import contextmanager
 from decimal import Decimal
-from urllib.parse import urlsplit
 from uuid import uuid4
-from random import randint
 from redis import RedisError
 
 import requests
 import arrow
 from blinker import signal
-from requests import Session, HTTPError
+from requests import HTTPError
 from requests.adapters import HTTPAdapter
-from requests.exceptions import ReadTimeout, Timeout
+from requests.exceptions import Timeout
 from requests.packages.urllib3.poolmanager import PoolManager
-from robobrowser import RoboBrowser
-from selenium import webdriver
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
 from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 from app import publish
@@ -32,16 +23,15 @@ from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, TRIPPED_CAPTCHA, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, RESOURCE_LIMIT_REACHED, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
+    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, NOT_SENT, errors, NO_SUCH_RECORD, \
+    ACCOUNT_ALREADY_EXISTS, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
     CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION, UnauthorisedError
 from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
-from app.selenium_pid_store import SeleniumPIDStore
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
-from app.utils import open_browser, TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
+from app.utils import TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
 from app.scheme_account import update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
 
@@ -185,117 +175,6 @@ class BaseMiner(object):
         send_consent_status(retry_data)
 
 
-# Based on RoboBrowser Library
-class RoboBrowserMiner(BaseMiner):
-
-    use_tls_v1 = False
-
-    ################################################################################
-    # ALERT: When changing this, check other agents with their own __init__ method
-    ################################################################################
-
-    def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.scheme_id = user_info['scheme_account_id']
-        self.scheme_slug = scheme_slug
-        self.account_status = user_info['status']
-        self.headers = {}
-        self.proxy = False
-
-        self.session = Session()
-
-        if self.use_tls_v1:
-            self.session.mount('https://', SSLAdapter(_ssl.PROTOCOL_TLSv1))
-
-        if self.proxy:
-            self.session.proxies = {
-                'http': 'http://192.168.1.47:3128',
-                'https': 'https://192.168.1.47:3128'
-            }
-
-        self.browser = RoboBrowser(parser="lxml", session=self.session,
-                                   user_agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:40.0) "
-                                              "Gecko/20100101 Firefox/40.0")
-        self.retry_count = retry_count
-
-    def open_url(self, url, method='get', read_timeout=5, **kwargs):
-        """
-        Sensible defaults and error handling for opening url
-        http://www.mobify.com/blog/http-requests-are-hard/
-        """
-        connect_timeout = self.connect_timeout
-
-        # Combine the passed kwargs with our headers and timeout values.
-        args = {
-            'headers': self.headers,
-            'timeout': (connect_timeout, read_timeout)
-        }
-        args.update(kwargs)
-
-        try:
-            self.browser.open(url, method=method, **args)
-        except ReadTimeout as exception:
-            raise AgentError(END_SITE_DOWN) from exception
-
-        try:
-            self.browser.response.raise_for_status()
-        except HTTPError as e:
-            self._raise_agent_exception(e)
-
-        self.find_captcha()
-
-    def _raise_agent_exception(self, exc):
-        """ Raises an agent exception depending on the exc code
-        if needed: overwrite it on the child agent class to personalise it
-        :param exc: exception (HTTPError)
-        """
-        if exc.response.status_code == 401:
-            raise LoginError(STATUS_LOGIN_FAILED)
-        elif exc.response.status_code == 403:
-            raise AgentError(IP_BLOCKED) from exc
-
-        raise AgentError(END_SITE_DOWN) from exc
-
-    def find_captcha(self):
-        """Look for CAPTCHA on the page"""
-        frame_urls = (frame['src'] for frame in self.browser.select('iframe') if 'src' in frame)
-        for url in frame_urls:
-            for sig in self.known_captcha_signatures:
-                if sig in url:
-                    raise AgentError(TRIPPED_CAPTCHA)
-
-        if self.browser.select('#recaptcha_widget'):
-            raise AgentError(TRIPPED_CAPTCHA)
-
-    def check_error(self, incorrect, error_causes, url_part="path"):
-        parts = urlsplit(self.browser.url)
-        if getattr(parts, url_part) != incorrect:
-            return
-
-        for error in error_causes:
-            selector, error_name, error_match = error
-            message = self.browser.select(selector)
-            if message and message[0].get_text().strip().startswith(error_match):
-                raise LoginError(error_name)
-        raise LoginError(UNKNOWN)
-
-    def view(self):
-        """
-        Open the RoboBrowser object in a browser in its current state
-        """
-        parts = urlsplit(self.browser.url)
-        base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
-        open_browser(self.browser.parsed.prettify("utf-8"), base_href)
-
-    @staticmethod
-    def get_requests_cacert():
-        cacert_file = os.path.dirname(requests.__file__) + '/cacert.pem'
-        if os.path.isfile(cacert_file):
-            return cacert_file
-
-        # verify = True will mean requests uses certifi's cacert.pem for verifying ssl connections
-        return True
-
-
 # Based on requests library
 class ApiMiner(BaseMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
@@ -352,93 +231,6 @@ class ApiMiner(BaseMiner):
             if response in values:
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
-
-
-# Based on Selenium library and headless Firefox
-class SeleniumMiner(BaseMiner):
-
-    def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.storage = self.get_pid_store()
-        self.check_browser_availability()
-        self.delay = 15
-        self.scheme_id = user_info['scheme_account_id']
-        self.scheme_slug = scheme_slug
-        self.account_status = user_info['status']
-        self.headers = {}
-        self.retry_count = retry_count
-        self.setup_browser(self.storage)
-
-    @staticmethod
-    def get_pid_store():
-        storage = SeleniumPIDStore()
-        storage.terminate_old_browsers()
-        return storage
-
-    def check_browser_availability(self):
-        if not self.storage.is_browser_available():
-            # Wait a random time to not create waves of load when all the browsers finish waiting
-            time.sleep(randint(20, 40))
-        if not self.storage.is_browser_available():
-            raise AgentException(
-                AgentError(RESOURCE_LIMIT_REACHED)
-            )
-
-    def setup_browser(self, pid_store):
-        pass
-    #     try:
-    #         options = webdriver.firefox.options.Options()
-    #         options.add_argument('--headless')
-    #         options.add_argument('--hide-scrollbars')
-    #         options.add_argument('--disable-gpu')
-    #         self.browser = webdriver.Firefox(firefox_options=options, log_path='/dev/null')
-    #         pid = self.browser.service.process.pid
-    #         pid_store.set(pid)
-    #         self.browser.implicitly_wait(self.delay)
-    #     except Exception:
-    #         self.close_selenium()
-    #         raise
-    #
-    # def attempt_login(self, credentials):
-    #     try:
-    #         super().attempt_login(credentials)
-    #     finally:
-    #         self.close_selenium()
-
-    def find_captcha(self):
-        self.browser.implicitly_wait(1)
-        for captcha in self.known_captcha_signatures:
-            if self.browser.find_elements_by_xpath('//iframe[contains(@src, "{}")]'.format(captcha)):
-                raise AgentError(TRIPPED_CAPTCHA)
-        self.browser.implicitly_wait(self.delay)
-
-    def view(self):
-        """
-        Open the current state of the headless browser in a non-headless browser
-        """
-        parts = urlsplit(self.browser.current_url)
-        base_href = "{0}://{1}".format(parts.scheme, parts.netloc)
-        open_browser(self.browser.page_source.encode('utf-8'), base_href)
-
-    def close_selenium(self):
-        try:
-            pid = self.browser.service.process.pid
-            self.browser.quit()
-            self.storage.close_process_and_delete(str(pid))
-        except (ProcessLookupError, AttributeError):
-            pass
-
-    @contextmanager
-    def wait_for_page_load(self, timeout=15):
-        old_page = self.browser.find_element_by_tag_name('html')
-        yield
-        WebDriverWait(self.browser, timeout).until(
-            ec.staleness_of(old_page)
-        )
-
-    def wait_for_value(self, css_selector, text, timeout=15):
-        WebDriverWait(self.browser, timeout).until(
-            ec.text_to_be_present_in_element((webdriver.common.by.By.CSS_SELECTOR, css_selector), text)
-        )
 
 
 class MerchantApi(BaseMiner):

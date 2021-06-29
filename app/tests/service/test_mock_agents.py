@@ -1,42 +1,8 @@
 import unittest
-from app.agents.mock_agents import MockAgentCI, MockAgentHN, MockAgentIce
+from app.agents.mock_agents import MockAgentHN, MockAgentIce
 from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
-
-
-class TestCI(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.b = MockAgentCI(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '66666666',
-            'email': 'six@testbink.com'
-        }
-        cls.b.attempt_login(credentials)
-
-    def test_transactions(self):
-        transactions = self.b.transactions()
-        self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
-
-    def test_balance(self):
-        balance = self.b.balance()
-        schemas.balance(balance)
-
-
-class TestCIFail(unittest.TestCase):
-
-    def test_login_fail(self):
-        b = MockAgentCI(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '000000',
-            'email': 'notzero@testbink.com'
-        }
-        with self.assertRaises(LoginError) as e:
-            b.attempt_login(credentials)
-        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 class TestHN(unittest.TestCase):
