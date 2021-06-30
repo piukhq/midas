@@ -27,6 +27,10 @@ def getenv(key: str, default: str = None, conv: t.Callable = str, required: bool
         return None
 
 
+def boolconv(s: str) -> bool:
+    return s.lower() in ["true", "t", "yes"]
+
+
 DEV_HOST = getenv('DEV_HOST', default='0.0.0.0')
 DEV_PORT = getenv('DEV_PORT', default='8000', conv=int)
 
@@ -43,8 +47,8 @@ SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
 
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir))
-DEBUG = getenv('MIDAS_DEBUG', default="false")
-LOCAL = getenv('MIDAS_LOCAL', default="false")
+DEBUG = getenv('MIDAS_DEBUG', default="false", conv=boolconv)
+LOCAL = getenv('MIDAS_LOCAL', default="false", conv=boolconv)
 AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
 REDIS_PASSWORD = getenv('REDIS_PASSWORD', default='')
@@ -57,7 +61,7 @@ RETRY_PERIOD = getenv('RETRY_PERIOD', default='1800', conv=int)
 REDIS_CELERY_DB = getenv('REDIS_CELERY_DB', default='1')
 CELERY_BROKER_URL = getenv(
     'AMQP_DSN',
-    f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
+    default=f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
 )
 CELERY_TASK_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULE = {
@@ -121,7 +125,7 @@ HELIOS_DB_URI = (
     f'{HELIOS_DB_USER}:{HELIOS_DB_PASS}@{HELIOS_DB_HOST}:{HELIOS_DB_PORT}/{HELIOS_DB_NAME}'
 )
 
-CREDENTIALS_LOCAL = getenv('CREDENTIALS_LOCAL', default="false")
+CREDENTIALS_LOCAL = getenv('CREDENTIALS_LOCAL', default="false", conv=boolconv)
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
 VAULT_URL = getenv('VAULT_URL', default='http://localhost:8200')
@@ -136,13 +140,13 @@ BACK_OFF_COOLDOWN = 120
 
 HERMES_CONFIRMATION_TRIES = 10
 
-ENABLE_ICELAND_VALIDATE = getenv('ENABLE_ICELAND_VALIDATE', default="false")
+ENABLE_ICELAND_VALIDATE = getenv('ENABLE_ICELAND_VALIDATE', default="false", conv=boolconv)
 
 BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
 
 # Prometheus settings
-PUSH_PROMETHEUS_METRICS = getenv('PUSH_PROMETHEUS_METRICS', default="true")
+PUSH_PROMETHEUS_METRICS = getenv('PUSH_PROMETHEUS_METRICS', default="true", conv=boolconv)
 PROMETHEUS_PUSH_GATEWAY = 'http://localhost:9100'
 PROMETHEUS_JOB = 'midas'
 
-API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true")
+API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
