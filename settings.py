@@ -43,8 +43,8 @@ SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
 
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir))
-DEBUG = getenv('MIDAS_DEBUG', False)
-LOCAL = getenv('MIDAS_LOCAL', False)
+DEBUG = getenv('MIDAS_DEBUG', default="false")
+LOCAL = getenv('MIDAS_LOCAL', default="false")
 AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
 
 REDIS_PASSWORD = getenv('REDIS_PASSWORD', '')
@@ -80,8 +80,8 @@ ATLAS_URL = getenv('ATLAS_URL', 'http://localhost:8100')
 
 SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
 
-SENTRY_DSN = getenv('SENTRY_DSN', None)
-SENTRY_ENV = getenv('SENTRY_ENV', None)
+SENTRY_DSN = getenv('SENTRY_DSN', required=False)
+SENTRY_ENV = getenv('SENTRY_ENV', required=False)
 if SENTRY_DSN:
     def ignore_errors(event, hint):
         if 'exc_info' in hint:
@@ -121,7 +121,7 @@ HELIOS_DB_URI = (
     f'{HELIOS_DB_USER}:{HELIOS_DB_PASS}@{HELIOS_DB_HOST}:{HELIOS_DB_PORT}/{HELIOS_DB_NAME}'
 )
 
-CREDENTIALS_LOCAL = getenv('CREDENTIALS_LOCAL', False)
+CREDENTIALS_LOCAL = getenv('CREDENTIALS_LOCAL', default="false")
 LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
 
 VAULT_URL = getenv('VAULT_URL', 'http://localhost:8200')
@@ -136,13 +136,13 @@ BACK_OFF_COOLDOWN = 120
 
 HERMES_CONFIRMATION_TRIES = 10
 
-ENABLE_ICELAND_VALIDATE = getenv('ENABLE_ICELAND_VALIDATE', False)
+ENABLE_ICELAND_VALIDATE = getenv('ENABLE_ICELAND_VALIDATE', default="false")
 
 BINK_CLIENT_ID = 'MKd3FfDGBi1CIUQwtahmPap64lneCa2R6GvVWKg6dNg4w9Jnpd'
 
 # Prometheus settings
-PUSH_PROMETHEUS_METRICS = getenv('PUSH_PROMETHEUS_METRICS', True)
+PUSH_PROMETHEUS_METRICS = getenv('PUSH_PROMETHEUS_METRICS', default="true")
 PROMETHEUS_PUSH_GATEWAY = 'http://localhost:9100'
 PROMETHEUS_JOB = 'midas'
 
-API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", True)
+API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true")
