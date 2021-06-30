@@ -51,7 +51,7 @@ REDIS_PASSWORD = getenv('REDIS_PASSWORD', default='')
 REDIS_HOST = getenv('REDIS_HOST', default='localhost')
 REDIS_PORT = getenv('REDIS_PORT', default='6379')
 REDIS_DB = getenv('REDIS_DB', default='0')
-REDIS_URL = getenv('REDIS_URL', f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
+REDIS_URL = getenv('REDIS_URL', default=f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
 
 RETRY_PERIOD = getenv('RETRY_PERIOD', default='1800', conv=int)
 REDIS_CELERY_DB = getenv('REDIS_CELERY_DB', default='1')
