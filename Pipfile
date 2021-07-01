@@ -34,9 +34,9 @@ sentry-sdk = "*"
 requests = "*"
 gaia = "*"
 prometheus-client = "*"
-soteria = "*"
 Werkzeug = "*"
 azure-oidc = "*"
+soteria = "*"
 
 [dev-packages]
 black = "==19.10b0"

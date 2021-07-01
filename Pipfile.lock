@@ -227,6 +227,7 @@
                 "sha256:eb8cc2afe8b05acbd84a43905832ec78e7b3873fb124ca190f574dca7389a87d",
                 "sha256:ee77aa129f481be46f8d92a1a7db57269a2f23052d5f2433b4621bb457081cc9"
             ],
+            "markers": "python_version >= '3.6'",
             "version": "==3.4.7"
         },
         "deprecated": {
@@ -759,10 +760,10 @@
         },
         "soteria": {
             "hashes": [
-                "sha256:d5122a5faf1ed84c0e349b2056d2070dc4144fce8095f50772acdc883ef85a17"
+                "sha256:99833ff78a767a75a764bf08dd9f03696ca4616f3fc4c63cf5c17314ca713a2f"
             ],
             "index": "pypi",
-            "version": "==1.4.3"
+            "version": "==1.4.4"
         },
         "soupsieve": {
             "hashes": [
