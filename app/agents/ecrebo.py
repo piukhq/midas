@@ -6,11 +6,12 @@ import arrow
 import requests
 from blinker import signal
 
+import settings
 from app import constants
 from app.agents.base import ApiMiner
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
 from app.audit import AuditLogger
-from app.configuration import Configuration
+from soteria.configuration import Configuration
 from app.encryption import hash_ids
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
@@ -18,7 +19,8 @@ from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_s
 
 class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN,
+                               settings.CONFIG_SERVICE_URL)
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)

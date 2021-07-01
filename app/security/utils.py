@@ -1,10 +1,12 @@
 import json
+import settings
 from importlib import import_module
 
 from flask import request
 
-from app import configuration, AgentException
+from soteria import configuration
 from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, UNKNOWN
+from app.exceptions import AgentException
 from app.security import registry
 
 
@@ -42,7 +44,8 @@ def authorise(handler_type):
     def decorator(fn):
         def wrapper(*args, **kwargs):
             try:
-                config = configuration.Configuration(kwargs['scheme_slug'], handler_type)
+                config = configuration.Configuration(kwargs['scheme_slug'], handler_type, settings.VAULT_URL,
+                                                     settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
                 security_agent = get_security_agent(config.security_credentials['inbound']['service'],
                                                     config.security_credentials)
 
