@@ -5,7 +5,7 @@ from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR, CONFIGUR
 import settings
 
 # Lower SSL cipher list to allow HN
-requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'
+requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'    # type: ignore
 
 
 class Configuration(soteria.configuration.Configuration):

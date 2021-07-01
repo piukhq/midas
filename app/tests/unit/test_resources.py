@@ -19,15 +19,10 @@ from app.resources import agent_login, registration, agent_register, get_hades_b
 from app.utils import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
-CREDENTIALS = {
-    "bpl-trenette": {},
-    "harvey-nichols": {}
-}
 
-
-def encrypt(scheme_slug):
+def encrypted_credentials():
     aes = AESCipher(AES_KEY.encode())
-    return aes.encrypt(json.dumps(CREDENTIALS[scheme_slug])).decode()
+    return aes.encrypt(json.dumps({})).decode()
 
 
 class TestResources(TestCase):
@@ -73,7 +68,7 @@ class TestResources(TestCase):
     def test_user_balances(self, mock_async_balance_and_publish, mock_update_pending_join_account, mock_pool,
                            mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = {'user_id': 2, 'scheme_account_id': 4}
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -91,7 +86,7 @@ class TestResources(TestCase):
     def test_balance_none_exception(self, mock_update_pending_join_account, mock_pool,
                                     mock_agent_login, mock_publish_balance):
         mock_publish_balance.return_value = None
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -108,7 +103,7 @@ class TestResources(TestCase):
     def test_balance_unknown_error(self, mock_update_pending_join_account, mock_pool, mock_agent_login,
                                    mock_publish_balance):
         mock_publish_balance.side_effect = Exception('test error')
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
 
@@ -125,7 +120,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -140,7 +135,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.thread_pool_executor.submit', auto_spec=True)
     def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
         mock_publish_transactions.return_value = None
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -155,7 +150,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = Exception('test error')
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -172,7 +167,7 @@ class TestResources(TestCase):
     @mock.patch('app.resources.agent_login', auto_spec=True)
     def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
         mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
-        credentials = encrypt("bpl-trenette")
+        credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(
             credentials, 3, 5)
         response = self.client.get(url)
@@ -209,7 +204,7 @@ class TestResources(TestCase):
 
     @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
     def test_register_view(self, mock_pool):
-        credentials = encrypt("harvey-nichols")
+        credentials = encrypted_credentials()
         url = "/harvey-nichols/register"
         data = {
             "scheme_account_id": 2,
@@ -325,7 +320,7 @@ class TestResources(TestCase):
         }
         user_info = {
             'credentials': {
-                'scheme_slug': encrypt(scheme_slug),
+                'scheme_slug': encrypted_credentials(),
                 'email': 'test@email.com'
             },
             'user_set': '4',
@@ -358,7 +353,7 @@ class TestResources(TestCase):
         scheme_slug = "harvey-nichols"
         user_info = {
             'credentials': {
-                'scheme_slug': encrypt(scheme_slug),
+                'scheme_slug': encrypted_credentials(),
                 'email': 'test@email.com'
             },
             'user_set': '4',

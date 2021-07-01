@@ -1,33 +1,46 @@
 stages:
   - tests
   - build
-  - tagging
+  - dev
+  - staging
+  - prod
+
+default:
+  image: binkhq/python:3.9
 
 tests:
   stage: tests
-  image: binkhq/python:3.9
-  script:
+  before_script: &setup
     - pip install pipenv
-    - pipenv install --dev --system --deploy
-    - pytest app/tests/unit --cov=app
+    - pipenv install --dev --system --deploy --ignore-pipfile
+    - pip freeze
+  script:
+    - pytest --verbose --cov app --cov-report term-missing app/tests/unit
 
 complexity:
   stage: tests
-  image: binkhq/python:3.9
+  before_script: *setup
   script:
-    - pip install xenon
     - xenon --max-average A --max-modules B --max-absolute B .
 
-flake8:
+style:
   stage: tests
-  image: binkhq/python:3.9
+  before_script: *setup
   script:
-    - pip install flake8
     - flake8
 
+type-check:
+  stage: tests
+  before_script: *setup
+  script:
+    - mypy --ignore-missing-imports app
+
 build-develop:
-  stage: build
+  stage: dev
+  image: docker:latest
   environment: dev
+  services:
+    - docker:dind
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
@@ -40,6 +53,9 @@ build-develop:
 
 build-master:
   stage: build
+  image: docker:latest
+  services:
+    - docker:dind
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
@@ -50,7 +66,7 @@ build-master:
     - tags
 
 tag-staging:
-  stage: tagging
+  stage: staging
   image: binkops.azurecr.io/tagbot:latest
   environment: staging
   script:
@@ -59,7 +75,7 @@ tag-staging:
     - tags
 
 tag-prod:
-  stage: tagging
+  stage: prod
   image: binkops.azurecr.io/tagbot:latest
   environment: prod
   script:

@@ -35,8 +35,7 @@ class MockPerformance(MockedMiner):
             "value_label": "£{}".format(points),
         }
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):
@@ -94,8 +93,7 @@ class MockPerformanceVoucher(MockedMiner):
             "vouchers": vouchers
         }
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):
