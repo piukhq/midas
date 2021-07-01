@@ -759,10 +759,10 @@
         },
         "soteria": {
             "hashes": [
-                "sha256:d5122a5faf1ed84c0e349b2056d2070dc4144fce8095f50772acdc883ef85a17"
+                "sha256:c97d125ed09e9b33bdf95e3aa0b823029fae2c44db43f32aee8b135e18171137"
             ],
             "index": "pypi",
-            "version": "==1.4.3"
+            "version": "==1.4.4"
         },
         "soupsieve": {
             "hashes": [
