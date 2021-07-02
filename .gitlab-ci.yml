@@ -5,7 +5,7 @@ stages:
 
 tests:
   stage: tests
-  image: binkhq/python:3.7
+  image: binkhq/python:3.9
   script:
     - pip install pipenv
     - pipenv install --dev --system --deploy
@@ -13,14 +13,14 @@ tests:
 
 complexity:
   stage: tests
-  image: binkhq/python:3.7
+  image: binkhq/python:3.9
   script:
     - pip install xenon
     - xenon --max-average A --max-modules B --max-absolute B .
 
 flake8:
   stage: tests
-  image: binkhq/python:3.7
+  image: binkhq/python:3.9
   script:
     - pip install flake8
     - flake8

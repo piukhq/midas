@@ -1,12 +1,10 @@
-from flask_restful_swagger import swagger
 from flask_restful import Api
 
 from app.bpl_callback import JoinCallbackBpl
 from app.resources import Balance, Register, Transactions, AccountOverview, AgentQuestions, Healthz
 from app.resources_callbacks import JoinCallback
 
-api = swagger.docs(Api(), apiVersion='1', api_spec_url="/api/v1/spec")
-
+api = Api()
 
 api.add_resource(Balance, '/<string:scheme_slug>/balance', endpoint="api.points_balance")
 api.add_resource(Transactions, '/<string:scheme_slug>/transactions', endpoint="api.transactions")

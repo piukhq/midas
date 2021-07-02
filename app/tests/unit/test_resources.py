@@ -205,7 +205,7 @@ class TestResources(TestCase):
         url = "/harvey-nichols/transactions?credentials=234"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json, {"message": "Missing required query parameter \'scheme_account_id\'"})
+        self.assertEqual(response.json, {"message": 'Please provide either \"user_set\" or \"user_id\" parameters'})
 
     @mock.patch('app.resources.thread_pool_executor.submit', autospec=True)
     def test_register_view(self, mock_pool):
