@@ -1,4 +1,4 @@
-from app.configuration import Configuration
+from soteria.configuration import Configuration
 
 
 TYPES = {

@@ -19,7 +19,6 @@ from tenacity import retry, stop_after_attempt, retry_if_exception_type
 from app import publish
 from app.audit import AuditLogger
 from app.back_off_service import BackOffService
-from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
@@ -33,7 +32,8 @@ from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.utils import TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
 from app.scheme_account import update_pending_join_account
-from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
+from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
+from soteria.configuration import Configuration
 
 
 class SSLAdapter(HTTPAdapter):
@@ -413,7 +413,7 @@ class MerchantApi(BaseMiner):
         """
         self.message_uid = str(uuid4())
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type)
+            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
 
         logger.setLevel(self.config.log_level)
 
@@ -642,7 +642,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type)
+            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
         logger.setLevel(self.config.log_level)
 
         self.record_uid = hash_ids.encode(self.scheme_id)

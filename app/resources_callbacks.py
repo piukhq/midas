@@ -8,13 +8,13 @@ from requests.packages.urllib3.util.retry import Retry
 
 from app import retry, AgentException, UnknownException
 from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR, RegistrationError, UNKNOWN
-from app.configuration import Configuration
 from app.encryption import hash_ids
 from app.resources import get_agent_class, create_response, decrypt_credentials
 from app.scheme_account import update_pending_join_account
 from app.utils import SchemeAccountStatus, JourneyTypes
 from app.security.utils import authorise
 from settings import SERVICE_API_KEY, HERMES_URL
+from soteria.configuration import Configuration
 
 
 class JoinCallback(Resource):

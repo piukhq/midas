@@ -1,4 +1,5 @@
 import json
+import settings
 from collections import OrderedDict
 from unittest.mock import call, MagicMock, ANY
 from uuid import uuid4
@@ -19,7 +20,6 @@ from app.agents.exceptions import NOT_SENT, errors, UNKNOWN, LoginError, AgentEr
     SERVICE_CONNECTION_ERROR, GENERAL_ERROR, CARD_NOT_REGISTERED, CARD_NUMBER_ERROR, STATUS_LOGIN_FAILED, \
     RegistrationError, VALIDATION, UnauthorisedError, END_SITE_DOWN
 from app.back_off_service import BackOffService
-from app.configuration import Configuration
 from app.resources import agent_register
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
@@ -27,6 +27,7 @@ from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 from app.utils import JourneyTypes, SchemeAccountStatus
+from soteria.configuration import Configuration, ConfigurationException
 
 mock_configuration = MagicMock()
 mock_configuration.scheme_slug = 'id'
@@ -1129,17 +1130,17 @@ class TestMerchantApi(FlaskTestCase):
     def test_config_service_handles_connection_error(self, mock_request):
         mock_request.side_effect = requests.ConnectionError
 
-        with self.assertRaises(AgentError) as e:
-            Configuration('', 1)
+        with self.assertRaises(ConfigurationException) as e:
+            Configuration('', 1, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
 
-        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
+        self.assertEqual(e.exception.args[0], "Failed to connect to configuration service.")
 
     def test_vault_connection_error_is_handled(self):
-        with self.assertRaises(AgentError) as e:
-            Configuration("", 0).get_security_credentials([{'storage_key': 'value'}])
+        with self.assertRaises(ConfigurationException) as e:
+            Configuration("", 0, settings.VAULT_URL, settings.VAULT_TOKEN,
+                          settings.CONFIG_SERVICE_URL).get_security_credentials([{'storage_key': 'value'}])
 
-        self.assertEqual(e.exception.code, errors[SERVICE_CONNECTION_ERROR]['code'])
-        self.assertEqual(e.exception.message, 'Error connecting to configuration service.')
+        self.assertEqual(e.exception.args[0], "Failed to connect to configuration service.")
 
     # TODO: update for new soteria
     # @mock.patch('requests.get', autospec=True)
@@ -1187,8 +1188,8 @@ class TestMerchantApi(FlaskTestCase):
             'security_credentials': self.config.security_credentials
         }
 
-        with self.assertRaises(AgentError):
-            Configuration('', 1)
+        with self.assertRaises(ConfigurationException):
+            Configuration('', 1, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
 
     @mock.patch('app.resources_callbacks.JoinCallback._collect_credentials')
     @mock.patch('app.resources_callbacks.retry', autospec=True)

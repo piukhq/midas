@@ -9,6 +9,7 @@ from typing import Optional
 import arrow
 import requests
 import sentry_sdk
+
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -22,8 +23,8 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from soteria.configuration import Configuration
 from app.audit import AuditLogger
-from app.configuration import Configuration
 from app.encryption import HashSHA1, hash_ids
 from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
@@ -32,7 +33,7 @@ from arrow import Arrow
 from blinker import signal
 from gaia.user_token import UserTokenStore
 from requests.exceptions import Timeout
-from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger
+from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
 from tenacity import (
     Retrying,
     retry,
@@ -53,7 +54,7 @@ class Acteol(ApiMiner):
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
         self.credentials = user_info["credentials"]
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
