@@ -3,7 +3,6 @@ import uuid
 from copy import deepcopy
 from decimal import Decimal
 from time import sleep
-from typing import Dict, List
 
 import arrow
 from app.agents.base import MockedMiner
@@ -95,8 +94,7 @@ class MockAgentHN(MockedMiner):
             "reward_tier": 1,
         }
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):
@@ -211,8 +209,7 @@ class MockAgentIce(MockedMiner):
             "value_label": "£{}".format(value),
         }
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):
@@ -299,7 +296,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
                 "card_number": credentials["card_number"],
                 "merchant_identifier": merchant_identifier,
             }
-            existing_credentials: Dict = self.user_info.get("credentials", {})
+            existing_credentials: dict = self.user_info.get("credentials", {})
             self.user_info["credentials"] = {**existing_credentials, **self.identifier}
 
         return
@@ -345,8 +342,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
 
         return balance_response
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):
@@ -374,7 +370,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
 
         return mock_voucher
 
-    def _validate_card_number(self, card_numbers: List, card_number: str):
+    def _validate_card_number(self, card_numbers: dict[str, str], card_number: str):
         """
         Validation: does the incoming card match one of our test ones?
         """
@@ -386,7 +382,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             return user_id
 
     def _check_for_and_raise_exceptions(
-        self, users: Dict, card_numbers: List, card_number: str
+        self, users: dict, card_numbers: dict[str, str], card_number: str
     ):
         """
         Check against users dicts and raise the expected error for that card number, if there is one
