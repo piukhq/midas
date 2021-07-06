@@ -45,9 +45,9 @@ class TestBplCallback(TestCase):
             }
             mock_configuration.return_value = mock_config_object
 
-            MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE = [
-                1,
-                {
+            self.trenette = Trenette(
+                retry_count=1,
+                user_info={
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
@@ -63,9 +63,8 @@ class TestBplCallback(TestCase):
                     },
                     "channel": "com.bink.wallet",
                 },
-            ]
-
-            self.trenette = Trenette(*MOCK_AGENT_CLASS_ARGUMENTS_TRENETTE, scheme_slug="bpl-trenette")
+                scheme_slug="bpl-trenette"
+            )
             self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
 
     @mock.patch.object(JoinCallbackBpl, 'process_join_callback')

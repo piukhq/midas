@@ -1,25 +1,26 @@
-import time
-import typing as t
 from decimal import Decimal
 from uuid import uuid4
+from typing import Optional
 
 import arrow
 import requests
+from blinker import signal
+
+import settings
 from app import constants
 from app.agents.base import ApiMiner
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
 from app.audit import AuditLogger
-from app.configuration import Configuration
+from soteria.configuration import Configuration
 from app.encryption import hash_ids
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
 
-from blinker import signal
-
 
 class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN,
+                               settings.CONFIG_SERVICE_URL)
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
@@ -63,57 +64,52 @@ class Ecrebo(ApiMiner):
 
     def _get_membership_response(self, endpoint: str, journey_type: int, from_login: bool = False,
                                  integration_service: str = "", message_uid: str = "",
-                                 record_uid: str = "") -> t.Dict:
+                                 record_uid: str = "") -> dict:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
-        # TODO: this retry loop can be removed when Ecrebo finish making their API synchronous.
-        attempts = 5
-        while attempts > 0:
-            attempts -= 1
-
-            resp = requests.get(url, headers=headers)
+        resp = requests.get(url, headers=headers)
+        try:
+            resp.raise_for_status()
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code
+            )
+            membership_data = resp.json()["data"]
+            return membership_data
+        except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
             try:
-                resp.raise_for_status()
-                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                                   latency=resp.elapsed.total_seconds(),
-                                                   response_code=resp.status_code)
-                membership_data = resp.json()["data"]
-                return membership_data
-            except requests.HTTPError as ex:  # Try to capture as much as possible for metrics
-                try:
-                    latency_seconds = ex.response.elapsed.total_seconds()
-                except AttributeError:
-                    latency_seconds = 0
-                signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=endpoint,
-                                                   latency=latency_seconds, response_code=ex.response.status_code)
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=ex.response.reason
+                latency_seconds = ex.response.elapsed.total_seconds()
+            except AttributeError:
+                latency_seconds = 0
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=endpoint,
+                latency=latency_seconds,
+                response_code=ex.response.status_code
+            )
+            signal("request-fail").send(
+                self, slug=self.scheme_slug, channel=self.channel, error=ex.response.reason
+            )
+            if ex.response.status_code == 404:
+                raise LoginError(STATUS_LOGIN_FAILED)
+            else:
+                raise  # base agent will convert this to an unknown error
+        finally:
+            if from_login:
+                self.audit_logger.add_response(
+                    response=resp,
+                    scheme_slug=self.scheme_slug,
+                    handler_type=journey_type,
+                    integration_service=integration_service,
+                    status_code=resp.status_code,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
                 )
-                if ex.response.status_code == 404:
-                    raise LoginError(STATUS_LOGIN_FAILED)
-                else:
-                    raise  # base agent will convert this to an unknown error
-            except (requests.RequestException, KeyError):
-                # non-http errors will be retried a few times
-                if attempts == 0:
-                    signal("request-fail").send(
-                        self, slug=self.scheme_slug, channel=self.channel, error="Retry limit reached"
-                    )
-                    raise
-                else:
-                    time.sleep(3)
-            finally:
-                if from_login:
-                    self.audit_logger.add_response(
-                        response=resp,
-                        scheme_slug=self.scheme_slug,
-                        handler_type=journey_type,
-                        integration_service=integration_service,
-                        status_code=resp.status_code,
-                        message_uid=message_uid,
-                        record_uid=record_uid,
-                    )
 
     def register(self, credentials):
         consents = credentials.get("consents", [])
@@ -225,6 +221,7 @@ class Ecrebo(ApiMiner):
     def _make_issued_voucher(self, voucher_type: VoucherType, json: dict, target_value: Decimal) -> dict:
         issue_date = arrow.get(json["issued"], "YYYY-MM-DD")
         expiry_date = arrow.get(json["expiry_date"], "YYYY-MM-DD")
+        redeem_date: Optional[arrow.Arrow]
         if "redeemed" in json:
             redeem_date = arrow.get(json["redeemed"], "YYYY-MM-DD")
         else:
@@ -252,7 +249,7 @@ class Ecrebo(ApiMiner):
         return voucher
 
     def _make_balance_response(
-            self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: t.List[dict]
+            self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: list[dict]
     ) -> dict:
         return {
             "points": value,
@@ -307,8 +304,7 @@ class Ecrebo(ApiMiner):
         else:
             raise ValueError(f"Unsupported Ecrebo campaign type: {campaign_type}")
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         return row
 
     def scrape_transactions(self):

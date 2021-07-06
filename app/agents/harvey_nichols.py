@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List
+from typing import Mapping
 from uuid import uuid4
 from decimal import Decimal
 
@@ -12,13 +12,13 @@ from app.agents.exceptions import (
     NO_SUCH_RECORD,
 )
 from app.audit import RequestAuditLog, AuditLogType
-from app.configuration import Configuration
 from app.encryption import AESCipher, hash_ids
 from app.utils import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, AES_KEY, logger
 from app.tasks.resend_consents import send_consents
+from soteria.configuration import Configuration
 import arrow
 from blinker import signal
 import json
@@ -40,14 +40,14 @@ class HarveyNichols(ApiMiner):
         self.audit_logger.filter_fields = self.encrypt_sensitive_fields
 
     @staticmethod
-    def encrypt_sensitive_fields(req_audit_logs: List[RequestAuditLog]) -> List[RequestAuditLog]:
+    def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
         aes = AESCipher(AES_KEY.encode())
 
         # Values stored in AuditLog objects are references so they should be copied before modifying
         # in case the values are also used elsewhere.
         req_audit_logs_copy = deepcopy(req_audit_logs)
         for audit_log in req_audit_logs_copy:
-            if audit_log.audit_log_type == AuditLogType.REQUEST:
+            if audit_log.audit_log_type == AuditLogType.REQUEST and isinstance(audit_log.payload, Mapping):
                 try:
                     audit_log.payload['CustomerSignUpRequest']['password'] = aes.encrypt(
                         audit_log.payload['CustomerSignUpRequest']['password']
@@ -165,8 +165,7 @@ class HarveyNichols(ApiMiner):
                                            response_code=transaction_response.status_code)
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, row):
         if type(row["value"]) == int:
             money_value = abs(row["value"])
             formatted_money_value = " £{:.2f}".format(Decimal(money_value / 100))

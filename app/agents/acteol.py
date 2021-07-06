@@ -1,14 +1,15 @@
-import enum
 import json
+from enum import Enum
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Dict, List
 from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
+from typing import Optional
 
 import arrow
 import requests
 import sentry_sdk
+
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -22,8 +23,8 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from soteria.configuration import Configuration
 from app.audit import AuditLogger
-from app.configuration import Configuration
 from app.encryption import HashSHA1, hash_ids
 from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.utils import TWO_PLACES
@@ -32,7 +33,7 @@ from arrow import Arrow
 from blinker import signal
 from gaia.user_token import UserTokenStore
 from requests.exceptions import Timeout
-from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger
+from settings import HERMES_URL, REDIS_URL, SERVICE_API_KEY, logger, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
 from tenacity import (
     Retrying,
     retry,
@@ -45,8 +46,15 @@ RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on 
 
 
 class Acteol(ApiMiner):
+    ORIGIN_ROOT: str
+    N_TRANSACTIONS: int
+    API_TIMEOUT: int
+    AUTH_TOKEN_TIMEOUT: int
+    AGENT_CONSENT_TRIES: int
+    HERMES_CONFIRMATION_TRIES: int
+
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
         self.credentials = user_info["credentials"]
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
@@ -58,7 +66,7 @@ class Acteol(ApiMiner):
         self.audit_logger = AuditLogger(channel=self.channel, journeys=())
 
     # Public methods
-    def authenticate(self) -> Dict:
+    def authenticate(self) -> dict:
         """
         Get an API token from redis if we have one, otherwise login to get one and store in cache.
         This token is not per-user, it is for our backend to use their API
@@ -69,7 +77,7 @@ class Acteol(ApiMiner):
         current_timestamp = arrow.utcnow().int_timestamp
         token = {}
         try:
-            token: Dict = json.loads(self.token_store.get(self.scheme_id))
+            token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
                 if self._token_is_valid(
                     token=token, current_timestamp=current_timestamp
@@ -89,7 +97,7 @@ class Acteol(ApiMiner):
 
         return token
 
-    def register(self, credentials: Dict):
+    def register(self, credentials: dict):
         """
         Register a new loyalty scheme member with Acteol. The steps are:
         * Get API token
@@ -144,7 +152,7 @@ class Acteol(ApiMiner):
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         consents = credentials.get("consents", [{}])
-        email_optin: Dict = self._get_email_optin_from_consent(consents=consents)
+        email_optin = self._get_email_optin_from_consent(consents=consents)
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
         else:
@@ -159,7 +167,7 @@ class Acteol(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-    def balance(self) -> Dict:
+    def balance(self) -> Optional[dict]:
         """
         Get the balance from the Acteol API, return the expected format. For the vouchers element, these fields are
         expected by hermes:
@@ -187,9 +195,9 @@ class Acteol(ApiMiner):
         except AgentError as ex:
             sentry_issue_id = sentry_sdk.capture_exception(ex)
             logger.error(
-                f"Balance Error: {ex.message},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
+                f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}")
-            return
+            return None
 
         if not self._customer_fields_are_present(customer_details=customer_details):
             logger.debug(
@@ -212,7 +220,7 @@ class Acteol(ApiMiner):
         self.update_hermes_credentials(ctcid, customer_details)
 
         # Get all vouchers for this customer
-        vouchers: List = self._get_vouchers(ctcid=ctcid)
+        vouchers = self._get_vouchers(ctcid=ctcid)
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
@@ -223,7 +231,7 @@ class Acteol(ApiMiner):
         bink_mapped_vouchers.append(in_progress_voucher)
         # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
-            bink_mapped_voucher: Dict = self._map_acteol_voucher_to_bink_struct(
+            bink_mapped_voucher = self._map_acteol_voucher_to_bink_struct(
                 voucher=bink_only_voucher
             )
             bink_mapped_vouchers.append(bink_mapped_voucher)
@@ -266,7 +274,7 @@ class Acteol(ApiMiner):
             headers=headers,
         )
 
-    def parse_transaction(self, transaction: Dict) -> Dict:
+    def parse_transaction(self, transaction: dict[str, str]) -> dict:
         """
         Convert an individual transaction record from Acteol's system to the format expected by Bink
 
@@ -299,7 +307,7 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def scrape_transactions(self) -> List[Dict]:
+    def scrape_transactions(self) -> list[dict]:
         """
         We're not scraping, we're calling the Acteol API
 
@@ -316,15 +324,15 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
 
-        # The API can return a dict if there's an error but a List normally returned.
-        if isinstance(resp_json, Dict):
+        # The API can return a dict if there's an error but a list normally returned.
+        if isinstance(resp_json, dict):
             error_msg = resp_json.get("Error")
             if error_msg:
                 sentry_issue_id = sentry_sdk.capture_exception()
                 logger.error(
                     f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
                     f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}")
-                return
+                return []
 
         return resp_json
 
@@ -333,7 +341,7 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def get_contact_ids_by_email(self, email: str) -> Dict:
+    def get_contact_ids_by_email(self, email: str) -> dict:
         """
         Get dict of contact ids from Acteol by email
 
@@ -380,9 +388,9 @@ class Acteol(ApiMiner):
             try:
                 ctcid = self._validate_member_number(credentials)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
-                self.identifier_type = (
-                    "card_number"  # Not sure this is needed but the base class has one
-                )
+                self.identifier_type = [
+                    "card_number",  # Not sure this is needed but the base class has one
+                ]
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
                     "card_number": credentials["card_number"],
@@ -405,7 +413,7 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _get_customer_details(self, origin_id: str) -> Dict:
+    def _get_customer_details(self, origin_id: str) -> dict:
         """
         Get the customer details from Acteol
 
@@ -457,9 +465,9 @@ class Acteol(ApiMiner):
             )
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
-        # The API can return a dict if there's an error but a List normally returned.
+        # The API can return a dict if there's an error but a list normally returned.
         resp_json = resp.json()
-        if isinstance(resp_json, Dict):
+        if isinstance(resp_json, dict):
             self._check_response_for_error(resp_json)
 
         if resp_json:
@@ -473,7 +481,7 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _create_account(self, origin_id: str, credentials: Dict) -> str:
+    def _create_account(self, origin_id: str, credentials: dict) -> str:
         """
         Create an account in Acteol
 
@@ -599,12 +607,12 @@ class Acteol(ApiMiner):
 
         return origin_id
 
-    def _token_is_valid(self, token: Dict, current_timestamp: int) -> bool:
+    def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
         """
         Determine if our token is still valid, based on whether the difference between the current timestamp
         and the token's timestamp is less than the configured timeout in seconds
 
-        :param token: Dict of token data
+        :param token: dict of token data
         :param current_timestamp: timestamp of current time from Arrow
         :return: Boolean
         """
@@ -633,7 +641,7 @@ class Acteol(ApiMiner):
 
         return token
 
-    def _store_token(self, acteol_access_token: str, current_timestamp: int) -> Dict:
+    def _store_token(self, acteol_access_token: str, current_timestamp: int) -> dict:
         """
         Create a full token, with timestamp, from the acteol access token
 
@@ -649,7 +657,7 @@ class Acteol(ApiMiner):
 
         return token
 
-    def _customer_fields_are_present(self, customer_details: Dict) -> bool:
+    def _customer_fields_are_present(self, customer_details: dict) -> bool:
         """
         These fields are required and expected, so it's an exception if they're not there
         """
@@ -660,7 +668,7 @@ class Acteol(ApiMiner):
             ]
         )
 
-    def _set_customer_preferences(self, ctcid: str, email_optin: Dict):
+    def _set_customer_preferences(self, ctcid: str, email_optin: dict):
         """
         Set user's email opt-in preferences in Acteol, retry on fail up to retry limit and then
         update Hermes with the results.
@@ -698,7 +706,7 @@ class Acteol(ApiMiner):
             }
         )
 
-    def _get_email_optin_from_consent(self, consents: List[Dict]) -> Dict:
+    def _get_email_optin_from_consent(self, consents: list[dict]) -> dict:
         """
         Find the dict (should only be one, so return the first one found) with a key of EmailOptin that also has a
         key of "value" set to True
@@ -718,7 +726,7 @@ class Acteol(ApiMiner):
         else:
             return {}
 
-    def _validate_member_number(self, credentials: Dict) -> str:
+    def _validate_member_number(self, credentials: dict) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -810,7 +818,7 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _get_vouchers(self, ctcid: str) -> List:
+    def _get_vouchers(self, ctcid: str) -> list[dict]:
         """
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
 
@@ -829,11 +837,11 @@ class Acteol(ApiMiner):
         # The API can return a list if there's an error.
         self._check_voucher_response_for_errors(resp_json)
 
-        vouchers: List = resp_json["voucher"]
+        vouchers = resp_json["voucher"]
 
         return vouchers
 
-    def _filter_bink_vouchers(self, vouchers: List[Dict]) -> List[Dict]:
+    def _filter_bink_vouchers(self, vouchers: list[dict]) -> list[dict]:
         """
         Filter for BINK only vouchers
 
@@ -846,7 +854,7 @@ class Acteol(ApiMiner):
 
         return bink_only_vouchers
 
-    def _map_acteol_voucher_to_bink_struct(self, voucher: Dict) -> Dict:
+    def _map_acteol_voucher_to_bink_struct(self, voucher: dict) -> dict:
         """
         Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state.
         These are mutually exclusive states, the voucher should never be in more than one at any time:
@@ -893,7 +901,7 @@ class Acteol(ApiMiner):
 
         return {}
 
-    def _make_redeemed_voucher(self, voucher: Dict) -> [Dict, None]:
+    def _make_redeemed_voucher(self, voucher: dict) -> Optional[dict]:
         """
         Make a Bink redeemed voucher dict if the Acteol voucher is of that type
 
@@ -915,7 +923,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_cancelled_voucher(self, voucher: Dict) -> [Dict, None]:
+    def _make_cancelled_voucher(self, voucher: dict) -> Optional[dict]:
         """
         Make a Bink cancelled voucher dict if the Acteol voucher is of that type
 
@@ -937,8 +945,8 @@ class Acteol(ApiMiner):
         return None
 
     def _make_issued_voucher(
-        self, voucher: Dict, current_datetime: Arrow
-    ) -> [Dict, None]:
+        self, voucher: dict, current_datetime: Arrow
+    ) -> Optional[dict]:
         """
         Make a Bink issued voucher dict if the Acteol voucher is of that type
 
@@ -947,9 +955,11 @@ class Acteol(ApiMiner):
         :return: dict of issued voucher data mapped for Bink, or None
         """
 
+        expiry: Optional[str] = voucher.get("ExpiryDate")
         if (
             voucher.get("URD")
-            and (arrow.get(voucher.get("ExpiryDate")) >= current_datetime)
+            and expiry
+            and (arrow.get(expiry) >= current_datetime)
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
         ):
@@ -966,8 +976,8 @@ class Acteol(ApiMiner):
         return None
 
     def _make_expired_voucher(
-        self, voucher: Dict, current_datetime: Arrow
-    ) -> [Dict, None]:
+        self, voucher: dict, current_datetime: Arrow
+    ) -> Optional[dict]:
         """
         Make a Bink expired voucher dict if the Acteol voucher is of that type
 
@@ -976,7 +986,8 @@ class Acteol(ApiMiner):
         :return: dict of expired voucher data mapped for Bink, or None
         """
 
-        if arrow.get(voucher.get("ExpiryDate")) < current_datetime:
+        expiry: Optional[str] = voucher.get("ExpiryDate")
+        if expiry and arrow.get(expiry) < current_datetime:
             return {
                 "state": voucher_state_names[VoucherState.EXPIRED],
                 "type": VoucherType.STAMPS.value,
@@ -989,7 +1000,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_in_progress_voucher(self, points: int, voucher_type: enum) -> Dict:
+    def _make_in_progress_voucher(self, points: Decimal, voucher_type: Enum) -> dict:
         """
         Make an in-progress voucher dict
 
@@ -1005,15 +1016,13 @@ class Acteol(ApiMiner):
 
         return in_progress_voucher
 
-    def _format_money_value(self, money_value: [float, int]) -> str:
+    def _format_money_value(self, money_value: str) -> str:
         """
         Pad to 2 decimal places and stringify
         """
-        money_value = self._decimalise_to_two_places(value=money_value)
+        return str(self._decimalise_to_two_places(value=money_value))
 
-        return str(money_value)
-
-    def _decimalise_to_two_places(self, value: [float, int]) -> Decimal:
+    def _decimalise_to_two_places(self, value: str) -> Decimal:
         """
         Round to 2 dp e.g. 7.899 -> 7.90 as Decimal
         """
@@ -1040,7 +1049,7 @@ class Acteol(ApiMiner):
         # Add auth for subsequent API calls
         self.headers = self._make_headers(token=token["acteol_access_token"])
 
-    def _check_response_for_error(self, resp_json: Dict):
+    def _check_response_for_error(self, resp_json: dict):
         """
         Handle response error
         """
@@ -1050,7 +1059,7 @@ class Acteol(ApiMiner):
             logger.error(f"End Site Down Error: {error_msg}")
             raise AgentError(END_SITE_DOWN)
 
-    def _check_voucher_response_for_errors(self, resp_json: Dict):
+    def _check_voucher_response_for_errors(self, resp_json: dict):
         """
         Handle voucher response errors
         """
@@ -1063,7 +1072,7 @@ class Acteol(ApiMiner):
                 f"Scheme Account ID: {self.scheme_id}")
             return
 
-    def _check_deleted_user(self, resp_json: Dict):
+    def _check_deleted_user(self, resp_json: dict):
         # When calling a GET Balance set of calls and the response is successful
         # BUT the CustomerID = “0”then this is how Acteol return a deleted account
         card_number = str(resp_json["CurrentMemberNumber"])
@@ -1150,9 +1159,8 @@ class Wasabi(Acteol):
     # Number of attempts to send consents to Agent must be > 0
     # (0 = no send , 1 send once, 2 = 1 retry)
     AGENT_CONSENT_TRIES = 10
-    HERMES_CONFIRMATION_TRIES = (
-        10  # no of attempts to confirm to hermes Agent has received consents
-    )
+    # no of attempts to confirm to hermes Agent has received consents
+    HERMES_CONFIRMATION_TRIES = 10
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
