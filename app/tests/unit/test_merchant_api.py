@@ -26,7 +26,7 @@ from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
-from app.utils import JourneyTypes, SchemeAccountStatus
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from soteria.configuration import Configuration, ConfigurationException
 
 mock_configuration = MagicMock()

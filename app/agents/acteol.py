@@ -27,7 +27,7 @@ from soteria.configuration import Configuration
 from app.audit import AuditLogger
 from app.encryption import HashSHA1, hash_ids
 from app.tasks.resend_consents import ConsentStatus, send_consents
-from app.utils import TWO_PLACES
+from app.scheme_account import TWO_PLACES
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from arrow import Arrow
 from blinker import signal
