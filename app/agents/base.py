@@ -1,7 +1,7 @@
 import hashlib
 import json
 import time
-import typing as t
+from typing import Optional, Any
 from collections import defaultdict
 from decimal import Decimal
 from uuid import uuid4
@@ -19,7 +19,6 @@ from tenacity import retry, stop_after_attempt, retry_if_exception_type
 from app import publish
 from app.audit import AuditLogger
 from app.back_off_service import BackOffService
-from app.configuration import Configuration
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
 from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
@@ -32,7 +31,8 @@ from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes, update_pending_join_account
-from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
+from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
+from soteria.configuration import Configuration
 
 
 class SSLAdapter(HTTPAdapter):
@@ -50,7 +50,7 @@ class SSLAdapter(HTTPAdapter):
 
 
 class BaseMiner(object):
-    retry_limit = 2
+    retry_limit: Optional[int] = 2
     point_conversion_rate = Decimal('0')
     connect_timeout = 3
     known_captcha_signatures = [
@@ -58,8 +58,8 @@ class BaseMiner(object):
         'captcha',
         'Incapsula',
     ]
-    identifier_type = None
-    identifier = None
+    identifier_type: Optional[list[str]] = None
+    identifier: Optional[dict[str, str]] = None
     expecting_callback = False
     is_async = False
     create_journey = None
@@ -76,8 +76,7 @@ class BaseMiner(object):
     def scrape_transactions(self):
         raise NotImplementedError()
 
-    @staticmethod
-    def parse_transaction(row):
+    def parse_transaction(self, transaction: dict[str, str]) -> dict[str, Any]:
         raise NotImplementedError()
 
     def calculate_label(self, points):
@@ -147,7 +146,7 @@ class BaseMiner(object):
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
     @staticmethod
-    def consent_confirmation(consents_data: t.List[t.Dict], status: int) -> None:
+    def consent_confirmation(consents_data: list[dict], status: int) -> None:
         """
         Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
 
@@ -318,7 +317,7 @@ class MerchantApi(BaseMiner):
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
 
         # Will be an empty dict if retries exhausted, or a dict that can be checked for an error
-        self.result: t.Dict = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
+        self.result = self._outbound_handler(credentials, self.scheme_slug, handler_type=handler_type)
 
         error = self._check_for_error_response(self.result)
         if error:
@@ -425,7 +424,7 @@ class MerchantApi(BaseMiner):
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey='join')
 
-    def _outbound_handler(self, data, scheme_slug, handler_type) -> t.Dict:
+    def _outbound_handler(self, data, scheme_slug, handler_type) -> dict:
         """
         Handler service to apply merchant configuration and build JSON, for request to the merchant, and
         handles response. Configuration service is called to retrieve merchant config.
@@ -436,7 +435,7 @@ class MerchantApi(BaseMiner):
         """
         self.message_uid = str(uuid4())
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type)
+            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
 
         logger.setLevel(self.config.log_level)
 
@@ -472,7 +471,7 @@ class MerchantApi(BaseMiner):
 
         logger.info(json.dumps(logging_info))
 
-        response_json: [None, str] = self._sync_outbound(payload)
+        response_json: Optional[str] = self._sync_outbound(payload)
 
         response_data = {}
         if response_json:
@@ -665,7 +664,7 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type)
+            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
         logger.setLevel(self.config.log_level)
 
         self.record_uid = hash_ids.encode(self.scheme_id)
@@ -778,13 +777,13 @@ class MerchantApi(BaseMiner):
 
 
 class MockedMiner(BaseMiner):
-    add_error_credentials = {}
-    existing_card_numbers = []
-    ghost_card_prefix = None
-    join_fields = []
+    add_error_credentials: dict[str, dict[str, str]] = {}
+    existing_card_numbers: dict[str, str] = {}
+    ghost_card_prefix: Optional[str] = None
+    join_fields: set[str] = set()
     join_prefix = '1'
     retry_limit = None
-    titles = []
+    titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         self.account_status = user_info['status']

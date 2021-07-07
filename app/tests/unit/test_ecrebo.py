@@ -11,8 +11,11 @@ from requests import HTTPError, RequestException
 
 
 class TestEcreboSignal(unittest.TestCase):
+    fatface: FatFace
+    whsmith: WhSmith
+
     @classmethod
-    def setUp(self) -> None:
+    def setUp(cls) -> None:
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
@@ -29,9 +32,28 @@ class TestEcreboSignal(unittest.TestCase):
             }
             mock_configuration.return_value = mock_config_object
 
-            MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH = [
-                1,
-                {
+            cls.fatface = FatFace(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": 2,
+                    "credentials": {
+                        "email": "mrfatface@ecrebo.com",
+                        "first_name": "Test",
+                        "last_name": "FatFace",
+                        "join_date": "2021/02/24",
+                        "card_number": "1234567",
+                        "consents": [{"slug": "email_marketing", "value": True}],
+                    },
+                    "channel": "com.bink.wallet",
+                },
+                scheme_slug="fatface"
+            )
+            cls.whsmith = WhSmith(
+                retry_count=1,
+                user_info={
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
@@ -49,30 +71,10 @@ class TestEcreboSignal(unittest.TestCase):
                     },
                     "channel": "com.bink.wallet",
                 },
-            ]
-            MOCK_AGENT_CLASS_ARGUMENTS_FATFACE = [
-                1,
-                {
-                    "scheme_account_id": 1,
-                    "status": 1,
-                    "user_set": "1,2",
-                    "journey_type": 2,
-                    "credentials": {
-                        "email": "mrfatface@ecrebo.com",
-                        "first_name": "Test",
-                        "last_name": "FatFace",
-                        "join_date": "2021/02/24",
-                        "card_number": "1234567",
-                        "consents": [{"slug": "email_marketing", "value": True}],
-                    },
-                    "channel": "com.bink.wallet",
-                },
-            ]
-
-            self.fatface = FatFace(*MOCK_AGENT_CLASS_ARGUMENTS_FATFACE, scheme_slug="fatface")
-            self.whsmith = WhSmith(*MOCK_AGENT_CLASS_ARGUMENTS_WHSMITH, scheme_slug="whsmith-rewards")
-            self.fatface.base_url = "https://london-capi-test.ecrebo.com"
-            self.whsmith.base_url = "https://london-capi-test.ecrebo.com"
+                scheme_slug="whsmith-rewards"
+            )
+            cls.fatface.base_url = "https://london-capi-test.ecrebo.com"
+            cls.whsmith.base_url = "https://london-capi-test.ecrebo.com"
 
     @httpretty.activate
     @patch("app.agents.ecrebo.signal", autospec=True)

@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple, List
+from typing import Union, Iterable, NamedTuple, Any, Optional
 from uuid import uuid4
 
 import arrow
@@ -9,9 +9,9 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from requests import Response
 
-from app.configuration import Configuration
 from app.http_request import get_headers
 from settings import logger, ATLAS_URL
+from soteria.configuration import Configuration
 
 
 class AuditLogType(str, Enum):
@@ -28,12 +28,7 @@ class RequestAuditLog(NamedTuple):
     record_uid: str
     timestamp: int
     integration_service: str
-    payload: dict
-
-    def serialize(self):
-        audit_log = self._asdict()
-        audit_log["audit_log_type"] = audit_log["audit_log_type"].value
-        return audit_log
+    payload: Union[dict, str]
 
 
 class ResponseAuditLog(NamedTuple):
@@ -48,10 +43,14 @@ class ResponseAuditLog(NamedTuple):
     payload: Union[dict, str]
     status_code: int
 
-    def serialize(self):
-        audit_log = self._asdict()
-        audit_log["audit_log_type"] = audit_log["audit_log_type"].value
-        return audit_log
+
+AuditLog = Union[RequestAuditLog, ResponseAuditLog]
+
+
+def serialize(audit_log: AuditLog) -> dict:
+    data = audit_log._asdict()
+    data["audit_log_type"] = data["audit_log_type"].value
+    return data
 
 
 class AuditLogger:
@@ -64,7 +63,7 @@ class AuditLogger:
     """
 
     def __init__(self, channel: str = "", journeys: Iterable[Union[str, int]] = "__all__") -> None:
-        self.audit_logs = []
+        self.audit_logs: list[AuditLog] = []
         self.channel = channel
         self.session = self.retry_session()
         self.journeys = journeys
@@ -133,7 +132,7 @@ class AuditLogger:
         except Exception:
             logger.exception("Error when filtering fields for atlas audit")
 
-        payload = {'audit_logs': [audit_log.serialize() for audit_log in self.audit_logs if audit_log is not None]}
+        payload = {'audit_logs': [serialize(audit_log) for audit_log in self.audit_logs if audit_log is not None]}
         logger.info(payload)
 
         try:
@@ -147,7 +146,7 @@ class AuditLogger:
             logger.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
     @staticmethod
-    def filter_fields(req_audit_logs: List[RequestAuditLog]) -> List[RequestAuditLog]:
+    def filter_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
         """
         Override per merchant to modify which fields are omitted/encrypted.
 
@@ -162,26 +161,29 @@ class AuditLogger:
 
     def _add_audit_log(
         self,
-        data: dict,
+        data: Any,
         scheme_slug: str,
         handler_type: int,
         integration_service: str,
         message_uid: str,
         record_uid: str,
         log_type: AuditLogType,
-        status_code: int = None,
+        status_code: Optional[int] = None,
     ) -> None:
         handler_type_str = Configuration.handler_type_as_str(handler_type)
 
-        def _build_audit_log(log_data: Union[dict, str]) -> Union[RequestAuditLog, ResponseAuditLog]:
+        def _build_audit_log(log_data: Union[dict, str]) -> AuditLog:
             timestamp = arrow.utcnow().int_timestamp
 
+            audit_log: AuditLog
             if log_type == AuditLogType.REQUEST:
                 audit_log = self._build_request_audit_log(
                     log_data, scheme_slug, handler_type_str, integration_service, timestamp, message_uid,
                     record_uid
                 )
             elif log_type == AuditLogType.RESPONSE:
+                if status_code is None:
+                    raise ValueError("Attempted to build response audit log without providing a status code")
                 audit_log = self._build_response_audit_log(
                     log_data, scheme_slug, handler_type_str, status_code, integration_service, timestamp,
                     message_uid, record_uid
@@ -207,7 +209,7 @@ class AuditLogger:
 
     def _build_request_audit_log(
         self,
-        data: dict,
+        data: Union[dict, str],
         scheme_slug: str,
         handler_type: str,
         integration_service: str,
@@ -215,23 +217,17 @@ class AuditLogger:
         message_uid: str,
         record_uid: str,
     ) -> RequestAuditLog:
-        try:
-            return RequestAuditLog(
-                audit_log_type=AuditLogType.REQUEST,
-                channel=self.channel,
-                membership_plan_slug=scheme_slug,
-                handler_type=handler_type,
-                message_uid=message_uid,
-                record_uid=record_uid,
-                timestamp=timestamp,
-                integration_service=integration_service,
-                payload=data
-            )
-        except KeyError as e:
-            logger.warning(
-                f"Missing key field for request audit log {e} "
-                f"- data provided: {data}"
-            )
+        return RequestAuditLog(
+            audit_log_type=AuditLogType.REQUEST,
+            channel=self.channel,
+            membership_plan_slug=scheme_slug,
+            handler_type=handler_type,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            timestamp=timestamp,
+            integration_service=integration_service,
+            payload=data
+        )
 
     def _build_response_audit_log(
         self,
@@ -244,21 +240,15 @@ class AuditLogger:
         message_uid: str,
         record_uid: str,
     ) -> ResponseAuditLog:
-        try:
-            return ResponseAuditLog(
-                audit_log_type=AuditLogType.RESPONSE,
-                channel=self.channel,
-                membership_plan_slug=scheme_slug,
-                handler_type=handler_type,
-                message_uid=message_uid,
-                record_uid=record_uid,
-                timestamp=timestamp,
-                integration_service=integration_service,
-                payload=data,
-                status_code=status_code
-            )
-        except KeyError as e:
-            logger.warning(
-                f"Missing key field for response audit log {e} "
-                f"- data provided: {data}"
-            )
+        return ResponseAuditLog(
+            audit_log_type=AuditLogType.RESPONSE,
+            channel=self.channel,
+            membership_plan_slug=scheme_slug,
+            handler_type=handler_type,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            timestamp=timestamp,
+            integration_service=integration_service,
+            payload=data,
+            status_code=status_code
+        )

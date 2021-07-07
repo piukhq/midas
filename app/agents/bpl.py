@@ -2,12 +2,13 @@ from uuid import uuid4
 from decimal import Decimal
 from urllib.parse import urljoin
 
+from soteria.configuration import Configuration
+
 import settings
 from app import publish
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
-from app.configuration import Configuration
 from app.agents.exceptions import (
     AgentError, LoginError,
     GENERAL_ERROR,
@@ -21,7 +22,8 @@ from app.scheme_account import SchemeAccountStatus
 
 class BplBase(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER)
+        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN,
+                               settings.CONFIG_SERVICE_URL)
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
         self.callback_url = config.callback_url
