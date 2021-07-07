@@ -10,7 +10,7 @@ from requests.packages.urllib3.util.retry import Retry
 from requests import Response
 
 from app.configuration import Configuration
-from app.utils import get_headers
+from app.http_request import get_headers
 from settings import logger, ATLAS_URL
 
 

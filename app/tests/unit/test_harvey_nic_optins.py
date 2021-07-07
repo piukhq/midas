@@ -6,7 +6,7 @@ from app.audit import AuditLogType
 from app.configuration import Configuration
 from app.encryption import AESCipher, hash_ids
 from app.tasks.resend_consents import try_consents
-from app.utils import JourneyTypes
+from app.scheme_account import JourneyTypes
 from unittest import mock
 import json
 import unittest

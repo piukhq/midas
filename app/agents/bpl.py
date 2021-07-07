@@ -16,7 +16,7 @@ from app.agents.exceptions import (
     NO_SUCH_RECORD
 )
 from app.encryption import hash_ids
-from app.utils import SchemeAccountStatus
+from app.scheme_account import SchemeAccountStatus
 
 
 class BplBase(ApiMiner):

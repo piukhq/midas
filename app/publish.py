@@ -5,11 +5,11 @@ from decimal import Decimal
 from requests_futures.sessions import FuturesSession
 
 from app.encoding import JsonEncoder
-from app.utils import get_headers, minify_number
+from app.http_request import get_headers
 from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH, logger
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
-
+units = ['k', 'M', 'B', 'T']
 PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
 
 
@@ -69,3 +69,21 @@ def create_balance_object(balance_item, scheme_account_id, user_set):
         balance_item["value_label"] = "Reward"
 
     return balance_item
+
+
+def minify_number(n):
+    n = int(n)
+
+    if n < 10000:
+        return str(n)
+
+    count = 0
+    total = n
+    while True:
+        if total / 1000 > 1:
+            total //= 1000
+            count += 1
+        else:
+            break
+
+    return '{0}{1}'.format(total, units[count - 1])

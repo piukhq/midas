@@ -3,7 +3,7 @@ from decimal import Decimal
 import arrow
 
 from app.agents.base import MerchantApi
-from app.utils import TWO_PLACES
+from app.scheme_account import TWO_PLACES
 
 
 class MerchantAPIGeneric(MerchantApi):

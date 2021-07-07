@@ -31,8 +31,7 @@ from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
-from app.utils import TWO_PLACES, pluralise, create_error_response, SchemeAccountStatus, JourneyTypes
-from app.scheme_account import update_pending_join_account
+from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes, update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES
 
 
@@ -175,6 +174,16 @@ class BaseMiner(object):
         send_consent_status(retry_data)
 
 
+def pluralise(count, plural_suffix):
+    if ',' not in plural_suffix:
+        plural_suffix = ',' + plural_suffix
+    parts = plural_suffix.split(',')
+    if len(parts) > 2:
+        return ''
+    singular, plural = parts[:2]
+    return singular if count == 1 else plural
+
+
 # Based on requests library
 class ApiMiner(BaseMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
@@ -231,6 +240,19 @@ class ApiMiner(BaseMiner):
             if response in values:
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
+
+
+def create_error_response(error_code, error_description):
+    response_json = json.dumps({
+        'error_codes': [
+            {
+                'code': error_code,
+                'description': error_description
+            }
+        ]
+    })
+
+    return response_json
 
 
 class MerchantApi(BaseMiner):

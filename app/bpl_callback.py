@@ -15,7 +15,8 @@ from app.encryption import hash_ids
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from azure_oidc import OIDCConfig
-from app.utils import SchemeAccountStatus, JourneyTypes, get_headers
+from app.scheme_account import SchemeAccountStatus, JourneyTypes
+from app.http_request import get_headers
 
 tenant_id = "a6e2367a-92ea-4e5a-b565-723830bcc095"
 config = OIDCConfig(
