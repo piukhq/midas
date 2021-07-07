@@ -1,13 +1,54 @@
 import json
-
 import requests
-
-from app import AgentException
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS
 from app.encoding import JsonEncoder
 from app.tasks.resend_consents import ConsentStatus
-from app.utils import get_headers, SchemeAccountStatus
+from app.http_request import get_headers
 from settings import HERMES_URL, logger
+from decimal import Decimal
+from enum import IntEnum
+from app.exceptions import AgentException
+
+TWO_PLACES = Decimal(10) ** -2
+
+
+class SchemeAccountStatus:
+    PENDING = 0
+    ACTIVE = 1
+    INVALID_CREDENTIALS = 403
+    INVALID_MFA = 432
+    END_SITE_DOWN = 530
+    IP_BLOCKED = 531
+    TRIPPED_CAPTCHA = 532
+    INCOMPLETE = 5
+    LOCKED_BY_ENDSITE = 434
+    RETRY_LIMIT_REACHED = 429
+    RESOURCE_LIMIT_REACHED = 503
+    UNKNOWN_ERROR = 520
+    MIDAS_UNREACHABLE = 9
+    AGENT_NOT_FOUND = 404
+    WALLET_ONLY = 10
+    PASSWORD_EXPIRED = 533
+    JOIN = 900
+    NO_SUCH_RECORD = 444
+    JOIN_IN_PROGRESS = 441
+    JOIN_ERROR = 538
+    GENERAL_ERROR = 439
+    CARD_NUMBER_ERROR = 436
+    CARD_NOT_REGISTERED = 438
+    LINK_LIMIT_EXCEEDED = 437
+    JOIN_ASYNC_IN_PROGRESS = 442
+    PRE_REGISTERED_CARD = 406
+    ENROL_FAILED = 901
+    REGISTRATION_FAILED = 902
+    ACCOUNT_ALREADY_EXISTS = 445
+
+
+class JourneyTypes(IntEnum):
+    JOIN = 0
+    LINK = 1
+    ADD = 2
+    UPDATE = 3
 
 
 def update_pending_join_account(user_info, message, tid, identifier=None, scheme_slug=None,

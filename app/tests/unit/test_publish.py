@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 from unittest.mock import patch
-from app.publish import transactions, balance, zero_balance, create_balance_object, PENDING_BALANCE
+from app.publish import transactions, balance, zero_balance, create_balance_object, PENDING_BALANCE, minify_number
 
 expected_balance = {
     'scheme_account_id': 1,
@@ -95,3 +95,19 @@ class TestRetry(unittest.TestCase):
         b = create_balance_object(agent_balance, 1, 2)
 
         self.assertEqual(b['value_label'], 'Reward')
+
+    def test_minify_number(self):
+        test_cases = [
+            (0, '0'),
+            (10, '10'),
+            (501, '501'),
+            (5214, '5214'),
+            (60563, '60k'),
+            (5329582, '5M'),
+            (59235820935, '59B'),
+            (24135802938509, '24T')
+        ]
+
+        for test_case in test_cases:
+            n = minify_number(test_case[0])
+            self.assertEqual(n, test_case[1])

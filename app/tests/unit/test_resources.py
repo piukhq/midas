@@ -15,8 +15,8 @@ from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import agent_login, registration, agent_register, get_hades_balance, get_balance_and_publish, \
-    async_get_balance_and_publish
-from app.utils import SchemeAccountStatus, JourneyTypes
+    async_get_balance_and_publish, get_headers, log_task
+from app.scheme_account import SchemeAccountStatus, JourneyTypes
 from settings import AES_KEY
 
 
@@ -36,6 +36,18 @@ class TestResources(TestCase):
         'pending': True,
         'channel': 'com.bink.wallet'
     }
+
+    def test_get_headers(self):
+        headers = get_headers("success")
+
+        self.assertEqual(headers['transaction'], "success")
+
+    def test_log_task(self):
+        @log_task
+        def decorated(x):
+            return x
+
+        self.assertEqual(decorated.__name__, "logged_func")
 
     class Agent(BaseMiner):
         def __init__(self, identifier):

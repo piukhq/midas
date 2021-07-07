@@ -1,13 +1,12 @@
 import json
 import unittest
-
+from Crypto import Random
 from app.encryption import AESCipher
-from app.utils import generate_random_key
 
 
 class TestEncryption(unittest.TestCase):
     def setUp(self):
-        self.key = generate_random_key(32)
+        self.key = Random.get_random_bytes(32)
 
     def test_encrypt_decrypt(self):
         message = 'Message To Encrypt'

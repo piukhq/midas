@@ -6,7 +6,7 @@ import requests
 import sentry_sdk
 
 from app.encoding import JsonEncoder
-from app.utils import get_headers
+from app.http_request import get_headers
 from settings import HERMES_URL, logger, SENTRY_DSN
 from .resend import ReTryTaskStore
 

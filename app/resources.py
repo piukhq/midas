@@ -1,7 +1,8 @@
 import json
-
+import importlib
 import requests
 import sentry_sdk
+import traceback
 from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
@@ -17,8 +18,10 @@ from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
 from app.scheme_account import update_pending_join_account, update_pending_link_account, delete_scheme_account
-from app.utils import SchemeAccountStatus, get_headers, log_task, resolve_agent, JourneyTypes
+from app.scheme_account import SchemeAccountStatus, JourneyTypes
 from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
+from app.active import AGENTS
+from app.http_request import get_headers
 
 scheme_account_id_doc = {
     "name": "scheme_account_id",
@@ -404,6 +407,46 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
     }
 
 
+def log_task(func):
+    def logged_func(*args, **kwargs):
+        try:
+            scheme_account_message = ' for scheme account: {}'.format(args[1]['scheme_account_id'])
+        except KeyError:
+            scheme_account_message = ''
+
+        try:
+            logger.debug('starting {0} task{1}'.format(
+                func.__name__,
+                scheme_account_message
+            ))
+            result = func(*args, **kwargs)
+            logger.debug('finished {0} task{1}'.format(
+                func.__name__,
+                scheme_account_message
+            ))
+        except Exception as e:
+            # If this is an UNKNOWN error, also log to sentry but first make this a more specific UnknownException
+            if isinstance(e, AgentException) and e.status_code == errors[UNKNOWN]['code']:
+                try:
+                    raise UnknownException(scheme_account_message) from e
+                except UnknownException as ue:
+                    sentry_sdk.capture_exception(ue)
+
+            # Extract stack trace from exception
+            tb_str = ''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))
+            logger.debug('error with {0} task{1}. error: {2}, traceback: {3}'.format(
+                func.__name__,
+                scheme_account_message,
+                repr(e),
+                tb_str
+            ))
+            raise
+
+        return result
+
+    return logged_func
+
+
 @log_task
 def registration(scheme_slug, user_info, tid):
     try:
@@ -466,3 +509,10 @@ def get_user_set_from_request(request_args):
         return request_args.get('user_set') or str(request_args['user_id'])
     except KeyError:
         return None
+
+
+def resolve_agent(name):
+    class_path = AGENTS[name]
+    module_name, class_name = class_path.split(".")
+    module = importlib.import_module('app.agents.{}'.format(module_name))
+    return getattr(module, class_name)

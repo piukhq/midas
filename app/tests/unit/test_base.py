@@ -1,12 +1,18 @@
 import httpretty
 from http import HTTPStatus
 from unittest import TestCase, mock
-from app.agents.base import ApiMiner
+from app.agents.base import ApiMiner, create_error_response
 from app.agents.exceptions import (
     END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError)
 
 
 class TestBase(TestCase):
+
+    def test_create_error_response(self):
+        response_json = create_error_response("NOT_SENT", "This is a test error")
+
+        self.assertIn('NOT_SENT', response_json)
+
     @mock.patch.object(ApiMiner, 'register')
     def test_attempt_register(self, mocked_register):
         user_info = {'scheme_account_id': 194,

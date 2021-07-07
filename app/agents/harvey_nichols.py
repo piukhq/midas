@@ -13,7 +13,7 @@ from app.agents.exceptions import (
 )
 from app.audit import RequestAuditLog, AuditLogType
 from app.encryption import AESCipher, hash_ids
-from app.utils import JourneyTypes
+from app.scheme_account import JourneyTypes
 from app.agents.base import ApiMiner
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL, AES_KEY, logger

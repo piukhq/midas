@@ -3,9 +3,8 @@ from unittest import mock, TestCase
 
 from app import AgentException
 from app.scheme_account import (update_pending_join_account, update_pending_link_account, remove_pending_consents,
-                                delete_scheme_account)
+                                delete_scheme_account, SchemeAccountStatus)
 from app.tasks.resend_consents import ConsentStatus
-from app.utils import SchemeAccountStatus
 
 
 class TestSchemeAccount(TestCase):
