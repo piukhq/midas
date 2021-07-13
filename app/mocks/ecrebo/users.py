@@ -30,7 +30,9 @@ USER_STORE = {
                 ["WHS000046", "2021-01-01"],
                 ["WHS000047", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000048", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000048", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000049", "2020-08-04"],
                 ["WHS000050", "2020-07-04"],
@@ -58,7 +60,9 @@ USER_STORE = {
             "card_number": "WHS00000009523458",
             "points": Decimal("2"),
             "credentials": {},
-            "earned_vouchers": [["WHS000058", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000058", "2021-01-01"],
+            ],
             "expired_vouchers": [
                 ["WHS000059", "2020-08-01"],
                 ["WHS000060", "2020-07-25"],
@@ -74,7 +78,9 @@ USER_STORE = {
             "points": Decimal("0"),
             "credentials": {},
             "earned_vouchers": [],
-            "expired_vouchers": [["WHS000064", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000064", "2020-08-01"],
+            ],
             "redeemed_vouchers": [],
         },
         "9523460": {
@@ -106,15 +112,23 @@ USER_STORE = {
                 ["WHS000074", "2020-07-25"],
                 ["WHS000075", "2020-06-12"],
             ],
-            "redeemed_vouchers": [["WHS000076", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000076", "2020-08-04"],
+            ],
         },
         "9523462": {
             "card_number": "WHS00000009523462",
             "points": Decimal("2"),
             "credentials": {},
-            "earned_vouchers": [["WHS000077", "2021-01-01"], ],
-            "expired_vouchers": [["WHS000078", "2020-08-01"], ],
-            "redeemed_vouchers": [["WHS000079", "2020-08-04"], ],
+            "earned_vouchers": [
+                ["WHS000077", "2021-01-01"],
+            ],
+            "expired_vouchers": [
+                ["WHS000078", "2020-08-01"],
+            ],
+            "redeemed_vouchers": [
+                ["WHS000079", "2020-08-04"],
+            ],
         },
         "9523463": {
             "card_number": "WHS00000009523463",
@@ -124,7 +138,9 @@ USER_STORE = {
                 ["WHS000080", "2021-01-01"],
                 ["WHS000081", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000082", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000082", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000083", "2020-08-04"],
                 ["WHS000084", "2020-07-04"],
@@ -139,7 +155,9 @@ USER_STORE = {
                 ["WHS000086", "2021-01-01"],
                 ["WHS000087", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000088", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000088", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000089", "2020-08-04"],
                 ["WHS000090", "2020-07-04"],
@@ -158,13 +176,17 @@ USER_STORE = {
                 ["WHS000094", "2020-08-01"],
                 ["WHS000095", "2020-07-25"],
             ],
-            "redeemed_vouchers": [["WHS000096", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000096", "2020-08-04"],
+            ],
         },
         "9523466": {
             "card_number": "WHS00000009523466",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000097", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000097", "2021-01-01"],
+            ],
             "expired_vouchers": [],
             "redeemed_vouchers": [
                 ["WHS000098", "2020-08-04"],
@@ -175,7 +197,9 @@ USER_STORE = {
             "card_number": "WHS00000009523467",
             "points": Decimal("1"),
             "credentials": {},
-            "earned_vouchers": [["WHS000100", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000100", "2021-01-01"],
+            ],
             "expired_vouchers": [],
             "redeemed_vouchers": [
                 ["WHS000101", "2020-08-04"],
@@ -186,7 +210,9 @@ USER_STORE = {
             "card_number": "WHS00000009523468",
             "points": Decimal("1"),
             "credentials": {},
-            "earned_vouchers": [["WHS000103", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000103", "2021-01-01"],
+            ],
             "expired_vouchers": [],
             "redeemed_vouchers": [],
         },
@@ -198,7 +224,9 @@ USER_STORE = {
                 ["WHS000104", "2021-01-01"],
                 ["WHS000105", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000106", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000106", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000107", "2020-08-04"],
                 ["WHS000108", "2020-07-04"],
@@ -225,8 +253,13 @@ USER_STORE = {
             "points": Decimal("0"),
             "credentials": {},
             "earned_vouchers": [],
-            "expired_vouchers": [["WHS000115", "2020-08-01"], ["WHS000116", ""], ],
-            "redeemed_vouchers": [["WHS000117", "2020-08-04"], ],
+            "expired_vouchers": [
+                ["WHS000115", "2020-08-01"],
+                ["WHS000116", ""],
+            ],
+            "redeemed_vouchers": [
+                ["WHS000117", "2020-08-04"],
+            ],
         },
         "9523472": {
             "card_number": "WHS00000009523472",
@@ -238,7 +271,9 @@ USER_STORE = {
                 ["WHS000120", "2021-03-03"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000121", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000121", "2020-08-04"],
+            ],
         },
         "9523473": {
             "card_number": "WHS00000009523473",
@@ -249,7 +284,9 @@ USER_STORE = {
                 ["WHS000123", "2021-02-02"],
                 ["WHS000124", "2021-03-03"],
             ],
-            "expired_vouchers": [["WHS000125", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000125", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000126", "2020-08-04"],
                 ["WHS000127", "2020-07-04"],
@@ -259,7 +296,9 @@ USER_STORE = {
             "card_number": "WHS00000009523474",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000128", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000128", "2021-01-01"],
+            ],
             "expired_vouchers": [
                 ["WHS000129", "2020-08-01"],
                 ["WHS000130", "2020-07-25"],
@@ -287,9 +326,15 @@ USER_STORE = {
             "card_number": "WHS00000009523476",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000137", "2021-01-01"], ],
-            "expired_vouchers": [["WHS000138", "2020-08-01"], ],
-            "redeemed_vouchers": [["WHS000139", "2020-08-04"], ],
+            "earned_vouchers": [
+                ["WHS000137", "2021-01-01"],
+            ],
+            "expired_vouchers": [
+                ["WHS000138", "2020-08-01"],
+            ],
+            "redeemed_vouchers": [
+                ["WHS000139", "2020-08-04"],
+            ],
         },
         "9523477": {
             "card_number": "WHS00000009523477",
@@ -300,7 +345,9 @@ USER_STORE = {
                 ["WHS000141", "2021-02-02"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000142", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000142", "2020-08-04"],
+            ],
         },
         "9523478": {
             "card_number": "WHS00000009523478",
@@ -320,8 +367,12 @@ USER_STORE = {
             "card_number": "WHS00000009523479",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000147", "2021-01-01"], ],
-            "expired_vouchers": [["WHS000148", "2020-08-01"], ],
+            "earned_vouchers": [
+                ["WHS000147", "2021-01-01"],
+            ],
+            "expired_vouchers": [
+                ["WHS000148", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000149", "2020-08-04"],
                 ["WHS000150", "2020-07-04"],
@@ -337,14 +388,18 @@ USER_STORE = {
                 ["WHS000153", "2021-02-02"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000154", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000154", "2020-08-04"],
+            ],
         },
         "9523481": {
             "card_number": "WHS00000009523481",
             "points": Decimal("2"),
             "credentials": {},
             "earned_vouchers": [],
-            "expired_vouchers": [["WHS000155", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000155", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000156", "2020-08-04"],
                 ["WHS000157", "2020-07-04"],
@@ -359,7 +414,9 @@ USER_STORE = {
                 ["WHS000159", "2021-02-02"],
                 ["WHS000160", "2021-03-03"],
             ],
-            "expired_vouchers": [["WHS000161", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000161", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000162", "2020-08-04"],
                 ["WHS000163", "2020-07-04"],
@@ -375,7 +432,9 @@ USER_STORE = {
                 ["WHS000165", "2020-08-01"],
                 ["WHS000166", "2020-07-25"],
             ],
-            "redeemed_vouchers": [["0", ""], ],
+            "redeemed_vouchers": [
+                ["0", ""],
+            ],
         },
         "9523484": {
             "card_number": "WHS00000009523484",
@@ -385,7 +444,9 @@ USER_STORE = {
                 ["WHS000167", "2021-01-01"],
                 ["WHS000168", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000169", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000169", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000170", "2020-08-04"],
                 ["WHS000171", "2020-07-04"],
@@ -402,13 +463,17 @@ USER_STORE = {
                 ["WHS000174", "2020-07-25"],
                 ["WHS000175", "2020-06-12"],
             ],
-            "redeemed_vouchers": [["WHS000176", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000176", "2020-08-04"],
+            ],
         },
         "9523486": {
             "card_number": "WHS00000009523486",
             "points": Decimal("0"),
             "credentials": {},
-            "earned_vouchers": [["WHS000177", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000177", "2021-01-01"],
+            ],
             "expired_vouchers": [
                 ["WHS000178", "2020-08-01"],
                 ["WHS000179", "2020-07-25"],
@@ -469,7 +534,9 @@ USER_STORE = {
             "card_number": "WHS00000009523490",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000198", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000198", "2021-01-01"],
+            ],
             "expired_vouchers": [],
             "redeemed_vouchers": [],
         },
@@ -477,7 +544,9 @@ USER_STORE = {
             "card_number": "WHS00000009523491",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000199", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000199", "2021-01-01"],
+            ],
             "expired_vouchers": [],
             "redeemed_vouchers": [],
         },
@@ -510,7 +579,9 @@ USER_STORE = {
                 ["WHS000210", "2021-02-02"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000211", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000211", "2020-08-04"],
+            ],
         },
         "9523494": {
             "card_number": "WHS00000009523494",
@@ -518,14 +589,18 @@ USER_STORE = {
             "credentials": {},
             "earned_vouchers": [],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000212", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000212", "2020-08-04"],
+            ],
         },
         "9523495": {
             "card_number": "WHS00000009523495",
             "points": Decimal("4"),
             "credentials": {},
             "earned_vouchers": [],
-            "expired_vouchers": [["WHS000213", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000213", "2020-08-01"],
+            ],
             "redeemed_vouchers": [],
         },
         "9523496": {
@@ -537,7 +612,9 @@ USER_STORE = {
                 ["WHS000215", "2021-02-02"],
                 ["WHS000216", "2021-03-03"],
             ],
-            "expired_vouchers": [["WHS000217", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000217", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000218", "2020-08-04"],
                 ["WHS000219", "2020-07-04"],
@@ -551,7 +628,9 @@ USER_STORE = {
                 ["WHS000220", "2021-01-01"],
                 ["WHS000221", "2021-02-02"],
             ],
-            "expired_vouchers": [["WHS000222", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000222", "2020-08-01"],
+            ],
             "redeemed_vouchers": [],
         },
         "9523498": {
@@ -559,7 +638,9 @@ USER_STORE = {
             "points": Decimal("0"),
             "credentials": {},
             "earned_vouchers": [],
-            "expired_vouchers": [["WHS000223", "2020-08-01"], ],
+            "expired_vouchers": [
+                ["WHS000223", "2020-08-01"],
+            ],
             "redeemed_vouchers": [
                 ["WHS000224", "2020-08-04"],
                 ["WHS000225", "2020-07-04"],
@@ -595,27 +676,37 @@ USER_STORE = {
                 ["WHS000237", "2021-03-03"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000238", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000238", "2020-08-04"],
+            ],
         },
         "9523501": {
             "card_number": "WHS00000009523501",
             "points": Decimal("2"),
             "credentials": {},
-            "earned_vouchers": [["WHS000239", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000239", "2021-01-01"],
+            ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["0", ""], ],
+            "redeemed_vouchers": [
+                ["0", ""],
+            ],
         },
         "9523502": {
             "card_number": "WHS00000009523502",
             "points": Decimal("3"),
             "credentials": {},
-            "earned_vouchers": [["WHS000240", "2021-01-01"], ],
+            "earned_vouchers": [
+                ["WHS000240", "2021-01-01"],
+            ],
             "expired_vouchers": [
                 ["WHS000241", "2020-08-01"],
                 ["WHS000242", "2020-07-25"],
                 ["WHS000243", "2020-06-12"],
             ],
-            "redeemed_vouchers": [["WHS000244", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000244", "2020-08-04"],
+            ],
         },
         "9523503": {
             "card_number": "WHS00000009523503",
@@ -626,7 +717,9 @@ USER_STORE = {
                 ["WHS000246", "2021-02-02"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000247", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000247", "2020-08-04"],
+            ],
         },
         "9523504": {
             "card_number": "WHS00000009523504",
@@ -637,7 +730,9 @@ USER_STORE = {
                 ["WHS000248", "2020-08-01"],
                 ["WHS000249", "2020-07-25"],
             ],
-            "redeemed_vouchers": [["WHS000250", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000250", "2020-08-04"],
+            ],
         },
         "9523505": {
             "card_number": "WHS00000009523505",
@@ -648,7 +743,9 @@ USER_STORE = {
                 ["WHS000252", "2021-02-02"],
             ],
             "expired_vouchers": [],
-            "redeemed_vouchers": [["WHS000253", "2020-08-04"], ],
+            "redeemed_vouchers": [
+                ["WHS000253", "2020-08-04"],
+            ],
         },
         # MER-432: return an exception for certain card numbers
         "9523100": {

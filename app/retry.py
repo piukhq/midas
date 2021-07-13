@@ -18,6 +18,7 @@ def redis_connection(func):
             return func(*args, **kwargs)
         except redis_exceptions.ConnectionError as e:
             raise AgentError(SERVICE_CONNECTION_ERROR, message="Error connecting to Redis.") from e
+
     return wrapper
 
 

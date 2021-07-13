@@ -25,7 +25,7 @@ class ConsentSendState(IntEnum):
 
 
 def send_consents(consents_data):
-    consents_data["state"] = ConsentSendState.SEND_TO_AGENT        # set to first state  send agent consents
+    consents_data["state"] = ConsentSendState.SEND_TO_AGENT  # set to first state  send agent consents
     consents_data["status"] = ConsentStatus.PENDING
     consents_data["retries"] = consents_data["agent_tries"] - 1
     done, message = try_consents(consents_data)
@@ -37,7 +37,7 @@ def send_consents(consents_data):
 
 
 def try_consents(consents_data):
-    """ This function  requires a consents data to be set.
+    """This function  requires a consents data to be set.
 
     It is called for 1st attempt and then form background task if retries are required,
 
@@ -49,7 +49,7 @@ def try_consents(consents_data):
                 response_list:  list of logged errors (successful one will not be wriiten to redis)
     """
     try:
-        if consents_data['state'] == ConsentSendState.SEND_TO_AGENT:
+        if consents_data["state"] == ConsentSendState.SEND_TO_AGENT:
             done, message = try_agent_send(consents_data)
             if not done:
                 return False, message
@@ -60,22 +60,23 @@ def try_consents(consents_data):
         if SENTRY_DSN:
             sentry_sdk.capture_exception()
         else:
-            logger.debug(f'Error sending consents data to harvey nichols. Error: {repr(e)}')
+            logger.debug(f"Error sending consents data to harvey nichols. Error: {repr(e)}")
         return False, f"{consents_data.get('identifier','')} {consents_data['state']}: IO error {str(e)}"
 
 
 def try_agent_send(consents_data):
-    resp = requests.post(consents_data['url'], data=consents_data['message'],
-                         timeout=10, headers=consents_data['headers'])
+    resp = requests.post(
+        consents_data["url"], data=consents_data["message"], timeout=10, headers=consents_data["headers"]
+    )
     done = False
     message_prefix = f"{consents_data.get('id','')} sending to agent: "
-    message = ''
+    message = ""
     if resp.status_code in (200, 201, 202, 204):
         consents_data["status"] = ConsentStatus.SUCCESS
         done = True
-        if consents_data.get('callback'):
-            module = importlib.import_module(consents_data['callback'])
-            func = getattr(module, consents_data.get('callback_function', 'agent_consent_response'))
+        if consents_data.get("callback"):
+            module = importlib.import_module(consents_data["callback"])
+            func = getattr(module, consents_data.get("callback_function", "agent_consent_response"))
             agent_sent, message = func(resp)
             if not agent_sent:
                 consents_data["status"] = ConsentStatus.FAILED
@@ -89,28 +90,31 @@ def try_agent_send(consents_data):
         done = True
 
     if done:
-        consents_data['state'] = ConsentSendState.SEND_TO_HERMES_RESULT
+        consents_data["state"] = ConsentSendState.SEND_TO_HERMES_RESULT
 
     return done, message
 
 
 def try_hermes_confirm(consents_data):
     send_errors = []
-    consents_data['retries'] = 0
+    consents_data["retries"] = 0
     message_prefix = f"{consents_data.get('id','')} sending to hermes: "
-    for user_consent_id, retry_confirm in consents_data['confirm_tries'].items():
+    for user_consent_id, retry_confirm in consents_data["confirm_tries"].items():
         if retry_confirm > 0:
-            resp = requests.put(f'{HERMES_URL}/schemes/user_consent/{user_consent_id}', timeout=10,
-                                data=json.dumps({"status": consents_data["status"]}, cls=JsonEncoder),
-                                headers=get_headers(0))
+            resp = requests.put(
+                f"{HERMES_URL}/schemes/user_consent/{user_consent_id}",
+                timeout=10,
+                data=json.dumps({"status": consents_data["status"]}, cls=JsonEncoder),
+                headers=get_headers(0),
+            )
             if resp.status_code == 200:
-                consents_data['confirm_tries'][user_consent_id] = 0  # no more tries for this message
+                consents_data["confirm_tries"][user_consent_id] = 0  # no more tries for this message
             else:
-                consents_data['confirm_tries'][user_consent_id] -= 1
-                send_errors.append(f' User consent id {user_consent_id} status code {resp.status_code}')
-        consents_data['retries'] += consents_data['confirm_tries'][user_consent_id]
+                consents_data["confirm_tries"][user_consent_id] -= 1
+                send_errors.append(f" User consent id {user_consent_id} status code {resp.status_code}")
+        consents_data["retries"] += consents_data["confirm_tries"][user_consent_id]
 
-    if consents_data['retries'] <= 0:
+    if consents_data["retries"] <= 0:
         consents_data["state"] = ConsentSendState.DONE
         return True, "done"
     else:

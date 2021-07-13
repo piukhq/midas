@@ -21,10 +21,30 @@ from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
-from app.agents.exceptions import AgentError, LoginError, END_SITE_DOWN, UNKNOWN, RETRY_LIMIT_REACHED, \
-    IP_BLOCKED, RetryLimitError, STATUS_LOGIN_FAILED, NOT_SENT, errors, NO_SUCH_RECORD, \
-    ACCOUNT_ALREADY_EXISTS, PRE_REGISTERED_CARD, LINK_LIMIT_EXCEEDED, CARD_NUMBER_ERROR, \
-    CARD_NOT_REGISTERED, GENERAL_ERROR, JOIN_IN_PROGRESS, JOIN_ERROR, RegistrationError, VALIDATION, UnauthorisedError
+from app.agents.exceptions import (
+    AgentError,
+    LoginError,
+    END_SITE_DOWN,
+    UNKNOWN,
+    RETRY_LIMIT_REACHED,
+    IP_BLOCKED,
+    RetryLimitError,
+    STATUS_LOGIN_FAILED,
+    NOT_SENT,
+    errors,
+    NO_SUCH_RECORD,
+    ACCOUNT_ALREADY_EXISTS,
+    PRE_REGISTERED_CARD,
+    LINK_LIMIT_EXCEEDED,
+    CARD_NUMBER_ERROR,
+    CARD_NOT_REGISTERED,
+    GENERAL_ERROR,
+    JOIN_IN_PROGRESS,
+    JOIN_ERROR,
+    RegistrationError,
+    VALIDATION,
+    UnauthorisedError,
+)
 from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
@@ -36,27 +56,25 @@ from soteria.configuration import Configuration
 
 
 class SSLAdapter(HTTPAdapter):
-
     def __init__(self, ssl_version=None, **kwargs):
         self.ssl_version = ssl_version
         self.poolmanager = PoolManager()
         super().__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=self.ssl_version)
+        self.poolmanager = PoolManager(
+            num_pools=connections, maxsize=maxsize, block=block, ssl_version=self.ssl_version
+        )
 
 
 class BaseMiner(object):
     retry_limit: Optional[int] = 2
-    point_conversion_rate = Decimal('0')
+    point_conversion_rate = Decimal("0")
     connect_timeout = 3
     known_captcha_signatures = [
-        'recaptcha',
-        'captcha',
-        'Incapsula',
+        "recaptcha",
+        "captcha",
+        "Incapsula",
     ]
     identifier_type: Optional[list[str]] = None
     identifier: Optional[dict[str, str]] = None
@@ -92,8 +110,13 @@ class BaseMiner(object):
         count = defaultdict(int)
 
         for transaction in transactions:
-            s = "{0}{1}{2}{3}{4}".format(transaction['date'], transaction['description'],
-                                         transaction['points'], self.scheme_id, transaction.get('location'))
+            s = "{0}{1}{2}{3}{4}".format(
+                transaction["date"],
+                transaction["description"],
+                transaction["points"],
+                self.scheme_id,
+                transaction.get("location"),
+            )
 
             # identical hashes get sequentially indexed to make them unique.
             index = count[s]
@@ -107,16 +130,13 @@ class BaseMiner(object):
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)
 
     def account_overview(self):
-        return {
-            'balance': self.balance(),
-            'transactions': self.transactions()
-        }
+        return {"balance": self.balance(), "transactions": self.transactions()}
 
     @staticmethod
-    def format_label(count, noun, plural_suffix='s', include_zero_items=False):
+    def format_label(count, noun, plural_suffix="s", include_zero_items=False):
         if count == 0 and not include_zero_items:
-            return ''
-        return '{} {}'.format(count, noun + pluralise(count, plural_suffix))
+            return ""
+        return "{} {}".format(count, noun + pluralise(count, plural_suffix))
 
     # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
     @staticmethod
@@ -124,7 +144,7 @@ class BaseMiner(object):
         for threshold, reward in reward_tiers:
             if points >= threshold:
                 return reward
-        return ''
+        return ""
 
     @staticmethod
     def update_questions(questions):
@@ -163,22 +183,19 @@ class BaseMiner(object):
         """
         confirm_tries = {}
         for consent in consents_data:
-            confirm_tries[consent['id']] = HERMES_CONFIRMATION_TRIES
+            confirm_tries[consent["id"]] = HERMES_CONFIRMATION_TRIES
 
-        retry_data = {
-            "confirm_tries": confirm_tries,
-            "status": status
-        }
+        retry_data = {"confirm_tries": confirm_tries, "status": status}
 
         send_consent_status(retry_data)
 
 
 def pluralise(count, plural_suffix):
-    if ',' not in plural_suffix:
-        plural_suffix = ',' + plural_suffix
-    parts = plural_suffix.split(',')
+    if "," not in plural_suffix:
+        plural_suffix = "," + plural_suffix
+    parts = plural_suffix.split(",")
     if len(parts) > 2:
-        return ''
+        return ""
     singular, plural = parts[:2]
     return singular if count == 1 else plural
 
@@ -186,31 +203,29 @@ def pluralise(count, plural_suffix):
 # Based on requests library
 class ApiMiner(BaseMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.scheme_id = user_info['scheme_account_id']
+        self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
-        self.account_status = user_info['status']
+        self.account_status = user_info["status"]
         self.journey_type = user_info.get("journey_type")
         self.headers = {}
         self.retry_count = retry_count
         self.errors = {}
         self.user_info = user_info
-        self.channel = user_info.get('channel', '')
+        self.channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=self.channel)
 
-    def make_request(self, url, method='get', timeout=5, **kwargs):
+    def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         args = {
-            'headers': self.headers,
-            'timeout': timeout,
+            "headers": self.headers,
+            "timeout": timeout,
         }
         args.update(kwargs)
 
         try:
             resp = requests.request(method, url=url, **args)
         except Timeout as exception:
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error="Timeout"
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
 
         try:
@@ -223,13 +238,9 @@ class ApiMiner(BaseMiner):
                 raise LoginError(STATUS_LOGIN_FAILED, response=e.response)
 
             elif e.response.status_code == 403:
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
                 raise AgentError(IP_BLOCKED, response=e.response) from e
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
             raise AgentError(END_SITE_DOWN, response=e.response) from e
 
         return resp
@@ -242,14 +253,7 @@ class ApiMiner(BaseMiner):
 
 
 def create_error_response(error_code, error_description):
-    response_json = json.dumps({
-        'error_codes': [
-            {
-                'code': error_code,
-                'description': error_description
-            }
-        ]
-    })
+    response_json = json.dumps({"error_codes": [{"code": error_code, "description": error_description}]})
 
     return response_json
 
@@ -258,23 +262,20 @@ class MerchantApi(BaseMiner):
     """
     Base class for merchant API integrations.
     """
-    retry_limit = 9    # tries 10 times overall
-    credential_mapping = {
-        'date_of_birth': 'dob',
-        'phone': 'phone1',
-        'phone_2': 'phone2'
-    }
-    identifier_type = ['barcode', 'card_number', 'merchant_scheme_id2']
+
+    retry_limit = 9  # tries 10 times overall
+    credential_mapping = {"date_of_birth": "dob", "phone": "phone1", "phone_2": "phone2"}
+    identifier_type = ["barcode", "card_number", "merchant_scheme_id2"]
     # used to map merchant identifiers to scheme credential types
     merchant_identifier_mapping = {
-        'merchant_scheme_id2': 'merchant_identifier',
+        "merchant_scheme_id2": "merchant_identifier",
     }
 
-    ERRORS_KEYS = ['error_codes', 'errors']
+    ERRORS_KEYS = ["error_codes", "errors"]
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None, consents_data=None):
         self.retry_count = retry_count
-        self.scheme_id = user_info['scheme_account_id']
+        self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
         self.user_info = user_info
         self.config = config
@@ -284,24 +285,24 @@ class MerchantApi(BaseMiner):
         self.record_uid = None
         self.request = None
         self.result = None
-        channel = user_info.get('channel', '')
+        channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=channel)
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
-            NOT_SENT: ['NOT_SENT'],
-            NO_SUCH_RECORD: ['NO_SUCH_RECORD'],
-            STATUS_LOGIN_FAILED: ['VALIDATION'],
-            ACCOUNT_ALREADY_EXISTS: ['ALREADY_PROCESSED', 'ACCOUNT_ALREADY_EXISTS'],
-            PRE_REGISTERED_CARD: ['PRE_REGISTERED_ERROR'],
-            UNKNOWN: ['UNKNOWN'],
+            NOT_SENT: ["NOT_SENT"],
+            NO_SUCH_RECORD: ["NO_SUCH_RECORD"],
+            STATUS_LOGIN_FAILED: ["VALIDATION"],
+            ACCOUNT_ALREADY_EXISTS: ["ALREADY_PROCESSED", "ACCOUNT_ALREADY_EXISTS"],
+            PRE_REGISTERED_CARD: ["PRE_REGISTERED_ERROR"],
+            UNKNOWN: ["UNKNOWN"],
             # additional mappings for iceland
-            CARD_NOT_REGISTERED: ['CARD_NOT_REGISTERED'],
-            GENERAL_ERROR: ['GENERAL_ERROR'],
-            CARD_NUMBER_ERROR: ['CARD_NUMBER_ERROR'],
-            LINK_LIMIT_EXCEEDED: ['LINK_LIMIT_EXCEEDED'],
-            JOIN_IN_PROGRESS: ['JOIN_IN_PROGRESS'],
-            JOIN_ERROR: ['JOIN_ERROR'],
+            CARD_NOT_REGISTERED: ["CARD_NOT_REGISTERED"],
+            GENERAL_ERROR: ["GENERAL_ERROR"],
+            CARD_NUMBER_ERROR: ["CARD_NUMBER_ERROR"],
+            LINK_LIMIT_EXCEEDED: ["LINK_LIMIT_EXCEEDED"],
+            JOIN_IN_PROGRESS: ["JOIN_IN_PROGRESS"],
+            JOIN_ERROR: ["JOIN_ERROR"],
         }
 
     def login(self, credentials):
@@ -311,7 +312,7 @@ class MerchantApi(BaseMiner):
         :param credentials: user account credentials for merchant scheme
         :return: None
         """
-        account_link = self.user_info['journey_type'] == JourneyTypes.LINK.value
+        account_link = self.user_info["journey_type"] == JourneyTypes.LINK.value
 
         self.record_uid = hash_ids.encode(self.scheme_id)
         handler_type = Configuration.VALIDATE_HANDLER if account_link else Configuration.UPDATE_HANDLER
@@ -353,9 +354,9 @@ class MerchantApi(BaseMiner):
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
-        consents_data = self.user_info['credentials'].get('consents')
+        consents_data = self.user_info["credentials"].get("consents")
         self.consents_data = consents_data.copy() if consents_data else []
-        logger.debug('registration consents: {}. scheme slug: {}'.format(consents_data, self.scheme_slug))
+        logger.debug("registration consents: {}. scheme slug: {}".format(consents_data, self.scheme_slug))
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
@@ -364,24 +365,24 @@ class MerchantApi(BaseMiner):
             "TEMPORARY FOR ICELAND CONSENTS"
             if self.scheme_slug == "iceland-bonus-card" and self.consents_data:
                 if len(self.consents_data) < 2:
-                    journey_type = self.consents_data[0]['journey_type']
+                    journey_type = self.consents_data[0]["journey_type"]
                     consent = {
-                        'id': 99999999999,
-                        'slug': 'marketing_opt_in_thirdparty',
-                        'value': False,
-                        'created_on': arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
-                        'journey_type': journey_type
+                        "id": 99999999999,
+                        "slug": "marketing_opt_in_thirdparty",
+                        "value": False,
+                        "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
+                        "journey_type": journey_type,
                     }
-                    data['consents'].append(consent)
+                    data["consents"].append(consent)
                 else:
-                    logger.debug('Too many consents for Iceland scheme')
+                    logger.debug("Too many consents for Iceland scheme")
 
-            self.record_uid = data['record_uid'] = hash_ids.encode(self.scheme_id)
+            self.record_uid = data["record_uid"] = hash_ids.encode(self.scheme_id)
 
             self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
             # Async joins will return empty 200 responses so there is nothing to process.
-            if self.config.integration_service == 'SYNC':
+            if self.config.integration_service == "SYNC":
                 self.process_join_response()
 
             # Processing immediate response from async requests
@@ -390,7 +391,7 @@ class MerchantApi(BaseMiner):
                 try:
                     error = self._check_for_error_response(self.result)
                     if error:
-                        self._handle_errors(error[0]['code'], exception_type=RegistrationError)
+                        self._handle_errors(error[0]["code"], exception_type=RegistrationError)
 
                 except (AgentException, LoginError, AgentError):
                     consent_status = ConsentStatus.FAILED
@@ -409,7 +410,7 @@ class MerchantApi(BaseMiner):
         try:
             error = self._check_for_error_response(self.result)
             if error:
-                self._handle_errors(error[0]['code'], exception_type=RegistrationError)
+                self._handle_errors(error[0]["code"], exception_type=RegistrationError)
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
@@ -422,7 +423,7 @@ class MerchantApi(BaseMiner):
             self.consent_confirmation(self.consents_data, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey='join')
+        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
 
     def _outbound_handler(self, data, scheme_slug, handler_type) -> dict:
         """
@@ -440,14 +441,14 @@ class MerchantApi(BaseMiner):
         logger.setLevel(self.config.log_level)
 
         if handler_type == Configuration.JOIN_HANDLER:
-            data['country'] = self.config.country
+            data["country"] = self.config.country
             async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
             if self.config.integration_service == async_service_identifier:
                 self.expecting_callback = True
 
-        data['message_uid'] = self.message_uid
-        data['record_uid'] = self.record_uid
-        data['callback_url'] = self.config.callback_url
+        data["message_uid"] = self.message_uid
+        data["record_uid"] = self.record_uid
+        data["callback_url"] = self.config.callback_url
 
         self._filter_consents(data, handler_type)
 
@@ -466,7 +467,7 @@ class MerchantApi(BaseMiner):
             scheme_slug,
             self.config.handler_type,
             self.config.integration_service,
-            "OUTBOUND"
+            "OUTBOUND",
         )
 
         logger.info(json.dumps(logging_info))
@@ -477,10 +478,10 @@ class MerchantApi(BaseMiner):
         if response_json:
             response_data = json.loads(response_json)
 
-            logging_info['direction'] = "INBOUND"
-            logging_info['json'] = response_data
+            logging_info["direction"] = "INBOUND"
+            logging_info["json"] = response_data
             if self._check_for_error_response(response_data):
-                logging_info['contains_errors'] = True
+                logging_info["contains_errors"] = True
                 logger.warning(json.dumps(logging_info))
             else:
                 logger.info(json.dumps(logging_info))
@@ -497,15 +498,10 @@ class MerchantApi(BaseMiner):
         :return: dict of response data
         """
         self.result = data
-        self.message_uid = self.result.get('message_uid')
+        self.message_uid = self.result.get("message_uid")
 
         logging_info = self._create_log_message(
-            data,
-            self.message_uid,
-            scheme_slug,
-            self.config.handler_type,
-            'ASYNC',
-            'INBOUND'
+            data, self.message_uid, scheme_slug, self.config.handler_type, "ASYNC", "INBOUND"
         )
 
         self.audit_logger.add_response(
@@ -515,12 +511,12 @@ class MerchantApi(BaseMiner):
             scheme_slug=self.scheme_slug,
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
-            status_code=0    # Doesn't have a status code since this is an async response
+            status_code=0,  # Doesn't have a status code since this is an async response
         )
         self.audit_logger.send_to_atlas()
 
         if self._check_for_error_response(self.result):
-            logging_info['contains_errors'] = True
+            logging_info["contains_errors"] = True
             logger.warning(json.dumps(logging_info))
         else:
             logger.info(json.dumps(logging_info))
@@ -550,15 +546,18 @@ class MerchantApi(BaseMiner):
         :param json_data: JSON string of payload to send to merchant
         :return: Response payload
         """
-        def apply_security_measures(retry_state):
-            return self.apply_security_measures(json_data,
-                                                self.config.security_credentials['outbound']['service'],
-                                                self.config.security_credentials)
 
-        @retry(stop=stop_after_attempt(2),
-               retry=retry_if_exception_type(UnauthorisedError),
-               before=apply_security_measures,
-               reraise=True)
+        def apply_security_measures(retry_state):
+            return self.apply_security_measures(
+                json_data, self.config.security_credentials["outbound"]["service"], self.config.security_credentials
+            )
+
+        @retry(
+            stop=stop_after_attempt(2),
+            retry=retry_if_exception_type(UnauthorisedError),
+            before=apply_security_measures,
+            reraise=True,
+        )
         def send_request():
             # This is to refresh auth creds and retry the request on Unauthorised errors.
             # These errors will result in additional retries to the retry_count below.
@@ -575,7 +574,7 @@ class MerchantApi(BaseMiner):
                 service_on_cooldown = False
 
             if service_on_cooldown:
-                error_desc = '{} {} is currently on cooldown'.format(errors[NOT_SENT]['name'], self.config.scheme_slug)
+                error_desc = "{} {} is currently on cooldown".format(errors[NOT_SENT]["name"], self.config.scheme_slug)
                 response_json = create_error_response(NOT_SENT, error_desc)
                 break
             else:
@@ -585,14 +584,12 @@ class MerchantApi(BaseMiner):
                     if status in [200, 202]:
                         break
                 except UnauthorisedError:
-                    response_json = create_error_response(VALIDATION,
-                                                          errors[VALIDATION]['name'])
+                    response_json = create_error_response(VALIDATION, errors[VALIDATION]["name"])
                 if retry_count == self.config.retry_limit:
                     try:
                         back_off_service.activate_cooldown(
-                            self.config.scheme_slug,
-                            self.config.handler_type,
-                            BACK_OFF_COOLDOWN)
+                            self.config.scheme_slug, self.config.handler_type, BACK_OFF_COOLDOWN
+                        )
                     except RedisError as ex:
                         logger.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
 
@@ -605,14 +602,19 @@ class MerchantApi(BaseMiner):
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
             handler_type=self.config.handler_type[0],
-            integration_service=self.config.integration_service
+            integration_service=self.config.integration_service,
         )
 
         response = requests.post(f"{self.config.merchant_url}", **self.request)
         status = response.status_code
 
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=response.request.path_url,
-                                           latency=response.elapsed.total_seconds(), response_code=status)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=response.request.path_url,
+            latency=response.elapsed.total_seconds(),
+            response_code=status,
+        )
 
         logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
@@ -634,11 +636,12 @@ class MerchantApi(BaseMiner):
 
         if status in [200, 202]:
             signal("request-success").send(self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""))
-            if self.config.security_credentials['outbound']['service'] == Configuration.OAUTH_SECURITY:
+            if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
                 inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             else:
-                inbound_security_agent = get_security_agent(self.config.security_credentials['inbound']['service'],
-                                                            self.config.security_credentials)
+                inbound_security_agent = get_security_agent(
+                    self.config.security_credentials["inbound"]["service"], self.config.security_credentials
+                )
 
             response_json = inbound_security_agent.decode(response.headers, response.text)
 
@@ -646,11 +649,11 @@ class MerchantApi(BaseMiner):
         elif status == 401:
             raise UnauthorisedError
         elif status in [503, 504, 408]:
-            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]['name'])
+            response_json = create_error_response(NOT_SENT, errors[NOT_SENT]["name"])
         else:
-            response_json = create_error_response(UNKNOWN,
-                                                  errors[UNKNOWN]['name'] + ' with status code {}'
-                                                  .format(status))
+            response_json = create_error_response(
+                UNKNOWN, errors[UNKNOWN]["name"] + " with status code {}".format(status)
+            )
 
         return response_json, status
 
@@ -674,10 +677,10 @@ class MerchantApi(BaseMiner):
 
     # agents will override this if unique values are needed
     def get_merchant_ids(self, credentials):
-        user_id = sorted(map(int, self.user_info['user_set'].split(',')))[0]
+        user_id = sorted(map(int, self.user_info["user_set"].split(",")))[0]
         merchant_ids = {
-            'merchant_scheme_id1': hash_ids.encode(user_id),
-            'merchant_scheme_id2': credentials.get('merchant_identifier'),
+            "merchant_scheme_id1": hash_ids.encode(user_id),
+            "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
 
         return merchant_ids
@@ -688,8 +691,9 @@ class MerchantApi(BaseMiner):
                 raise exception_type(key)
         raise AgentError(UNKNOWN)
 
-    def _create_log_message(self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction,
-                            contains_errors=False):
+    def _create_log_message(
+        self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction, contains_errors=False
+    ):
         return {
             "json": json_msg,
             "message_uid": msg_uid,
@@ -698,8 +702,8 @@ class MerchantApi(BaseMiner):
             "handler_type": handler_type,
             "integration_service": integration_service,
             "direction": direction,
-            "expiry_date": arrow.utcnow().shift(days=+90).format('YYYY-MM-DD HH:mm:ss'),
-            "contains_errors": contains_errors
+            "expiry_date": arrow.utcnow().shift(days=+90).format("YYYY-MM-DD HH:mm:ss"),
+            "contains_errors": contains_errors,
         }
 
     def _get_identifiers(self, data):
@@ -750,28 +754,28 @@ class MerchantApi(BaseMiner):
         # a mapping is required.
         journey_types = {
             Configuration.JOIN_HANDLER: JourneyTypes.JOIN,
-            Configuration.VALIDATE_HANDLER: JourneyTypes.LINK
+            Configuration.VALIDATE_HANDLER: JourneyTypes.LINK,
         }
 
         try:
-            consents = data.pop('consents')
+            consents = data.pop("consents")
             journey = journey_types[handler_type]
         except KeyError:
             return
 
         for consent in consents:
-            if consent['journey_type'] == journey:
-                data.update({consent['slug']: consent['value']})
+            if consent["journey_type"] == journey:
+                data.update({consent["slug"]: consent["value"]})
 
     def log_if_redirect(self, response, message):
         if response.history:
             logging_info = self._create_log_message(
                 message,
-                json.loads(self.request['json'])['message_uid'],
+                json.loads(self.request["json"])["message_uid"],
                 self.config.scheme_slug,
                 self.config.handler_type,
                 self.config.integration_service,
-                "OUTBOUND"
+                "OUTBOUND",
             )
             logger.warning(json.dumps(logging_info))
 
@@ -781,18 +785,18 @@ class MockedMiner(BaseMiner):
     existing_card_numbers: dict[str, str] = {}
     ghost_card_prefix: Optional[str] = None
     join_fields: set[str] = set()
-    join_prefix = '1'
+    join_prefix = "1"
     retry_limit = None
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.account_status = user_info['status']
+        self.account_status = user_info["status"]
         self.errors = {}
         self.headers = {}
         self.identifier = {}
         self.journey_type = user_info.get("journey_type")
         self.retry_count = retry_count
-        self.scheme_id = user_info['scheme_account_id']
+        self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
         self.user_info = user_info
 
@@ -804,16 +808,13 @@ class MockedMiner(BaseMiner):
             except KeyError:
                 pass
 
-        card_number = credentials.get('card_number') or credentials.get('barcode')
+        card_number = credentials.get("card_number") or credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
             raise LoginError(PRE_REGISTERED_CARD)
 
     @staticmethod
     def _check_email_already_exists(email):
-        return any(
-            info["credentials"].get("email") == email
-            for info in USER_STORE.values()
-        )
+        return any(info["credentials"].get("email") == email for info in USER_STORE.values())
 
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
@@ -831,12 +832,12 @@ class MockedMiner(BaseMiner):
                 raise KeyError(join_field)
 
         email = data.get("email").lower()
-        ghost_card = data.get('card_number') or data.get('barcode')
+        ghost_card = data.get("card_number") or data.get("barcode")
         self._check_existing_join_credentials(email, ghost_card)
 
-        if email == 'fail@unknown.com':
+        if email == "fail@unknown.com":
             raise RegistrationError(UNKNOWN)
-        elif email == 'slowjoin@testbink.com':
+        elif email == "slowjoin@testbink.com":
             time.sleep(30)
 
         title = data.get("title").capitalize()

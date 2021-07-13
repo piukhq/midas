@@ -8,16 +8,15 @@ from settings import REDIS_URL
 
 
 class TestHarveyNichols(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
-        cls.h.attempt_login(CREDENTIALS['harvey-nichols'])
+        cls.h.attempt_login(CREDENTIALS["harvey-nichols"])
 
     def test_login(self):
-        json_result = self.h.login_response.json()['CustomerSignOnResult']
+        json_result = self.h.login_response.json()["CustomerSignOnResult"]
         self.assertEqual(self.h.login_response.status_code, 200)
-        self.assertEqual(json_result['outcome'], 'Success')
+        self.assertEqual(json_result["outcome"], "Success")
 
     def test_transactions(self):
         transactions = self.h.transactions()
@@ -39,41 +38,40 @@ class TestHarveyNicholsFail(unittest.TestCase):
 
     def test_login_fail_no_user(self):
         credentials = {
-            'email': 'no@user.email',
-            'password': 'Badpassword02',
+            "email": "no@user.email",
+            "password": "Badpassword02",
         }
         with self.assertRaises(LoginError) as e:
             self.h.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Account does not exist')
+        self.assertEqual(e.exception.name, "Account does not exist")
 
     def test_login_bad_password(self):
         credentials = {
-            'email': CREDENTIALS['harvey-nichols']['email'],
-            'password': 'Badpassword02',
+            "email": CREDENTIALS["harvey-nichols"]["email"],
+            "password": "Badpassword02",
         }
         with self.assertRaises(LoginError) as e:
             self.h.attempt_login(credentials)
-        self.assertEqual(e.exception.name, 'Invalid credentials')
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 class TestToken(unittest.TestCase):
-
     def test_invalid_token(self):
         self.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
 
         store = UserTokenStore(REDIS_URL)
-        store.set(1, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        store.set(1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-        credentials = CREDENTIALS['harvey-nichols']
-        credentials['card_number'] = "1000000613736"
+        credentials = CREDENTIALS["harvey-nichols"]
+        credentials["card_number"] = "1000000613736"
 
-        self.h.attempt_login(CREDENTIALS['harvey-nichols'])
+        self.h.attempt_login(CREDENTIALS["harvey-nichols"])
         self.h.balance()
-        login_json = self.h.login_response.json()['CustomerSignOnResult']
+        login_json = self.h.login_response.json()["CustomerSignOnResult"]
         self.assertEqual(self.h.login_response.status_code, 200)
-        self.assertEqual(login_json['outcome'], 'Success')
-        self.assertEqual(login_json['errorDetails'], None)
+        self.assertEqual(login_json["outcome"], "Success")
+        self.assertEqual(login_json["errorDetails"], None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

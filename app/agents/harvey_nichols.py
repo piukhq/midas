@@ -4,7 +4,9 @@ from uuid import uuid4
 from decimal import Decimal
 
 from app.agents.exceptions import (
-    AgentError, LoginError, RegistrationError,
+    AgentError,
+    LoginError,
+    RegistrationError,
     STATUS_REGISTRATION_FAILED,
     ACCOUNT_ALREADY_EXISTS,
     UNKNOWN,
@@ -49,8 +51,8 @@ class HarveyNichols(ApiMiner):
         for audit_log in req_audit_logs_copy:
             if audit_log.audit_log_type == AuditLogType.REQUEST and isinstance(audit_log.payload, Mapping):
                 try:
-                    audit_log.payload['CustomerSignUpRequest']['password'] = aes.encrypt(
-                        audit_log.payload['CustomerSignUpRequest']['password']
+                    audit_log.payload["CustomerSignUpRequest"]["password"] = aes.encrypt(
+                        audit_log.payload["CustomerSignUpRequest"]["password"]
                     ).decode()
                 except KeyError as e:
                     logger.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
@@ -66,12 +68,17 @@ class HarveyNichols(ApiMiner):
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
         response = self.make_request(
-            self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data)
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=response.request.path_url,
-                                           latency=response.elapsed.total_seconds(),
-                                           response_code=response.status_code)
+            self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data
+        )
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=response.request.path_url,
+            latency=response.elapsed.total_seconds(),
+            response_code=response.status_code,
+        )
         message = response.json()["auth_resp"]["message"]
-        if message != 'OK':
+        if message != "OK":
             raise LoginError(STATUS_LOGIN_FAILED)
 
     def login(self, credentials):
@@ -118,9 +125,13 @@ class HarveyNichols(ApiMiner):
         url = self.BASE_URL + "/GetProfile"
         data = {"CustomerLoyaltyProfileRequest": {"token": self.token, "customerNumber": self.customer_number}}
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=balance_response.request.path_url,
-                                           latency=balance_response.elapsed.total_seconds(),
-                                           response_code=balance_response.status_code)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=balance_response.request.path_url,
+            latency=balance_response.elapsed.total_seconds(),
+            response_code=balance_response.status_code,
+        )
         return balance_response.json()["CustomerLoyaltyProfileResult"]
 
     def balance(self):
@@ -160,9 +171,13 @@ class HarveyNichols(ApiMiner):
         }
 
         transaction_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=transaction_response.request.path_url,
-                                           latency=transaction_response.elapsed.total_seconds(),
-                                           response_code=transaction_response.status_code)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=transaction_response.request.path_url,
+            latency=transaction_response.elapsed.total_seconds(),
+            response_code=transaction_response.status_code,
+        )
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
     def parse_transaction(self, row):
@@ -228,10 +243,13 @@ class HarveyNichols(ApiMiner):
         )
 
         self.register_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(self, slug=self.scheme_slug,
-                                           endpoint=self.register_response.request.path_url,
-                                           latency=self.register_response.elapsed.total_seconds(),
-                                           response_code=self.register_response.status_code)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=self.register_response.request.path_url,
+            latency=self.register_response.elapsed.total_seconds(),
+            response_code=self.register_response.status_code,
+        )
 
         self.audit_logger.add_response(
             response=self.register_response,
@@ -240,7 +258,7 @@ class HarveyNichols(ApiMiner):
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
             integration_service=integration_service,
-            status_code=self.register_response.status_code
+            status_code=self.register_response.status_code,
         )
         self.audit_logger.send_to_atlas()
 
@@ -285,9 +303,13 @@ class HarveyNichols(ApiMiner):
         )
 
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=self.login_response.request.path_url,
-                                           latency=self.login_response.elapsed.total_seconds(),
-                                           response_code=self.login_response.status_code)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=self.login_response.request.path_url,
+            latency=self.login_response.elapsed.total_seconds(),
+            response_code=self.login_response.status_code,
+        )
 
         self.audit_logger.add_response(
             response=self.login_response,
@@ -296,7 +318,7 @@ class HarveyNichols(ApiMiner):
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.VALIDATE_HANDLER,
             integration_service=integration_service,
-            status_code=self.login_response.status_code
+            status_code=self.login_response.status_code,
         )
         self.audit_logger.send_to_atlas()
 

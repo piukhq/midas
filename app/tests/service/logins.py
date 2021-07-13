@@ -11,23 +11,23 @@ from settings import AES_KEY, HELIOS_DB_URI
 AGENT_CLASS_ARGUMENTS = [
     1,
     {
-        'scheme_account_id': 1,
-        'status': SchemeAccountStatus.ACTIVE,
-        'user_set': '1,2',
-        'journey_type': None,
-        'credentials': {},
-        'channel': 'com.bink.wallet'
-    }
+        "scheme_account_id": 1,
+        "status": SchemeAccountStatus.ACTIVE,
+        "user_set": "1,2",
+        "journey_type": None,
+        "credentials": {},
+        "channel": "com.bink.wallet",
+    },
 ]
 
 AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
     1,
     {
-        'scheme_account_id': 1,
-        'status': SchemeAccountStatus.WALLET_ONLY,
-        'journey_type': JourneyTypes.LINK.value,
-        'user_set': '1,2'
-    }
+        "scheme_account_id": 1,
+        "status": SchemeAccountStatus.WALLET_ONLY,
+        "journey_type": JourneyTypes.LINK.value,
+        "user_set": "1,2",
+    },
 ]
 
 
@@ -51,13 +51,7 @@ def get_credentials(agent=None):
     result = engine.execute(query)
 
     # we have to add these test credentials here for the test_login_fail case in each agent's test.
-    credentials = {
-        'bad': {
-            'username': "234234@bad.com",
-            'email': "234234@bad.com",
-            'password': "234234"
-        }
-    }
+    credentials = {"bad": {"username": "234234@bad.com", "email": "234234@bad.com", "password": "234234"}}
 
     for row in result:
         if credentials.get(row.slug):
@@ -77,12 +71,12 @@ def encrypt(scheme_slug):
 
 
 if settings.CREDENTIALS_LOCAL:
-    print('* Warning, you are using local credentials for agent tests.')
+    print("* Warning, you are using local credentials for agent tests.")
     if not os.path.exists(settings.LOCAL_CREDENTIALS_FILE):
-        with open(settings.LOCAL_CREDENTIALS_FILE, 'w') as f:
-            f.write('{}')
+        with open(settings.LOCAL_CREDENTIALS_FILE, "w") as f:
+            f.write("{}")
 
-    with open(settings.LOCAL_CREDENTIALS_FILE, 'r') as f:
+    with open(settings.LOCAL_CREDENTIALS_FILE, "r") as f:
         CREDENTIALS = json.loads(f.read())
 
 else:

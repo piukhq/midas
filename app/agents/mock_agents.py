@@ -27,7 +27,9 @@ JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 
 class MockAgentHN(MockedMiner):
     add_error_credentials = {
-        "email": {"endsitedown@testbink.com": END_SITE_DOWN, },
+        "email": {
+            "endsitedown@testbink.com": END_SITE_DOWN,
+        },
     }
     existing_card_numbers = card_numbers.HARVEY_NICHOLS
     join_fields = {"email", "password", "title", "first_name", "last_name"}
@@ -104,9 +106,7 @@ class MockAgentHN(MockedMiner):
         if self.user_info["credentials"]["email"] == "five@testbink.com":
             transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
-                transaction_copy["date"] = arrow.get(
-                    "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
-                )
+                transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
 
             return transactions_copy[:max_transactions]
         elif self.user_info["credentials"]["email"] == "onetransaction@testbink.com":
@@ -115,8 +115,8 @@ class MockAgentHN(MockedMiner):
             transactions_single = [
                 {
                     "date": arrow.get(1612876767),
-                    "description": 'Test transaction: 1 item',
-                    "points": Decimal('0'),
+                    "description": "Test transaction: 1 item",
+                    "points": Decimal("0"),
                 },
             ]
 
@@ -223,9 +223,7 @@ class MockAgentIce(MockedMiner):
         ):
             transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
-                transaction_copy["date"] = arrow.get(
-                    "26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss"
-                )
+                transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
 
             return transactions_copy[:max_transactions]
         else:
@@ -279,9 +277,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         else:
             # Assume we're on an add journey from here on
             card_number = credentials.get("card_number")
-            user_id = self._validate_card_number(
-                card_numbers=whsmith_card_numbers, card_number=card_number
-            )
+            user_id = self._validate_card_number(card_numbers=whsmith_card_numbers, card_number=card_number)
             self._check_for_and_raise_exceptions(
                 users=ecrebo_user_store["whsmith"],
                 card_numbers=whsmith_card_numbers,
@@ -289,9 +285,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             )
 
             self.user_info = ecrebo_user_store["whsmith"][user_id]
-            merchant_identifier = credentials.get("merchant_identifier") or str(
-                uuid.uuid4()
-            )
+            merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
             self.identifier = {
                 "card_number": credentials["card_number"],
                 "merchant_identifier": merchant_identifier,
@@ -315,9 +309,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         issued = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
         redeemed = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
         for earned_voucher in self.user_info.get("earned_vouchers", []):
-            mock_voucher = self._make_mock_voucher(
-                code=earned_voucher[0], expiry_date=earned_voucher[1], issued=issued
-            )
+            mock_voucher = self._make_mock_voucher(code=earned_voucher[0], expiry_date=earned_voucher[1], issued=issued)
             issued_vouchers.append(mock_voucher)
 
         for expired_voucher in self.user_info.get("expired_vouchers", []):
@@ -381,9 +373,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
         else:
             return user_id
 
-    def _check_for_and_raise_exceptions(
-        self, users: dict, card_numbers: dict[str, str], card_number: str
-    ):
+    def _check_for_and_raise_exceptions(self, users: dict, card_numbers: dict[str, str], card_number: str):
         """
         Check against users dicts and raise the expected error for that card number, if there is one
         """
