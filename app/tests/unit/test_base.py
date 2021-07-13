@@ -2,22 +2,18 @@ import httpretty
 from http import HTTPStatus
 from unittest import TestCase, mock
 from app.agents.base import ApiMiner, create_error_response
-from app.agents.exceptions import (
-    END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError)
+from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
 
 
 class TestBase(TestCase):
-
     def test_create_error_response(self):
         response_json = create_error_response("NOT_SENT", "This is a test error")
 
-        self.assertIn('NOT_SENT', response_json)
+        self.assertIn("NOT_SENT", response_json)
 
-    @mock.patch.object(ApiMiner, 'register')
+    @mock.patch.object(ApiMiner, "register")
     def test_attempt_register(self, mocked_register):
-        user_info = {'scheme_account_id': 194,
-                     'status': '',
-                     'channel': 'com.bink.wallet'}
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
 
         m.attempt_register(credentials={})
@@ -30,22 +26,17 @@ class TestBase(TestCase):
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """
         # GIVEN
-        user_info = {'scheme_account_id': 194,
-                     'status': '',
-                     'channel': 'com.bink.wallet'}
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
         url = "http://someexcitingplace.com"
         httpretty.register_uri(
-            httpretty.GET, url, status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            httpretty.GET,
+            url,
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(
-                m,
-                slug=m.scheme_slug,
-                channel=m.channel,
-                error=END_SITE_DOWN
-            ),
+            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=END_SITE_DOWN),
         ]
 
         # WHEN
@@ -66,22 +57,17 @@ class TestBase(TestCase):
         Check that correct params are passed to the signals for an unsuccessful (Timeout) request
         """
         # GIVEN
-        user_info = {'scheme_account_id': 194,
-                     'status': '',
-                     'channel': 'com.bink.wallet'}
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
         url = "http://someexcitingplace.com"
         httpretty.register_uri(
-            httpretty.GET, url, status=HTTPStatus.REQUEST_TIMEOUT,
+            httpretty.GET,
+            url,
+            status=HTTPStatus.REQUEST_TIMEOUT,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(
-                m,
-                slug=m.scheme_slug,
-                channel=m.channel,
-                error=END_SITE_DOWN
-            ),
+            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=END_SITE_DOWN),
         ]
 
         # WHEN
@@ -102,22 +88,17 @@ class TestBase(TestCase):
         Check that correct params are passed to the signals for an unsuccessful (unauthorized) request
         """
         # GIVEN
-        user_info = {'scheme_account_id': 194,
-                     'status': '',
-                     'channel': 'com.bink.wallet'}
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
         url = "http://someexcitingplace.com"
         httpretty.register_uri(
-            httpretty.GET, url, status=HTTPStatus.UNAUTHORIZED,
+            httpretty.GET,
+            url,
+            status=HTTPStatus.UNAUTHORIZED,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(
-                m,
-                slug=m.scheme_slug,
-                channel=m.channel,
-                error=STATUS_LOGIN_FAILED
-            ),
+            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=STATUS_LOGIN_FAILED),
         ]
 
         # WHEN
@@ -138,22 +119,17 @@ class TestBase(TestCase):
         Check that correct params are passed to the signals for an unsuccessful (forbidden) request
         """
         # GIVEN
-        user_info = {'scheme_account_id': 194,
-                     'status': '',
-                     'channel': 'com.bink.wallet'}
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
         url = "http://someexcitingplace.com"
         httpretty.register_uri(
-            httpretty.GET, url, status=HTTPStatus.FORBIDDEN,
+            httpretty.GET,
+            url,
+            status=HTTPStatus.FORBIDDEN,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(
-                m,
-                slug=m.scheme_slug,
-                channel=m.channel,
-                error=IP_BLOCKED
-            ),
+            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=IP_BLOCKED),
         ]
 
         # WHEN

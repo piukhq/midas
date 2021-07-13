@@ -19,8 +19,13 @@ from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_s
 
 class Ecrebo(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN,
-                               settings.CONFIG_SERVICE_URL)
+        config = Configuration(
+            scheme_slug,
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
@@ -43,15 +48,23 @@ class Ecrebo(ApiMiner):
                 latency_seconds = e.response.elapsed.total_seconds()
             except AttributeError:
                 latency_seconds = 0
-            signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=login_path,
-                                               latency=latency_seconds, response_code=e.response.status_code)
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=login_path,
+                latency=latency_seconds,
+                response_code=e.response.status_code,
             )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason)
             raise
         else:
-            signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                               latency=resp.elapsed.total_seconds(), response_code=resp.status_code)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
 
         return resp.json()["token"]
 
@@ -62,9 +75,15 @@ class Ecrebo(ApiMiner):
         card_number, uid, *_ = message.split(":")
         return card_number, uid
 
-    def _get_membership_response(self, endpoint: str, journey_type: int, from_login: bool = False,
-                                 integration_service: str = "", message_uid: str = "",
-                                 record_uid: str = "") -> dict:
+    def _get_membership_response(
+        self,
+        endpoint: str,
+        journey_type: int,
+        from_login: bool = False,
+        integration_service: str = "",
+        message_uid: str = "",
+        record_uid: str = "",
+    ) -> dict:
         url = f"{self.base_url}{endpoint}"
         headers = self._make_headers(self._authenticate())
 
@@ -76,7 +95,7 @@ class Ecrebo(ApiMiner):
                 slug=self.scheme_slug,
                 endpoint=resp.request.path_url,
                 latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code
+                response_code=resp.status_code,
             )
             membership_data = resp.json()["data"]
             return membership_data
@@ -90,11 +109,9 @@ class Ecrebo(ApiMiner):
                 slug=self.scheme_slug,
                 endpoint=endpoint,
                 latency=latency_seconds,
-                response_code=ex.response.status_code
+                response_code=ex.response.status_code,
             )
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error=ex.response.reason
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=ex.response.reason)
             if ex.response.status_code == 404:
                 raise LoginError(STATUS_LOGIN_FAILED)
             else:
@@ -135,9 +152,13 @@ class Ecrebo(ApiMiner):
             headers=self._make_headers(self._authenticate()),
         )
 
-        signal("record-http-request").send(self, slug=self.scheme_slug, endpoint=resp.request.path_url,
-                                           latency=resp.elapsed.total_seconds(),
-                                           response_code=resp.status_code)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=resp.request.path_url,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
 
         self.audit_logger.add_response(
             response=resp,
@@ -152,18 +173,14 @@ class Ecrebo(ApiMiner):
 
         if resp.status_code == 409:
             signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error=ACCOUNT_ALREADY_EXISTS
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=ACCOUNT_ALREADY_EXISTS)
             raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
         else:
             try:
                 resp.raise_for_status()
             except requests.HTTPError as e:
                 signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason)
                 raise
             else:
                 signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
@@ -183,15 +200,15 @@ class Ecrebo(ApiMiner):
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        card_number = credentials['card_number']
-        journey = self.user_info['journey_type']
+        card_number = credentials["card_number"]
+        journey = self.user_info["journey_type"]
         journey_type = Configuration.JOIN_HANDLER if journey == 0 else Configuration.VALIDATE_HANDLER
 
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
 
             self.audit_logger.add_request(
-                payload={'card_number': card_number},
+                payload={"card_number": card_number},
                 scheme_slug=self.scheme_slug,
                 handler_type=journey_type,
                 integration_service=integration_service,
@@ -200,11 +217,14 @@ class Ecrebo(ApiMiner):
             )
 
             try:
-                membership_data = self._get_membership_response(endpoint=endpoint, journey_type=journey_type,
-                                                                from_login=True,
-                                                                integration_service=integration_service,
-                                                                message_uid=message_uid,
-                                                                record_uid=record_uid)
+                membership_data = self._get_membership_response(
+                    endpoint=endpoint,
+                    journey_type=journey_type,
+                    from_login=True,
+                    integration_service=integration_service,
+                    message_uid=message_uid,
+                    record_uid=record_uid,
+                )
                 signal("log-in-success").send(self, slug=self.scheme_slug)
             except (KeyError, LoginError, requests.HTTPError, requests.RequestException):
                 # Any of these exceptions mean the login has failed
@@ -227,11 +247,7 @@ class Ecrebo(ApiMiner):
         else:
             redeem_date = None
 
-        state = get_voucher_state(
-            issue_date=issue_date,
-            redeem_date=redeem_date,
-            expiry_date=expiry_date
-        )
+        state = get_voucher_state(issue_date=issue_date, redeem_date=redeem_date, expiry_date=expiry_date)
 
         voucher = {
             "state": voucher_state_names[state],
@@ -249,15 +265,19 @@ class Ecrebo(ApiMiner):
         return voucher
 
     def _make_balance_response(
-            self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: list[dict]
+        self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: list[dict]
     ) -> dict:
         return {
             "points": value,
             "value": value,
             "value_label": "",
             "vouchers": [
-                {"state": voucher_state_names[VoucherState.IN_PROGRESS], "type": voucher_type.value, "value": value,
-                 "target_value": target_value},
+                {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": voucher_type.value,
+                    "value": value,
+                    "target_value": target_value,
+                },
                 *[self._make_issued_voucher(voucher_type, voucher, target_value) for voucher in issued_vouchers],
             ],
         }
@@ -354,11 +374,11 @@ class WhSmith(Ecrebo):
             "first_name": credentials[constants.FIRST_NAME],
             "surname": credentials[constants.LAST_NAME],
             "mobile_number": credentials[constants.PHONE],
-            "address_line1": credentials['address_1'],
-            "city": credentials['town_city'],
+            "address_line1": credentials["address_1"],
+            "city": credentials["town_city"],
             "postcode": credentials[constants.POSTCODE],
             "validated": True,
         }
         if credentials[constants.TITLE].lower() == "prefer not to say":
-            del data['title']
+            del data["title"]
         return data

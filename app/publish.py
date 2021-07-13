@@ -9,7 +9,7 @@ from app.http_request import get_headers
 from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH, logger
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
-units = ['k', 'M', 'B', 'T']
+units = ["k", "M", "B", "T"]
 PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
 
 
@@ -86,4 +86,4 @@ def minify_number(n):
         else:
             break
 
-    return '{0}{1}'.format(total, units[count - 1])
+    return "{0}{1}".format(total, units[count - 1])

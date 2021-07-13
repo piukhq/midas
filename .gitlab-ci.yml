@@ -23,6 +23,7 @@ test:style:
   <<: *test
   script:
     - flake8
+    - black --line-length 120 --check .
 
 test:type-check:
   <<: *test

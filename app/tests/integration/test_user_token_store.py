@@ -7,8 +7,8 @@ class TestUserTokenStore(unittest.TestCase):
     user_token_store = UserTokenStore(REDIS_URL)
 
     def test_user_token_store_add_and_delete_token(self):
-        test_scheme_acct_id = 'test_1'
-        test_token = 'testtoken'
+        test_scheme_acct_id = "test_1"
+        test_token = "testtoken"
         self.user_token_store.set(test_scheme_acct_id, test_token)
         saved_token = self.user_token_store.get(test_scheme_acct_id)
         self.assertEqual(saved_token, test_token)

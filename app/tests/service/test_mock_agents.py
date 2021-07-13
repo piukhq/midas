@@ -6,14 +6,10 @@ from app.agents.exceptions import LoginError
 
 
 class TestHN(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.b = MockAgentHN(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'email': 'sixdigitpoints@testbink.com',
-            'password': 'pa$$w&rd01!'
-        }
+        credentials = {"email": "sixdigitpoints@testbink.com", "password": "pa$$w&rd01!"}
         cls.b.attempt_login(credentials)
 
     def test_transactions(self):
@@ -28,28 +24,22 @@ class TestHN(unittest.TestCase):
 
 
 class TestHNFail(unittest.TestCase):
-
     def test_login_fail(self):
         b = MockAgentHN(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '000001',
-            'email': 'notzero@testbink.com',
-            'password': 'Password01'
-        }
+        credentials = {"card_number": "000001", "email": "notzero@testbink.com", "password": "Password01"}
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 
 class TestIce(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {
-            'card_number': '6332040050607087777',
-            'last_name': 'seven-digits, smith\'s',
-            'postcode': 'mp7 1bb'
+            "card_number": "6332040050607087777",
+            "last_name": "seven-digits, smith's",
+            "postcode": "mp7 1bb",
         }
         cls.b.attempt_login(credentials)
 
@@ -64,18 +54,13 @@ class TestIce(unittest.TestCase):
 
 
 class TestIceFail(unittest.TestCase):
-
     def test_login_fail(self):
         b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
-        credentials = {
-            'card_number': '000000',
-            'last_name': 'notzero',
-            'postcode': 'RG0 0aa'
-        }
+        credentials = {"card_number": "000000", "last_name": "notzero", "postcode": "RG0 0aa"}
         with self.assertRaises(LoginError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

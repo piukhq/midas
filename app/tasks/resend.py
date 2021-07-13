@@ -14,7 +14,6 @@ def retry_tasks():
 
 
 class ReTryTaskStore:
-
     def __init__(self, task_list="retrytasks", retry_name="retries", retry_results="errors"):
 
         self.task_list = task_list
@@ -32,7 +31,7 @@ class ReTryTaskStore:
 
     def set_task(self, module_name, function_name, data):
         if not data.get(self.retry_name, False):
-            data[self.retry_name] = 10              # default to 10 retries
+            data[self.retry_name] = 10  # default to 10 retries
         data["_module"] = module_name
         data["_function"] = function_name
         self.save_to_redis(data)

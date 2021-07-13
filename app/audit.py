@@ -78,8 +78,13 @@ class AuditLogger:
         record_uid: str,
     ) -> None:
         self._add_audit_log(
-            payload, scheme_slug, handler_type, integration_service, message_uid, record_uid,
-            log_type=AuditLogType.REQUEST
+            payload,
+            scheme_slug,
+            handler_type,
+            integration_service,
+            message_uid,
+            record_uid,
+            log_type=AuditLogType.REQUEST,
         )
 
     def add_response(
@@ -101,7 +106,12 @@ class AuditLogger:
                 data = response.text
 
         self._add_audit_log(
-            data, scheme_slug, handler_type, integration_service, message_uid, record_uid,
+            data,
+            scheme_slug,
+            handler_type,
+            integration_service,
+            message_uid,
+            record_uid,
             log_type=AuditLogType.RESPONSE,
             status_code=status_code,
         )
@@ -109,10 +119,7 @@ class AuditLogger:
     def retry_session(self, backoff_factor: float = 0.3) -> requests.Session:
         session = requests.Session()
         retry = Retry(
-            total=3,
-            backoff_factor=backoff_factor,
-            method_whitelist=False,
-            status_forcelist=[500, 502, 503, 504]
+            total=3, backoff_factor=backoff_factor, method_whitelist=False, status_forcelist=[500, 502, 503, 504]
         )
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
@@ -132,7 +139,7 @@ class AuditLogger:
         except Exception:
             logger.exception("Error when filtering fields for atlas audit")
 
-        payload = {'audit_logs': [serialize(audit_log) for audit_log in self.audit_logs if audit_log is not None]}
+        payload = {"audit_logs": [serialize(audit_log) for audit_log in self.audit_logs if audit_log is not None]}
         logger.info(payload)
 
         try:
@@ -178,15 +185,20 @@ class AuditLogger:
             audit_log: AuditLog
             if log_type == AuditLogType.REQUEST:
                 audit_log = self._build_request_audit_log(
-                    log_data, scheme_slug, handler_type_str, integration_service, timestamp, message_uid,
-                    record_uid
+                    log_data, scheme_slug, handler_type_str, integration_service, timestamp, message_uid, record_uid
                 )
             elif log_type == AuditLogType.RESPONSE:
                 if status_code is None:
                     raise ValueError("Attempted to build response audit log without providing a status code")
                 audit_log = self._build_response_audit_log(
-                    log_data, scheme_slug, handler_type_str, status_code, integration_service, timestamp,
-                    message_uid, record_uid
+                    log_data,
+                    scheme_slug,
+                    handler_type_str,
+                    status_code,
+                    integration_service,
+                    timestamp,
+                    message_uid,
+                    record_uid,
                 )
             else:
                 raise ValueError("Invalid AuditLogType provided")
@@ -203,9 +215,7 @@ class AuditLogger:
             else:
                 logger.warning("Audit log data must be a dict/string or a list of dicts/strings")
         else:
-            logger.debug(
-                f"Audit logging is disabled for journey type {handler_type_str} for scheme {scheme_slug}"
-            )
+            logger.debug(f"Audit logging is disabled for journey type {handler_type_str} for scheme {scheme_slug}")
 
     def _build_request_audit_log(
         self,
@@ -226,7 +236,7 @@ class AuditLogger:
             record_uid=record_uid,
             timestamp=timestamp,
             integration_service=integration_service,
-            payload=data
+            payload=data,
         )
 
     def _build_response_audit_log(
@@ -250,5 +260,5 @@ class AuditLogger:
             timestamp=timestamp,
             integration_service=integration_service,
             payload=data,
-            status_code=status_code
+            status_code=status_code,
         )

@@ -79,9 +79,7 @@ class Acteol(ApiMiner):
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
             try:  # Token may be in bad format and needs refreshing
-                if self._token_is_valid(
-                    token=token, current_timestamp=current_timestamp
-                ):
+                if self._token_is_valid(token=token, current_timestamp=current_timestamp):
                     have_valid_token = True
             except (KeyError, TypeError) as e:
                 logger.exception(e)  # have_valid_token is still False
@@ -112,9 +110,7 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
-        origin_id = self._create_origin_id(
-            user_email=user_email, origin_root=self.ORIGIN_ROOT
-        )
+        origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         # These calls may result in various exceptions that mean the registration has failed. If so,
         # call the signal event for failure
@@ -141,14 +137,10 @@ class Acteol(ApiMiner):
                 )
                 raise RegistrationError(JOIN_ERROR)
         except (AgentError, LoginError, RegistrationError):
-            signal("register-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel
-            )
+            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
         else:
-            signal("register-success").send(
-                self, slug=self.scheme_slug, channel=self.channel
-            )
+            signal("register-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         consents = credentials.get("consents", [{}])
@@ -156,9 +148,7 @@ class Acteol(ApiMiner):
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
         else:
-            self.consent_confirmation(
-                consents_data=consents, status=ConsentStatus.NOT_SENT
-            )
+            self.consent_confirmation(consents_data=consents, status=ConsentStatus.NOT_SENT)
 
         # Set up instance attributes that will result in the creation of an active membership card
         self.identifier = {
@@ -185,9 +175,7 @@ class Acteol(ApiMiner):
         self._get_valid_api_token_and_make_headers()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
-        origin_id = self._create_origin_id(
-            user_email=user_email, origin_root=self.ORIGIN_ROOT
-        )
+        origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         try:
             # Get customer details
@@ -196,7 +184,8 @@ class Acteol(ApiMiner):
             sentry_issue_id = sentry_sdk.capture_exception(ex)
             logger.error(
                 f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
-                f"Scheme Account ID: {self.scheme_id}")
+                f"Scheme Account ID: {self.scheme_id}"
+            )
             return None
 
         if not self._customer_fields_are_present(customer_details=customer_details):
@@ -225,15 +214,11 @@ class Acteol(ApiMiner):
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
         # Create an 'in-progress' voucher - the current, incomplete voucher
-        in_progress_voucher = self._make_in_progress_voucher(
-            points=points, voucher_type=VoucherType.STAMPS
-        )
+        in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
         bink_mapped_vouchers.append(in_progress_voucher)
         # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
-            bink_mapped_voucher = self._map_acteol_voucher_to_bink_struct(
-                voucher=bink_only_voucher
-            )
+            bink_mapped_voucher = self._map_acteol_voucher_to_bink_struct(voucher=bink_only_voucher)
             bink_mapped_vouchers.append(bink_mapped_voucher)
 
         balance = {
@@ -260,7 +245,8 @@ class Acteol(ApiMiner):
         scheme_account_id = self.user_info["scheme_account_id"]
         # for updating user ID credential you get for registering (e.g. getting issued a card number)
         api_url = urljoin(
-            HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
+            HERMES_URL,
+            f"schemes/accounts/{scheme_account_id}/credentials",
         )
         headers = {
             "Content-type": "application/json",
@@ -281,9 +267,7 @@ class Acteol(ApiMiner):
         :param transaction: a transaction record
         :return: transaction record in the format required by Bink
         """
-        formatted_total_cost = self._format_money_value(
-            money_value=transaction["TotalCost"]
-        )
+        formatted_total_cost = self._format_money_value(money_value=transaction["TotalCost"])
 
         order_date = arrow.get(transaction["OrderDate"]).int_timestamp
         points = self._decimalise_to_two_places(transaction["PointEarned"])
@@ -331,7 +315,8 @@ class Acteol(ApiMiner):
                 sentry_issue_id = sentry_sdk.capture_exception()
                 logger.error(
                     f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
-                    f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}")
+                    f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}"
+                )
                 return []
 
         return resp_json
@@ -350,9 +335,7 @@ class Acteol(ApiMiner):
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
 
-        api_url = urljoin(
-            self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}"
-        )
+        api_url = urljoin(self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp.raise_for_status()
         resp_json = resp.json()
@@ -428,9 +411,7 @@ class Acteol(ApiMiner):
         )
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
-            logger.debug(
-                f"Error while fetching customer details, reason: {resp.reason}"
-            )
+            logger.debug(f"Error while fetching customer details, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
@@ -454,15 +435,11 @@ class Acteol(ApiMiner):
 
         :param origin_id: hex string of encrypted credentials, standard ID for company plus email
         """
-        api_url = urljoin(
-            self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}"
-        )
+        api_url = urljoin(self.base_url, f"api/Contact/FindByOriginID?OriginID={origin_id}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
 
         if resp.status_code != HTTPStatus.OK:
-            logger.debug(
-                f"Error while checking for existing account, reason: {resp.reason}"
-            )
+            logger.debug(f"Error while checking for existing account, reason: {resp.reason}")
             raise RegistrationError(JOIN_ERROR)  # The join journey ends
 
         # The API can return a dict if there's an error but a list normally returned.
@@ -501,9 +478,7 @@ class Acteol(ApiMiner):
 
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[
-            Configuration.SYNC_INTEGRATION
-        ][1].upper()
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         self.audit_logger.add_request(
             payload=payload,
             scheme_slug=self.scheme_slug,
@@ -513,9 +488,7 @@ class Acteol(ApiMiner):
             record_uid=record_uid,
         )
 
-        resp = self.make_request(
-            api_url, method="post", timeout=self.API_TIMEOUT, json=payload
-        )
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
 
         self.audit_logger.add_response(
             response=resp,
@@ -555,9 +528,7 @@ class Acteol(ApiMiner):
         payload = {"ctcid": ctcid}
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[
-            Configuration.SYNC_INTEGRATION
-        ][1].upper()
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         self.audit_logger.add_request(
             payload=payload,
@@ -634,9 +605,7 @@ class Acteol(ApiMiner):
             "password": self.auth["password"],
         }
         token_url = urljoin(self.base_url, "token")
-        resp = self.make_request(
-            token_url, method="post", timeout=self.API_TIMEOUT, data=payload
-        )
+        resp = self.make_request(token_url, method="post", timeout=self.API_TIMEOUT, data=payload)
         token = resp.json()["access_token"]
 
         return token
@@ -661,12 +630,7 @@ class Acteol(ApiMiner):
         """
         These fields are required and expected, so it's an exception if they're not there
         """
-        return all(
-            [
-                k in customer_details
-                for k in ["Email", "CurrentMemberNumber", "CustomerID"]
-            ]
-        )
+        return all([k in customer_details for k in ["Email", "CurrentMemberNumber", "CustomerID"]])
 
     def _set_customer_preferences(self, ctcid: str, email_optin: dict):
         """
@@ -693,9 +657,7 @@ class Acteol(ApiMiner):
             {
                 "url": api_url,  # set to scheme url for the agent to accept consents
                 "headers": headers,  # headers used for agent consent call
-                "message": json.dumps(
-                    payload
-                ),  # set to message body encoded as required
+                "message": json.dumps(payload),  # set to message body encoded as required
                 "agent_tries": self.AGENT_CONSENT_TRIES,  # max number of attempts to send consents to agent
                 "confirm_tries": confirm_retries,  # retries for each consent confirmation sent to hermes
                 "id": ctcid,  # used for identification in error messages
@@ -754,9 +716,7 @@ class Acteol(ApiMiner):
         }
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[
-            Configuration.SYNC_INTEGRATION
-        ][1].upper()
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
@@ -776,9 +736,7 @@ class Acteol(ApiMiner):
                     record_uid=record_uid,
                 )
 
-                resp = self.make_request(
-                    api_url, method="get", timeout=self.API_TIMEOUT, json=payload
-                )
+                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
 
                 self.audit_logger.add_response(
                     response=resp,
@@ -804,9 +762,7 @@ class Acteol(ApiMiner):
             }
 
             error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
-            logger.error(
-                f"Failed login validation for member number {member_number}: {validation_msg}"
-            )
+            logger.error(f"Failed login validation for member number {member_number}: {validation_msg}")
             raise LoginError(error_type)
 
         ctcid = str(resp_json["CtcID"])
@@ -828,9 +784,7 @@ class Acteol(ApiMiner):
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
 
-        api_url = urljoin(
-            self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}"
-        )
+        api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
 
@@ -848,9 +802,7 @@ class Acteol(ApiMiner):
         :param vouchers: list of voucher dicts from Acteol
         :return: only those voucher dicts whose CategoryName == "BINK"
         """
-        bink_only_vouchers = [
-            voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"
-        ]
+        bink_only_vouchers = [voucher for voucher in vouchers if voucher["CategoryName"] == "BINK"]
 
         return bink_only_vouchers
 
@@ -883,15 +835,11 @@ class Acteol(ApiMiner):
         if bink_voucher:
             return bink_voucher
         # Is it an issued voucher?
-        bink_voucher = self._make_issued_voucher(
-            voucher=voucher, current_datetime=current_datetime
-        )
+        bink_voucher = self._make_issued_voucher(voucher=voucher, current_datetime=current_datetime)
         if bink_voucher:
             return bink_voucher
         # Is it expired?
-        bink_voucher = self._make_expired_voucher(
-            voucher=voucher, current_datetime=current_datetime
-        )
+        bink_voucher = self._make_expired_voucher(voucher=voucher, current_datetime=current_datetime)
         if bink_voucher:
             return bink_voucher
 
@@ -944,9 +892,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_issued_voucher(
-        self, voucher: dict, current_datetime: Arrow
-    ) -> Optional[dict]:
+    def _make_issued_voucher(self, voucher: dict, current_datetime: Arrow) -> Optional[dict]:
         """
         Make a Bink issued voucher dict if the Acteol voucher is of that type
 
@@ -975,9 +921,7 @@ class Acteol(ApiMiner):
 
         return None
 
-    def _make_expired_voucher(
-        self, voucher: dict, current_datetime: Arrow
-    ) -> Optional[dict]:
+    def _make_expired_voucher(self, voucher: dict, current_datetime: Arrow) -> Optional[dict]:
         """
         Make a Bink expired voucher dict if the Acteol voucher is of that type
 
@@ -1030,9 +974,7 @@ class Acteol(ApiMiner):
 
         return decimalised
 
-    def _make_transaction_description(
-        self, location_name: str, formatted_total_cost: str
-    ) -> str:
+    def _make_transaction_description(self, location_name: str, formatted_total_cost: str) -> str:
         """
         e.g. "Kensington High St £6.10"
         """
@@ -1069,7 +1011,8 @@ class Acteol(ApiMiner):
             sentry_issue_id = sentry_sdk.capture_exception()
             logger.error(
                 f"Voucher Error: {str(error_list)},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
-                f"Scheme Account ID: {self.scheme_id}")
+                f"Scheme Account ID: {self.scheme_id}"
+            )
             return
 
     def _check_deleted_user(self, resp_json: dict):
@@ -1082,9 +1025,7 @@ class Acteol(ApiMiner):
             customer_id = str(resp_json["CtcID"])
 
         if customer_id == "0":
-            logger.error(
-                f"Acteol card number has been deleted: Card number: {card_number}"
-            )
+            logger.error(f"Acteol card number has been deleted: Card number: {card_number}")
             raise AgentError(NO_SUCH_RECORD)
 
     def make_request(self, url, method="get", timeout=5, **kwargs):
@@ -1103,9 +1044,7 @@ class Acteol(ApiMiner):
         try:
             resp = requests.request(method, url=url, **args)
         except Timeout as exception:
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error="Timeout"
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
 
         signal("record-http-request").send(
@@ -1125,13 +1064,9 @@ class Acteol(ApiMiner):
                 )
                 raise LoginError(STATUS_LOGIN_FAILED)
             elif e.response.status_code == 403:
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
                 raise AgentError(IP_BLOCKED) from e
-            signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
             raise AgentError(END_SITE_DOWN) from e
 
         return resp
@@ -1164,4 +1099,7 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER,)
+        self.audit_logger.journeys = (
+            Configuration.JOIN_HANDLER,
+            Configuration.VALIDATE_HANDLER,
+        )

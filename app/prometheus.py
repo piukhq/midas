@@ -40,9 +40,7 @@ class PrometheusManager:
         labels = {"slug": slug}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
-    def register_success(
-        self, sender: t.Union[object, str], slug: str, channel: str
-    ) -> None:
+    def register_success(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
@@ -52,9 +50,7 @@ class PrometheusManager:
         labels = {"slug": slug, "channel": channel}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
-    def register_fail(
-        self, sender: t.Union[object, str], slug: str, channel: str
-    ) -> None:
+    def register_fail(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
@@ -121,14 +117,12 @@ class PrometheusManager:
 
         histogram = self.metric_types["histograms"]["request_latency"]
         with self._prometheus_push_manager(
-                prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
-                prometheus_job=settings.PROMETHEUS_JOB,
+            prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
+            prometheus_job=settings.PROMETHEUS_JOB,
         ):
             histogram.labels(slug=slug, endpoint=endpoint, response_code=response_code).observe(latency)
 
-    def _increment_counter(
-        self, counter: Counter, increment_by: t.Union[int, float], labels: t.Dict
-    ):
+    def _increment_counter(self, counter: Counter, increment_by: t.Union[int, float], labels: t.Dict):
         with self._prometheus_push_manager(
             prometheus_push_gateway=settings.PROMETHEUS_PUSH_GATEWAY,
             prometheus_job=settings.PROMETHEUS_JOB,
