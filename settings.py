@@ -90,19 +90,6 @@ PROPAGATE_EXCEPTIONS = True
 
 MAX_VALUE_LABEL_LENGTH = 11
 
-HELIOS_DB_USER = getenv("HELIOS_DB_USER", default="helios")
-HELIOS_DB_PASS = getenv("HELIOS_DB_PASS", default="j8NUz3vzPSn$")
-HELIOS_DB_HOST = getenv("HELIOS_DB_HOST", default="127.0.0.1")
-HELIOS_DB_PORT = getenv("HELIOS_DB_PORT", default="5432", conv=int)
-HELIOS_DB_NAME = getenv("HELIOS_DB_NAME", default="helios")
-
-HELIOS_DB_URI = (
-    "postgresql+psycopg2://" f"{HELIOS_DB_USER}:{HELIOS_DB_PASS}@{HELIOS_DB_HOST}:{HELIOS_DB_PORT}/{HELIOS_DB_NAME}"
-)
-
-CREDENTIALS_LOCAL = getenv("CREDENTIALS_LOCAL", default="false", conv=boolconv)
-LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, "app", "tests", "service", "credentials", "credentials.json")
-
 VAULT_URL = getenv("VAULT_URL", default="http://localhost:8200")
 # Vault settings for merchant api security credential storage
 VAULT_TOKEN = getenv("VAULT_TOKEN", default="myroot")
