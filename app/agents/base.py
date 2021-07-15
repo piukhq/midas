@@ -11,9 +11,7 @@ import requests
 import arrow
 from blinker import signal
 from requests import HTTPError
-from requests.adapters import HTTPAdapter
 from requests.exceptions import Timeout
-from requests.packages.urllib3.poolmanager import PoolManager
 from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 from app import publish
@@ -53,18 +51,6 @@ from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes, update_pending_join_account
 from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
 from soteria.configuration import Configuration
-
-
-class SSLAdapter(HTTPAdapter):
-    def __init__(self, ssl_version=None, **kwargs):
-        self.ssl_version = ssl_version
-        self.poolmanager = PoolManager()
-        super().__init__(**kwargs)
-
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(
-            num_pools=connections, maxsize=maxsize, block=block, ssl_version=self.ssl_version
-        )
 
 
 class BaseMiner(object):
