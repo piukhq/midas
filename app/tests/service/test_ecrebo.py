@@ -9,7 +9,17 @@ from app.agents.ecrebo import FatFace, BurgerKing, WhSmith
 from app.agents.exceptions import LoginError, RegistrationError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
-cred = dict[str, str]
+cred = {
+    "email": "testuser5@bink.com",
+    "first_name": "test",
+    "last_name": "user",
+    "consents": [
+        {
+            "slug": "email_marketing",
+            "value": true
+        }
+    ]
+}
 
 
 class TestEcrebo(unittest.TestCase):

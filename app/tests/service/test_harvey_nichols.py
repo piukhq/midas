@@ -6,7 +6,10 @@ from app.agents.exceptions import LoginError
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
 
-cred = dict[str, str]
+cred = {
+    "email": "testemail@testbink.com",
+    "password": "testpassword",
+}
 
 
 class TestHarveyNichols(unittest.TestCase):

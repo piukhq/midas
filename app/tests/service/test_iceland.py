@@ -4,7 +4,10 @@ from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
-cred = dict[str, str]
+cred = {
+    "email": "testemail@testbink.com",
+    "password": "testpassword",
+}
 
 
 class TestIceland(unittest.TestCase):
