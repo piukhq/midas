@@ -13,12 +13,7 @@ cred = {
     "email": "testuser5@bink.com",
     "first_name": "test",
     "last_name": "user",
-    "consents": [
-        {
-            "slug": "email_marketing",
-            "value": true
-        }
-    ]
+    "consents": [{"slug": "email_marketing", "value": "true"}],
 }
 
 
