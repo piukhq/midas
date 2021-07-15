@@ -15,12 +15,7 @@
     - [MacOS Dependencies](#macos-dependencies)
     - [Virtual Environment](#virtual-environment)
     - [Database Schema Migration](#database-schema-migration)
-    - [Development API Server](#development-api-server)
     - [Unit Tests](#unit-tests)
-    - [End-to-End Matching Test](#end-to-end-matching-test)
-      - [Testing with Flexible Transactions](#testing-with-flexible-transactions)
-      - [Inspecting PostgreSQL](#inspecting-postgresql)
-      - [Inspecting Redis](#inspecting-redis)
   - [Migrations](#migrations)
   - [Deployment](#deployment)
 
@@ -81,19 +76,13 @@ s/services
 ### Database Schema Migration
 
 
-### Development API Server
-
-
-
 ### Unit Tests
 
+Testing is done with `pytest`.
 
+To execute a full test run:
 
-### End-to-End Matching Test
-`
-
-
-The `txmatch:status:checkins:*` keys contain timestamps from when various parts of the system were operating.
+pytest --verbose --cov app --cov-report term-missing app/tests/unit
 
 ## Migrations
 
