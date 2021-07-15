@@ -39,7 +39,7 @@ class BplBase(ApiMiner):
             GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
-            STATUS_LOGIN_FAILED: ["STATUS_LOGIN_FAILED"],
+            STATUS_LOGIN_FAILED: ["NO_ACCOUNT_FOUND"],
         }
 
     def update_async_join(self, data):
