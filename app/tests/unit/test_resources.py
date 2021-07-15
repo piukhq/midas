@@ -498,7 +498,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
             "Error with async linking. Scheme: {}, Error: {}".format(
-                scheme_slug, str(mock_balance_and_publish.side_effect)
+                scheme_slug, repr(mock_balance_and_publish.side_effect)
             ),
             mock_update_pending_link_account.call_args[0][1],
         )

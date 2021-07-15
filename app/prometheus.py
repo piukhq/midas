@@ -2,11 +2,15 @@ import os
 import typing as t
 from contextlib import contextmanager
 
-import settings
 from blinker import signal
 from prometheus_client import Counter, Histogram, push_to_gateway
 from prometheus_client.registry import REGISTRY
-from settings import logger
+
+import settings
+from app.reporting import get_logger
+
+
+log = get_logger("prometheus-manager")
 
 
 class PrometheusManager:
@@ -199,7 +203,7 @@ class PrometheusManager:
             yield
         finally:
             if settings.PUSH_PROMETHEUS_METRICS:
-                logger.debug("Prometheus push manager started")
+                log.debug("Prometheus push manager started.")
                 try:
                     push_to_gateway(
                         gateway=prometheus_push_gateway,
@@ -209,4 +213,4 @@ class PrometheusManager:
                         timeout=push_timeout,
                     )
                 except Exception as e:
-                    logger.exception(str(e))
+                    log.exception(str(e))

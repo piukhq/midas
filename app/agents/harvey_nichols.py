@@ -1,29 +1,34 @@
+import json
 from copy import deepcopy
+from decimal import Decimal
 from typing import Mapping
 from uuid import uuid4
-from decimal import Decimal
 
+import arrow
+from blinker import signal
+from gaia.user_token import UserTokenStore
+from soteria.configuration import Configuration
+
+import settings
+from app.agents.base import ApiMiner
 from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    NO_SUCH_RECORD,
+    STATUS_LOGIN_FAILED,
+    STATUS_REGISTRATION_FAILED,
+    UNKNOWN,
     AgentError,
     LoginError,
     RegistrationError,
-    STATUS_REGISTRATION_FAILED,
-    ACCOUNT_ALREADY_EXISTS,
-    UNKNOWN,
-    STATUS_LOGIN_FAILED,
-    NO_SUCH_RECORD,
 )
-from app.audit import RequestAuditLog, AuditLogType
+from app.audit import AuditLogType, RequestAuditLog
 from app.encryption import AESCipher, hash_ids
 from app.scheme_account import JourneyTypes
-from app.agents.base import ApiMiner
-from gaia.user_token import UserTokenStore
-from settings import REDIS_URL, AES_KEY, logger
 from app.tasks.resend_consents import send_consents
-from soteria.configuration import Configuration
-import arrow
-from blinker import signal
-import json
+from app.reporting import get_logger
+
+
+log = get_logger("harvey-nichols-agent")
 
 
 class HarveyNichols(ApiMiner):
@@ -34,7 +39,7 @@ class HarveyNichols(ApiMiner):
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"  # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10  # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents
-    token_store = UserTokenStore(REDIS_URL)
+    token_store = UserTokenStore(settings.REDIS_URL)
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
@@ -43,7 +48,7 @@ class HarveyNichols(ApiMiner):
 
     @staticmethod
     def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
-        aes = AESCipher(AES_KEY.encode())
+        aes = AESCipher(settings.AES_KEY.encode())
 
         # Values stored in AuditLog objects are references so they should be copied before modifying
         # in case the values are also used elsewhere.
@@ -55,7 +60,7 @@ class HarveyNichols(ApiMiner):
                         audit_log.payload["CustomerSignUpRequest"]["password"]
                     ).decode()
                 except KeyError as e:
-                    logger.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
+                    log.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
 
         return req_audit_logs_copy
 

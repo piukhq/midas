@@ -6,16 +6,20 @@ from requests_futures.sessions import FuturesSession
 
 from app.encoding import JsonEncoder
 from app.http_request import get_headers
-from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH, logger
+from app.reporting import get_logger
+from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 units = ["k", "M", "B", "T"]
 PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
 
 
+log = get_logger("publisher")
+
+
 def log_errors(resp, *args, **kwargs):
     if not resp.ok:
-        logger.warning("Could not request to the url: {0}".format(resp.url))
+        log.warning(f"Request to {resp.url} failed: {resp.status_code} {resp.reason}")
 
 
 def post(url, data, tid):
