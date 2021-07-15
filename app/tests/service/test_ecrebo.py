@@ -7,7 +7,14 @@ import httpretty
 from app.agents import schemas
 from app.agents.ecrebo import FatFace, BurgerKing, WhSmith
 from app.agents.exceptions import LoginError, RegistrationError
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, CREDENTIALS
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
+
+cred = {
+    "email": "testuser5@bink.com",
+    "first_name": "test",
+    "last_name": "user",
+    "consents": [{"slug": "email_marketing", "value": "true"}],
+}
 
 
 class TestEcrebo(unittest.TestCase):
@@ -26,7 +33,7 @@ class TestEcrebo(unittest.TestCase):
         cls.agents = [agent_class(*AGENT_CLASS_ARGUMENTS) for agent_class in (FatFace, BurgerKing, WhSmith)]
 
         for agent in cls.agents:
-            agent.register(CREDENTIALS[type(agent).__name__.lower()])
+            agent.register(cred)
             agent.login(agent.user_info["credentials"])
 
     def test_login(self):

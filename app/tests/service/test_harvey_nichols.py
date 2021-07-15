@@ -1,17 +1,22 @@
 import unittest
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents import schemas
-from app.tests.service.logins import CREDENTIALS, AGENT_CLASS_ARGUMENTS
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
 from gaia.user_token import UserTokenStore
 from settings import REDIS_URL
+
+cred = {
+    "email": "testemail@testbink.com",
+    "password": "testpassword",
+}
 
 
 class TestHarveyNichols(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.h = HarveyNichols(*AGENT_CLASS_ARGUMENTS)
-        cls.h.attempt_login(CREDENTIALS["harvey-nichols"])
+        cls.h.attempt_login(cred)
 
     def test_login(self):
         json_result = self.h.login_response.json()["CustomerSignOnResult"]
@@ -47,7 +52,7 @@ class TestHarveyNicholsFail(unittest.TestCase):
 
     def test_login_bad_password(self):
         credentials = {
-            "email": CREDENTIALS["harvey-nichols"]["email"],
+            "email": "Bademail",
             "password": "Badpassword02",
         }
         with self.assertRaises(LoginError) as e:
@@ -62,10 +67,10 @@ class TestToken(unittest.TestCase):
         store = UserTokenStore(REDIS_URL)
         store.set(1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-        credentials = CREDENTIALS["harvey-nichols"]
+        credentials = cred
         credentials["card_number"] = "1000000613736"
 
-        self.h.attempt_login(CREDENTIALS["harvey-nichols"])
+        self.h.attempt_login(cred)
         self.h.balance()
         login_json = self.h.login_response.json()["CustomerSignOnResult"]
         self.assertEqual(self.h.login_response.status_code, 200)
