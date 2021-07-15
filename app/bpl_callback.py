@@ -57,16 +57,16 @@ class JoinCallbackBpl(Resource):
         scheme_account_id = decoded_scheme_account[0]
         update_hermes(data, scheme_account_id)
         user_info = {
-            'credentials': collect_credentials(scheme_account_id),
-            'status': SchemeAccountStatus.PENDING,
-            'scheme_account_id': scheme_account_id,
-            'journey_type': JourneyTypes.JOIN.value,
+            "credentials": collect_credentials(scheme_account_id),
+            "status": SchemeAccountStatus.PENDING,
+            "scheme_account_id": scheme_account_id,
+            "journey_type": JourneyTypes.JOIN.value,
         }
 
         try:
             agent_class = get_agent_class(scheme_slug)
 
-            key = retry.get_key(agent_class.__name__, user_info['scheme_account_id'])
+            key = retry.get_key(agent_class.__name__, user_info["scheme_account_id"])
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
             agent_instance.update_async_join(data)
@@ -88,23 +88,27 @@ def update_hermes(data, scheme_account_id):
 
 def collect_credentials(scheme_account_id):
     session = requests_retry_session()
-    response = session.get('{0}/schemes/accounts/{1}/credentials'.format(settings.HERMES_URL, scheme_account_id),
-                           headers={'Authorization': f'Token {settings.SERVICE_API_KEY}'})
+    response = session.get(
+        "{0}/schemes/accounts/{1}/credentials".format(settings.HERMES_URL, scheme_account_id),
+        headers={"Authorization": f"Token {settings.SERVICE_API_KEY}"},
+    )
 
     try:
         response.raise_for_status()
     except Exception as ex:
         raise AgentError(UNKNOWN) from ex
 
-    credentials = decrypt_credentials(response.json()['credentials'])
+    credentials = decrypt_credentials(response.json()["credentials"])
 
     return credentials
 
 
-def requests_retry_session(retries: int = 3,
-                           backoff_factor: float = 0.3,
-                           status_forcelist: t.Tuple = (500, 502, 504),
-                           session: requests.Session = None) -> requests.Session:
+def requests_retry_session(
+    retries: int = 3,
+    backoff_factor: float = 0.3,
+    status_forcelist: t.Tuple = (500, 502, 504),
+    session: requests.Session = None,
+) -> requests.Session:
     """Create a requests session with the given retry policy.
     This method will create a new session if an existing one is not provided.
     See here for more information about this functionality:
@@ -113,10 +117,11 @@ def requests_retry_session(retries: int = 3,
         session = requests.Session()
 
     retry = Retry(
-        total=retries, read=retries, connect=retries, backoff_factor=backoff_factor, status_forcelist=status_forcelist)
+        total=retries, read=retries, connect=retries, backoff_factor=backoff_factor, status_forcelist=status_forcelist
+    )
 
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
 
     return session

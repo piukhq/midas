@@ -14,7 +14,8 @@ prometheus_manager = PrometheusManager()
 
 def create_app(config_name="settings"):
     from app.urls import api
-    app = Flask('core')
+
+    app = Flask("core")
     app.config.from_object(config_name)
 
     api.init_app(app)
@@ -25,7 +26,7 @@ def create_app(config_name="settings"):
         error = error.args[0]
         settings.logger.exception(error.message)
 
-        response = jsonify({'message': error.message, 'code': error.code, 'name': error.name})
+        response = jsonify({"message": error.message, "code": error.code, "name": error.name})
         response.status_code = error.code
         return response
 
@@ -33,7 +34,7 @@ def create_app(config_name="settings"):
     def agent_unknown_request_handler(error):
         sentry_sdk.capture_exception(error)  # As this is an UNKNOWN error, also log to sentry
 
-        response = jsonify({'message': str(error), 'code': 520, 'name': 'Unknown Error'})
+        response = jsonify({"message": str(error), "code": 520, "name": "Unknown Error"})
         response.status_code = 520
         return response
 

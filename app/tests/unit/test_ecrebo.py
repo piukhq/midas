@@ -49,7 +49,7 @@ class TestEcreboSignal(unittest.TestCase):
                     },
                     "channel": "com.bink.wallet",
                 },
-                scheme_slug="fatface"
+                scheme_slug="fatface",
             )
             cls.whsmith = WhSmith(
                 retry_count=1,
@@ -71,7 +71,7 @@ class TestEcreboSignal(unittest.TestCase):
                     },
                     "channel": "com.bink.wallet",
                 },
-                scheme_slug="whsmith-rewards"
+                scheme_slug="whsmith-rewards",
             )
             cls.fatface.base_url = "https://london-capi-test.ecrebo.com"
             cls.whsmith.base_url = "https://london-capi-test.ecrebo.com"
@@ -85,16 +85,23 @@ class TestEcreboSignal(unittest.TestCase):
         # GIVEN
         login_path = "/v1/auth/login"
         httpretty.register_uri(
-            httpretty.POST, f"{self.whsmith.base_url}{login_path}", status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            httpretty.POST,
+            f"{self.whsmith.base_url}{login_path}",
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=login_path, latency=ANY,
-                        response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=login_path,
+                latency=ANY,
+                response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                slug=self.whsmith.scheme_slug,
+            ),
             call("request-fail"),
-            call().send(self.whsmith, channel=self.whsmith.channel, error="Internal Server Error",
-                        slug=self.whsmith.scheme_slug)
+            call().send(
+                self.whsmith, channel=self.whsmith.channel, error="Internal Server Error", slug=self.whsmith.scheme_slug
+            ),
         ]
 
         # WHEN
@@ -120,9 +127,13 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=login_path, latency=ANY,
-                        response_code=HTTPStatus.OK,
-                        slug=self.whsmith.scheme_slug)
+            call().send(
+                self.whsmith,
+                endpoint=login_path,
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+                slug=self.whsmith.scheme_slug,
+            ),
         ]
 
         # WHEN
@@ -152,13 +163,19 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+                slug=self.whsmith.scheme_slug,
+            ),
         ]
 
         # WHEN
-        membership_data = self.whsmith._get_membership_response(endpoint=mock_endpoint,
-                                                                journey_type=self.whsmith.user_info["journey_type"])
+        membership_data = self.whsmith._get_membership_response(
+            endpoint=mock_endpoint, journey_type=self.whsmith.user_info["journey_type"]
+        )
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -183,17 +200,26 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
-                        response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                slug=self.whsmith.scheme_slug,
+            ),
             call("request-fail"),
-            call().send(self.whsmith, channel=self.whsmith.channel, error="Internal Server Error",
-                        slug=self.whsmith.scheme_slug)
+            call().send(
+                self.whsmith, channel=self.whsmith.channel, error="Internal Server Error", slug=self.whsmith.scheme_slug
+            ),
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
-                          journey_type=self.whsmith.user_info["journey_type"])
+        self.assertRaises(
+            HTTPError,
+            self.whsmith._get_membership_response,
+            endpoint=mock_endpoint,
+            journey_type=self.whsmith.user_info["journey_type"],
+        )
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -217,14 +243,22 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY,
-                        response_code=HTTPStatus.NOT_FOUND,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.NOT_FOUND,
+                slug=self.whsmith.scheme_slug,
+            ),
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
-                          journey_type=self.whsmith.user_info["journey_type"])
+        self.assertRaises(
+            LoginError,
+            self.whsmith._get_membership_response,
+            endpoint=mock_endpoint,
+            journey_type=self.whsmith.user_info["journey_type"],
+        )
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -250,9 +284,9 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # WHEN
-        membership_data = self.whsmith._get_membership_response(endpoint=mock_endpoint,
-                                                                journey_type=self.whsmith.user_info["journey_type"],
-                                                                from_login=True)
+        membership_data = self.whsmith._get_membership_response(
+            endpoint=mock_endpoint, journey_type=self.whsmith.user_info["journey_type"], from_login=True
+        )
 
         # THEN
         assert mock_add_response.called
@@ -262,8 +296,9 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_audit_add_response_on_http_error(self, mock_signal, mock_authenticate,
-                                                                        mock_add_response):
+    def test_get_membership_data_calls_audit_add_response_on_http_error(
+        self, mock_signal, mock_authenticate, mock_add_response
+    ):
         """
         Check that correct params are passed to signals when the call is OK
         """
@@ -278,8 +313,13 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith._get_membership_response, endpoint=mock_endpoint,
-                          journey_type=self.whsmith.user_info["journey_type"], from_login=True)
+        self.assertRaises(
+            HTTPError,
+            self.whsmith._get_membership_response,
+            endpoint=mock_endpoint,
+            journey_type=self.whsmith.user_info["journey_type"],
+            from_login=True,
+        )
 
         # THEN
         assert mock_add_response.called
@@ -288,8 +328,9 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_audit_add_response_on_requests_exceptions(self, mock_signal, mock_authenticate,
-                                                                                 mock_add_response):
+    def test_get_membership_data_calls_audit_add_response_on_requests_exceptions(
+        self, mock_signal, mock_authenticate, mock_add_response
+    ):
         """
         Check that correct params are passed to signals when the call is OK
         """
@@ -304,8 +345,13 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # WHEN
-        self.assertRaises(RequestException, self.whsmith._get_membership_response, endpoint=mock_endpoint,
-                          journey_type=self.whsmith.user_info["journey_type"], from_login=True)
+        self.assertRaises(
+            RequestException,
+            self.whsmith._get_membership_response,
+            endpoint=mock_endpoint,
+            journey_type=self.whsmith.user_info["journey_type"],
+            from_login=True,
+        )
 
         # THEN
         assert mock_add_response.called
@@ -332,10 +378,15 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.OK,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+                slug=self.whsmith.scheme_slug,
+            ),
             call("register-success"),
-            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug)
+            call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
         ]
 
         # WHEN
@@ -365,13 +416,19 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.CONFLICT,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.CONFLICT,
+                slug=self.whsmith.scheme_slug,
+            ),
             call("register-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
-            call().send(self.whsmith, channel=self.whsmith.channel, error=ACCOUNT_ALREADY_EXISTS,
-                        slug=self.whsmith.scheme_slug)
+            call().send(
+                self.whsmith, channel=self.whsmith.channel, error=ACCOUNT_ALREADY_EXISTS, slug=self.whsmith.scheme_slug
+            ),
         ]
 
         # WHEN
@@ -401,13 +458,19 @@ class TestEcreboSignal(unittest.TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("record-http-request"),
-            call().send(self.whsmith, endpoint=mock_endpoint, latency=ANY, response_code=HTTPStatus.GATEWAY_TIMEOUT,
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith,
+                endpoint=mock_endpoint,
+                latency=ANY,
+                response_code=HTTPStatus.GATEWAY_TIMEOUT,
+                slug=self.whsmith.scheme_slug,
+            ),
             call("register-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
-            call().send(self.whsmith, channel=self.whsmith.channel, error="Gateway Timeout",
-                        slug=self.whsmith.scheme_slug),
+            call().send(
+                self.whsmith, channel=self.whsmith.channel, error="Gateway Timeout", slug=self.whsmith.scheme_slug
+            ),
         ]
 
         # WHEN
@@ -425,11 +488,11 @@ class TestEcreboSignal(unittest.TestCase):
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-success"),
-            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug),
         ]
 
         # WHEN
-        self.whsmith.login(self.whsmith.user_info['credentials'])
+        self.whsmith.login(self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -443,23 +506,24 @@ class TestEcreboSignal(unittest.TestCase):
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
-            call().send(self.whsmith, slug=self.whsmith.scheme_slug)
+            call().send(self.whsmith, slug=self.whsmith.scheme_slug),
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith.login, self.whsmith.user_info['credentials'])
+        self.assertRaises(HTTPError, self.whsmith.login, self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @ patch("app.audit.AuditLogger.send_to_atlas")
-    @ patch('app.audit.AuditLogger.add_request')
-    @ patch('app.audit.AuditLogger.add_response')
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    @patch("app.audit.AuditLogger.add_request")
+    @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._get_membership_response")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_login_fatface(self, mock_signal, mock_get_membership_response,
-                           mock_add_response, mock_add_request, mock_send_to_atlas):
+    def test_login_fatface(
+        self, mock_signal, mock_get_membership_response, mock_add_response, mock_add_request, mock_send_to_atlas
+    ):
         """
         Testing FatFace login journey to ensure audit request/responses are created
         """
@@ -477,5 +541,5 @@ class TestEcreboSignal(unittest.TestCase):
         self.fatface.login(credentials=self.fatface.user_info["credentials"])
 
         # THEN
-        assert mock_send_to_atlas.called_with(self.fatface.user_info['credentials'])
+        assert mock_send_to_atlas.called_with(self.fatface.user_info["credentials"])
         assert mock_send_to_atlas.called

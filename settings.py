@@ -31,61 +31,49 @@ def boolconv(s: str) -> bool:
     return s.lower() in ["true", "t", "yes"]
 
 
-DEV_HOST = getenv('DEV_HOST', default='0.0.0.0')
-DEV_PORT = getenv('DEV_PORT', default='8000', conv=int)
+DEV_HOST = getenv("DEV_HOST", default="0.0.0.0")
+DEV_PORT = getenv("DEV_PORT", default="8000", conv=int)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s')
-logger = logging.getLogger('midas_logger')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s")
+logger = logging.getLogger("midas_logger")
 logger.setLevel(logging.DEBUG)
 
-JUNIT_XML_FILENAME = 'test_results.xml'
+JUNIT_XML_FILENAME = "test_results.xml"
 
-SECRET_KEY = 'QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR'
+SECRET_KEY = "QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR"
 
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
-DEBUG = getenv('MIDAS_DEBUG', default="false", conv=boolconv)
-LOCAL = getenv('MIDAS_LOCAL', default="false", conv=boolconv)
-AES_KEY = '6gZW4ARFINh4DR1uIzn12l7Mh1UF982L'
+DEBUG = getenv("MIDAS_DEBUG", default="false", conv=boolconv)
+LOCAL = getenv("MIDAS_LOCAL", default="false", conv=boolconv)
+AES_KEY = "6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"
 
-REDIS_PASSWORD = getenv('REDIS_PASSWORD', default='')
-REDIS_HOST = getenv('REDIS_HOST', default='localhost')
-REDIS_PORT = getenv('REDIS_PORT', default='6379')
-REDIS_DB = getenv('REDIS_DB', default='0')
-REDIS_URL = getenv('REDIS_URL', default=f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}')
+REDIS_PASSWORD = getenv("REDIS_PASSWORD", default="")
+REDIS_HOST = getenv("REDIS_HOST", default="localhost")
+REDIS_PORT = getenv("REDIS_PORT", default="6379")
+REDIS_DB = getenv("REDIS_DB", default="0")
+REDIS_URL = getenv("REDIS_URL", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
 
-RETRY_PERIOD = getenv('RETRY_PERIOD', default='1800', conv=int)
-REDIS_CELERY_DB = getenv('REDIS_CELERY_DB', default='1')
-CELERY_BROKER_URL = getenv(
-    'AMQP_DSN',
-    default=f'redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}'
-)
-CELERY_TASK_SERIALIZER = 'json'
-CELERYBEAT_SCHEDULE = {
-    'retry_tasks': {
-        'task': 'app.tasks.resend.retry_tasks',
-        'schedule': RETRY_PERIOD,
-        'args': ()
-    }
-}
-CELERY_IMPORTS = [
-    'app.tasks.resend'
-]
+RETRY_PERIOD = getenv("RETRY_PERIOD", default="1800", conv=int)
+REDIS_CELERY_DB = getenv("REDIS_CELERY_DB", default="1")
+CELERY_BROKER_URL = getenv("AMQP_DSN", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}")
+CELERY_TASK_SERIALIZER = "json"
+CELERYBEAT_SCHEDULE = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
+CELERY_IMPORTS = ["app.tasks.resend"]
 
-HADES_URL = getenv('HADES_URL', default='http://local.hades.chingrewards.com:8000')
-HERMES_URL = getenv('HERMES_URL', default='http://local.hermes.chingrewards.com:8000')
-CONFIG_SERVICE_URL = getenv('CONFIG_SERVICE_URL', default='')
-ATLAS_URL = getenv('ATLAS_URL', default='http://localhost:8100')
+HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
+HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
+CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
+ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
-SERVICE_API_KEY = 'F616CE5C88744DD52DB628FAD8B3D'
+SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
 
-SENTRY_DSN = getenv('SENTRY_DSN', required=False)
-SENTRY_ENV = getenv('SENTRY_ENV', required=False)
+SENTRY_DSN = getenv("SENTRY_DSN", required=False)
+SENTRY_ENV = getenv("SENTRY_ENV", required=False)
 if SENTRY_DSN:
+
     def ignore_errors(event, hint):
-        if 'exc_info' in hint:
-            exc_type, exc_value, tb = hint['exc_info']
+        if "exc_info" in hint:
+            exc_type, exc_value, tb = hint["exc_info"]
             if isinstance(exc_value, SENTRY_IGNORED_EXCEPTIONS):
                 return None
         return event
@@ -93,9 +81,7 @@ if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=SENTRY_ENV,
-        integrations=[
-            FlaskIntegration()
-        ],
+        integrations=[FlaskIntegration()],
         release=__version__,
         before_send=ignore_errors,
     )
@@ -104,35 +90,21 @@ PROPAGATE_EXCEPTIONS = True
 
 MAX_VALUE_LABEL_LENGTH = 11
 
-HELIOS_DB_USER = getenv('HELIOS_DB_USER', default='helios')
-HELIOS_DB_PASS = getenv('HELIOS_DB_PASS', default='j8NUz3vzPSn$')
-HELIOS_DB_HOST = getenv('HELIOS_DB_HOST', default='127.0.0.1')
-HELIOS_DB_PORT = getenv('HELIOS_DB_PORT', default='5432', conv=int)
-HELIOS_DB_NAME = getenv('HELIOS_DB_NAME', default='helios')
-
-HELIOS_DB_URI = (
-    'postgresql+psycopg2://'
-    f'{HELIOS_DB_USER}:{HELIOS_DB_PASS}@{HELIOS_DB_HOST}:{HELIOS_DB_PORT}/{HELIOS_DB_NAME}'
-)
-
-CREDENTIALS_LOCAL = getenv('CREDENTIALS_LOCAL', default="false", conv=boolconv)
-LOCAL_CREDENTIALS_FILE = os.path.join(APP_DIR, 'app', 'tests', 'service', 'credentials', 'credentials.json')
-
-VAULT_URL = getenv('VAULT_URL', default='http://localhost:8200')
+VAULT_URL = getenv("VAULT_URL", default="http://localhost:8200")
 # Vault settings for merchant api security credential storage
-VAULT_TOKEN = getenv('VAULT_TOKEN', default='myroot')
+VAULT_TOKEN = getenv("VAULT_TOKEN", default="myroot")
 
 
 BACK_OFF_COOLDOWN = 120
 
 HERMES_CONFIRMATION_TRIES = 10
 
-ENABLE_ICELAND_VALIDATE = getenv('ENABLE_ICELAND_VALIDATE', default="false", conv=boolconv)
+ENABLE_ICELAND_VALIDATE = getenv("ENABLE_ICELAND_VALIDATE", default="false", conv=boolconv)
 
 
 # Prometheus settings
-PUSH_PROMETHEUS_METRICS = getenv('PUSH_PROMETHEUS_METRICS', default="true", conv=boolconv)
-PROMETHEUS_PUSH_GATEWAY = 'http://localhost:9100'
-PROMETHEUS_JOB = 'midas'
+PUSH_PROMETHEUS_METRICS = getenv("PUSH_PROMETHEUS_METRICS", default="true", conv=boolconv)
+PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
+PROMETHEUS_JOB = "midas"
 
 API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)

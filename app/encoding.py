@@ -6,7 +6,7 @@ from datetime import datetime
 
 class JsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        date_format = 'YYYY-MM-DD HH:mm:ssZZ'
+        date_format = "YYYY-MM-DD HH:mm:ssZZ"
 
         if isinstance(obj, arrow.Arrow):
             return obj.format(date_format)

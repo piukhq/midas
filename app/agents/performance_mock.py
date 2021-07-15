@@ -15,9 +15,7 @@ class MockPerformance(MockedMiner):
 
     def login(self, credentials):
         if not credentials.get("card_number"):
-            self.identifier = {
-                "card_number": f"1{uuid4()}"
-            }
+            self.identifier = {"card_number": f"1{uuid4()}"}
             return
 
         if credentials["card_number"].startswith(GHOST_CARD_PREFIX):
@@ -56,12 +54,9 @@ class MockPerformance(MockedMiner):
 
 
 class MockPerformanceVoucher(MockedMiner):
-
     def login(self, credentials):
         if not credentials.get("card_number"):
-            self.identifier = {
-                "card_number": f"1{uuid4()}"
-            }
+            self.identifier = {"card_number": f"1{uuid4()}"}
             return
 
         if credentials.get("card_number", "").startswith(GHOST_CARD_PREFIX):
@@ -82,16 +77,11 @@ class MockPerformanceVoucher(MockedMiner):
                     "expiry_date": date,
                     "code": str(uuid4()),
                     "type": VoucherType.ACCUMULATOR.value,
-                    "value": Decimal(random.randint(1, 50))
+                    "value": Decimal(random.randint(1, 50)),
                 }
             )
 
-        return {
-            "points": value,
-            "value": value,
-            "value_label": "",
-            "vouchers": vouchers
-        }
+        return {"points": value, "value": value, "value_label": "", "vouchers": vouchers}
 
     def parse_transaction(self, row):
         return row

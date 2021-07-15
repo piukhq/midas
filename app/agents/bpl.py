@@ -10,11 +10,12 @@ from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
-    AgentError, LoginError,
+    AgentError,
+    LoginError,
     GENERAL_ERROR,
     ACCOUNT_ALREADY_EXISTS,
     STATUS_REGISTRATION_FAILED,
-    NO_SUCH_RECORD
+    STATUS_LOGIN_FAILED,
 )
 from app.encryption import hash_ids
 from app.scheme_account import SchemeAccountStatus
@@ -22,8 +23,13 @@ from app.scheme_account import SchemeAccountStatus
 
 class BplBase(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(scheme_slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN,
-                               settings.CONFIG_SERVICE_URL)
+        config = Configuration(
+            scheme_slug,
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
         self.callback_url = config.callback_url
@@ -33,7 +39,7 @@ class BplBase(ApiMiner):
             GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
-            NO_SUCH_RECORD: ["NO_ACCOUNT_FOUND"]
+            STATUS_LOGIN_FAILED: ["NO_ACCOUNT_FOUND"],
         }
 
     def update_async_join(self, data):
@@ -41,18 +47,20 @@ class BplBase(ApiMiner):
         scheme_account_id = decoded_scheme_account[0]
         self.update_hermes_credentials(data, scheme_account_id)
         status = SchemeAccountStatus.ACTIVE
-        publish.status(scheme_account_id, status, uuid4(), self.user_info, journey='join')
+        publish.status(scheme_account_id, status, uuid4(), self.user_info, journey="join")
 
     def update_hermes_credentials(self, customer_details, scheme_account_id):
 
         self.identifier = {
-            "card_number": customer_details["account_number"], "merchant_identifier": customer_details["UUID"]
+            "card_number": customer_details["account_number"],
+            "merchant_identifier": customer_details["UUID"],
         }
         self.user_info["credentials"].update(self.identifier)
 
         # for updating user ID credential you get for registering (e.g. getting issued a card number)
         api_url = urljoin(
-            settings.HERMES_URL, f"schemes/accounts/{scheme_account_id}/credentials",
+            settings.HERMES_URL,
+            f"schemes/accounts/{scheme_account_id}/credentials",
         )
         headers = {
             "Content-type": "application/json",
@@ -78,7 +86,7 @@ class Trenette(BplBase):
             "credentials": credentials,
             "marketing_preferences": [],
             "callback_url": self.callback_url,
-            "third_party_identifier": hash_ids.encode(self.user_info['scheme_account_id']),
+            "third_party_identifier": hash_ids.encode(self.user_info["scheme_account_id"]),
         }
 
         try:
@@ -133,9 +141,11 @@ class Trenette(BplBase):
             "value": Decimal(balance),
             "value_label": "",
             "vouchers": [
-                {"state": voucher_state_names[VoucherState.IN_PROGRESS],
-                 "type": VoucherType.STAMPS.value,
-                 "target_value": None,
-                 "value": Decimal(balance)},
+                {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": VoucherType.STAMPS.value,
+                    "target_value": None,
+                    "value": Decimal(balance),
+                },
             ],
         }

@@ -11,21 +11,21 @@ from unittest.mock import MagicMock
 from app.agents.bpl import Trenette
 
 settings.API_AUTH_ENABLED = False
-from app.bpl_callback import JoinCallbackBpl # noqa
+from app.bpl_callback import JoinCallbackBpl  # noqa
 from app import create_app  # noqa
 
 
-data = {"UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
-        "email": "ncostaa@bink.com",
-        "account_number": 56789,
-        "third_party_identifier": "8v5zjgey0xd7k618x43wmpo2139lq4r8"
-        }
+data = {
+    "UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
+    "email": "ncostaa@bink.com",
+    "account_number": 56789,
+    "third_party_identifier": "8v5zjgey0xd7k618x43wmpo2139lq4r8",
+}
 
-headers = {'Content-type': 'application/json'}
+headers = {"Content-type": "application/json"}
 
 
 class TestBplCallback(TestCase):
-
     def create_app(self):
         return create_app(self)
 
@@ -59,21 +59,21 @@ class TestBplCallback(TestCase):
                         "join_date": "2021/02/24",
                         "card_number": "TRNT9276336436",
                         "consents": [{"slug": "email_marketing", "value": True}],
-                        "merchant_identifier": "54a259f2-3602-4cc8-8f57-1239de7e5700"
+                        "merchant_identifier": "54a259f2-3602-4cc8-8f57-1239de7e5700",
                     },
                     "channel": "com.bink.wallet",
                 },
-                scheme_slug="bpl-trenette"
+                scheme_slug="bpl-trenette",
             )
             self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
 
-    @mock.patch.object(JoinCallbackBpl, 'process_join_callback')
+    @mock.patch.object(JoinCallbackBpl, "process_join_callback")
     def test_post(self, mock_process_join_callback):
         url = "join/bpl/bpl-trenette"
         response = self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_process_join_callback.called)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'success': True})
+        self.assertEqual(response.json, {"success": True})
 
     @httpretty.activate
     def test_balance(self):
@@ -84,28 +84,25 @@ class TestBplCallback(TestCase):
             "created_date": 1621266592,
             "status": "active",
             "account_number": "TRNT9288336436",
-            "current_balances": [
+            "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
+            "transaction_history": [],
+            "vouchers": [
                 {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": VoucherType.STAMPS.value,
                     "value": 0.1,
-                    "campaign_slug": "mocked-trenette-active-campaign"
+                    "target_value": 0.1,
                 }
             ],
-            "transaction_history": [],
-            "vouchers": [{"state": voucher_state_names[VoucherState.IN_PROGRESS],
-                          "type": VoucherType.STAMPS.value,
-                          "value": 0.1,
-                          "target_value": 0.1}]
         }
         httpretty.register_uri(
-            httpretty.GET,
-            url,
-            status=HTTPStatus.OK,
-            responses=[httpretty.Response(body=json.dumps(response_data))]
-
+            httpretty.GET, url, status=HTTPStatus.OK, responses=[httpretty.Response(body=json.dumps(response_data))]
         )
         api_url = urljoin(settings.HERMES_URL, "schemes/accounts/1/credentials")
         httpretty.register_uri(
-            httpretty.PUT, api_url, status=HTTPStatus.OK,
+            httpretty.PUT,
+            api_url,
+            status=HTTPStatus.OK,
         )
         balance = self.trenette.balance()
         self.assertEqual(balance["value"], 0.1)

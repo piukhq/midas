@@ -9,7 +9,7 @@ class TestEncryption(unittest.TestCase):
         self.key = Random.get_random_bytes(32)
 
     def test_encrypt_decrypt(self):
-        message = 'Message To Encrypt'
+        message = "Message To Encrypt"
         aes_cipher = AESCipher(key=self.key)
         cipher_text = aes_cipher.encrypt(message)
         aes_cipher2 = AESCipher(key=self.key)
@@ -17,7 +17,7 @@ class TestEncryption(unittest.TestCase):
         self.assertEqual(message, decrypted_message)
 
     def test_encrypt_decrypt_dictionary(self):
-        login_credentials = {'username': 'test'}
+        login_credentials = {"username": "test"}
         message = json.dumps(login_credentials)
         aes_cipher = AESCipher(key=self.key)
         cipher_text = aes_cipher.encrypt(message)
@@ -29,13 +29,13 @@ class TestEncryption(unittest.TestCase):
 
     def test_do_not_allow_encryption_of_none(self):
         aes_cipher = AESCipher(key=self.key)
-        self.assertRaises(TypeError, aes_cipher.encrypt, '')
+        self.assertRaises(TypeError, aes_cipher.encrypt, "")
 
     def test_do_not_allow_decryption_of_none(self):
         aes_cipher = AESCipher(key=self.key)
-        aes_cipher.encrypt('blah')
-        self.assertRaises(TypeError, aes_cipher.decrypt, '')
+        aes_cipher.encrypt("blah")
+        self.assertRaises(TypeError, aes_cipher.decrypt, "")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

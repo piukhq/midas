@@ -20,9 +20,9 @@ def get_security_agent(security_type, *args, **kwargs):
     :return: agent instance
     """
     try:
-        module_name, class_name = registry.TYPES[security_type].split('.')
+        module_name, class_name = registry.TYPES[security_type].split(".")
 
-        security_module = import_module('.' + module_name, package='app.security')
+        security_module = import_module("." + module_name, package="app.security")
 
         agent_class = getattr(security_module, class_name)
         agent_instance = agent_class(*args, **kwargs)
@@ -41,21 +41,29 @@ def authorise(handler_type):
     :param handler_type: Int. should be a choice from Configuration.HANDLER_TYPE_CHOICES
     :return: decorated function
     """
+
     def decorator(fn):
         def wrapper(*args, **kwargs):
             try:
-                config = configuration.Configuration(kwargs['scheme_slug'], handler_type, settings.VAULT_URL,
-                                                     settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
-                security_agent = get_security_agent(config.security_credentials['inbound']['service'],
-                                                    config.security_credentials)
+                config = configuration.Configuration(
+                    kwargs["scheme_slug"],
+                    handler_type,
+                    settings.VAULT_URL,
+                    settings.VAULT_TOKEN,
+                    settings.CONFIG_SERVICE_URL,
+                )
+                security_agent = get_security_agent(
+                    config.security_credentials["inbound"]["service"], config.security_credentials
+                )
 
-                decoded_data = json.loads(security_agent.decode(request.headers,
-                                                                request.get_data().decode('utf8')))
+                decoded_data = json.loads(security_agent.decode(request.headers, request.get_data().decode("utf8")))
             except AgentError as e:
                 raise AgentException(e)
             except Exception as e:
                 raise AgentException(AgentError(UNKNOWN)) from e
 
             return fn(data=decoded_data, config=config, *args, **kwargs)
+
         return wrapper
+
     return decorator
