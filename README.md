@@ -12,9 +12,7 @@
   - [Prerequisites](#prerequisites)
   - [Dependencies](#dependencies)
   - [Project Setup](#project-setup)
-    - [MacOS Dependencies](#macos-dependencies)
     - [Virtual Environment](#virtual-environment)
-    - [Database Schema Migration](#database-schema-migration)
     - [Unit Tests](#unit-tests)
   - [Migrations](#migrations)
   - [Deployment](#deployment)
@@ -37,15 +35,6 @@ The following is a list of the important dependencies used in the project. You d
 ## Project Setup
 
 Pipenv is used for managing project dependencies and execution.
-
-### MacOS Dependencies
-
-Before installing the project dependencies on MacOS, you will need to install a few homebrew dependencies, and let the system know where to find the OpenSSL libraries.
-
-```bash
-brew install postgres openssl
-export LDFLAGS="-L/usr/local/opt/openssl/lib"
-```
 
 ### Virtual Environment
 
@@ -72,9 +61,6 @@ To quickly create docker containers for the required services:
 ```bash
 s/services
 ```
-
-### Database Schema Migration
-
 
 ### Unit Tests
 
