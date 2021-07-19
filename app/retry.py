@@ -32,7 +32,7 @@ def get_count(key):
 
 @redis_connection
 def max_out_count(key, max_retries):
-    redis.setex(key, max_retries, 60 * 15)
+    redis.setex(key, 60 * 15, max_retries)
 
 
 @redis_connection
