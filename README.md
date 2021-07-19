@@ -70,10 +70,6 @@ To execute a full test run:
 
 pytest --verbose --cov app --cov-report term-missing app/tests/unit
 
-## Migrations
-
-Migrations should be manually squashed before each deployment for efficiency's sake. As a rule of thumb, each merge request should only include a single migration containing all the required changes for that feature. In some cases this will not be possible.
-
 ## Deployment
 
 There is a Dockerfile provided in the project root. Build an image from this to get a deployment-ready version of the project.
