@@ -14,7 +14,6 @@
   - [Project Setup](#project-setup)
     - [Virtual Environment](#virtual-environment)
     - [Unit Tests](#unit-tests)
-  - [Migrations](#migrations)
   - [Deployment](#deployment)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
