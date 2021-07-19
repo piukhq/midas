@@ -120,12 +120,9 @@ class TestMerchantApi(FlaskTestCase):
         self.m_user_set = MerchantApi(1, self.user_info_user_set)
         self.m.config = self.config
 
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch.object(MerchantApi, "_sync_outbound")
     @mock.patch("app.agents.base.Configuration")
-    def test_outbound_handler_updates_json_data_with_merchant_identifiers(
-        self, mock_config, mock_sync_outbound, mock_logger
-    ):
+    def test_outbound_handler_updates_json_data_with_merchant_identifiers(self, mock_config, mock_sync_outbound):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], "json": "test"})
         mock_config.return_value = self.config
         mock_config.JOIN_HANDLER = Configuration.JOIN_HANDLER
@@ -140,14 +137,12 @@ class TestMerchantApi(FlaskTestCase):
             Configuration.JOIN_HANDLER,
         )
 
-        self.assertTrue(mock_logger.info.called)
         self.assertIn("merchant_scheme_id1", mock_sync_outbound.call_args[0][0])
         self.assertIn("merchant_scheme_id2", mock_sync_outbound.call_args[0][0])
 
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.agents.base.Configuration")
     @mock.patch.object(MerchantApi, "_sync_outbound")
-    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config, mock_logger):
+    def test_outbound_handler_returns_response_json(self, mock_sync_outbound, mock_config):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], "json": "test"})
         mock_config.return_value = self.config
         mock_config.VALIDATE_HANDLER = Configuration.VALIDATE_HANDLER
@@ -159,13 +154,11 @@ class TestMerchantApi(FlaskTestCase):
             Configuration.VALIDATE_HANDLER,
         )
 
-        self.assertTrue(mock_logger.info.called)
         self.assertEqual({"error_codes": [], "json": "test"}, resp)
 
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.agents.base.Configuration")
     @mock.patch.object(MerchantApi, "_sync_outbound")
-    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_config, mock_logger):
+    def test_async_outbound_handler_expects_callback(self, mock_sync_outbound, mock_config):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], "json": "test"})
         self.config.integration_service = "ASYNC"
         mock_config.return_value = self.config
@@ -177,10 +170,9 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertTrue(self.m.expecting_callback)
 
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.agents.base.Configuration")
     @mock.patch.object(MerchantApi, "_sync_outbound")
-    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_config, mock_logger):
+    def test_sync_outbound_handler_doesnt_expect_callback(self, mock_sync_outbound, mock_config):
         mock_sync_outbound.return_value = json.dumps({"error_codes": [], "json": "test"})
         mock_config.return_value = self.config
         mock_config.JOIN_HANDLER = Configuration.JOIN_HANDLER
@@ -308,11 +300,8 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch.object(RSA, "encode", autospec=True)
     @mock.patch("app.agents.base.BackOffService", autospec=True)
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("requests.post", autospec=True)
-    def test_sync_outbound_logs_for_redirects(
-        self, mock_request, mock_logger, mock_back_off, mock_encode, mock_decode, mock_signal
-    ):
+    def test_sync_outbound_logs_for_redirects(self, mock_request, mock_back_off, mock_encode, mock_decode, mock_signal):
         # GIVEN
         mock_encode.return_value = {"json": self.json_data}
         mock_decode.return_value = self.json_data
@@ -336,7 +325,6 @@ class TestMerchantApi(FlaskTestCase):
         resp = self.m._sync_outbound(self.json_data)
 
         # THEN
-        self.assertTrue(mock_logger.warning.called)
         self.assertEqual(resp, self.json_data)
 
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -545,9 +533,8 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch("requests.Session.post")
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch.object(MerchantApi, "process_join_response", autospec=True)
-    def test_async_inbound_success(self, mock_process_join, mock_logger, mock_session_post, mock_signal):
+    def test_async_inbound_success(self, mock_process_join, mock_session_post, mock_signal):
         mock_process_join.return_value = ""
         self.m.config = self.config
         self.m.record_uid = self.m.scheme_id
@@ -558,15 +545,13 @@ class TestMerchantApi(FlaskTestCase):
 
         resp = self.m._inbound_handler(json.loads(self.json_data), "")
 
-        self.assertTrue(mock_logger.info.called)
         self.assertTrue(mock_session_post.called)
         self.assertEqual(resp, "")
         mock_signal.assert_has_calls(expected_calls)
 
     @mock.patch("requests.Session.post")
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch.object(MerchantApi, "process_join_response", autospec=True)
-    def test_async_inbound_logs_errors(self, mock_process_join, mock_logger, mock_session_post):
+    def test_async_inbound_logs_errors(self, mock_process_join, mock_session_post):
         mock_process_join.return_value = ""
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
@@ -575,14 +560,12 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m._inbound_handler(data, "")
 
-        self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_session_post.called)
 
     @mock.patch("requests.Session.post")
     @mock.patch("app.agents.base.send_consent_status", autospec=True)
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
-    def test_async_inbound_error_updates_status(self, mock_requests, mock_logger, mock_consents, mock_session_post):
+    def test_async_inbound_error_updates_status(self, mock_requests, mock_consents, mock_session_post):
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
         self.m.consents_data = []
@@ -591,7 +574,6 @@ class TestMerchantApi(FlaskTestCase):
 
         with self.assertRaises(AgentError):
             self.m._inbound_handler(data, "")
-        self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_consents.called)
         self.assertTrue(mock_session_post.called)
         self.assertIn("status", mock_requests.post.call_args[0][0])
@@ -602,10 +584,9 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch("requests.Session.post")
     @mock.patch("app.agents.base.send_consent_status", autospec=True)
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     def test_async_inbound_error_account_already_exists_updates_status(
-        self, mock_requests, mock_logger, mock_consents, mock_session_post, mock_signal
+        self, mock_requests, mock_consents, mock_session_post, mock_signal
     ):
         self.m.record_uid = self.m.scheme_id
         self.m.config = self.config
@@ -617,7 +598,6 @@ class TestMerchantApi(FlaskTestCase):
 
         with self.assertRaises(AgentError):
             self.m._inbound_handler(data, "")
-        self.assertTrue(mock_logger.warning.called)
         self.assertTrue(mock_consents.called)
         self.assertTrue(mock_session_post.called)
         self.assertIn("status", mock_requests.post.call_args[0][0])
@@ -628,12 +608,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.update_pending_join_account")
     @mock.patch.object(MerchantApi, "_check_for_error_response")
     @mock.patch.object(MerchantApi, "process_join_response")
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_async_inbound_agent_error_calls_signals(
         self,
         mock_signal,
-        mock_logger,
         mock_process_join_response,
         mock_check_for_error_response,
         mock_update_pending_join_account,
@@ -660,12 +638,10 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.update_pending_join_account")
     @mock.patch.object(MerchantApi, "_check_for_error_response")
     @mock.patch.object(MerchantApi, "process_join_response")
-    @mock.patch("app.agents.base.logger", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_async_inbound_login_error_calls_signals(
         self,
         mock_signal,
-        mock_logger,
         mock_process_join_response,
         mock_check_for_error_response,
         mock_update_pending_join_account,
@@ -1471,9 +1447,8 @@ class TestMerchantApi(FlaskTestCase):
         mock_consent_confirmation.assert_called_with(credentials["consents"], ConsentStatus.FAILED)
         self.assertTrue(mock_outbound_handler.called)
 
-    @mock.patch("app.tasks.resend_consents.logger.error")
     @mock.patch("app.tasks.resend_consents.requests.put")
-    def test_consents_confirmation_sends_updated_user_consents(self, mock_request, mock_error_logger):
+    def test_consents_confirmation_sends_updated_user_consents(self, mock_request):
         mock_request.return_value.status_code = 200
         consents_data = [
             {"id": 1, "slug": "consent-slug1", "value": True, "created_on": "", "journey_type": 1},
@@ -1483,21 +1458,18 @@ class TestMerchantApi(FlaskTestCase):
         self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
 
         self.assertTrue(mock_request.called)
-        self.assertFalse(mock_error_logger.called)
         mock_request.assert_called_with(
             ANY, data=json.dumps({"status": ConsentStatus.SUCCESS}), headers=ANY, timeout=ANY
         )
 
-    @mock.patch("app.tasks.resend_consents.logger.error")
     @mock.patch("app.tasks.resend_consents.requests.put")
-    def test_consents_confirmation_works_with_empty_consents(self, mock_request, mock_error_logger):
+    def test_consents_confirmation_works_with_empty_consents(self, mock_request):
         mock_request.return_value.status_code = 200
         consents_data = []
 
         self.m.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
 
         self.assertFalse(mock_request.called)
-        self.assertFalse(mock_error_logger.called)
 
     def test_filter_consents_returns_none_on_empty_consents(self):
         data = {}

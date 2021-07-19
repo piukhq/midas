@@ -34,9 +34,13 @@ def boolconv(s: str) -> bool:
 DEV_HOST = getenv("DEV_HOST", default="0.0.0.0")
 DEV_PORT = getenv("DEV_PORT", default="8000", conv=int)
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s")
-logger = logging.getLogger("midas_logger")
-logger.setLevel(logging.DEBUG)
+# Global logging level.
+# Applies to any logger obtained through `app.reporting.get_logger`.
+# https://docs.python.org/3/library/logging.html#logging-levels
+LOG_LEVEL = getattr(logging, getenv("LOG_LEVEL", default="debug").upper())
+
+# If enabled, logs will be emitted as JSON objects.
+LOG_JSON = getenv("LOG_JSON", default="true", conv=boolconv)
 
 JUNIT_XML_FILENAME = "test_results.xml"
 

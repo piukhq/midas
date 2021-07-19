@@ -1,8 +1,9 @@
-import json
 import importlib
+import json
+import traceback
+
 import requests
 import sentry_sdk
-import traceback
 from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
@@ -10,31 +11,59 @@ from werkzeug.exceptions import NotFound
 
 import settings
 from app import publish, retry
+from app.active import AGENTS
 from app.agents.base import MerchantApi
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
+    SCHEME_REQUESTED_DELETE,
+    SYSTEM_ACTION_REQUIRED,
+    UNKNOWN,
     AgentError,
     LoginError,
     RetryLimitError,
-    SYSTEM_ACTION_REQUIRED,
     errors,
-    SCHEME_REQUESTED_DELETE,
-    UNKNOWN,
 )
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import AgentException, UnknownException
-from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
-from app.scheme_account import update_pending_join_account, update_pending_link_account, delete_scheme_account
-from app.scheme_account import SchemeAccountStatus, JourneyTypes
-from settings import HADES_URL, HERMES_URL, SERVICE_API_KEY, logger
-from app.active import AGENTS
 from app.http_request import get_headers
+from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
+from app.reporting import get_logger
+from app.scheme_account import (
+    JourneyTypes,
+    SchemeAccountStatus,
+    delete_scheme_account,
+    update_pending_join_account,
+    update_pending_link_account,
+)
 
-scheme_account_id_doc = {"name": "scheme_account_id", "required": True, "dataType": "integer", "paramType": "query"}
-user_id_doc = {"name": "user_id", "required": False, "dataType": "integer", "paramType": "query"}
-user_set_doc = {"name": "user_set", "required": False, "dataType": "string", "paramType": "query"}
-credentials_doc = {"name": "credentials", "required": True, "dataType": "string", "paramType": "query"}
+scheme_account_id_doc = {
+    "name": "scheme_account_id",
+    "required": True,
+    "dataType": "integer",
+    "paramType": "query",
+}
+user_id_doc = {
+    "name": "user_id",
+    "required": False,
+    "dataType": "integer",
+    "paramType": "query",
+}
+user_set_doc = {
+    "name": "user_set",
+    "required": False,
+    "dataType": "string",
+    "paramType": "query",
+}
+credentials_doc = {
+    "name": "credentials",
+    "required": True,
+    "dataType": "string",
+    "paramType": "query",
+}
+
+
+log = get_logger("api")
 
 
 class Healthz(Resource):
@@ -82,7 +111,10 @@ class Balance(Resource):
             prev_balance = get_hades_balance(scheme_account_id)
 
         user_info["pending"] = False
-        if user_info["status"] in [SchemeAccountStatus.PENDING, SchemeAccountStatus.WALLET_ONLY]:
+        if user_info["status"] in [
+            SchemeAccountStatus.PENDING,
+            SchemeAccountStatus.WALLET_ONLY,
+        ]:
             user_info["pending"] = True
             prev_balance["pending"] = True
 
@@ -119,14 +151,20 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         else:
             threads.append(
                 thread_pool_executor.submit(
-                    publish.status, scheme_account_id, status, tid, user_info, journey=create_journey
+                    publish.status,
+                    scheme_account_id,
+                    status,
+                    tid,
+                    user_info,
+                    journey=create_journey,
                 )
             )
 
         [thread.result() for thread in threads]
         if status == errors[SCHEME_REQUESTED_DELETE]["code"]:
-            delete_log = "Received deleted request from scheme: {}. Deleting scheme account: {}"
-            logger.debug(delete_log.format(scheme_slug, scheme_account_id))
+            log.debug(
+                f"Received deleted request from scheme: {scheme_slug}. Deleting scheme account: {scheme_account_id}"
+            )
             delete_scheme_account(tid, scheme_account_id)
 
 
@@ -136,7 +174,10 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
     # the call is an async Link.
     is_merchant_api_agent = issubclass(agent_class, MerchantApi)
     check_status = user_info["status"]
-    is_pending = check_status in [SchemeAccountStatus.PENDING, SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS]
+    is_pending = check_status in [
+        SchemeAccountStatus.PENDING,
+        SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
+    ]
     if is_merchant_api_agent and is_pending and user_info["journey_type"] != JourneyTypes.LINK:
         user_info["pending"] = True
         status = check_status
@@ -161,7 +202,11 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         # Asynchronously get the transactions for the a user
         threads.append(
             thread_pool_executor.submit(
-                publish_transactions, agent_instance, scheme_account_id, user_info["user_set"], tid
+                publish_transactions,
+                agent_instance,
+                scheme_account_id,
+                user_info["user_set"],
+                tid,
             )
         )
         status = SchemeAccountStatus.ACTIVE
@@ -178,12 +223,12 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
     except (AgentException, UnknownException) as e:
         if user_info.get("pending"):
-            message = "Error with async linking. Scheme: {}, Error: {}".format(scheme_slug, str(e))
+            message = f"Error with async linking. Scheme: {scheme_slug}, Error: {repr(e)}"
             update_pending_link_account(user_info, message, tid, scheme_slug=scheme_slug)
         else:
             status = e.status_code
             requests.post(
-                "{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id),
+                f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/status",
                 data=json.dumps({"status": status, "user_info": user_info}, cls=JsonEncoder),
                 headers=get_headers(tid),
             )
@@ -210,7 +255,7 @@ class Register(Resource):
         }
         tid = request.headers.get("transaction")
 
-        logger.debug("creating registration task for scheme account: {}".format(scheme_account_id))
+        log.debug("Creating registration task for scheme account: {scheme_account_id}")
         thread_pool_executor.submit(registration, scheme_slug, user_info, tid)
 
         return create_response({"message": "success"})
@@ -237,7 +282,10 @@ class Transactions(Resource):
             agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
             transactions = publish.transactions(
-                agent_instance.transactions(), user_info["scheme_account_id"], user_info["user_set"], tid
+                agent_instance.transactions(),
+                user_info["scheme_account_id"],
+                user_info["user_set"],
+                tid,
             )
             return create_response(transactions)
         except (LoginError, AgentError) as e:
@@ -267,9 +315,17 @@ class AccountOverview(Resource):
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
         try:
             account_overview = agent_instance.account_overview()
-            publish.balance(account_overview["balance"], user_info["scheme_account_id"], user_info["user_set"], tid)
+            publish.balance(
+                account_overview["balance"],
+                user_info["scheme_account_id"],
+                user_info["user_set"],
+                tid,
+            )
             publish.transactions(
-                account_overview["transactions"], user_info["scheme_account_id"], user_info["user_set"], tid
+                account_overview["transactions"],
+                user_info["scheme_account_id"],
+                user_info["user_set"],
+                tid,
             )
 
             return create_response(account_overview)
@@ -388,14 +444,14 @@ def agent_register(agent_class, user_info, tid, scheme_slug=None):
 def log_task(func):
     def logged_func(*args, **kwargs):
         try:
-            scheme_account_message = " for scheme account: {}".format(args[1]["scheme_account_id"])
+            scheme_account_message = f" for scheme account: {args[1]['scheme_account_id']}"
         except KeyError:
             scheme_account_message = ""
 
         try:
-            logger.debug("starting {0} task{1}".format(func.__name__, scheme_account_message))
+            log.debug(f"Starting {func.__name__} task{scheme_account_message}")
             result = func(*args, **kwargs)
-            logger.debug("finished {0} task{1}".format(func.__name__, scheme_account_message))
+            log.debug(f"Finished {func.__name__} task{scheme_account_message}")
         except Exception as e:
             # If this is an UNKNOWN error, also log to sentry but first make this a more specific UnknownException
             if isinstance(e, AgentException) and e.status_code == errors[UNKNOWN]["code"]:
@@ -406,11 +462,7 @@ def log_task(func):
 
             # Extract stack trace from exception
             tb_str = "".join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))
-            logger.debug(
-                "error with {0} task{1}. error: {2}, traceback: {3}".format(
-                    func.__name__, scheme_account_message, repr(e), tb_str
-                )
-            )
+            log.debug(f"Error with {func.__name__} task{scheme_account_message}. error: {repr(e)}, traceback: {tb_str}")
             raise
 
         return result
@@ -435,13 +487,22 @@ def registration(scheme_slug, user_info, tid):
         if agent_instance.identifier:
             update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
         elif register_result["agent"].identifier:
-            update_pending_join_account(user_info, "success", tid, identifier=register_result["agent"].identifier)
+            update_pending_join_account(
+                user_info,
+                "success",
+                tid,
+                identifier=register_result["agent"].identifier,
+            )
     except (LoginError, AgentError, AgentException) as e:
         if register_result["error"] == ACCOUNT_ALREADY_EXISTS:
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
             update_pending_join_account(
-                user_info, str(e.args[0]), tid, scheme_slug=scheme_slug, consent_ids=consent_ids
+                user_info,
+                str(e.args[0]),
+                tid,
+                scheme_slug=scheme_slug,
+                consent_ids=consent_ids,
             )
         else:
             publish.zero_balance(user_info["scheme_account_id"], user_info["user_set"], tid)
@@ -449,7 +510,12 @@ def registration(scheme_slug, user_info, tid):
 
     status = SchemeAccountStatus.ACTIVE
     try:
-        publish.balance(agent_instance.balance(), user_info["scheme_account_id"], user_info["user_set"], tid)
+        publish.balance(
+            agent_instance.balance(),
+            user_info["scheme_account_id"],
+            user_info["user_set"],
+            tid,
+        )
         publish_transactions(agent_instance, user_info["scheme_account_id"], user_info["user_set"], tid)
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
@@ -461,8 +527,8 @@ def registration(scheme_slug, user_info, tid):
 
 def get_hades_balance(scheme_account_id):
     resp = requests.get(
-        HADES_URL + "/balances/scheme_account/" + str(scheme_account_id),
-        headers={"Authorization": "Token " + SERVICE_API_KEY},
+        settings.HADES_URL + "/balances/scheme_account/" + str(scheme_account_id),
+        headers={"Authorization": "Token " + settings.SERVICE_API_KEY},
     )
 
     try:
