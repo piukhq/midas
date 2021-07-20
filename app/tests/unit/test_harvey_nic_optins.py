@@ -288,45 +288,41 @@ class TestUserConsents(unittest.TestCase):
                 {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
             ],
         }
-        with self.assertLogs() as logs:
-            # Disable any attempt to push real prometheus metrics
-            settings.PUSH_PROMETHEUS_METRICS = False
+        # Disable any attempt to push real prometheus metrics
+        settings.PUSH_PROMETHEUS_METRICS = False
 
-            hn._login(credentials)
-            self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        hn._login(credentials)
+        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
 
-            self.assertEqual(
-                '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
-                mock_post.call_args_list[0][1]["data"],
-            )
+        self.assertEqual(
+            '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
+            mock_post.call_args_list[0][1]["data"],
+        )
 
-            # after first try should have empty put list as consents not sent (tries == 3)
-            self.assertListEqual(mock_put.call_args_list, [])
+        # after first try should have empty put list as consents not sent (tries == 3)
+        self.assertListEqual(mock_put.call_args_list, [])
 
-            self.assertIn("400", logs.output[0])
-            self.assertIn("midas_logger", logs.output[0])
-            self.assertIn("agent", logs.output[0])
-            self.assertTrue(mock_retry.called)
-            self.assertFalse(mock_put.called)
+        self.assertTrue(mock_retry.called)
+        self.assertFalse(mock_put.called)
 
-            # retry the agent consent 1st time  - should fail
-            saved_consents_data["retries"] -= 1
-            try_consents(saved_consents_data)
-            self.assertListEqual(mock_put.call_args_list, [])
+        # retry the agent consent 1st time  - should fail
+        saved_consents_data["retries"] -= 1
+        try_consents(saved_consents_data)
+        self.assertListEqual(mock_put.call_args_list, [])
 
-            # retry the agent consent 2nd time  - should succeed ie last retry
-            saved_consents_data["retries"] -= 1
-            try_consents(saved_consents_data)
+        # retry the agent consent 2nd time  - should succeed ie last retry
+        saved_consents_data["retries"] -= 1
+        try_consents(saved_consents_data)
 
-            self.assertIn("/schemes/user_consent/1", mock_put.call_args_list[0][0][0])
-            self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
-            self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
-            self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
+        self.assertIn("/schemes/user_consent/1", mock_put.call_args_list[0][0][0])
+        self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
+        self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
+        self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
 
-            # Check the audit logger calls
-            self.assertTrue(mock_add_request.called)
-            self.assertTrue(mock_add_response.called)
-            self.assertTrue(mock_send_to_atlas.called)
+        # Check the audit logger calls
+        self.assertTrue(mock_add_request.called)
+        self.assertTrue(mock_add_response.called)
+        self.assertTrue(mock_send_to_atlas.called)
 
     @mock.patch("app.audit.AuditLogger.add_request")
     @mock.patch("app.audit.AuditLogger.add_response")
@@ -352,45 +348,41 @@ class TestUserConsents(unittest.TestCase):
                 {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
             ],
         }
-        with self.assertLogs() as logs:
-            # Disable any attempt to push real prometheus metrics
-            settings.PUSH_PROMETHEUS_METRICS = False
+        # Disable any attempt to push real prometheus metrics
+        settings.PUSH_PROMETHEUS_METRICS = False
 
-            hn._login(credentials)
-            self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        hn._login(credentials)
+        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
 
-            self.assertEqual(
-                '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
-                mock_post.call_args_list[0][1]["data"],
-            )
+        self.assertEqual(
+            '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
+            mock_post.call_args_list[0][1]["data"],
+        )
 
-            # after first try should have empty put list as consents not sent (tries == 3)
-            self.assertListEqual(mock_put.call_args_list, [])
+        # after first try should have empty put list as consents not sent (tries == 3)
+        self.assertListEqual(mock_put.call_args_list, [])
 
-            self.assertIn("400", logs.output[0])
-            self.assertIn("midas_logger", logs.output[0])
-            self.assertIn("agent", logs.output[0])
-            self.assertTrue(mock_retry.called)
-            self.assertFalse(mock_put.called)
+        self.assertTrue(mock_retry.called)
+        self.assertFalse(mock_put.called)
 
-            # retry the agent consent 1st time  - should fail
-            saved_consents_data["retries"] -= 1
-            try_consents(saved_consents_data)
-            self.assertListEqual(mock_put.call_args_list, [])
+        # retry the agent consent 1st time  - should fail
+        saved_consents_data["retries"] -= 1
+        try_consents(saved_consents_data)
+        self.assertListEqual(mock_put.call_args_list, [])
 
-            # retry the agent consent 2nd time  - should fail again and as last try log set consensts failed
-            saved_consents_data["retries"] -= 1
-            try_consents(saved_consents_data)
+        # retry the agent consent 2nd time  - should fail again and as last try log set consensts failed
+        saved_consents_data["retries"] -= 1
+        try_consents(saved_consents_data)
 
-            self.assertIn("/schemes/user_consent/1", mock_put.call_args_list[0][0][0])
-            self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
-            self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
-            self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
+        self.assertIn("/schemes/user_consent/1", mock_put.call_args_list[0][0][0])
+        self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
+        self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
+        self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
 
-            # Check the audit logger calls
-            self.assertTrue(mock_add_request.called)
-            self.assertTrue(mock_add_response.called)
-            self.assertTrue(mock_send_to_atlas.called)
+        # Check the audit logger calls
+        self.assertTrue(mock_add_request.called)
+        self.assertTrue(mock_add_response.called)
+        self.assertTrue(mock_send_to_atlas.called)
 
 
 class TestLoginJourneyTypes(unittest.TestCase):

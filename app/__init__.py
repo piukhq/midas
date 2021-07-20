@@ -2,14 +2,16 @@ import sentry_sdk
 from celery import Celery
 from flask import Flask, jsonify
 
+import settings
 from app.exceptions import AgentException, UnknownException
 from app.prometheus import PrometheusManager
-
-import settings
+from app.reporting import get_logger
 from app.retry import redis
 
 celery = Celery(broker=settings.CELERY_BROKER_URL, config_source=settings)
 prometheus_manager = PrometheusManager()
+
+log = get_logger("api")
 
 
 def create_app(config_name="settings"):
@@ -24,7 +26,7 @@ def create_app(config_name="settings"):
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):
         error = error.args[0]
-        settings.logger.exception(error.message)
+        log.exception(error.message)
 
         response = jsonify({"message": error.message, "code": error.code, "name": error.name})
         response.status_code = error.code

@@ -1,17 +1,18 @@
 import json
 from enum import Enum
-from typing import Union, Iterable, NamedTuple, Any, Optional
+from typing import Any, Iterable, NamedTuple, Optional, Union
 from uuid import uuid4
 
 import arrow
 import requests
+from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from requests import Response
-
-from app.http_request import get_headers
-from settings import logger, ATLAS_URL
 from soteria.configuration import Configuration
+
+from settings import ATLAS_URL
+from app.http_request import get_headers
+from app.reporting import get_logger
 
 
 class AuditLogType(str, Enum):
@@ -51,6 +52,9 @@ def serialize(audit_log: AuditLog) -> dict:
     data = audit_log._asdict()
     data["audit_log_type"] = data["audit_log_type"].value
     return data
+
+
+log = get_logger("audit")
 
 
 class AuditLogger:
@@ -129,7 +133,7 @@ class AuditLogger:
     # @celery.task
     def send_to_atlas(self):
         if not self.audit_logs:
-            logger.debug("No request or response data to send to Atlas")
+            log.debug("No request or response data to send to Atlas.")
             return
 
         headers = get_headers(tid=str(uuid4()))
@@ -137,20 +141,20 @@ class AuditLogger:
         try:
             self.audit_logs = self.filter_fields(self.audit_logs)
         except Exception:
-            logger.exception("Error when filtering fields for atlas audit")
+            log.exception("Error when filtering fields for atlas audit.")
 
         payload = {"audit_logs": [serialize(audit_log) for audit_log in self.audit_logs if audit_log is not None]}
-        logger.info(payload)
+        log.info(f"Sending payload to atlas: {payload}")
 
         try:
             resp = self.session.post(f"{ATLAS_URL}/audit/membership/", headers=headers, json=payload)
             if resp.ok:
-                logger.info("Successfully sent audit logs to Atlas")
+                log.info("Successfully sent audit logs to Atlas.")
                 self.audit_logs.clear()
             else:
-                logger.error(f"Error response from Atlas when sending audit logs - response: {resp.content}")
+                log.error(f"Error response from Atlas when sending audit logs. Response: {resp.content}")
         except requests.exceptions.RequestException as e:
-            logger.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
+            log.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
     @staticmethod
     def filter_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
@@ -213,9 +217,9 @@ class AuditLogger:
                 self.audit_logs.append(_build_audit_log(data))
 
             else:
-                logger.warning("Audit log data must be a dict/string or a list of dicts/strings")
+                log.warning("Audit log data must be a dict/string or a list of dicts/strings.")
         else:
-            logger.debug(f"Audit logging is disabled for journey type {handler_type_str} for scheme {scheme_slug}")
+            log.debug(f"Audit logging is disabled for journey type {handler_type_str} and scheme {scheme_slug}.")
 
     def _build_request_audit_log(
         self,

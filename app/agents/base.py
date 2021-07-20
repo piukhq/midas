@@ -1,56 +1,59 @@
 import hashlib
 import json
 import time
-from typing import Optional, Any
 from collections import defaultdict
 from decimal import Decimal
+from typing import Any, Optional
 from uuid import uuid4
-from redis import RedisError
 
-import requests
 import arrow
+import requests
 from blinker import signal
+from redis import RedisError
 from requests import HTTPError
 from requests.exceptions import Timeout
-from tenacity import retry, stop_after_attempt, retry_if_exception_type
+from soteria.configuration import Configuration
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
+import settings
 from app import publish
+from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    CARD_NOT_REGISTERED,
+    CARD_NUMBER_ERROR,
+    END_SITE_DOWN,
+    GENERAL_ERROR,
+    IP_BLOCKED,
+    JOIN_ERROR,
+    JOIN_IN_PROGRESS,
+    LINK_LIMIT_EXCEEDED,
+    NO_SUCH_RECORD,
+    NOT_SENT,
+    PRE_REGISTERED_CARD,
+    RETRY_LIMIT_REACHED,
+    STATUS_LOGIN_FAILED,
+    UNKNOWN,
+    VALIDATION,
+    AgentError,
+    LoginError,
+    RegistrationError,
+    RetryLimitError,
+    UnauthorisedError,
+    errors,
+)
 from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
-from app.agents.exceptions import (
-    AgentError,
-    LoginError,
-    END_SITE_DOWN,
-    UNKNOWN,
-    RETRY_LIMIT_REACHED,
-    IP_BLOCKED,
-    RetryLimitError,
-    STATUS_LOGIN_FAILED,
-    NOT_SENT,
-    errors,
-    NO_SUCH_RECORD,
-    ACCOUNT_ALREADY_EXISTS,
-    PRE_REGISTERED_CARD,
-    LINK_LIMIT_EXCEEDED,
-    CARD_NUMBER_ERROR,
-    CARD_NOT_REGISTERED,
-    GENERAL_ERROR,
-    JOIN_IN_PROGRESS,
-    JOIN_ERROR,
-    RegistrationError,
-    VALIDATION,
-    UnauthorisedError,
-)
 from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
+from app.reporting import get_logger
+from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
-from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes, update_pending_join_account
-from settings import logger, BACK_OFF_COOLDOWN, HERMES_CONFIRMATION_TRIES, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL
-from soteria.configuration import Configuration
+
+log = get_logger("agent-base")
 
 
 class BaseMiner(object):
@@ -169,7 +172,7 @@ class BaseMiner(object):
         """
         confirm_tries = {}
         for consent in consents_data:
-            confirm_tries[consent["id"]] = HERMES_CONFIRMATION_TRIES
+            confirm_tries[consent["id"]] = settings.HERMES_CONFIRMATION_TRIES
 
         retry_data = {"confirm_tries": confirm_tries, "status": status}
 
@@ -342,7 +345,7 @@ class MerchantApi(BaseMiner):
         """
         consents_data = self.user_info["credentials"].get("consents")
         self.consents_data = consents_data.copy() if consents_data else []
-        logger.debug("registration consents: {}. scheme slug: {}".format(consents_data, self.scheme_slug))
+        log.debug(f"Registering with consents: {consents_data} and scheme slug: {self.scheme_slug}")
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
@@ -361,7 +364,7 @@ class MerchantApi(BaseMiner):
                     }
                     data["consents"].append(consent)
                 else:
-                    logger.debug("Too many consents for Iceland scheme")
+                    log.debug("Too many consents for Iceland scheme.")
 
             self.record_uid = data["record_uid"] = hash_ids.encode(self.scheme_id)
 
@@ -422,9 +425,9 @@ class MerchantApi(BaseMiner):
         """
         self.message_uid = str(uuid4())
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
-
-        logger.setLevel(self.config.log_level)
+            self.config = Configuration(
+                scheme_slug, handler_type, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
+            )
 
         if handler_type == Configuration.JOIN_HANDLER:
             data["country"] = self.config.country
@@ -456,7 +459,7 @@ class MerchantApi(BaseMiner):
             "OUTBOUND",
         )
 
-        logger.info(json.dumps(logging_info))
+        log.info(json.dumps(logging_info))
 
         response_json: Optional[str] = self._sync_outbound(payload)
 
@@ -468,9 +471,9 @@ class MerchantApi(BaseMiner):
             logging_info["json"] = response_data
             if self._check_for_error_response(response_data):
                 logging_info["contains_errors"] = True
-                logger.warning(json.dumps(logging_info))
+                log.warning(json.dumps(logging_info))
             else:
-                logger.info(json.dumps(logging_info))
+                log.info(json.dumps(logging_info))
 
         self.audit_logger.send_to_atlas()
         return response_data
@@ -503,9 +506,9 @@ class MerchantApi(BaseMiner):
 
         if self._check_for_error_response(self.result):
             logging_info["contains_errors"] = True
-            logger.warning(json.dumps(logging_info))
+            log.warning(json.dumps(logging_info))
         else:
-            logger.info(json.dumps(logging_info))
+            log.info(json.dumps(logging_info))
 
         try:
             response = self.process_join_response()
@@ -556,7 +559,7 @@ class MerchantApi(BaseMiner):
             try:
                 service_on_cooldown = back_off_service.is_on_cooldown(self.config.scheme_slug, self.config.scheme_slug)
             except RedisError as ex:
-                logger.warning(f"Backoff service error. Presuming not on cool down: {ex}")
+                log.warning(f"Backoff service error. Presuming not on cool down: {ex}")
                 service_on_cooldown = False
 
             if service_on_cooldown:
@@ -574,10 +577,10 @@ class MerchantApi(BaseMiner):
                 if retry_count == self.config.retry_limit:
                     try:
                         back_off_service.activate_cooldown(
-                            self.config.scheme_slug, self.config.handler_type, BACK_OFF_COOLDOWN
+                            self.config.scheme_slug, self.config.handler_type, settings.BACK_OFF_COOLDOWN
                         )
                     except RedisError as ex:
-                        logger.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
+                        log.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
 
         return response_json
 
@@ -602,7 +605,7 @@ class MerchantApi(BaseMiner):
             response_code=status,
         )
 
-        logger.debug(f"raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
+        log.debug(f"Raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
         self.audit_logger.add_response(
             response=response,
@@ -653,8 +656,9 @@ class MerchantApi(BaseMiner):
         :return: None
         """
         if not self.config:
-            self.config = Configuration(scheme_slug, handler_type, VAULT_URL, VAULT_TOKEN, CONFIG_SERVICE_URL)
-        logger.setLevel(self.config.log_level)
+            self.config = Configuration(
+                scheme_slug, handler_type, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
+            )
 
         self.record_uid = hash_ids.encode(self.scheme_id)
 
@@ -763,7 +767,7 @@ class MerchantApi(BaseMiner):
                 self.config.integration_service,
                 "OUTBOUND",
             )
-            logger.warning(json.dumps(logging_info))
+            log.warning(json.dumps(logging_info))
 
 
 class MockedMiner(BaseMiner):

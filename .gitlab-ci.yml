@@ -28,7 +28,7 @@ test:style:
 test:type-check:
   <<: *test
   script:
-    - mypy --ignore-missing-imports app
+    - mypy app
 
 build:develop: &build
   stage: build
