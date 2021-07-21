@@ -57,12 +57,14 @@ REDIS_PORT = getenv("REDIS_PORT", default="6379")
 REDIS_DB = getenv("REDIS_DB", default="0")
 REDIS_URL = getenv("REDIS_URL", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
 
+task_default_queue = 'midas_consents'
+
 RETRY_PERIOD = getenv("RETRY_PERIOD", default="1800", conv=int)
 REDIS_CELERY_DB = getenv("REDIS_CELERY_DB", default="1")
 CELERY_BROKER_URL = getenv("AMQP_DSN", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}")
-CELERY_TASK_SERIALIZER = "json"
-CELERYBEAT_SCHEDULE = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
-CELERY_IMPORTS = ["app.tasks.resend"]
+task_serializer = "json"
+beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
+imports = ["app.tasks.resend"]
 
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
