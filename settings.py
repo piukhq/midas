@@ -57,7 +57,7 @@ REDIS_PORT = getenv("REDIS_PORT", default="6379")
 REDIS_DB = getenv("REDIS_DB", default="0")
 REDIS_URL = getenv("REDIS_URL", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
 
-task_default_queue = 'midas_consents'
+task_default_queue = "midas_consents"
 
 RETRY_PERIOD = getenv("RETRY_PERIOD", default="1800", conv=int)
 REDIS_CELERY_DB = getenv("REDIS_CELERY_DB", default="1")
