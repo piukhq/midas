@@ -1,5 +1,5 @@
 import unittest
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 from settings import REDIS_URL
 
 
