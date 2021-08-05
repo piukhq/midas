@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
-from app.agents import schemas
+from app.agents.schemas import Balance, Voucher
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import (
     END_SITE_DOWN,
@@ -580,19 +580,19 @@ class TestWasabi(unittest.TestCase):
         expected_points = 7
         # Assume we only have a single in-progress voucher
         mock_get_vouchers.return_value = []
-        expected_balance = {
-            "points": Decimal(expected_points),
-            "value": Decimal(expected_points),
-            "value_label": "",
-            "vouchers": [
-                {
-                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
-                    "target_value": None,
-                    "value": Decimal(expected_points),
-                }
+        expected_balance = Balance(
+            points=Decimal(expected_points),
+            value=Decimal(expected_points),
+            value_label="",
+            vouchers=[
+                Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    type=VoucherType.STAMPS.value,
+                    target_value=None,
+                    value=Decimal(expected_points),
+                )
             ],
-        }
+        )
         customer_details = {
             "Firstname": "David",
             "Lastname": "Testperson",
@@ -633,7 +633,6 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert balance == expected_balance
-        assert schemas.balance(balance)
 
     def test_get_email_optin_from_consent(self):
         """
@@ -1212,16 +1211,16 @@ class TestWasabi(unittest.TestCase):
             "BrandID": 1,
         }
 
-        expected_mapped_voucher = {
-            "state": voucher_state_names[VoucherState.REDEEMED],
-            "type": VoucherType.STAMPS.value,
-            "code": voucher["VoucherCode"],
-            "target_value": None,
-            "value": None,
-            "issue_date": 1595432679,  # voucher URD as timestamp
-            "redeem_date": 1595432679,  # voucher RedemptionDate as timestamp
-            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
-        }
+        expected_mapped_voucher = Voucher(
+            state=voucher_state_names[VoucherState.REDEEMED],
+            type=VoucherType.STAMPS.value,
+            code=voucher["VoucherCode"],
+            target_value=None,
+            value=None,
+            issue_date=1595432679,  # voucher URD as timestamp
+            redeem_date=1595432679,  # voucher RedemptionDate as timestamp
+            expiry_date=1595432679,  # voucher ExpiryDate as timestamp
+        )
 
         # WHEN
         mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
@@ -1274,15 +1273,15 @@ class TestWasabi(unittest.TestCase):
             "BrandID": 1,
         }
 
-        expected_mapped_voucher = {
-            "state": voucher_state_names[VoucherState.CANCELLED],
-            "type": VoucherType.STAMPS.value,
-            "code": voucher["VoucherCode"],
-            "target_value": None,
-            "value": None,
-            "issue_date": 1595432679,  # voucher URD as timestamp
-            "expiry_date": 1595432679,  # voucher ExpiryDate as timestamp
-        }
+        expected_mapped_voucher = Voucher(
+            state=voucher_state_names[VoucherState.CANCELLED],
+            type=VoucherType.STAMPS.value,
+            code=voucher["VoucherCode"],
+            target_value=None,
+            value=None,
+            issue_date=1595432679,  # voucher URD as timestamp
+            expiry_date=1595432679,  # voucher ExpiryDate as timestamp
+        )
 
         # WHEN
         mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
@@ -1345,15 +1344,15 @@ class TestWasabi(unittest.TestCase):
             "BrandID": 1,
         }
 
-        expected_mapped_voucher = {
-            "state": voucher_state_names[VoucherState.ISSUED],
-            "type": VoucherType.STAMPS.value,
-            "code": voucher["VoucherCode"],
-            "target_value": None,
-            "value": None,
-            "issue_date": now.int_timestamp,  # voucher URD as timestamp
-            "expiry_date": one_month_from_now_timestamp,
-        }
+        expected_mapped_voucher = Voucher(
+            state=voucher_state_names[VoucherState.ISSUED],
+            type=VoucherType.STAMPS.value,
+            code=voucher["VoucherCode"],
+            target_value=None,
+            value=None,
+            issue_date=now.int_timestamp,  # voucher URD as timestamp
+            expiry_date=one_month_from_now_timestamp,
+        )
 
         # WHEN
         mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
@@ -1414,15 +1413,15 @@ class TestWasabi(unittest.TestCase):
             "BrandID": 1,
         }
 
-        expected_mapped_voucher = {
-            "state": voucher_state_names[VoucherState.EXPIRED],
-            "type": VoucherType.STAMPS.value,
-            "code": voucher["VoucherCode"],
-            "target_value": None,
-            "value": None,
-            "issue_date": now.int_timestamp,  # voucher URD as timestamp
-            "expiry_date": one_month_ago_timestamp,
-        }
+        expected_mapped_voucher = Voucher(
+            state=voucher_state_names[VoucherState.EXPIRED],
+            type=VoucherType.STAMPS.value,
+            code=voucher["VoucherCode"],
+            target_value=None,
+            value=None,
+            issue_date=now.int_timestamp,  # voucher URD as timestamp
+            expiry_date=one_month_ago_timestamp,
+        )
 
         # WHEN
         mapped_voucher = self.wasabi._map_acteol_voucher_to_bink_struct(voucher=voucher)
@@ -1436,12 +1435,12 @@ class TestWasabi(unittest.TestCase):
         """
         # GIVEN
         points = Decimal(123)
-        expected_in_progress_voucher = {
-            "state": voucher_state_names[VoucherState.IN_PROGRESS],
-            "type": VoucherType.STAMPS.value,
-            "target_value": None,
-            "value": points,
-        }
+        expected_in_progress_voucher = Voucher(
+            state=voucher_state_names[VoucherState.IN_PROGRESS],
+            type=VoucherType.STAMPS.value,
+            target_value=None,
+            value=points,
+        )
 
         # WHEN
         in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
@@ -1674,11 +1673,12 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        assert isinstance(parsed_transaction["date"], int)  # Is a timestamp
-        assert parsed_transaction["description"] == description
-        assert parsed_transaction["location"] == location_name
-        assert isinstance(parsed_transaction["points"], Decimal)
-        assert parsed_transaction["points"] == expected_points
+        assert parsed_transaction is not None
+        assert isinstance(parsed_transaction.date, arrow.Arrow)
+        assert parsed_transaction.description == description
+        assert parsed_transaction.location == location_name
+        assert isinstance(parsed_transaction.points, Decimal)
+        assert parsed_transaction.points == expected_points
 
     def test_check_response_for_error(self):
         """

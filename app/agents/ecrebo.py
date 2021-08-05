@@ -9,6 +9,7 @@ from blinker import signal
 import settings
 from app import constants
 from app.agents.base import ApiMiner
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
 from app.audit import AuditLogger
 from soteria.configuration import Configuration
@@ -18,6 +19,8 @@ from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_s
 
 
 class Ecrebo(ApiMiner):
+    RETAILER_ID: str
+
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(
             scheme_slug,
@@ -238,7 +241,7 @@ class Ecrebo(ApiMiner):
             self.identifier = {"merchant_identifier": membership_data["uuid"]}
             self.user_info["credentials"].update(self.identifier)
 
-    def _make_issued_voucher(self, voucher_type: VoucherType, json: dict, target_value: Decimal) -> dict:
+    def _make_issued_voucher(self, voucher_type: VoucherType, json: dict, target_value: Decimal) -> Voucher:
         issue_date = arrow.get(json["issued"], "YYYY-MM-DD")
         expiry_date = arrow.get(json["expiry_date"], "YYYY-MM-DD")
         redeem_date: Optional[arrow.Arrow]
@@ -249,52 +252,48 @@ class Ecrebo(ApiMiner):
 
         state = get_voucher_state(issue_date=issue_date, redeem_date=redeem_date, expiry_date=expiry_date)
 
-        voucher = {
-            "state": voucher_state_names[state],
-            "type": voucher_type.value,
-            "issue_date": issue_date.int_timestamp,
-            "expiry_date": expiry_date.int_timestamp,
-            "code": json["code"],
-            "value": target_value,
-            "target_value": target_value,
-        }
-
-        if redeem_date:
-            voucher["redeem_date"] = redeem_date.int_timestamp
-
-        return voucher
+        return Voucher(
+            state=voucher_state_names[state],
+            type=voucher_type.value,
+            issue_date=issue_date.int_timestamp,
+            expiry_date=expiry_date.int_timestamp,
+            code=json["code"],
+            value=target_value,
+            target_value=target_value,
+            redeem_date=redeem_date.int_timestamp if redeem_date else None,
+        )
 
     def _make_balance_response(
         self, voucher_type: VoucherType, value: Decimal, target_value: Decimal, issued_vouchers: list[dict]
-    ) -> dict:
-        return {
-            "points": value,
-            "value": value,
-            "value_label": "",
-            "vouchers": [
-                {
-                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": voucher_type.value,
-                    "value": value,
-                    "target_value": target_value,
-                },
+    ) -> Balance:
+        return Balance(
+            points=value,
+            value=value,
+            value_label="",
+            vouchers=[
+                Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    type=voucher_type.value,
+                    value=value,
+                    target_value=target_value,
+                ),
                 *[self._make_issued_voucher(voucher_type, voucher, target_value) for voucher in issued_vouchers],
             ],
-        }
+        )
 
-    def _accumulator_balance(self, json: dict) -> dict:
+    def _accumulator_balance(self, json: dict) -> Balance:
         value = Decimal(json["config"]["pot_total"]) / 5
         target_value = Decimal(json["config"]["pot_goal"]) / 5
         issued_vouchers = json["vouchers"]
         return self._make_balance_response(VoucherType.ACCUMULATOR, value, target_value, issued_vouchers)
 
-    def _stamps_balance(self, json: dict) -> dict:
+    def _stamps_balance(self, json: dict) -> Balance:
         value = Decimal(json["config"]["stamps"])
         target_value = Decimal(json["config"]["stamps_goal"])
         issued_vouchers = json["vouchers"]
         return self._make_balance_response(VoucherType.STAMPS, value, target_value, issued_vouchers)
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         endpoint = (
             f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/uuid/{self.credentials['merchant_identifier']}"
         )
@@ -324,10 +323,10 @@ class Ecrebo(ApiMiner):
         else:
             raise ValueError(f"Unsupported Ecrebo campaign type: {campaign_type}")
 
-    def parse_transaction(self, row):
-        return row
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         return []
 
 
