@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import arrow
 from blinker import signal
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 from soteria.configuration import Configuration
 
 import settings

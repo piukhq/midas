@@ -12,7 +12,7 @@ import sentry_sdk
 from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from soteria.configuration import Configuration
 from blinker import signal
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner

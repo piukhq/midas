@@ -2,7 +2,7 @@ import unittest
 from app.agents.harvey_nichols import HarveyNichols
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 from settings import REDIS_URL
 
 cred = {
