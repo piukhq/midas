@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Optional
 from decimal import Decimal
 from unittest import mock
 
@@ -8,6 +9,7 @@ from flask_testing import TestCase
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
+from app.agents.schemas import Balance
 from app.agents.exceptions import (
     AgentError,
     LoginError,
@@ -69,8 +71,8 @@ class TestResources(TestCase):
             self.identifier = identifier
 
         @staticmethod
-        def balance():
-            return {"points": 1}
+        def balance() -> Optional[Balance]:
+            return Balance(points=Decimal(1), value=Decimal(1), value_label="")
 
     # for async processes which might have a delay before the test can pass but after a response is given
     def assert_mock_called_with_delay(self, delay, mocked_func):

@@ -16,6 +16,7 @@ from gaia.user_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
@@ -158,7 +159,7 @@ class Acteol(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-    def balance(self) -> Optional[dict]:
+    def balance(self) -> Optional[Balance]:
         """
         Get the balance from the Acteol API, return the expected format. For the vouchers element, these fields are
         expected by hermes:
@@ -211,25 +212,26 @@ class Acteol(ApiMiner):
 
         # Get all vouchers for this customer
         vouchers = self._get_vouchers(ctcid=ctcid)
+
         # Filter for BINK only vouchers
         bink_only_vouchers = self._filter_bink_vouchers(vouchers=vouchers)
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
+
         # Create an 'in-progress' voucher - the current, incomplete voucher
         in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
         bink_mapped_vouchers.append(in_progress_voucher)
+
         # Now create the other types of vouchers
         for bink_only_voucher in bink_only_vouchers:
-            bink_mapped_voucher = self._map_acteol_voucher_to_bink_struct(voucher=bink_only_voucher)
-            bink_mapped_vouchers.append(bink_mapped_voucher)
+            if bink_mapped_voucher := self._map_acteol_voucher_to_bink_struct(voucher=bink_only_voucher):
+                bink_mapped_vouchers.append(bink_mapped_voucher)
 
-        balance = {
-            "points": points,
-            "value": points,
-            "value_label": "",
-            "vouchers": bink_mapped_vouchers,
-        }
-
-        return balance
+        return Balance(
+            points=points,
+            value=points,
+            value_label="",
+            vouchers=bink_mapped_vouchers,
+        )
 
     def update_hermes_credentials(self, ctcid, customer_details):
         # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
@@ -261,7 +263,7 @@ class Acteol(ApiMiner):
             headers=headers,
         )
 
-    def parse_transaction(self, transaction: dict[str, str]) -> dict:
+    def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
         """
         Convert an individual transaction record from Acteol's system to the format expected by Bink
 
@@ -270,22 +272,15 @@ class Acteol(ApiMiner):
         """
         formatted_total_cost = self._format_money_value(money_value=transaction["TotalCost"])
 
-        order_date = arrow.get(transaction["OrderDate"]).int_timestamp
-        points = self._decimalise_to_two_places(transaction["PointEarned"])
-        description = self._make_transaction_description(
-            location_name=transaction["LocationName"],
-            formatted_total_cost=formatted_total_cost,
+        return Transaction(
+            date=arrow.get(transaction["OrderDate"]),
+            description=self._make_transaction_description(
+                location_name=transaction["LocationName"],
+                formatted_total_cost=formatted_total_cost,
+            ),
+            points=self._decimalise_to_two_places(transaction["PointEarned"]),
+            location=transaction["LocationName"],
         )
-        location = transaction["LocationName"]
-
-        parsed_transaction = {
-            "date": order_date,
-            "description": description,
-            "points": points,
-            "location": location,
-        }
-
-        return parsed_transaction
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -807,7 +802,7 @@ class Acteol(ApiMiner):
 
         return bink_only_vouchers
 
-    def _map_acteol_voucher_to_bink_struct(self, voucher: dict) -> dict:
+    def _map_acteol_voucher_to_bink_struct(self, voucher: dict) -> Optional[Voucher]:
         """
         Decide what state the voucher is in (Issued, Expired etc) and put it into the expected shape for that state.
         These are mutually exclusive states, the voucher should never be in more than one at any time:
@@ -848,9 +843,9 @@ class Acteol(ApiMiner):
             f'Acteol voucher did not match any of the Bink structure criteria, voucher id: {voucher["VoucherID"]}'
         )
 
-        return {}
+        return None
 
-    def _make_redeemed_voucher(self, voucher: dict) -> Optional[dict]:
+    def _make_redeemed_voucher(self, voucher: dict) -> Optional[Voucher]:
         """
         Make a Bink redeemed voucher dict if the Acteol voucher is of that type
 
@@ -859,20 +854,20 @@ class Acteol(ApiMiner):
         """
 
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
-            return {
-                "state": voucher_state_names[VoucherState.REDEEMED],
-                "type": VoucherType.STAMPS.value,
-                "code": voucher.get("VoucherCode"),
-                "target_value": None,  # None == will be set to Earn Target Value in Hermes
-                "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
-                "redeem_date": arrow.get(voucher["RedemptionDate"]).int_timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
-            }
+            return Voucher(
+                state=voucher_state_names[VoucherState.REDEEMED],
+                type=VoucherType.STAMPS.value,
+                code=voucher.get("VoucherCode"),
+                target_value=None,  # None == will be set to Earn Target Value in Hermes
+                value=None,  # None == will be set to Earn Target Value in Hermes
+                issue_date=arrow.get(voucher["URD"]).int_timestamp,
+                redeem_date=arrow.get(voucher["RedemptionDate"]).int_timestamp,
+                expiry_date=arrow.get(voucher["ExpiryDate"]).int_timestamp,
+            )
 
         return None
 
-    def _make_cancelled_voucher(self, voucher: dict) -> Optional[dict]:
+    def _make_cancelled_voucher(self, voucher: dict) -> Optional[Voucher]:
         """
         Make a Bink cancelled voucher dict if the Acteol voucher is of that type
 
@@ -881,19 +876,19 @@ class Acteol(ApiMiner):
         """
 
         if voucher.get("Disabled"):
-            return {
-                "state": voucher_state_names[VoucherState.CANCELLED],
-                "type": VoucherType.STAMPS.value,
-                "code": voucher.get("VoucherCode"),
-                "target_value": None,  # None == will be set to Earn Target Value in Hermes
-                "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
-            }
+            return Voucher(
+                state=voucher_state_names[VoucherState.CANCELLED],
+                type=VoucherType.STAMPS.value,
+                code=voucher.get("VoucherCode"),
+                target_value=None,  # None == will be set to Earn Target Value in Hermes
+                value=None,  # None == will be set to Earn Target Value in Hermes
+                issue_date=arrow.get(voucher["URD"]).int_timestamp,
+                expiry_date=arrow.get(voucher["ExpiryDate"]).int_timestamp,
+            )
 
         return None
 
-    def _make_issued_voucher(self, voucher: dict, current_datetime: arrow.Arrow) -> Optional[dict]:
+    def _make_issued_voucher(self, voucher: dict, current_datetime: arrow.Arrow) -> Optional[Voucher]:
         """
         Make a Bink issued voucher dict if the Acteol voucher is of that type
 
@@ -910,19 +905,19 @@ class Acteol(ApiMiner):
             and not voucher.get("Redeemed")
             and not voucher.get("Disabled")
         ):
-            return {
-                "state": voucher_state_names[VoucherState.ISSUED],
-                "type": VoucherType.STAMPS.value,
-                "code": voucher["VoucherCode"],
-                "target_value": None,  # None == will be set to Earn Target Value in Hermes
-                "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
-            }
+            return Voucher(
+                state=voucher_state_names[VoucherState.ISSUED],
+                type=VoucherType.STAMPS.value,
+                code=voucher["VoucherCode"],
+                target_value=None,  # None == will be set to Earn Target Value in Hermes
+                value=None,  # None == will be set to Earn Target Value in Hermes
+                issue_date=arrow.get(voucher["URD"]).int_timestamp,
+                expiry_date=arrow.get(voucher["ExpiryDate"]).int_timestamp,
+            )
 
         return None
 
-    def _make_expired_voucher(self, voucher: dict, current_datetime: arrow.Arrow) -> Optional[dict]:
+    def _make_expired_voucher(self, voucher: dict, current_datetime: arrow.Arrow) -> Optional[Voucher]:
         """
         Make a Bink expired voucher dict if the Acteol voucher is of that type
 
@@ -933,33 +928,31 @@ class Acteol(ApiMiner):
 
         expiry: Optional[str] = voucher.get("ExpiryDate")
         if expiry and arrow.get(expiry) < current_datetime:
-            return {
-                "state": voucher_state_names[VoucherState.EXPIRED],
-                "type": VoucherType.STAMPS.value,
-                "code": voucher.get("VoucherCode"),
-                "target_value": None,  # None == will be set to Earn Target Value in Hermes
-                "value": None,  # None == will be set to Earn Target Value in Hermes
-                "issue_date": arrow.get(voucher["URD"]).int_timestamp,
-                "expiry_date": arrow.get(voucher["ExpiryDate"]).int_timestamp,
-            }
+            return Voucher(
+                state=voucher_state_names[VoucherState.EXPIRED],
+                type=VoucherType.STAMPS.value,
+                code=voucher.get("VoucherCode"),
+                target_value=None,  # None == will be set to Earn Target Value in Hermes
+                value=None,  # None == will be set to Earn Target Value in Hermes
+                issue_date=arrow.get(voucher["URD"]).int_timestamp,
+                expiry_date=arrow.get(voucher["ExpiryDate"]).int_timestamp,
+            )
 
         return None
 
-    def _make_in_progress_voucher(self, points: Decimal, voucher_type: Enum) -> dict:
+    def _make_in_progress_voucher(self, points: Decimal, voucher_type: Enum) -> Voucher:
         """
         Make an in-progress voucher dict
 
         :param points: LoyaltyPointsBalance field in the Acteol voucher data
         :return: dict of in-progress voucher data mapped for Bink
         """
-        in_progress_voucher = {
-            "state": voucher_state_names[VoucherState.IN_PROGRESS],
-            "type": voucher_type.value,
-            "target_value": None,  # None == will be set to Earn Target Value in Hermes
-            "value": points,
-        }
-
-        return in_progress_voucher
+        return Voucher(
+            state=voucher_state_names[VoucherState.IN_PROGRESS],
+            type=voucher_type.value,
+            target_value=None,  # None == will be set to Earn Target Value in Hermes
+            value=points,
+        )
 
     def _format_money_value(self, money_value: str) -> str:
         """

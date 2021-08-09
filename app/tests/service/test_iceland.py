@@ -1,7 +1,6 @@
 import unittest
 from app.agents.exceptions import LoginError
 from app.agents.merchant_api_generic import MerchantAPIGeneric
-from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 cred = {
@@ -18,12 +17,11 @@ class TestIceland(unittest.TestCase):
 
     def test_fetch_balance(self):
         balance = self.i.balance()
-        schemas.balance(balance)
+        self.assertIsNotNone(balance)
 
     def test_transactions(self):
         transactions = self.i.transactions()
         self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
 
 
 class TestIcelandValidate(unittest.TestCase):
@@ -37,7 +35,7 @@ class TestIcelandValidate(unittest.TestCase):
 
     def test_validate(self):
         balance = self.i.balance()
-        schemas.balance(balance)
+        self.assertIsNotNone(balance)
 
 
 class TestIcelandFail(unittest.TestCase):

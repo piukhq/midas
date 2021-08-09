@@ -1,9 +1,11 @@
 import random
+from typing import Optional
 from decimal import Decimal
 from uuid import uuid4
 
 import arrow
 from app.agents.base import MockedMiner
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import PRE_REGISTERED_CARD, LoginError
 from app.vouchers import VoucherType, VoucherState, voucher_state_names
 
@@ -23,20 +25,20 @@ class MockPerformance(MockedMiner):
 
         return
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         points = Decimal(random.randint(1, 50))
         self.calculate_point_value(points)
 
-        return {
-            "points": points,
-            "value": points,
-            "value_label": "£{}".format(points),
-        }
+        return Balance(
+            points=points,
+            value=points,
+            value_label=f"£{points}",
+        )
 
-    def parse_transaction(self, row):
-        return row
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         transactions = []
         for count in range(5):
             transactions.append(
@@ -64,29 +66,34 @@ class MockPerformanceVoucher(MockedMiner):
 
         return
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         value = Decimal(random.randint(1, 50))
         vouchers = []
         for count in range(2):
-            date = arrow.now().shift(days=-count)
+            date = arrow.now().shift(days=-count).int_timestamp
             vouchers.append(
-                {
-                    "state": voucher_state_names[VoucherState.ISSUED],
-                    "issue_date": date,
-                    "redeem_date": date,
-                    "expiry_date": date,
-                    "code": str(uuid4()),
-                    "type": VoucherType.ACCUMULATOR.value,
-                    "value": Decimal(random.randint(1, 50)),
-                }
+                Voucher(
+                    state=voucher_state_names[VoucherState.ISSUED],
+                    issue_date=date,
+                    redeem_date=date,
+                    expiry_date=date,
+                    code=str(uuid4()),
+                    type=VoucherType.ACCUMULATOR.value,
+                    value=Decimal(random.randint(1, 50)),
+                )
             )
 
-        return {"points": value, "value": value, "value_label": "", "vouchers": vouchers}
+        return Balance(
+            points=value,
+            value=value,
+            value_label="",
+            vouchers=vouchers,
+        )
 
-    def parse_transaction(self, row):
-        return row
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         return []
 
     def register(self, credentials):
