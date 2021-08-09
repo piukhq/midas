@@ -60,7 +60,7 @@ REDIS_URL = getenv("REDIS_URL", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}
 task_default_queue = "midas_consents"
 
 RETRY_PERIOD = getenv("RETRY_PERIOD", default="1800", conv=int)
-broker_url = getenv("AMQP_DSN", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}")
+broker_url = getenv("AMQP_DSN")
 worker_enable_remote_control = False # Disables pidbox exchanges
 task_serializer = "json"
 beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
