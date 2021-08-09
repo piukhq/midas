@@ -32,12 +32,23 @@ def put(url, data, tid):
     session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), hooks={"response": log_errors})
 
 
+def _delete_null_key(item: dict, key: str) -> None:
+    if key in item and item[key] is None:
+        del item[key]
+
+
 def transactions(transactions_items, scheme_account_id, user_set, tid):
     if not transactions_items:
         return None
+
     for transaction_item in transactions_items:
         transaction_item["scheme_account_id"] = scheme_account_id
         transaction_item["user_set"] = user_set
+
+        # remove parts from transaction_item that hades cannot handle.
+        _delete_null_key(transaction_item, "value")
+        _delete_null_key(transaction_item, "location")
+
     post("{}/transactions".format(HADES_URL), transactions_items, tid)
     return transactions_items
 
@@ -45,8 +56,14 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
 def balance(balance_item, scheme_account_id, user_set, tid):
     balance_item = create_balance_object(balance_item, scheme_account_id, user_set)
 
+    # remove parts from balance_item that hades cannot handle.
+    _delete_null_key(balance_item, "balance")
+    _delete_null_key(balance_item, "reward_tier")
+    if "vouchers" in balance_item:
+        del balance_item["vouchers"]
+
     # we remove vouchers as hades cannot handle them
-    post("{}/balance".format(HADES_URL), {k: v for k, v in balance_item.items() if k != "vouchers"}, tid)
+    post("{}/balance".format(HADES_URL), balance, tid)
 
     return balance_item
 
