@@ -8,7 +8,7 @@ from app.prometheus import PrometheusManager
 from app.reporting import get_logger
 from app.retry import redis
 
-celery = Celery(broker=settings.CELERY_BROKER_URL, config_source=settings)
+celery = Celery(broker=settings.broker_url, config_source=settings)
 prometheus_manager = PrometheusManager()
 
 log = get_logger("api")
