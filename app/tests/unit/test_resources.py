@@ -187,8 +187,9 @@ class TestResources(TestCase):
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
-    def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions,
-                                         mock_vault_aes_key):
+    def test_transactions_none_exception(
+        self, mock_pool, mock_agent_login, mock_publish_transactions, mock_vault_aes_key
+    ):
         mock_publish_transactions.return_value = None
         mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
@@ -204,8 +205,9 @@ class TestResources(TestCase):
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
-    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool,
-                                        mock_vault_aes_key):
+    def test_transactions_unknown_error(
+        self, mock_agent_login, mock_publish_transactions, mock_pool, mock_vault_aes_key
+    ):
         mock_publish_transactions.side_effect = Exception("test error")
         mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()

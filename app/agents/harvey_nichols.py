@@ -389,8 +389,5 @@ def agent_consent_response(resp):
 
 
 def get_vault_aes_key():
-    client = SecretClient(
-        vault_url=settings.VAULT_URL,
-        credential=DefaultAzureCredential()
-    )
+    client = SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
     return client.get_secret("aes-keys").value
