@@ -92,7 +92,7 @@ class TestResources(TestCase):
             self,
         )
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -120,7 +120,7 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {"user_id": 2, "scheme_account_id": 4})
         self.assertFalse(mock_async_balance_and_publish.called)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -140,7 +140,7 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -162,7 +162,7 @@ class TestResources(TestCase):
         self.assertEqual(response.json["message"], "test error")
         self.assertEqual(response.json["code"], 520)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -183,7 +183,7 @@ class TestResources(TestCase):
             ],
         )
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -201,7 +201,7 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
@@ -221,7 +221,7 @@ class TestResources(TestCase):
         self.assertEqual(response.json["message"], "test error")
         self.assertEqual(response.json["code"], 520)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
@@ -244,7 +244,7 @@ class TestResources(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     def test_bad_agent_updates_status(self, mock_submit, mock_vault_aes_key):
         mock_vault_aes_key.return_value = LOCAL_AES_KEY
@@ -270,7 +270,7 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": 'Please provide either "user_set" or "user_id" parameters'})
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
     def test_register_view(self, mock_pool, mock_vault_aes_key):
         mock_vault_aes_key.return_value = LOCAL_AES_KEY
@@ -458,7 +458,7 @@ class TestResources(TestCase):
             agent_login(HarveyNichols, self.user_info, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)
@@ -489,7 +489,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_pool.called)
         self.assertIsNone(mock_pool.call_args[1]["journey"])
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)
@@ -750,7 +750,7 @@ class TestResources(TestCase):
         self.assertFalse(mock_transactions.called)
         self.assertTrue(mock_update_pending_link_account.called)
 
-    @mock.patch("app.resources.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)

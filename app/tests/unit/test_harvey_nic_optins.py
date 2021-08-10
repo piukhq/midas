@@ -163,7 +163,7 @@ class TestUserConsents(unittest.TestCase):
             status_code=mock_harvey_nick_register().status_code,
         )
 
-    @mock.patch("app.agents.harvey_nichols.get_vault_aes_key")
+    @mock.patch("app.encryption.get_vault_aes_key")
     @mock.patch("requests.Session.post")
     def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request, mock_vault_aes_key):
         LOCAL_AES_KEY = '{"AES_KEY":"6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"}'
