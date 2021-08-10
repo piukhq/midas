@@ -3,7 +3,7 @@ import json
 import time
 from collections import defaultdict
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Optional
 from uuid import uuid4
 
 import arrow
@@ -49,9 +49,15 @@ from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.reporting import get_logger
-from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
+from app.scheme_account import (
+    TWO_PLACES,
+    JourneyTypes,
+    SchemeAccountStatus,
+    update_pending_join_account,
+)
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
+from app.agents.schemas import Transaction, Balance
 
 log = get_logger("agent-base")
 
@@ -69,7 +75,8 @@ class BaseMiner(object):
     identifier: Optional[dict[str, str]] = None
     expecting_callback = False
     is_async = False
-    create_journey = None
+    create_journey: Optional[str] = None
+    scheme_id = -1  # this is replaced by the derived classes. remove this when bases are merged into one.
 
     def register(self, credentials):
         raise NotImplementedError()
@@ -77,48 +84,55 @@ class BaseMiner(object):
     def login(self, credentials):
         raise NotImplementedError()
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         raise NotImplementedError()
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         raise NotImplementedError()
 
-    def parse_transaction(self, transaction: dict[str, str]) -> dict[str, Any]:
+    def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
         raise NotImplementedError()
 
-    def calculate_label(self, points):
+    def calculate_label(self, points: Decimal) -> str:
         raise NotImplementedError()
 
-    def transactions(self):
+    def transactions(self) -> list[Transaction]:
         try:
-            return self.hash_transactions([self.parse_transaction(t) for t in self.scrape_transactions()])
+            return self.hash_transactions(
+                [parsed_tx for raw_tx in self.scrape_transactions() if (parsed_tx := self.parse_transaction(raw_tx))]
+            )
         except Exception:
             return []
 
-    def hash_transactions(self, transactions):
-        count = defaultdict(int)
+    def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:
+        count: defaultdict[str, int] = defaultdict(int)
+
+        hashed_transactions: list[Transaction] = []
 
         for transaction in transactions:
             s = "{0}{1}{2}{3}{4}".format(
-                transaction["date"],
-                transaction["description"],
-                transaction["points"],
+                transaction.date,
+                transaction.description,
+                transaction.points,
                 self.scheme_id,
-                transaction.get("location"),
+                transaction.location,
             )
 
             # identical hashes get sequentially indexed to make them unique.
             index = count[s]
             count[s] += 1
             s = "{0}{1}".format(s, index)
-            transaction["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
+
+            data = transaction._asdict()
+            data["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
+            hashed_transactions.append(Transaction(**data))
 
         return transactions
 
-    def calculate_point_value(self, points):
+    def calculate_point_value(self, points: Decimal) -> Decimal:
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)
 
-    def account_overview(self):
+    def account_overview(self) -> dict:
         return {"balance": self.balance(), "transactions": self.transactions()}
 
     @staticmethod
@@ -222,7 +236,10 @@ class ApiMiner(BaseMiner):
         except HTTPError as e:
             if e.response.status_code == 401:
                 signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
+                    self,
+                    slug=self.scheme_slug,
+                    channel=self.channel,
+                    error=STATUS_LOGIN_FAILED,
                 )
                 raise LoginError(STATUS_LOGIN_FAILED, response=e.response)
 
@@ -253,7 +270,11 @@ class MerchantApi(BaseMiner):
     """
 
     retry_limit = 9  # tries 10 times overall
-    credential_mapping = {"date_of_birth": "dob", "phone": "phone1", "phone_2": "phone2"}
+    credential_mapping = {
+        "date_of_birth": "dob",
+        "phone": "phone1",
+        "phone_2": "phone2",
+    }
     identifier_type = ["barcode", "card_number", "merchant_scheme_id2"]
     # used to map merchant identifiers to scheme credential types
     merchant_identifier_mapping = {
@@ -313,7 +334,10 @@ class MerchantApi(BaseMiner):
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error=error[0]["code"]
+                self,
+                slug=self.scheme_slug,
+                channel=self.user_info.get("channel", ""),
+                error=error[0]["code"],
             )
             self._handle_errors(error[0]["code"], exception_type=LoginError)
         else:  # Login will have succeeded, unless an empty dict was returned by _outbound_handler()
@@ -322,7 +346,10 @@ class MerchantApi(BaseMiner):
             else:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error="Retry limit reached"
+                    self,
+                    slug=self.scheme_slug,
+                    channel=self.user_info.get("channel", ""),
+                    error="Retry limit reached",
                 )
 
         # For adding the scheme account credential answer to db after first successful login or if they change.
@@ -426,7 +453,11 @@ class MerchantApi(BaseMiner):
         self.message_uid = str(uuid4())
         if not self.config:
             self.config = Configuration(
-                scheme_slug, handler_type, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
+                scheme_slug,
+                handler_type,
+                settings.VAULT_URL,
+                settings.VAULT_TOKEN,
+                settings.CONFIG_SERVICE_URL,
             )
 
         if handler_type == Configuration.JOIN_HANDLER:
@@ -490,7 +521,12 @@ class MerchantApi(BaseMiner):
         self.message_uid = self.result.get("message_uid")
 
         logging_info = self._create_log_message(
-            data, self.message_uid, scheme_slug, self.config.handler_type, "ASYNC", "INBOUND"
+            data,
+            self.message_uid,
+            scheme_slug,
+            self.config.handler_type,
+            "ASYNC",
+            "INBOUND",
         )
 
         self.audit_logger.add_response(
@@ -538,7 +574,9 @@ class MerchantApi(BaseMiner):
 
         def apply_security_measures(retry_state):
             return self.apply_security_measures(
-                json_data, self.config.security_credentials["outbound"]["service"], self.config.security_credentials
+                json_data,
+                self.config.security_credentials["outbound"]["service"],
+                self.config.security_credentials,
             )
 
         @retry(
@@ -577,7 +615,9 @@ class MerchantApi(BaseMiner):
                 if retry_count == self.config.retry_limit:
                     try:
                         back_off_service.activate_cooldown(
-                            self.config.scheme_slug, self.config.handler_type, settings.BACK_OFF_COOLDOWN
+                            self.config.scheme_slug,
+                            self.config.handler_type,
+                            settings.BACK_OFF_COOLDOWN,
                         )
                     except RedisError as ex:
                         log.warning(f"Error activating cool down for {self.config.scheme_slug}: {ex}")
@@ -620,7 +660,10 @@ class MerchantApi(BaseMiner):
         # Send signal for fail if not 2XX response
         if status not in [200, 202]:
             signal("request-fail").send(
-                self, slug=self.scheme_slug, channel=self.user_info.get("channel", ""), error=response.reason
+                self,
+                slug=self.scheme_slug,
+                channel=self.user_info.get("channel", ""),
+                error=response.reason,
             )
 
         if status in [200, 202]:
@@ -629,7 +672,8 @@ class MerchantApi(BaseMiner):
                 inbound_security_agent = get_security_agent(Configuration.OPEN_AUTH_SECURITY)
             else:
                 inbound_security_agent = get_security_agent(
-                    self.config.security_credentials["inbound"]["service"], self.config.security_credentials
+                    self.config.security_credentials["inbound"]["service"],
+                    self.config.security_credentials,
                 )
 
             response_json = inbound_security_agent.decode(response.headers, response.text)
@@ -657,7 +701,11 @@ class MerchantApi(BaseMiner):
         """
         if not self.config:
             self.config = Configuration(
-                scheme_slug, handler_type, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
+                scheme_slug,
+                handler_type,
+                settings.VAULT_URL,
+                settings.VAULT_TOKEN,
+                settings.CONFIG_SERVICE_URL,
             )
 
         self.record_uid = hash_ids.encode(self.scheme_id)
@@ -682,7 +730,14 @@ class MerchantApi(BaseMiner):
         raise AgentError(UNKNOWN)
 
     def _create_log_message(
-        self, json_msg, msg_uid, scheme_slug, handler_type, integration_service, direction, contains_errors=False
+        self,
+        json_msg,
+        msg_uid,
+        scheme_slug,
+        handler_type,
+        integration_service,
+        direction,
+        contains_errors=False,
     ):
         return {
             "json": json_msg,

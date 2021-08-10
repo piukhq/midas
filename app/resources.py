@@ -199,7 +199,7 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         if not balance_result:
             return None, None, None
 
-        balance = publish.balance(balance_result, scheme_account_id, user_info["user_set"], tid)
+        balance = publish.balance(balance_result._asdict(), scheme_account_id, user_info["user_set"], tid)
 
         # Asynchronously get the transactions for the a user
         threads.append(
@@ -240,7 +240,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 def publish_transactions(agent_instance, scheme_account_id, user_set, tid):
     transactions = agent_instance.transactions()
-    publish.transactions(transactions, scheme_account_id, user_set, tid)
+    publish.transactions([tx._asdict() for tx in transactions], scheme_account_id, user_set, tid)
 
 
 class Register(Resource):
@@ -284,7 +284,7 @@ class Transactions(Resource):
             agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
             transactions = publish.transactions(
-                agent_instance.transactions(),
+                [tx._asdict() for tx in agent_instance.transactions()],
                 user_info["scheme_account_id"],
                 user_info["user_set"],
                 tid,
@@ -523,7 +523,7 @@ def registration(scheme_slug, user_info, tid):
     status = SchemeAccountStatus.ACTIVE
     try:
         publish.balance(
-            agent_instance.balance(),
+            agent_instance.balance()._asdict(),
             user_info["scheme_account_id"],
             user_info["user_set"],
             tid,

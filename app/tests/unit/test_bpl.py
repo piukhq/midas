@@ -105,8 +105,8 @@ class TestBplCallback(TestCase):
             status=HTTPStatus.OK,
         )
         balance = self.trenette.balance()
-        self.assertEqual(balance["value"], 0.1)
-        self.assertEqual(balance["vouchers"][0]["value"], 0.1)
+        self.assertEqual(balance.value, 0.1)
+        self.assertEqual(balance.vouchers[0].value, 0.1)
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)

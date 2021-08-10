@@ -1,4 +1,5 @@
 from uuid import uuid4
+from typing import Optional
 from decimal import Decimal
 from urllib.parse import urljoin
 
@@ -9,6 +10,7 @@ from app import publish
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
+from app.agents.schemas import Balance, Voucher
 from app.agents.exceptions import (
     AgentError,
     LoginError,
@@ -122,7 +124,7 @@ class Trenette(BplBase):
         self.identifier = {"merchant_identifier": membership_data["UUID"]}
         self.user_info["credentials"].update(self.identifier)
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         credentials = self.user_info["credentials"]
         merchant_id = credentials["merchant_identifier"]
         self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
@@ -136,16 +138,16 @@ class Trenette(BplBase):
 
         balance = bpl_data["current_balances"][0]["value"]
 
-        return {
-            "points": Decimal(balance),
-            "value": Decimal(balance),
-            "value_label": "",
-            "vouchers": [
-                {
-                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
-                    "target_value": None,
-                    "value": Decimal(balance),
-                },
+        return Balance(
+            points=Decimal(balance),
+            value=Decimal(balance),
+            value_label="",
+            vouchers=[
+                Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    type=VoucherType.STAMPS.value,
+                    target_value=None,
+                    value=Decimal(balance),
+                ),
             ],
-        }
+        )
