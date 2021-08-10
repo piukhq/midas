@@ -8,6 +8,8 @@ import arrow
 from blinker import signal
 from gaia.user_token import UserTokenStore
 from soteria.configuration import Configuration
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
 
 import settings
 from app.agents.base import ApiMiner
@@ -48,7 +50,9 @@ class HarveyNichols(ApiMiner):
 
     @staticmethod
     def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
-        aes = AESCipher(settings.AES_KEY.encode())
+        hermes_aes_keys = get_vault_aes_key()
+        aes_key = json.loads(hermes_aes_keys)["AES_KEY"]
+        aes = AESCipher(aes_key.encode())
 
         # Values stored in AuditLog objects are references so they should be copied before modifying
         # in case the values are also used elsewhere.
@@ -382,3 +386,11 @@ def agent_consent_response(resp):
     if response_data.get("response") == "success" and response_data.get("code") == 200:
         return True, ""
     return False, f'harvey nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'
+
+
+def get_vault_aes_key():
+    client = SecretClient(
+        vault_url=settings.VAULT_URL,
+        credential=DefaultAzureCredential()
+    )
+    return client.get_secret("aes-keys").value
