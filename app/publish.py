@@ -63,7 +63,7 @@ def balance(balance_item, scheme_account_id, user_set, tid):
         del balance_item["vouchers"]
 
     # we remove vouchers as hades cannot handle them
-    post("{}/balance".format(HADES_URL), balance, tid)
+    post("{}/balance".format(HADES_URL), balance_item, tid)
 
     return balance_item
 
