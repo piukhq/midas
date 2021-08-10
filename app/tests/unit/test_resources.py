@@ -4,7 +4,6 @@ from decimal import Decimal
 from unittest import mock
 
 from flask_testing import TestCase
-
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
@@ -33,11 +32,13 @@ from app.resources import (
     log_task,
 )
 from app.scheme_account import SchemeAccountStatus, JourneyTypes
-from settings import AES_KEY
+
+LOCAL_AES_KEY = '{"AES_KEY":"6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"}'
 
 
 def encrypted_credentials():
-    aes = AESCipher(AES_KEY.encode())
+    aes_key = json.loads(LOCAL_AES_KEY)["AES_KEY"]
+    aes = AESCipher(aes_key.encode())
     return aes.encrypt(json.dumps({})).decode()
 
 
@@ -89,6 +90,7 @@ class TestResources(TestCase):
             self,
         )
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
@@ -101,8 +103,10 @@ class TestResources(TestCase):
         mock_pool,
         mock_agent_login,
         mock_publish_balance,
+        mock_vault_aes_key,
     ):
         mock_publish_balance.return_value = {"user_id": 2, "scheme_account_id": 4}
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
@@ -114,14 +118,16 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {"user_id": 2, "scheme_account_id": 4})
         self.assertFalse(mock_async_balance_and_publish.called)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_none_exception(
-        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance
+        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance, mock_vault_aes_key
     ):
         mock_publish_balance.return_value = None
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
@@ -132,14 +138,16 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.publish.balance", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_unknown_error(
-        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance
+        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance, mock_vault_aes_key
     ):
         mock_publish_balance.side_effect = Exception("test error")
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         response = self.client.get(url)
@@ -152,11 +160,13 @@ class TestResources(TestCase):
         self.assertEqual(response.json["message"], "test error")
         self.assertEqual(response.json["code"], 520)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
-    def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions):
+    def test_transactions(self, mock_pool, mock_agent_login, mock_publish_transactions, mock_vault_aes_key):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
         response = self.client.get(url)
@@ -171,11 +181,14 @@ class TestResources(TestCase):
             ],
         )
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
-    def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions):
+    def test_transactions_none_exception(self, mock_pool, mock_agent_login, mock_publish_transactions,
+                                         mock_vault_aes_key):
         mock_publish_transactions.return_value = None
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
         response = self.client.get(url)
@@ -185,11 +198,14 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
-    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool,
+                                        mock_vault_aes_key):
         mock_publish_transactions.side_effect = Exception("test error")
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
         response = self.client.get(url)
@@ -201,11 +217,13 @@ class TestResources(TestCase):
         self.assertEqual(response.json["message"], "test error")
         self.assertEqual(response.json["code"], 520)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
-    def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool):
+    def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool, mock_vault_aes_key):
         mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
         response = self.client.get(url)
@@ -222,8 +240,10 @@ class TestResources(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
-    def test_bad_agent_updates_status(self, mock_submit):
+    def test_bad_agent_updates_status(self, mock_submit, mock_vault_aes_key):
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = (
             "JnoPkhKfU6uddLtbTTOvr1DgsNBeWhI0ADM2VGyfTFR8Wi2%2FRHQ5SX%2Bvk"
             "zIgqmsGGqq94x%2BcBd7Vd%2FKsRTOEBDkV45rsm6WRV6wfZTC51rQ%3D"
@@ -246,8 +266,10 @@ class TestResources(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": 'Please provide either "user_set" or "user_id" parameters'})
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
-    def test_register_view(self, mock_pool):
+    def test_register_view(self, mock_pool, mock_vault_aes_key):
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = encrypted_credentials()
         url = "/harvey-nichols/register"
         data = {
@@ -432,22 +454,25 @@ class TestResources(TestCase):
             agent_login(HarveyNichols, self.user_info, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_updates_hermes_if_agent_sets_identifier(
-        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool
+        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool, mock_vault_aes_key
     ):
         mock_publish_balance.return_value = {"points": 1}
         mock_agent = self.Agent(None)
         mock_agent.identifier = True
         mock_login.return_value = mock_agent
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = {
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encode())
+        aes_key = json.loads(LOCAL_AES_KEY)["AES_KEY"]
+        aes = AESCipher(aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -460,21 +485,24 @@ class TestResources(TestCase):
         self.assertTrue(mock_pool.called)
         self.assertIsNone(mock_pool.call_args[1]["journey"])
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_does_not_update_hermes_if_agent_does_not_set_identifier(
-        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool
+        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool, mock_vault_aes_key
     ):
         mock_publish_balance.return_value = {"points": 1}
         mock_login.return_value = mock.MagicMock()
         mock_login().identifier = None
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = {
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encode())
+        aes_key = json.loads(LOCAL_AES_KEY)["AES_KEY"]
+        aes = AESCipher(aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
@@ -718,12 +746,13 @@ class TestResources(TestCase):
         self.assertFalse(mock_transactions.called)
         self.assertTrue(mock_update_pending_link_account.called)
 
+    @mock.patch("app.resources.get_vault_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.balance", auto_spec=False)
     @mock.patch("app.resources.agent_login", auto_spec=False)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_sets_create_journey_on_status_call(
-        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool
+        self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool, mock_vault_aes_key
     ):
 
         mock_publish_balance.return_value = {"points": 1}
@@ -731,11 +760,13 @@ class TestResources(TestCase):
         mock_agent.identifier = True
         mock_agent.create_journey = "join"
         mock_login.return_value = mock_agent
+        mock_vault_aes_key.return_value = LOCAL_AES_KEY
         credentials = {
             "username": "la@loyaltyangels.com",
             "password": "YSHansbrics6",
         }
-        aes = AESCipher(AES_KEY.encode())
+        aes_key = json.loads(LOCAL_AES_KEY)["AES_KEY"]
+        aes = AESCipher(aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
         url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)

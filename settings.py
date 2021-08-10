@@ -49,7 +49,6 @@ SECRET_KEY = "QlLWJYCugcMQ59nIWh5lnHBMcgHtLupJrv4SvohR"
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
 DEBUG = getenv("MIDAS_DEBUG", default="false", conv=boolconv)
 LOCAL = getenv("MIDAS_LOCAL", default="false", conv=boolconv)
-AES_KEY = "6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"
 
 REDIS_PASSWORD = getenv("REDIS_PASSWORD", default="")
 REDIS_HOST = getenv("REDIS_HOST", default="localhost")

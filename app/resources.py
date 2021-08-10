@@ -8,6 +8,8 @@ from flask import make_response, request
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
 from werkzeug.exceptions import NotFound
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
 
 import settings
 from app import publish, retry
@@ -362,8 +364,18 @@ class AgentQuestions(Resource):
 
 
 def decrypt_credentials(credentials):
-    aes = AESCipher(settings.AES_KEY.encode())
+    hermes_aes_keys = get_vault_aes_key()
+    aes_key = json.loads(hermes_aes_keys)["AES_KEY"]
+    aes = AESCipher(aes_key.encode())
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
+
+
+def get_vault_aes_key():
+    client = SecretClient(
+        vault_url=settings.VAULT_URL,
+        credential=DefaultAzureCredential()
+    )
+    return client.get_secret("aes-keys").value
 
 
 def create_response(response_data):
