@@ -1,9 +1,8 @@
 import unittest
 from app.agents.harvey_nichols import HarveyNichols
-from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 from settings import REDIS_URL
 
 cred = {
@@ -26,11 +25,10 @@ class TestHarveyNichols(unittest.TestCase):
     def test_transactions(self):
         transactions = self.h.transactions()
         self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.h.balance()
-        schemas.balance(balance)
+        self.assertIsNotNone(balance)
 
     def tearDown(self):
         store = UserTokenStore(REDIS_URL)

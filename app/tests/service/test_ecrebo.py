@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock
 
 import httpretty
 
-from app.agents import schemas
 from app.agents.ecrebo import FatFace, BurgerKing, WhSmith
 from app.agents.exceptions import LoginError, RegistrationError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
@@ -44,12 +43,11 @@ class TestEcrebo(unittest.TestCase):
         for agent in self.agents:
             transactions = agent.transactions()
             self.assertIsNotNone(transactions)
-            schemas.transactions(transactions)
 
     def test_balance(self):
         for agent in self.agents:
             balance = agent.balance()
-            schemas.balance(balance)
+            self.assertIsNotNone(balance)
 
     @httpretty.activate
     @patch("app.agents.ecrebo.Configuration")

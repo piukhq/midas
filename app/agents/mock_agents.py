@@ -1,11 +1,13 @@
 import random
 import uuid
+from typing import Optional
 from copy import deepcopy
 from decimal import Decimal
 from time import sleep
 
 import arrow
 from app.agents.base import MockedMiner
+from app.agents.schemas import Balance, Transaction
 from app.agents.ecrebo import Ecrebo
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
@@ -88,18 +90,18 @@ class MockAgentHN(MockedMiner):
 
         return
 
-    def balance(self):
-        return {
-            "points": self.user_info["points"],
-            "value": Decimal(0),
-            "value_label": "",
-            "reward_tier": 1,
-        }
+    def balance(self) -> Optional[Balance]:
+        return Balance(
+            points=self.user_info["points"],
+            value=Decimal(0),
+            value_label="",
+            reward_tier=1,
+        )
 
-    def parse_transaction(self, row):
-        return row
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         max_transactions = self.user_info["len_transactions"]
         # MER-824: If the user is five@testbink.com, ensure the date associated with transactions all occur
         # after the 25th October 2020
@@ -199,20 +201,20 @@ class MockAgentIce(MockedMiner):
         self.add_missing_credentials(credentials, card_number)
         return
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         points = self.user_info["points"]
         value = self.calculate_point_value(points)
 
-        return {
-            "points": self.user_info["points"],
-            "value": value,
-            "value_label": "£{}".format(value),
-        }
+        return Balance(
+            points=self.user_info["points"],
+            value=value,
+            value_label="£{}".format(value),
+        )
 
-    def parse_transaction(self, row):
-        return row
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         max_transactions = self.user_info["len_transactions"]
         # MER-825: If the user is the 'five' test user, ensure the date associated with transactions all occur
         # after the 25th October 2020
@@ -295,7 +297,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
 
         return
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         """
         For each voucher in the mock user store, a mock voucher dict must be created.
         Each dict must have: "issued" (use today's date - 2 days), "code" and "expiry_date", which come from
@@ -325,19 +327,17 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             mock_voucher["redeemed"] = redeemed
             issued_vouchers.append(mock_voucher)
 
-        balance_response = self._make_balance_response(
+        return self._make_balance_response(
             voucher_type=VoucherType.STAMPS,
             value=self.user_info.get("points", 0),
             target_value=Decimal("5"),
             issued_vouchers=issued_vouchers,
         )
 
-        return balance_response
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+        return None
 
-    def parse_transaction(self, row):
-        return row
-
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         return []
 
     def register(self, credentials):

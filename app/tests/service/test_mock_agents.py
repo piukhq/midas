@@ -1,6 +1,5 @@
 import unittest
 from app.agents.mock_agents import MockAgentHN, MockAgentIce
-from app.agents import schemas
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from app.agents.exceptions import LoginError
 
@@ -15,11 +14,10 @@ class TestHN(unittest.TestCase):
     def test_transactions(self):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
-        schemas.balance(balance)
+        self.assertIsNotNone(balance)
         self.assertTrue(self.b.identifier)
 
 
@@ -46,11 +44,10 @@ class TestIce(unittest.TestCase):
     def test_transactions(self):
         transactions = self.b.transactions()
         self.assertIsNotNone(transactions)
-        schemas.transactions(transactions)
 
     def test_balance(self):
         balance = self.b.balance()
-        schemas.balance(balance)
+        self.assertIsNotNone(balance)
 
 
 class TestIceFail(unittest.TestCase):

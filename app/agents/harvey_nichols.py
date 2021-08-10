@@ -1,16 +1,16 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
-from typing import Mapping
+from typing import Mapping, Optional
 from uuid import uuid4
 
 import arrow
 from blinker import signal
-from gaia.user_token import UserTokenStore
+from user_auth_token import UserTokenStore
 from soteria.configuration import Configuration
 
 import settings
-from app.agents.base import ApiMiner
+from app.agents.base import ApiMiner, Balance, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     NO_SUCH_RECORD,
@@ -139,7 +139,7 @@ class HarveyNichols(ApiMiner):
         )
         return balance_response.json()["CustomerLoyaltyProfileResult"]
 
-    def balance(self):
+    def balance(self) -> Optional[Balance]:
         result = self.call_balance_url()
 
         if result["outcome"] == "InvalidToken":
@@ -152,12 +152,12 @@ class HarveyNichols(ApiMiner):
         tiers_list = {"SILVER": 1, "GOLD": 2, "PLATINUM": 3, "BLACK": 4}
         tier = tiers_list[result["loyaltyTierId"]]
 
-        return {
-            "points": Decimal(result["pointsBalance"]),
-            "value": Decimal("0"),
-            "value_label": "",
-            "reward_tier": tier,
-        }
+        return Balance(
+            points=Decimal(result["pointsBalance"]),
+            value=Decimal("0"),
+            value_label="",
+            reward_tier=tier,
+        )
 
     def call_transaction_url(self):
         url = self.BASE_URL + "/ListTransactions"
@@ -185,20 +185,20 @@ class HarveyNichols(ApiMiner):
         )
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
-    def parse_transaction(self, row):
+    def parse_transaction(self, row: dict) -> Optional[Transaction]:
         if type(row["value"]) == int:
             money_value = abs(row["value"])
             formatted_money_value = " £{:.2f}".format(Decimal(money_value / 100))
         else:
             formatted_money_value = ""
 
-        return {
-            "date": arrow.get(row["date"]),
-            "description": "{}: {}{}".format(row["type"], row["locationName"], formatted_money_value),
-            "points": Decimal(row["pointsValue"]),
-        }
+        return Transaction(
+            date=arrow.get(row["date"]),
+            description="{}: {}{}".format(row["type"], row["locationName"], formatted_money_value),
+            points=Decimal(row["pointsValue"]),
+        )
 
-    def scrape_transactions(self):
+    def scrape_transactions(self) -> list[dict]:
         result = self.call_transaction_url()
 
         if result["outcome"] == "InvalidToken":
