@@ -28,6 +28,6 @@ class Balance(NamedTuple):
     points: Decimal
     value: Decimal
     value_label: str
+    reward_tier: int = 0
     balance: Optional[Decimal] = None
-    reward_tier: Optional[int] = None
     vouchers: Optional[list[Voucher]] = None

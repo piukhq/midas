@@ -12,7 +12,7 @@ from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 units = ["k", "M", "B", "T"]
-PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
+PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending", "reward_tier": 0}
 
 
 log = get_logger("publisher")
@@ -33,28 +33,10 @@ def put(url, data, tid):
     session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), hooks={"response": log_errors})
 
 
-def _delete_null_key(item: dict, key: str) -> None:
-    if key in item and item[key] is None:
-        del item[key]
-
-
-def send_transactions_to_hades(transaction_items: list[dict], tid: str) -> None:
-    items = deepcopy(transaction_items)
-
-    for item in items:
-        # remove parts from the transaction item that hades cannot handle.
-        _delete_null_key(item, "value")
-        _delete_null_key(item, "location")
-
-    post("{}/transactions".format(HADES_URL), items, tid)
-
-
 def send_balance_to_hades(balance_item: dict, tid: str) -> None:
     item = deepcopy(balance_item)
 
-    # remove parts from the balance item that hades cannot handle.
-    _delete_null_key(item, "balance")
-    _delete_null_key(item, "reward_tier")
+    # hades can't handle vouchers
     if "vouchers" in item:
         del item["vouchers"]
 
@@ -69,13 +51,14 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
         transaction_item["scheme_account_id"] = scheme_account_id
         transaction_item["user_set"] = user_set
 
-    send_transactions_to_hades(transactions_items, tid)
+    post("{}/transactions".format(HADES_URL), transactions_items, tid)
 
     return transactions_items
 
 
 def balance(balance_item, scheme_account_id, user_set, tid):
     balance_item = create_balance_object(balance_item, scheme_account_id, user_set)
+
     send_balance_to_hades(balance_item, tid)
     return balance_item
 
@@ -94,9 +77,6 @@ def create_balance_object(balance_item, scheme_account_id, user_set):
     balance_item["scheme_account_id"] = scheme_account_id
     balance_item["user_set"] = user_set
     balance_item["points_label"] = minify_number(balance_item["points"])
-
-    if "reward_tier" not in balance_item:
-        balance_item["reward_tier"] = 0
 
     if len(balance_item["value_label"]) > MAX_VALUE_LABEL_LENGTH:
         balance_item["value_label"] = "Reward"

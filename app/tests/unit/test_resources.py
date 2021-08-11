@@ -4,13 +4,14 @@ from typing import Optional
 from decimal import Decimal
 from unittest import mock
 
-from flask_testing import TestCase
+import arrow
 import httpretty
+from flask_testing import TestCase
 
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
-from app.agents.schemas import Balance, Voucher
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import (
     AgentError,
     LoginError,
@@ -27,6 +28,7 @@ from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import (
     balance_tuple_to_dict,
+    transaction_tuple_to_dict,
     agent_login,
     registration,
     agent_register,
@@ -96,16 +98,11 @@ class TestResources(TestCase):
             "points": Decimal("12.34"),
             "value": Decimal("24.72"),
             "value_label": "gbp",
-            "balance": None,
-            "reward_tier": None,
+            "reward_tier": 0,
             "vouchers": [
                 {
                     "state": voucher_state_names[VoucherState.IN_PROGRESS],
                     "type": VoucherType.STAMPS.value,
-                    "issue_date": None,
-                    "redeem_date": None,
-                    "expiry_date": None,
-                    "code": None,
                     "value": Decimal("10.10"),
                     "target_value": Decimal("20.20"),
                 },
@@ -113,8 +110,6 @@ class TestResources(TestCase):
                     "state": voucher_state_names[VoucherState.EXPIRED],
                     "type": VoucherType.STAMPS.value,
                     "issue_date": 1234567895,
-                    "redeem_date": None,
-                    "expiry_date": None,
                     "code": "test-voucher-2",
                     "value": Decimal("20.20"),
                     "target_value": Decimal("20.20"),
@@ -125,6 +120,26 @@ class TestResources(TestCase):
         balance_dict = balance_tuple_to_dict(balance_tuple)
 
         self.assertEqual(balance_dict, expected)
+
+    def test_transaction_tuple_to_dict(self):
+        date = arrow.now()
+        transaction_tuple = Transaction(
+            date=date,
+            description="test transaction",
+            points=Decimal("12.34"),
+            hash="test-hash-1",
+        )
+
+        expected = {
+            "date": date,
+            "description": "test transaction",
+            "points": Decimal("12.34"),
+            "hash": "test-hash-1",
+        }
+
+        transaction_dict = transaction_tuple_to_dict(transaction_tuple)
+
+        self.assertEqual(transaction_dict, expected)
 
     class Agent(BaseMiner):
         def __init__(self, identifier):
@@ -869,16 +884,11 @@ class TestResources(TestCase):
             "points": 123.45,
             "value": 123.45,
             "value_label": "",
-            "balance": None,
-            "reward_tier": None,
+            "reward_tier": 0,
             "vouchers": [
                 {
                     "state": "inprogress",
                     "type": 2,
-                    "issue_date": None,
-                    "redeem_date": None,
-                    "expiry_date": None,
-                    "code": None,
                     "value": 123.45,
                     "target_value": None,
                 }
