@@ -125,8 +125,7 @@ class TestResources(TestCase):
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.resources.update_pending_join_account", auto_spec=True)
     def test_balance_none_exception(
-        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance,
-            mock_get_aes_key
+        self, mock_update_pending_join_account, mock_pool, mock_agent_login, mock_publish_balance, mock_get_aes_key
     ):
         mock_publish_balance.return_value = None
         mock_get_aes_key.return_value = local_aes_key.encode()
@@ -205,9 +204,7 @@ class TestResources(TestCase):
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     @mock.patch("app.publish.transactions", auto_spec=True)
     @mock.patch("app.resources.agent_login", auto_spec=True)
-    def test_transactions_unknown_error(
-        self, mock_agent_login, mock_publish_transactions, mock_pool, mock_get_aes_key
-    ):
+    def test_transactions_unknown_error(self, mock_agent_login, mock_publish_transactions, mock_pool, mock_get_aes_key):
         mock_publish_transactions.side_effect = Exception("test error")
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
