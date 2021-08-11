@@ -33,6 +33,7 @@ class TestRetry(unittest.TestCase):
             "points": Decimal("51251285"),
             "value": Decimal("9.44"),
             "value_label": "£9.44",
+            "reward_tier": 0,
         }
         item = balance(b, 5, 8, "123-12")
         self.assertEqual(
