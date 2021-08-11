@@ -13,6 +13,7 @@ import settings
 from app import publish, retry
 from app.active import AGENTS
 from app.agents.base import MerchantApi
+from app.agents.schemas import Balance as BalanceTuple
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     SCHEME_REQUESTED_DELETE,
@@ -64,6 +65,13 @@ credentials_doc = {
 
 
 log = get_logger("api")
+
+
+def balance_tuple_to_dict(balance: BalanceTuple) -> dict:
+    result = balance._asdict()
+    if result.get("vouchers"):
+        result["vouchers"] = [voucher._asdict() for voucher in result["vouchers"]]
+    return result
 
 
 class Healthz(Resource):
@@ -197,7 +205,12 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         if not balance_result:
             return None, None, None
 
-        balance = publish.balance(balance_result._asdict(), scheme_account_id, user_info["user_set"], tid)
+        balance = publish.balance(
+            balance_tuple_to_dict(balance_result),
+            scheme_account_id,
+            user_info["user_set"],
+            tid,
+        )
 
         # Asynchronously get the transactions for the a user
         threads.append(
@@ -511,7 +524,7 @@ def registration(scheme_slug, user_info, tid):
     status = SchemeAccountStatus.ACTIVE
     try:
         publish.balance(
-            agent_instance.balance()._asdict(),
+            balance_tuple_to_dict(agent_instance.balance()),
             user_info["scheme_account_id"],
             user_info["user_set"],
             tid,

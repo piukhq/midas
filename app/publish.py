@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 
@@ -37,6 +38,29 @@ def _delete_null_key(item: dict, key: str) -> None:
         del item[key]
 
 
+def send_transactions_to_hades(transaction_items: list[dict], tid: str) -> None:
+    items = deepcopy(transaction_items)
+
+    for item in items:
+        # remove parts from the transaction item that hades cannot handle.
+        _delete_null_key(item, "value")
+        _delete_null_key(item, "location")
+
+    post("{}/transactions".format(HADES_URL), items, tid)
+
+
+def send_balance_to_hades(balance_item: dict, tid: str) -> None:
+    item = deepcopy(balance_item)
+
+    # remove parts from the balance item that hades cannot handle.
+    _delete_null_key(item, "balance")
+    _delete_null_key(item, "reward_tier")
+    if "vouchers" in item:
+        del item["vouchers"]
+
+    post("{}/balance".format(HADES_URL), item, tid)
+
+
 def transactions(transactions_items, scheme_account_id, user_set, tid):
     if not transactions_items:
         return None
@@ -45,26 +69,14 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
         transaction_item["scheme_account_id"] = scheme_account_id
         transaction_item["user_set"] = user_set
 
-        # remove parts from transaction_item that hades cannot handle.
-        _delete_null_key(transaction_item, "value")
-        _delete_null_key(transaction_item, "location")
+    send_transactions_to_hades(transactions_items, tid)
 
-    post("{}/transactions".format(HADES_URL), transactions_items, tid)
     return transactions_items
 
 
 def balance(balance_item, scheme_account_id, user_set, tid):
     balance_item = create_balance_object(balance_item, scheme_account_id, user_set)
-
-    # remove parts from balance_item that hades cannot handle.
-    _delete_null_key(balance_item, "balance")
-    _delete_null_key(balance_item, "reward_tier")
-    if "vouchers" in balance_item:
-        del balance_item["vouchers"]
-
-    # we remove vouchers as hades cannot handle them
-    post("{}/balance".format(HADES_URL), balance_item, tid)
-
+    send_balance_to_hades(balance_item, tid)
     return balance_item
 
 
