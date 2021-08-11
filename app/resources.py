@@ -24,7 +24,7 @@ from app.agents.exceptions import (
     errors,
 )
 from app.encoding import JsonEncoder
-from app.encryption import AESCipher
+from app.encryption import AESCipher, get_aes_key
 from app.exceptions import AgentException, UnknownException
 from app.http_request import get_headers
 from app.publish import PENDING_BALANCE, create_balance_object, thread_pool_executor
@@ -362,7 +362,7 @@ class AgentQuestions(Resource):
 
 
 def decrypt_credentials(credentials):
-    aes = AESCipher.get_aes_cipher()
+    aes = AESCipher(get_aes_key("aes-keys"))
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
 
 

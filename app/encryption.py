@@ -37,19 +37,20 @@ class AESCipher(object):
         length = self.bs - (len(s) % self.bs)
         return s + bytes([length]) * length
 
-    def get_aes_cipher():
-        vault_aes_keys = get_vault_aes_key()
-        aes_key = json.loads(vault_aes_keys)["AES_KEY"]
-        return AESCipher(aes_key.encode())
-
     @staticmethod
     def _unpad(s):
         return s[: -ord(s[len(s) - 1 :])]
 
 
-def get_vault_aes_key():
-    client = SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
-    return client.get_secret("aes-keys").value
+def get_aes_key(secret_name):
+    client = connect_to_vault()
+    vault_aes_keys = client.get_secret(secret_name).value
+    aes_key = json.loads(vault_aes_keys)["AES_KEY"]
+    return aes_key.encode()
+
+
+def connect_to_vault():
+    return SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
 
 
 class HashSHA1:
