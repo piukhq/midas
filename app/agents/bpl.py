@@ -136,18 +136,18 @@ class Trenette(BplBase):
         if len(bpl_data["current_balances"]) == 0:
             return None
 
-        balance = bpl_data["current_balances"][0]["value"]
+        balance = Decimal(str(bpl_data["current_balances"][0]["value"]))
 
         return Balance(
-            points=Decimal(balance),
-            value=Decimal(balance),
+            points=balance,
+            value=balance,
             value_label="",
             vouchers=[
                 Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
                     type=VoucherType.STAMPS.value,
                     target_value=None,
-                    value=Decimal(balance),
+                    value=balance,
                 ),
             ],
         )

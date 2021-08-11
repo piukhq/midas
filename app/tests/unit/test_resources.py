@@ -5,11 +5,12 @@ from decimal import Decimal
 from unittest import mock
 
 from flask_testing import TestCase
+import httpretty
 
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
-from app.agents.schemas import Balance
+from app.agents.schemas import Balance, Voucher
 from app.agents.exceptions import (
     AgentError,
     LoginError,
@@ -25,6 +26,7 @@ from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import (
+    balance_tuple_to_dict,
     agent_login,
     registration,
     agent_register,
@@ -35,7 +37,8 @@ from app.resources import (
     log_task,
 )
 from app.scheme_account import SchemeAccountStatus, JourneyTypes
-from settings import AES_KEY
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from settings import AES_KEY, HERMES_URL, HADES_URL
 
 
 def encrypted_credentials():
@@ -65,6 +68,63 @@ class TestResources(TestCase):
             return x
 
         self.assertEqual(decorated.__name__, "logged_func")
+
+    def test_balance_tuple_to_dict(self):
+        balance_tuple = Balance(
+            points=Decimal("12.34"),
+            value=Decimal("24.72"),
+            value_label="gbp",
+            vouchers=[
+                Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    type=VoucherType.STAMPS.value,
+                    value=Decimal("10.10"),
+                    target_value=Decimal("20.20"),
+                ),
+                Voucher(
+                    state=voucher_state_names[VoucherState.EXPIRED],
+                    type=VoucherType.STAMPS.value,
+                    issue_date=1234567895,
+                    code="test-voucher-2",
+                    value=Decimal("20.20"),
+                    target_value=Decimal("20.20"),
+                ),
+            ],
+        )
+
+        expected = {
+            "points": Decimal("12.34"),
+            "value": Decimal("24.72"),
+            "value_label": "gbp",
+            "balance": None,
+            "reward_tier": None,
+            "vouchers": [
+                {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": VoucherType.STAMPS.value,
+                    "issue_date": None,
+                    "redeem_date": None,
+                    "expiry_date": None,
+                    "code": None,
+                    "value": Decimal("10.10"),
+                    "target_value": Decimal("20.20"),
+                },
+                {
+                    "state": voucher_state_names[VoucherState.EXPIRED],
+                    "type": VoucherType.STAMPS.value,
+                    "issue_date": 1234567895,
+                    "redeem_date": None,
+                    "expiry_date": None,
+                    "code": "test-voucher-2",
+                    "value": Decimal("20.20"),
+                    "target_value": Decimal("20.20"),
+                },
+            ],
+        }
+
+        balance_dict = balance_tuple_to_dict(balance_tuple)
+
+        self.assertEqual(balance_dict, expected)
 
     class Agent(BaseMiner):
         def __init__(self, identifier):
@@ -749,3 +809,88 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(mock_pool.call_args[1]["journey"], "join")
+
+    @httpretty.activate
+    @mock.patch("app.agents.bpl.Configuration")
+    @mock.patch("app.resources.retry")
+    def test_balance_response_format(self, mock_retry, mock_configuration):
+        mock_retry.get_count.return_value = 0
+
+        config = mock_configuration.return_value
+        config.merchant_url = "http://testbink.com/"
+        config.security_credentials = {
+            "outbound": {
+                "credentials": [
+                    {
+                        "value": {
+                            "token": "test-token-123",
+                        },
+                    }
+                ],
+            },
+        }
+
+        credentials = {
+            "merchant_identifier": "test-uuid",
+        }
+
+        httpretty.register_uri(
+            httpretty.GET,
+            "http://testbink.com/test-uuid",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "account_number": "test-account-1",
+                            "UUID": "1234567890",
+                            "current_balances": [
+                                {
+                                    "value": 123.45,
+                                }
+                            ],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        httpretty.register_uri(
+            httpretty.PUT,
+            f"{HERMES_URL}/schemes/accounts/2/credentials",
+        )
+
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{HADES_URL}/balance",
+        )
+
+        expected = {
+            "points": 123.45,
+            "value": 123.45,
+            "value_label": "",
+            "balance": None,
+            "reward_tier": None,
+            "vouchers": [
+                {
+                    "state": "inprogress",
+                    "type": 2,
+                    "issue_date": None,
+                    "redeem_date": None,
+                    "expiry_date": None,
+                    "code": None,
+                    "value": 123.45,
+                    "target_value": None,
+                }
+            ],
+            "scheme_account_id": 2,
+            "user_set": "1",
+            "points_label": "123",
+        }
+
+        aes = AESCipher(AES_KEY.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set=1&scheme_account_id=2"
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.json, expected)
