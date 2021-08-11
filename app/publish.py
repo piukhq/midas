@@ -54,7 +54,6 @@ def send_balance_to_hades(balance_item: dict, tid: str) -> None:
 
     # remove parts from the balance item that hades cannot handle.
     _delete_null_key(item, "balance")
-    _delete_null_key(item, "reward_tier")
     if "vouchers" in item:
         del item["vouchers"]
 
@@ -95,7 +94,7 @@ def create_balance_object(balance_item, scheme_account_id, user_set):
     balance_item["user_set"] = user_set
     balance_item["points_label"] = minify_number(balance_item["points"])
 
-    if "reward_tier" not in balance_item:
+    if not balance_item.get("reward_tier"):
         balance_item["reward_tier"] = 0
 
     if len(balance_item["value_label"]) > MAX_VALUE_LABEL_LENGTH:
