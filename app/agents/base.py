@@ -101,7 +101,8 @@ class BaseMiner(object):
             return self.hash_transactions(
                 [parsed_tx for raw_tx in self.scrape_transactions() if (parsed_tx := self.parse_transaction(raw_tx))]
             )
-        except Exception:
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
             return []
 
     def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:
@@ -115,7 +116,7 @@ class BaseMiner(object):
                 transaction.description,
                 transaction.points,
                 self.scheme_id,
-                transaction.location,
+                transaction.location if transaction.location is not None else "",
             )
 
             # identical hashes get sequentially indexed to make them unique.
@@ -127,7 +128,7 @@ class BaseMiner(object):
             data["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
             hashed_transactions.append(Transaction(**data))
 
-        return transactions
+        return hashed_transactions
 
     def calculate_point_value(self, points: Decimal) -> Decimal:
         return (points * self.point_conversion_rate).quantize(TWO_PLACES)

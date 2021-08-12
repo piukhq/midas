@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 
@@ -11,7 +12,7 @@ from settings import HADES_URL, HERMES_URL, MAX_VALUE_LABEL_LENGTH
 
 thread_pool_executor = ThreadPoolExecutor(max_workers=3)
 units = ["k", "M", "B", "T"]
-PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending"}
+PENDING_BALANCE = {"points": Decimal(0), "value": Decimal(0), "value_label": "Pending", "reward_tier": 0}
 
 
 log = get_logger("publisher")
@@ -32,9 +33,14 @@ def put(url, data, tid):
     session.put(url, data=json.dumps(data, cls=JsonEncoder), headers=get_headers(tid), hooks={"response": log_errors})
 
 
-def _delete_null_key(item: dict, key: str) -> None:
-    if key in item and item[key] is None:
-        del item[key]
+def send_balance_to_hades(balance_item: dict, tid: str) -> None:
+    item = deepcopy(balance_item)
+
+    # hades can't handle vouchers
+    if "vouchers" in item:
+        del item["vouchers"]
+
+    post("{}/balance".format(HADES_URL), item, tid)
 
 
 def transactions(transactions_items, scheme_account_id, user_set, tid):
@@ -45,26 +51,15 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
         transaction_item["scheme_account_id"] = scheme_account_id
         transaction_item["user_set"] = user_set
 
-        # remove parts from transaction_item that hades cannot handle.
-        _delete_null_key(transaction_item, "value")
-        _delete_null_key(transaction_item, "location")
-
     post("{}/transactions".format(HADES_URL), transactions_items, tid)
+
     return transactions_items
 
 
 def balance(balance_item, scheme_account_id, user_set, tid):
     balance_item = create_balance_object(balance_item, scheme_account_id, user_set)
 
-    # remove parts from balance_item that hades cannot handle.
-    _delete_null_key(balance_item, "balance")
-    _delete_null_key(balance_item, "reward_tier")
-    if "vouchers" in balance_item:
-        del balance_item["vouchers"]
-
-    # we remove vouchers as hades cannot handle them
-    post("{}/balance".format(HADES_URL), balance_item, tid)
-
+    send_balance_to_hades(balance_item, tid)
     return balance_item
 
 
@@ -82,9 +77,6 @@ def create_balance_object(balance_item, scheme_account_id, user_set):
     balance_item["scheme_account_id"] = scheme_account_id
     balance_item["user_set"] = user_set
     balance_item["points_label"] = minify_number(balance_item["points"])
-
-    if "reward_tier" not in balance_item:
-        balance_item["reward_tier"] = 0
 
     if len(balance_item["value_label"]) > MAX_VALUE_LABEL_LENGTH:
         balance_item["value_label"] = "Reward"

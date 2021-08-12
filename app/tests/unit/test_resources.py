@@ -4,11 +4,13 @@ from typing import Optional
 from decimal import Decimal
 from unittest import mock
 
+import arrow
+import httpretty
 from flask_testing import TestCase
 from app import create_app, AgentException, UnknownException
 from app import publish
 from app.agents.base import BaseMiner
-from app.agents.schemas import Balance
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import (
     AgentError,
     LoginError,
@@ -24,6 +26,8 @@ from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import (
+    balance_tuple_to_dict,
+    transaction_tuple_to_dict,
     agent_login,
     registration,
     agent_register,
@@ -34,6 +38,8 @@ from app.resources import (
     log_task,
 )
 from app.scheme_account import SchemeAccountStatus, JourneyTypes
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from settings import HERMES_URL, HADES_URL
 
 local_aes_key = "6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"
 
@@ -65,6 +71,76 @@ class TestResources(TestCase):
             return x
 
         self.assertEqual(decorated.__name__, "logged_func")
+
+    def test_balance_tuple_to_dict(self):
+        balance_tuple = Balance(
+            points=Decimal("12.34"),
+            value=Decimal("24.72"),
+            value_label="gbp",
+            vouchers=[
+                Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    type=VoucherType.STAMPS.value,
+                    value=Decimal("10.10"),
+                    target_value=Decimal("20.20"),
+                ),
+                Voucher(
+                    state=voucher_state_names[VoucherState.EXPIRED],
+                    type=VoucherType.STAMPS.value,
+                    issue_date=1234567895,
+                    code="test-voucher-2",
+                    value=Decimal("20.20"),
+                    target_value=Decimal("20.20"),
+                ),
+            ],
+        )
+
+        expected = {
+            "points": Decimal("12.34"),
+            "value": Decimal("24.72"),
+            "value_label": "gbp",
+            "reward_tier": 0,
+            "vouchers": [
+                {
+                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": VoucherType.STAMPS.value,
+                    "value": Decimal("10.10"),
+                    "target_value": Decimal("20.20"),
+                },
+                {
+                    "state": voucher_state_names[VoucherState.EXPIRED],
+                    "type": VoucherType.STAMPS.value,
+                    "issue_date": 1234567895,
+                    "code": "test-voucher-2",
+                    "value": Decimal("20.20"),
+                    "target_value": Decimal("20.20"),
+                },
+            ],
+        }
+
+        balance_dict = balance_tuple_to_dict(balance_tuple)
+
+        self.assertEqual(balance_dict, expected)
+
+    def test_transaction_tuple_to_dict(self):
+        date = arrow.now()
+        transaction_tuple = Transaction(
+            date=date,
+            description="test transaction",
+            points=Decimal("12.34"),
+            hash="test-hash-1",
+        )
+
+        expected = {
+            "date": date,
+            "description": "test transaction",
+            "points": Decimal("12.34"),
+            "hash": "test-hash-1",
+        }
+
+        transaction_dict = transaction_tuple_to_dict(transaction_tuple)
+
+        self.assertEqual(transaction_dict, expected)
 
     class Agent(BaseMiner):
         def __init__(self, identifier):
@@ -776,3 +852,85 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(mock_pool.call_args[1]["journey"], "join")
+
+    @httpretty.activate
+    @mock.patch("app.resources.get_aes_key")
+    @mock.patch("app.agents.bpl.Configuration")
+    @mock.patch("app.resources.retry")
+    def test_balance_response_format(self, mock_retry, mock_configuration, mock_get_aes_key):
+        mock_retry.get_count.return_value = 0
+
+        config = mock_configuration.return_value
+        config.merchant_url = "http://testbink.com/"
+        mock_get_aes_key.return_value = local_aes_key.encode()
+        config.security_credentials = {
+            "outbound": {
+                "credentials": [
+                    {
+                        "value": {
+                            "token": "test-token-123",
+                        },
+                    }
+                ],
+            },
+        }
+
+        credentials = {
+            "merchant_identifier": "test-uuid",
+        }
+
+        httpretty.register_uri(
+            httpretty.GET,
+            "http://testbink.com/test-uuid",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "account_number": "test-account-1",
+                            "UUID": "1234567890",
+                            "current_balances": [
+                                {
+                                    "value": 123.45,
+                                }
+                            ],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        httpretty.register_uri(
+            httpretty.PUT,
+            f"{HERMES_URL}/schemes/accounts/2/credentials",
+        )
+
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{HADES_URL}/balance",
+        )
+
+        expected = {
+            "points": 123.45,
+            "value": 123.45,
+            "value_label": "",
+            "reward_tier": 0,
+            "vouchers": [
+                {
+                    "state": "inprogress",
+                    "type": 2,
+                    "value": 123.45,
+                    "target_value": None,
+                }
+            ],
+            "scheme_account_id": 2,
+            "user_set": "1",
+            "points_label": "123",
+        }
+
+        aes = AESCipher(local_aes_key.encode())
+        credentials = aes.encrypt(json.dumps(credentials)).decode()
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set=1&scheme_account_id=2"
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.json, expected)

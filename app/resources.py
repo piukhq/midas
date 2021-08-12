@@ -13,6 +13,7 @@ import settings
 from app import publish, retry
 from app.active import AGENTS
 from app.agents.base import MerchantApi
+from app.agents.schemas import Balance as BalanceTuple, Voucher as VoucherTuple, Transaction as TransactionTuple
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     SCHEME_REQUESTED_DELETE,
@@ -64,6 +65,41 @@ credentials_doc = {
 
 
 log = get_logger("api")
+
+
+def _delete_null_key(item: dict, key: str) -> None:
+    if key in item and item[key] is None:
+        del item[key]
+
+
+def voucher_tuple_to_dict(voucher: VoucherTuple) -> dict:
+    result = voucher._asdict()
+
+    for field in ["issue_date", "redeem_date", "expiry_date", "code"]:
+        _delete_null_key(result, field)
+
+    return result
+
+
+def balance_tuple_to_dict(balance: BalanceTuple) -> dict:
+    result = balance._asdict()
+
+    _delete_null_key(result, "balance")
+    _delete_null_key(result, "vouchers")
+
+    if result.get("vouchers"):
+        result["vouchers"] = [voucher_tuple_to_dict(voucher) for voucher in result["vouchers"]]
+
+    return result
+
+
+def transaction_tuple_to_dict(transaction: TransactionTuple) -> dict:
+    result = transaction._asdict()
+
+    _delete_null_key(result, "value")
+    _delete_null_key(result, "location")
+
+    return result
 
 
 class Healthz(Resource):
@@ -197,7 +233,12 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         if not balance_result:
             return None, None, None
 
-        balance = publish.balance(balance_result._asdict(), scheme_account_id, user_info["user_set"], tid)
+        balance = publish.balance(
+            balance_tuple_to_dict(balance_result),
+            scheme_account_id,
+            user_info["user_set"],
+            tid,
+        )
 
         # Asynchronously get the transactions for the a user
         threads.append(
@@ -238,7 +279,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 def publish_transactions(agent_instance, scheme_account_id, user_set, tid):
     transactions = agent_instance.transactions()
-    publish.transactions([tx._asdict() for tx in transactions], scheme_account_id, user_set, tid)
+    publish.transactions([transaction_tuple_to_dict(tx) for tx in transactions], scheme_account_id, user_set, tid)
 
 
 class Register(Resource):
@@ -282,7 +323,7 @@ class Transactions(Resource):
             agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
             transactions = publish.transactions(
-                [tx._asdict() for tx in agent_instance.transactions()],
+                [transaction_tuple_to_dict(tx) for tx in agent_instance.transactions()],
                 user_info["scheme_account_id"],
                 user_info["user_set"],
                 tid,
@@ -511,7 +552,7 @@ def registration(scheme_slug, user_info, tid):
     status = SchemeAccountStatus.ACTIVE
     try:
         publish.balance(
-            agent_instance.balance()._asdict(),
+            balance_tuple_to_dict(agent_instance.balance()),
             user_info["scheme_account_id"],
             user_info["user_set"],
             tid,
