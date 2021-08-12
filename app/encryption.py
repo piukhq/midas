@@ -1,8 +1,12 @@
 import base64
 import hashlib
+import settings
+import json
 from Crypto import Random
 from Crypto.Cipher import AES
 from hashids import Hashids
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz1234567890"
 hash_ids = Hashids(min_length=32, salt="GJgCh--VgsonCWacO5-MxAuMS9hcPeGGxj5tGsT40FM", alphabet=ALPHABET)
@@ -36,6 +40,17 @@ class AESCipher(object):
     @staticmethod
     def _unpad(s):
         return s[: -ord(s[len(s) - 1 :])]
+
+
+def get_aes_key(secret_name):
+    client = connect_to_vault()
+    vault_aes_keys = client.get_secret(secret_name).value
+    aes_key = json.loads(vault_aes_keys)["AES_KEY"]
+    return aes_key.encode()
+
+
+def connect_to_vault():
+    return SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
 
 
 class HashSHA1:

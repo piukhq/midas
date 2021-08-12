@@ -1,4 +1,5 @@
 import json
+import settings
 from copy import deepcopy
 from decimal import Decimal
 from typing import Mapping, Optional
@@ -8,8 +9,6 @@ import arrow
 from blinker import signal
 from user_auth_token import UserTokenStore
 from soteria.configuration import Configuration
-
-import settings
 from app.agents.base import ApiMiner, Balance, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -22,7 +21,7 @@ from app.agents.exceptions import (
     RegistrationError,
 )
 from app.audit import AuditLogType, RequestAuditLog
-from app.encryption import AESCipher, hash_ids
+from app.encryption import AESCipher, hash_ids, get_aes_key
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import send_consents
 from app.reporting import get_logger
@@ -48,7 +47,7 @@ class HarveyNichols(ApiMiner):
 
     @staticmethod
     def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
-        aes = AESCipher(settings.AES_KEY.encode())
+        aes = AESCipher(get_aes_key("aes-keys"))
 
         # Values stored in AuditLog objects are references so they should be copied before modifying
         # in case the values are also used elsewhere.
@@ -382,3 +381,8 @@ def agent_consent_response(resp):
     if response_data.get("response") == "success" and response_data.get("code") == 200:
         return True, ""
     return False, f'harvey nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'
+
+
+# def get_vault_aes_key():
+#     client = SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
+#     return client.get_secret("aes-keys").value
