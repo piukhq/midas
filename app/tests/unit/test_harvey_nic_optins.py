@@ -163,9 +163,12 @@ class TestUserConsents(unittest.TestCase):
             status_code=mock_harvey_nick_register().status_code,
         )
 
+    @mock.patch("app.agents.harvey_nichols.get_aes_key")
     @mock.patch("requests.Session.post")
-    def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request):
+    def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request, mock_get_aes_key):
+        local_aes_key = "6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        mock_get_aes_key.return_value = local_aes_key.encode()
         hn = HarveyNichols(retry_count=1, user_info=user_info, scheme_slug="harvey-nichols")
         self.add_audit_logs(hn)
 
@@ -175,7 +178,7 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual(len(mock_atlas_request.call_args[1]["json"]["audit_logs"]), 2)
 
         # Assert password is encrypted
-        aes = AESCipher(settings.AES_KEY.encode())
+        aes = AESCipher(local_aes_key.encode())
         for log in mock_atlas_request.call_args[1]["json"]["audit_logs"]:
             if log["audit_log_type"] == AuditLogType.REQUEST:
                 password = aes.decrypt(log["payload"]["CustomerSignUpRequest"]["password"])
