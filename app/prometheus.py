@@ -9,7 +9,6 @@ from prometheus_client.registry import REGISTRY
 import settings
 from app.reporting import get_logger
 
-
 log = get_logger("prometheus-manager")
 
 

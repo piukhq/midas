@@ -10,7 +10,8 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
-from app.agents.schemas import Balance, Voucher
+from tenacity import Retrying, stop_after_attempt
+
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import (
     END_SITE_DOWN,
@@ -20,9 +21,9 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from app.agents.schemas import Balance, Voucher
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
-from tenacity import Retrying, stop_after_attempt
 
 
 class TestWasabi(unittest.TestCase):

@@ -1,6 +1,7 @@
-import pytest
 import os
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from app.agents.acteol import Wasabi
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS

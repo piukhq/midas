@@ -1,6 +1,6 @@
-import arrow
 from decimal import Decimal
 
+import arrow
 
 USER_STORE = {
     "000000": {

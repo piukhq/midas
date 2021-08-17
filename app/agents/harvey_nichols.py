@@ -1,5 +1,4 @@
 import json
-import settings
 from copy import deepcopy
 from decimal import Decimal
 from typing import Mapping, Optional
@@ -7,8 +6,10 @@ from uuid import uuid4
 
 import arrow
 from blinker import signal
-from user_auth_token import UserTokenStore
 from soteria.configuration import Configuration
+from user_auth_token import UserTokenStore
+
+import settings
 from app.agents.base import ApiMiner, Balance, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -21,11 +22,10 @@ from app.agents.exceptions import (
     RegistrationError,
 )
 from app.audit import AuditLogType, RequestAuditLog
-from app.encryption import AESCipher, hash_ids, get_aes_key
+from app.encryption import AESCipher, get_aes_key, hash_ids
+from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import send_consents
-from app.reporting import get_logger
-
 
 log = get_logger("harvey-nichols-agent")
 

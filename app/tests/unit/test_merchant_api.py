@@ -1,47 +1,46 @@
 import json
-import settings
 from collections import OrderedDict
-from unittest.mock import call, MagicMock, ANY
+from http import HTTPStatus
+from unittest import TestCase, mock
+from unittest.mock import ANY, MagicMock, call
 from uuid import uuid4
 
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
-from http import HTTPStatus
 from redis import RedisError
 from requests import Response
+from soteria.configuration import Configuration, ConfigurationException
 
+import settings
 from app import create_app
 from app.agents.base import BaseMiner, MerchantApi
-from unittest import mock, TestCase
-
 from app.agents.exceptions import (
-    NOT_SENT,
-    errors,
-    UNKNOWN,
-    LoginError,
-    AgentError,
-    NO_SUCH_RECORD,
-    SERVICE_CONNECTION_ERROR,
-    GENERAL_ERROR,
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
-    STATUS_LOGIN_FAILED,
-    RegistrationError,
-    VALIDATION,
-    UnauthorisedError,
     END_SITE_DOWN,
+    GENERAL_ERROR,
+    NO_SUCH_RECORD,
+    NOT_SENT,
+    SERVICE_CONNECTION_ERROR,
+    STATUS_LOGIN_FAILED,
+    UNKNOWN,
+    VALIDATION,
+    AgentError,
+    LoginError,
+    RegistrationError,
+    UnauthorisedError,
+    errors,
 )
 from app.back_off_service import BackOffService
 from app.resources import agent_register
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
-from app.scheme_account import JourneyTypes, SchemeAccountStatus
-from soteria.configuration import Configuration, ConfigurationException
 
 mock_configuration = MagicMock()
 mock_configuration.scheme_slug = "id"

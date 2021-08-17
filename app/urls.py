@@ -1,7 +1,7 @@
 from flask_restful import Api
 
 from app.bpl_callback import JoinCallbackBpl
-from app.resources import Balance, Register, Transactions, AccountOverview, AgentQuestions, Healthz
+from app.resources import AccountOverview, AgentQuestions, Balance, Healthz, Register, Transactions
 from app.resources_callbacks import JoinCallback
 
 api = Api()

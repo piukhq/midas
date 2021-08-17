@@ -1,7 +1,8 @@
 import unittest
+
+from app.agents.exceptions import LoginError
 from app.agents.mock_agents import MockAgentHN, MockAgentIce
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
-from app.agents.exceptions import LoginError
 
 
 class TestHN(unittest.TestCase):

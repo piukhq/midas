@@ -5,11 +5,11 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.reporting import get_logger
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS
 from app.encoding import JsonEncoder
 from app.exceptions import AgentException
 from app.http_request import get_headers
+from app.reporting import get_logger
 from app.tasks.resend_consents import ConsentStatus
 
 TWO_PLACES = Decimal(10) ** -2

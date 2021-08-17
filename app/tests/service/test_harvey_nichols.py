@@ -1,8 +1,10 @@
 import unittest
+
+from user_auth_token import UserTokenStore
+
+from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
-from app.agents.exceptions import LoginError
-from user_auth_token import UserTokenStore
 from settings import REDIS_URL
 
 cred = {

@@ -41,6 +41,7 @@ from app.agents.exceptions import (
     UnauthorisedError,
     errors,
 )
+from app.agents.schemas import Balance, Transaction
 from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
@@ -49,15 +50,9 @@ from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.reporting import get_logger
-from app.scheme_account import (
-    TWO_PLACES,
-    JourneyTypes,
-    SchemeAccountStatus,
-    update_pending_join_account,
-)
+from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
-from app.agents.schemas import Transaction, Balance
 
 log = get_logger("agent-base")
 

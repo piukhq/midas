@@ -1,5 +1,7 @@
 import unittest
+
 from user_auth_token import UserTokenStore
+
 from settings import REDIS_URL
 
 

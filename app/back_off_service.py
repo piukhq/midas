@@ -1,4 +1,5 @@
 import time
+
 from redis import StrictRedis
 
 from app.retry import redis_connection

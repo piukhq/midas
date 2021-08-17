@@ -1,7 +1,8 @@
 from unittest import TestCase, mock
 
-import settings
 from blinker import signal
+
+import settings
 
 
 class TestPrometheus(TestCase):

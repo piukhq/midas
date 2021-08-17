@@ -1,10 +1,12 @@
-import unittest
 import json
-import httpretty
-from app.agents.bpl import Trenette
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
+import unittest
 from unittest.mock import MagicMock
+
+import httpretty
+
+from app.agents.bpl import Trenette
 from app.agents.exceptions import AgentError, LoginError
+from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
 class TestBPL(unittest.TestCase):

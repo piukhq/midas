@@ -1,13 +1,13 @@
 import json
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 
 from app import AgentException
 from app.scheme_account import (
+    SchemeAccountStatus,
+    delete_scheme_account,
+    remove_pending_consents,
     update_pending_join_account,
     update_pending_link_account,
-    remove_pending_consents,
-    delete_scheme_account,
-    SchemeAccountStatus,
 )
 from app.tasks.resend_consents import ConsentStatus
 

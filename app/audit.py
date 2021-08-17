@@ -10,9 +10,9 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from soteria.configuration import Configuration
 
-from settings import ATLAS_URL
 from app.http_request import get_headers
 from app.reporting import get_logger
+from settings import ATLAS_URL
 
 
 class AuditLogType(str, Enum):

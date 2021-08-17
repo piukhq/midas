@@ -8,7 +8,6 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 from app.exceptions import SENTRY_IGNORED_EXCEPTIONS
 from app.version import __version__
 
-
 os.chdir(os.path.dirname(__file__))
 
 

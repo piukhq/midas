@@ -1,13 +1,13 @@
 import random
 import uuid
-from typing import Optional
 from copy import deepcopy
 from decimal import Decimal
 from time import sleep
+from typing import Optional
 
 import arrow
+
 from app.agents.base import MockedMiner
-from app.agents.schemas import Balance, Transaction
 from app.agents.ecrebo import Ecrebo
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
@@ -18,6 +18,7 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from app.agents.schemas import Balance, Transaction
 from app.mocks import card_numbers
 from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
 from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store

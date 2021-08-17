@@ -6,8 +6,8 @@ import arrow
 import httpretty
 
 from app.agents.base import ApiMiner, create_error_response
-from app.agents.schemas import Transaction
 from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.agents.schemas import Transaction
 
 
 class TestBase(TestCase):

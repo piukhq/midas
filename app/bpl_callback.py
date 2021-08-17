@@ -1,22 +1,22 @@
 import json
-import requests
 import typing as t
 
-
-import settings
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
+import requests
+from azure_oidc import OIDCConfig
+from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from flask import request
 from flask_restful import Resource
-from app import retry, UnknownException
-from app.agents.exceptions import AgentError, UNKNOWN
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+
+import settings
+from app import UnknownException, retry
+from app.agents.exceptions import UNKNOWN, AgentError
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
-from app.resources import create_response, decrypt_credentials, get_agent_class
-from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
-from azure_oidc import OIDCConfig
-from app.scheme_account import SchemeAccountStatus, JourneyTypes
 from app.http_request import get_headers
+from app.resources import create_response, decrypt_credentials, get_agent_class
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 tenant_id = "a6e2367a-92ea-4e5a-b565-723830bcc095"
 config = OIDCConfig(

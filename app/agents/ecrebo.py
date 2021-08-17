@@ -1,18 +1,18 @@
 from decimal import Decimal
-from uuid import uuid4
 from typing import Optional
+from uuid import uuid4
 
 import arrow
 import requests
 from blinker import signal
+from soteria.configuration import Configuration
 
 import settings
 from app import constants
 from app.agents.base import ApiMiner
-from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
+from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
-from soteria.configuration import Configuration
 from app.encryption import hash_ids
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names

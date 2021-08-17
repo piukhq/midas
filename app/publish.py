@@ -1,6 +1,6 @@
 import json
-from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from decimal import Decimal
 
 from requests_futures.sessions import FuturesSession

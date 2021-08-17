@@ -1,5 +1,4 @@
-from app.scheme_account import SchemeAccountStatus, JourneyTypes
-
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 AGENT_CLASS_ARGUMENTS = [
     1,

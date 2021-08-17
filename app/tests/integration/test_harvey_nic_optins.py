@@ -1,8 +1,9 @@
-from app.tasks.resend_consents import send_consents
-from app.agents.harvey_nichols import HarveyNichols
-from unittest import mock
-import unittest
 import json
+import unittest
+from unittest import mock
+
+from app.agents.harvey_nichols import HarveyNichols
+from app.tasks.resend_consents import send_consents
 
 
 class MockResponse:

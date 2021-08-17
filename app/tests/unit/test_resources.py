@@ -1,45 +1,45 @@
 import json
 import time
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
 from unittest import mock
 
 import arrow
 import httpretty
 from flask_testing import TestCase
-from app import create_app, AgentException, UnknownException
-from app import publish
+
+from app import AgentException, UnknownException, create_app, publish
 from app.agents.base import BaseMiner
-from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    NO_SUCH_RECORD,
+    STATUS_LOGIN_FAILED,
+    STATUS_REGISTRATION_FAILED,
     AgentError,
     LoginError,
-    STATUS_LOGIN_FAILED,
-    errors,
     RegistrationError,
-    NO_SUCH_RECORD,
-    STATUS_REGISTRATION_FAILED,
-    ACCOUNT_ALREADY_EXISTS,
+    errors,
 )
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
+from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import AESCipher
 from app.publish import thread_pool_executor
 from app.resources import (
-    balance_tuple_to_dict,
-    transaction_tuple_to_dict,
     agent_login,
-    registration,
     agent_register,
-    get_hades_balance,
-    get_balance_and_publish,
     async_get_balance_and_publish,
+    balance_tuple_to_dict,
+    get_balance_and_publish,
+    get_hades_balance,
     get_headers,
     log_task,
+    registration,
+    transaction_tuple_to_dict,
 )
-from app.scheme_account import SchemeAccountStatus, JourneyTypes
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
-from settings import HERMES_URL, HADES_URL
+from settings import HADES_URL, HERMES_URL
 
 local_aes_key = "testing1234567898765432345674562"
 

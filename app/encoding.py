@@ -1,7 +1,8 @@
 import json
-import arrow
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
+
+import arrow
 
 
 class JsonEncoder(json.JSONEncoder):

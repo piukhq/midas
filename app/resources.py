@@ -13,7 +13,6 @@ import settings
 from app import publish, retry
 from app.active import AGENTS
 from app.agents.base import MerchantApi
-from app.agents.schemas import Balance as BalanceTuple, Voucher as VoucherTuple, Transaction as TransactionTuple
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     SCHEME_REQUESTED_DELETE,
@@ -24,6 +23,9 @@ from app.agents.exceptions import (
     RetryLimitError,
     errors,
 )
+from app.agents.schemas import Balance as BalanceTuple
+from app.agents.schemas import Transaction as TransactionTuple
+from app.agents.schemas import Voucher as VoucherTuple
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
 from app.exceptions import AgentException, UnknownException

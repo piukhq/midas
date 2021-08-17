@@ -1,6 +1,8 @@
 import json
 import unittest
+
 from Crypto import Random
+
 from app.encryption import AESCipher
 
 

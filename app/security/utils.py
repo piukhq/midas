@@ -1,11 +1,11 @@
 import json
-import settings
 from importlib import import_module
 
 from flask import request
-
 from soteria import configuration
-from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, UNKNOWN
+
+import settings
+from app.agents.exceptions import CONFIGURATION_ERROR, UNKNOWN, AgentError
 from app.exceptions import AgentException
 from app.security import registry
 

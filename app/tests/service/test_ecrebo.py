@@ -1,10 +1,10 @@
 import json
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import httpretty
 
-from app.agents.ecrebo import FatFace, BurgerKing, WhSmith
+from app.agents.ecrebo import BurgerKing, FatFace, WhSmith
 from app.agents.exceptions import LoginError, RegistrationError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 

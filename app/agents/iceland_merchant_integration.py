@@ -1,5 +1,6 @@
-from app.agents.merchant_api_generic import MerchantAPIGeneric
 from soteria.configuration import Configuration
+
+from app.agents.merchant_api_generic import MerchantAPIGeneric
 
 
 class Iceland(MerchantAPIGeneric):

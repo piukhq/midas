@@ -3,7 +3,7 @@ from typing import Optional
 
 import arrow
 
-from app.agents.base import MerchantApi, Balance, Transaction
+from app.agents.base import Balance, MerchantApi, Transaction
 from app.scheme_account import TWO_PLACES
 
 

@@ -9,14 +9,13 @@ from uuid import uuid4
 import arrow
 import requests
 import sentry_sdk
-from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-from soteria.configuration import Configuration
 from blinker import signal
+from soteria.configuration import Configuration
+from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner
-from app.agents.schemas import Balance, Voucher, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
@@ -29,6 +28,7 @@ from app.agents.exceptions import (
     LoginError,
     RegistrationError,
 )
+from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
 from app.encryption import HashSHA1, hash_ids
 from app.reporting import get_logger

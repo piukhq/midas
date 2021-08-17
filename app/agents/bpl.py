@@ -1,26 +1,26 @@
-from uuid import uuid4
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
 from urllib.parse import urljoin
+from uuid import uuid4
 
 from soteria.configuration import Configuration
 
 import settings
 from app import publish
-from app.tasks.resend_consents import ConsentStatus
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from app.agents.base import ApiMiner
-from app.agents.schemas import Balance, Voucher
 from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    GENERAL_ERROR,
+    STATUS_LOGIN_FAILED,
+    STATUS_REGISTRATION_FAILED,
     AgentError,
     LoginError,
-    GENERAL_ERROR,
-    ACCOUNT_ALREADY_EXISTS,
-    STATUS_REGISTRATION_FAILED,
-    STATUS_LOGIN_FAILED,
 )
+from app.agents.schemas import Balance, Voucher
 from app.encryption import hash_ids
 from app.scheme_account import SchemeAccountStatus
+from app.tasks.resend_consents import ConsentStatus
+from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 
 class BplBase(ApiMiner):

@@ -1,9 +1,9 @@
 import json
 
-import sentry_sdk
 import requests
+import sentry_sdk
 
-from app.agents.exceptions import AgentError, CONFIGURATION_ERROR, SERVICE_CONNECTION_ERROR
+from app.agents.exceptions import CONFIGURATION_ERROR, SERVICE_CONNECTION_ERROR, AgentError
 from app.security.base import BaseSecurity
 
 

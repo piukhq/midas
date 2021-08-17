@@ -6,7 +6,7 @@ from functools import wraps
 import redis.exceptions as redis_exceptions
 from flask_redis import FlaskRedis
 
-from app.agents.exceptions import AgentError, SERVICE_CONNECTION_ERROR
+from app.agents.exceptions import SERVICE_CONNECTION_ERROR, AgentError
 
 redis = FlaskRedis()
 

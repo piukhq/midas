@@ -11,7 +11,6 @@ from app.http_request import get_headers
 from app.reporting import get_logger
 from app.tasks.resend import ReTryTaskStore
 
-
 log = get_logger("resend-consents")
 
 

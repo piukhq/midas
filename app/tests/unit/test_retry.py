@@ -4,7 +4,7 @@ from unittest.mock import patch
 import redis
 
 from app.agents.exceptions import AgentError
-from app.retry import get_key, inc_count, get_count, redis_connection
+from app.retry import get_count, get_key, inc_count, redis_connection
 
 
 class TestRetry(unittest.TestCase):

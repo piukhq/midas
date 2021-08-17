@@ -5,9 +5,10 @@ from unittest.mock import ANY, MagicMock, call, patch
 from uuid import uuid4
 
 import httpretty
-from app.agents.ecrebo import WhSmith, FatFace
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, LoginError, RegistrationError
 from requests import HTTPError, RequestException
+
+from app.agents.ecrebo import FatFace, WhSmith
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, LoginError, RegistrationError
 
 
 class TestEcreboSignal(unittest.TestCase):

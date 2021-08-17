@@ -1,6 +1,6 @@
 import time
 
-from app.agents.exceptions import AgentError, VALIDATION
+from app.agents.exceptions import VALIDATION, AgentError
 
 
 class BaseSecurity:

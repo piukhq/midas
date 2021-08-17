@@ -1,8 +1,10 @@
-from app import celery
-from redis import StrictRedis
 import importlib
-import settings
 import json
+
+from redis import StrictRedis
+
+import settings
+from app import celery
 
 
 @celery.task
