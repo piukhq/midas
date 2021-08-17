@@ -69,8 +69,23 @@ class HarveyNichols(ApiMiner):
 
         Don't go any further unless the account is valid
         """
+        message_uid = str(uuid4())
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        payload = deepcopy(data)
+        payload["url"] = self.HAS_LOYALTY_ACCOUNT_URL
+
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+        )
+
         response = self.make_request(
             self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data
         )
@@ -81,6 +96,18 @@ class HarveyNichols(ApiMiner):
             latency=response.elapsed.total_seconds(),
             response_code=response.status_code,
         )
+
+        self.audit_logger.add_response(
+            response=response,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.VALIDATE_HANDLER,
+            integration_service=integration_service,
+            status_code=response.status_code,
+        )
+        self.audit_logger.send_to_atlas()
+
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
             raise LoginError(STATUS_LOGIN_FAILED)
@@ -381,8 +408,3 @@ def agent_consent_response(resp):
     if response_data.get("response") == "success" and response_data.get("code") == 200:
         return True, ""
     return False, f'harvey nichols returned {response_data.get("response","")}, code:{response_data.get("code","")}'
-
-
-# def get_vault_aes_key():
-#     client = SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
-#     return client.get_secret("aes-keys").value

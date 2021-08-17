@@ -98,6 +98,10 @@ def mock_harvey_nick_register(*args, **kwargs):
     )
 
 
+def mock_has_loyalty_account(*args, **kwargs):
+    return MockResponse({"auth_resp": {"message": "User details not authenticated", "status_code": "404"}}, 200)
+
+
 class TestUserConsents(unittest.TestCase):
     def setUp(self):
         settings.CELERY_ALWAYS_EAGER = True
@@ -124,6 +128,25 @@ class TestUserConsents(unittest.TestCase):
         response = hn.register(credentials)
 
         self.assertEqual(response, {"message": "success"})
+        self.assertTrue(mock_atlas.called)
+
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_has_loyalty_account)
+    @mock.patch("app.audit.AuditLogger.send_to_atlas")
+    def test_check_loyalty_account_valid(self, mock_make_request, mock_atlas):
+        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        hn = HarveyNichols(retry_count=1, user_info=user_info)
+        hn.AGENT_TRIES = 1
+        hn.HERMES_CONFIRMATION_TRIES = 1
+        hn.scheme_id = 123
+        hn.token_store = MockStore()
+        credentials = {
+            "email": "Schroeder_35731@gmail.com",
+            "password": "testPassword",
+        }
+
+        with self.assertRaises(LoginError):
+            hn.check_loyalty_account_valid(credentials)
+
         self.assertTrue(mock_atlas.called)
 
     @staticmethod
