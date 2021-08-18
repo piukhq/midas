@@ -323,7 +323,7 @@ class TestResources(TestCase):
         mock_get_aes_key.return_value = local_aes_key.encode()
         test_creds = json.dumps({"username": "NZ57271", "password": "d4Hgvf47"})
         aes_cipher = AESCipher(local_aes_key.encode())
-        credentials = aes_cipher.encrypt(test_creds).decode('utf-8')
+        credentials = aes_cipher.encrypt(test_creds).decode("utf-8")
         url = "/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_set=1".format(credentials)
         user_info = {
             "credentials": {"username": "NZ57271", "password": "d4Hgvf47"},
