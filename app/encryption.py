@@ -5,8 +5,10 @@ import json
 from Crypto import Random
 from Crypto.Cipher import AES
 from hashids import Hashids
+from functools import lru_cache
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz1234567890"
 hash_ids = Hashids(min_length=32, salt="GJgCh--VgsonCWacO5-MxAuMS9hcPeGGxj5tGsT40FM", alphabet=ALPHABET)
@@ -42,6 +44,12 @@ class AESCipher(object):
         return s[: -ord(s[len(s) - 1 :])]
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=3, max=12),
+    reraise=True,
+)
+@lru_cache(128)
 def get_aes_key(secret_name):
     client = connect_to_vault()
     vault_aes_keys = client.get_secret(secret_name).value

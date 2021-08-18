@@ -41,7 +41,7 @@ from app.scheme_account import SchemeAccountStatus, JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL, HADES_URL
 
-local_aes_key = "6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"
+local_aes_key = "testing1234567898765432345674562"
 
 
 def encrypted_credentials():
@@ -321,10 +321,9 @@ class TestResources(TestCase):
     @mock.patch("app.resources.thread_pool_executor.submit", auto_spec=True)
     def test_bad_agent_updates_status(self, mock_submit, mock_get_aes_key):
         mock_get_aes_key.return_value = local_aes_key.encode()
-        credentials = (
-            "JnoPkhKfU6uddLtbTTOvr1DgsNBeWhI0ADM2VGyfTFR8Wi2%2FRHQ5SX%2Bvk"
-            "zIgqmsGGqq94x%2BcBd7Vd%2FKsRTOEBDkV45rsm6WRV6wfZTC51rQ%3D"
-        )
+        test_creds = json.dumps({"username": "NZ57271", "password": "d4Hgvf47"})
+        aes_cipher = AESCipher(local_aes_key.encode())
+        credentials = aes_cipher.encrypt(test_creds).decode('utf-8')
         url = "/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_set=1".format(credentials)
         user_info = {
             "credentials": {"username": "NZ57271", "password": "d4Hgvf47"},
