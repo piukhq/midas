@@ -34,7 +34,7 @@ from app.agents.exceptions import (
     errors,
 )
 from app.back_off_service import BackOffService
-from app.resources import agent_register
+from app.journeys.join import agent_register
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
