@@ -354,6 +354,25 @@ class TestResources(TestCase):
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.json, {"message": "success"})
 
+    @mock.patch("app.resources.get_aes_key")
+    @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
+    def test_join_view(self, mock_pool, mock_get_aes_key):
+        mock_get_aes_key.return_value = local_aes_key.encode()
+        credentials = encrypted_credentials()
+        url = "/harvey-nichols/join"
+        data = {
+            "scheme_account_id": 2,
+            "user_id": 4,
+            "credentials": credentials,
+            "status": 0,
+            "journey_type": 0,
+            "channel": "com.bink.wallet",
+        }
+        response = self.client.post(url, data=json.dumps(data), content_type="application/json")
+
+        self.assertTrue(mock_pool.called)
+        self.assertEqual(response.json, {"message": "success"})
+
     @mock.patch.object(HarveyNichols, "register")
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
     def test_agent_register_success(self, mock_update_pending_join_account, mock_register):
