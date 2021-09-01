@@ -8,7 +8,7 @@ import httpretty
 from requests import HTTPError, RequestException
 
 from app.agents.ecrebo import FatFace, WhSmith
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, LoginError, RegistrationError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
 
 
 class TestEcreboSignal(unittest.TestCase):
@@ -361,9 +361,9 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_register_calls_signals_success(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+    def test_join_calls_signals_success(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
         """
-        Check that correct params are passed to the signals for a successful registration
+        Check that correct params are passed to the signals for a successful join
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -391,7 +391,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.whsmith.register(credentials=self.whsmith.user_info["credentials"])
+        self.whsmith.join(credentials=self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -400,9 +400,9 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_register_calls_signals_for_409(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+    def test_join_calls_signals_for_409(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
         """
-        Check that correct params are passed to the signals for a CONFLICT (409) response during registration
+        Check that correct params are passed to the signals for a CONFLICT (409) response during join
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -433,7 +433,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(RegistrationError, self.whsmith.register, credentials=self.whsmith.user_info["credentials"])
+        self.assertRaises(JoinError, self.whsmith.join, credentials=self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -442,9 +442,9 @@ class TestEcreboSignal(unittest.TestCase):
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_register_calls_signals_for_httperror(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
+    def test_join_calls_signals_for_httperror(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
         """
-        Check that correct params are passed to the signals for a HTTPError response during registration
+        Check that correct params are passed to the signals for a HTTPError response during join
         """
         # GIVEN
         mock_token = "amocktokenstring"
@@ -475,7 +475,7 @@ class TestEcreboSignal(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(HTTPError, self.whsmith.register, credentials=self.whsmith.user_info["credentials"])
+        self.assertRaises(HTTPError, self.whsmith.join, credentials=self.whsmith.user_info["credentials"])
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)

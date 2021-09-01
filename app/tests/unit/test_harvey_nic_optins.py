@@ -92,7 +92,7 @@ def mock_harvey_nick_post(*args, **kwargs):
     )
 
 
-def mock_harvey_nick_register(*args, **kwargs):
+def mock_harvey_nick_join(*args, **kwargs):
     return MockResponse(
         {"CustomerSignUpResult": {"outcome": "Success", "customerNumber": "2601507998647", "token": "1234"}}, 200
     )
@@ -109,9 +109,9 @@ class TestUserConsents(unittest.TestCase):
     def tearDown(self):
         settings.CELERY_ALWAYS_EAGER = False
 
-    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_register)
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_join)
     @mock.patch("app.audit.AuditLogger.send_to_atlas")
-    def test_harvey_nick_mock_register(self, mock_make_request, mock_atlas):
+    def test_harvey_nick_mock_join(self, mock_make_request, mock_atlas):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -125,7 +125,7 @@ class TestUserConsents(unittest.TestCase):
             "first_name": "test",
             "last_name": "user",
         }
-        response = hn.register(credentials)
+        response = hn.join(credentials)
 
         self.assertEqual(response, {"message": "success"})
         self.assertTrue(mock_atlas.called)
@@ -177,13 +177,13 @@ class TestUserConsents(unittest.TestCase):
         )
 
         hn.audit_logger.add_response(
-            response=mock_harvey_nick_register(),
+            response=mock_harvey_nick_join(),
             message_uid=message_uid,
             record_uid=record_uid,
             scheme_slug=hn.scheme_slug,
             handler_type=handler_type,
             integration_service=integration_service,
-            status_code=mock_harvey_nick_register().status_code,
+            status_code=mock_harvey_nick_join().status_code,
         )
 
     @mock.patch("app.agents.harvey_nichols.get_aes_key")

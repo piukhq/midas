@@ -14,12 +14,12 @@ class TestBPL(unittest.TestCase):
     def setUpClass(cls):
         cls.agent = Trenette(*AGENT_CLASS_ARGUMENTS, scheme_slug="bpl-trenette")
 
-    def test_register_happy_path(self):
+    def test_join_happy_path(self):
         credentials = {"email": "bpluserf@binktest.com", "first_name": "BPL", "last_name": "Smith"}
-        self.agent.register(credentials)
+        self.agent.join(credentials)
 
     @httpretty.activate
-    def test_register_400(self):
+    def test_join_400(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {"display_message": "Malformed request.", "error": "MALFORMED_REQUEST"}
@@ -31,7 +31,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -41,7 +41,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "General Error")
 
     @httpretty.activate
-    def test_register_401(self):
+    def test_join_401(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {"display_message": "Supplied token is invalid.", "error": "INVALID_TOKEN"}
@@ -53,7 +53,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -63,7 +63,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "General Error")
 
     @httpretty.activate
-    def test_register_403(self):
+    def test_join_403(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {"display_message": "The requestor does not access to this retailer.", "error": "FORBIDDEN"}
@@ -75,7 +75,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -85,7 +85,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "General Error")
 
     @httpretty.activate
-    def test_register_409(self):
+    def test_join_409(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
@@ -101,7 +101,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -111,7 +111,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "Account already exists")
 
     @httpretty.activate
-    def test_register_422_MISSING_FIELDS(self):
+    def test_join_422_MISSING_FIELDS(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
@@ -130,7 +130,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -140,7 +140,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "Invalid credentials entered i.e password too short")
 
     @httpretty.activate
-    def test_register_422_VALIDATION_FAILED(self):
+    def test_join_422_VALIDATION_FAILED(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
@@ -160,7 +160,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",
@@ -170,7 +170,7 @@ class TestBPL(unittest.TestCase):
         self.assertEqual(e.exception.name, "Invalid credentials entered i.e password too short")
 
     @httpretty.activate
-    def test_register_SERVICE_ERRORS(self):
+    def test_join_SERVICE_ERRORS(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
@@ -185,7 +185,7 @@ class TestBPL(unittest.TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.register(
+            self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
                     "first_name": "BPL",

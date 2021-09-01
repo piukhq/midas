@@ -25,8 +25,8 @@ from app.agents.exceptions import (
     STATUS_LOGIN_FAILED,
     VALIDATION,
     AgentError,
+    JoinError,
     LoginError,
-    RegistrationError,
 )
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
@@ -97,9 +97,9 @@ class Acteol(ApiMiner):
 
         return token
 
-    def register(self, credentials: dict):
+    def join(self, credentials: dict):
         """
-        Register a new loyalty scheme member with Acteol. The steps are:
+        Join a new loyalty scheme member with Acteol. The steps are:
         * Get API token
         * Check if account already exists
         * If not, create account
@@ -114,13 +114,13 @@ class Acteol(ApiMiner):
         user_email = credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
-        # These calls may result in various exceptions that mean the registration has failed. If so,
+        # These calls may result in various exceptions that mean the join has failed. If so,
         # call the signal event for failure
         try:
             # Check if account already exists
             account_already_exists = self._account_already_exists(origin_id=origin_id)
             if account_already_exists:
-                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
+                raise JoinError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
 
             # The account does not exist, so we can create one
             ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
@@ -137,8 +137,8 @@ class Acteol(ApiMiner):
                         f"CurrentMemberNumber, CustomerID for user email: {user_email}"
                     )
                 )
-                raise RegistrationError(JOIN_ERROR)
-        except (AgentError, LoginError, RegistrationError):
+                raise JoinError(JOIN_ERROR)
+        except (AgentError, LoginError, JoinError):
             signal("register-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
         else:
@@ -246,7 +246,7 @@ class Acteol(ApiMiner):
         self.user_info["credentials"].update(self.identifier)
 
         scheme_account_id = self.user_info["scheme_account_id"]
-        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+        # for updating user ID credential you get for joining (e.g. getting issued a card number)
         api_url = urljoin(
             settings.HERMES_URL,
             f"schemes/accounts/{scheme_account_id}/credentials",
@@ -357,11 +357,11 @@ class Acteol(ApiMiner):
         ensure our API token is still valid / not expired. See authenticate()
         """
         # If we are on an add journey, then we will need to verify the supplied email against the card number.
-        # Being on an add journey is defined as having a card number but no "from_register" field, and we
+        # Being on an add journey is defined as having a card number but no "from_join" field, and we
         # won't have a "merchant_identifier" (which would indicate a balance request instead).
         if (
             credentials["card_number"]
-            and not self.user_info.get("from_register")
+            and not self.user_info.get("from_join")
             and not credentials.get("merchant_identifier")
         ):
             try:
@@ -408,7 +408,7 @@ class Acteol(ApiMiner):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while fetching customer details, reason: {resp.status_code} {resp.reason}")
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+            raise JoinError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
@@ -436,7 +436,7 @@ class Acteol(ApiMiner):
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while checking for existing account, reason: {resp.status_code} {resp.reason}")
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+            raise JoinError(JOIN_ERROR)  # The join journey ends
 
         # The API can return a dict if there's an error but a list normally returned.
         resp_json = resp.json()
@@ -502,7 +502,7 @@ class Acteol(ApiMiner):
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while creating new account, reason: {resp.status_code} {resp.reason}")
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+            raise JoinError(JOIN_ERROR)  # The join journey ends
 
         ctcid = resp_json["CtcID"]
 
@@ -550,7 +550,7 @@ class Acteol(ApiMiner):
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
-            raise RegistrationError(JOIN_ERROR)  # The join journey ends
+            raise JoinError(JOIN_ERROR)  # The join journey ends
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)

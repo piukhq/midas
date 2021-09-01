@@ -8,7 +8,7 @@ from requests.packages.urllib3.util.retry import Retry
 from soteria.configuration import Configuration
 
 from app import AgentException, UnknownException, retry
-from app.agents.exceptions import SERVICE_CONNECTION_ERROR, UNKNOWN, AgentError, RegistrationError
+from app.agents.exceptions import SERVICE_CONNECTION_ERROR, UNKNOWN, AgentError, JoinError
 from app.encryption import hash_ids
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
@@ -49,7 +49,7 @@ class JoinCallback(Resource):
             raise UnknownException(e) from e
         except (requests.ConnectionError, AgentError) as e:
             sentry_sdk.capture_exception()
-            raise AgentException(RegistrationError(SERVICE_CONNECTION_ERROR)) from e
+            raise AgentException(JoinError(SERVICE_CONNECTION_ERROR)) from e
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -58,7 +58,7 @@ class JoinCallback(Resource):
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
-            agent_instance.register(data, inbound=True)
+            agent_instance.join(data, inbound=True)
         except AgentError as e:
             update_failed_scheme_account(e)
             raise AgentException(e)

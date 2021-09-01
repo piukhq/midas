@@ -18,8 +18,8 @@ from app.agents.exceptions import (
     STATUS_REGISTRATION_FAILED,
     UNKNOWN,
     AgentError,
+    JoinError,
     LoginError,
-    RegistrationError,
 )
 from app.audit import AuditLogType, RequestAuditLog
 from app.encryption import AESCipher, get_aes_key, hash_ids
@@ -248,7 +248,7 @@ class HarveyNichols(ApiMiner):
 
         return sorted_transactions
 
-    def register(self, credentials):
+    def join(self, credentials):
         message_uid = str(uuid4())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.BASE_URL + "/SignUp"
@@ -281,34 +281,34 @@ class HarveyNichols(ApiMiner):
             integration_service=integration_service,
         )
 
-        self.register_response = self.make_request(url, method="post", timeout=10, json=data)
+        self.join_response = self.make_request(url, method="post", timeout=10, json=data)
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
-            endpoint=self.register_response.request.path_url,
-            latency=self.register_response.elapsed.total_seconds(),
-            response_code=self.register_response.status_code,
+            endpoint=self.join_response.request.path_url,
+            latency=self.join_response.elapsed.total_seconds(),
+            response_code=self.join_response.status_code,
         )
 
         self.audit_logger.add_response(
-            response=self.register_response,
+            response=self.join_response,
             message_uid=message_uid,
             record_uid=record_uid,
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
             integration_service=integration_service,
-            status_code=self.register_response.status_code,
+            status_code=self.join_response.status_code,
         )
         self.audit_logger.send_to_atlas()
 
-        message = self.register_response.json()["CustomerSignUpResult"]["outcome"]
+        message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
             signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             return {"message": "success"}
 
         signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
-        self.handle_errors(message, exception_type=RegistrationError)
+        self.handle_errors(message, exception_type=JoinError)
 
     def _login(self, credentials):
         """

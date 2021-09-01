@@ -13,14 +13,7 @@ import pytest
 from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import (
-    END_SITE_DOWN,
-    IP_BLOCKED,
-    STATUS_LOGIN_FAILED,
-    AgentError,
-    LoginError,
-    RegistrationError,
-)
+from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Voucher
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -844,7 +837,7 @@ class TestWasabi(unittest.TestCase):
             "card_number": "1048235616",
             "consents": [],
         }
-        self.wasabi.user_info["from_register"] = True
+        self.wasabi.user_info["from_join"] = True
 
         # WHEN
         self.wasabi.login(credentials=credentials)
@@ -895,7 +888,7 @@ class TestWasabi(unittest.TestCase):
         }
         # These two fields just won't be present in real requests, but set to false here deliberately so we have
         # greater transparency
-        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
 
         # WHEN
@@ -924,7 +917,7 @@ class TestWasabi(unittest.TestCase):
         }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
-        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-success"),
@@ -960,7 +953,7 @@ class TestWasabi(unittest.TestCase):
         }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
-        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
@@ -1000,7 +993,7 @@ class TestWasabi(unittest.TestCase):
         }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
-        self.wasabi.user_info["from_register"] = False
+        self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
@@ -1581,7 +1574,7 @@ class TestWasabi(unittest.TestCase):
     def test_format_money_value(self):
         # GIVEN
         money_value1 = 6.1
-        money_value2 = 06.1
+        money_value2 = 60.1
         money_value3 = 600.1
         money_value4 = 6000.100
 
@@ -1593,14 +1586,14 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert formatted_money_value1 == "6.10"
-        assert formatted_money_value2 == "6.10"
+        assert formatted_money_value2 == "60.10"
         assert formatted_money_value3 == "600.10"
         assert formatted_money_value4 == "6000.10"
 
     def test_decimalise_to_two_places(self):
         # GIVEN
         value1 = 6.1
-        value2 = 06.1
+        value2 = 60.1
         value3 = 600.1
         value4 = 6000.100
         value5 = 6
@@ -1614,7 +1607,7 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert decimalised1 == Decimal("6.10")
-        assert decimalised2 == Decimal("6.10")
+        assert decimalised2 == Decimal("60.10")
         assert decimalised3 == Decimal("600.10")
         assert decimalised4 == Decimal("6000.10")
         assert decimalised5 == Decimal("6.00")
@@ -2166,11 +2159,9 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-    def test_register_calls_signal_fail_for_registration_error(
-        self, mock_signal, mock_authenticate, mock_account_already_exists
-    ):
+    def test_join_calls_signal_fail_for_join_error(self, mock_signal, mock_authenticate, mock_account_already_exists):
         """
-        Test JOIN journey calls signal register fail
+        Test JOIN journey calls signal join fail
         """
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -2183,7 +2174,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(RegistrationError, self.wasabi.register, credentials=credentials)
+        self.assertRaises(JoinError, self.wasabi.join, credentials=credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -2195,7 +2186,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-    def test_register_calls_signal_fail_for_agent_error(
+    def test_join_calls_signal_fail_for_agent_error(
         self,
         mock_signal,
         mock_authenticate,
@@ -2203,8 +2194,8 @@ class TestWasabi(unittest.TestCase):
         mock_create_account,
     ):
         """
-        Test JOIN journey calls signal register fail, have to mock through some of the earlier methods called in
-        register()
+        Test JOIN journey calls signal join fail, have to mock through some of the earlier methods called in
+        join()
         """
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -2217,7 +2208,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(AgentError, self.wasabi.register, credentials=credentials)
+        self.assertRaises(AgentError, self.wasabi.join, credentials=credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -2231,7 +2222,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-    def test_register_calls_signal_fail_for_login_error(
+    def test_join_calls_signal_fail_for_login_error(
         self,
         mock_signal,
         mock_authenticate,
@@ -2240,8 +2231,8 @@ class TestWasabi(unittest.TestCase):
         mock_add_member_number,
     ):
         """
-        Test JOIN journey calls signal register fail, have to mock through some of the earlier methods called in
-        register()
+        Test JOIN journey calls signal join fail, have to mock through some of the earlier methods called in
+        join()
         """
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -2255,7 +2246,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.wasabi.register, credentials=credentials)
+        self.assertRaises(LoginError, self.wasabi.join, credentials=credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -2269,7 +2260,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-    def test_register_calls_signal_success(
+    def test_join_calls_signal_success(
         self,
         mock_signal,
         mock_authenticate,
@@ -2282,8 +2273,8 @@ class TestWasabi(unittest.TestCase):
         mock_set_customer_preferences,
     ):
         """
-        Test JOIN journey calls signal register success if no exceptions raised. Need to mock several calls
-        to result in 'successful' registration
+        Test JOIN journey calls signal join success if no exceptions raised. Need to mock several calls
+        to result in 'successful' join
         """
         ctcid = "54321"
         member_number = "123456789"
@@ -2307,7 +2298,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.wasabi.register(credentials=credentials)
+        self.wasabi.join(credentials=credentials)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)

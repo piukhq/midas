@@ -35,7 +35,7 @@ class TestWasabi:
         # A bit arbitrary, but should be less than 5 mins old, as it should have been refreshed
         assert diff.seconds < 300
 
-    def test_register(self, wasabi, clean_up_user):
+    def test_join(self, wasabi, clean_up_user):
         # GIVEN
         email = "doesnotexist@bink.com"
         clean_up_user(wasabi=wasabi, email=email)
@@ -47,7 +47,7 @@ class TestWasabi:
             "postcode": "BN77UU",
         }
 
-        wasabi.register(credentials=credentials)
+        wasabi.join(credentials=credentials)
         clean_up_user(wasabi=wasabi, email=email)
 
     def test_balance(self, wasabi, clean_up_user):
@@ -63,7 +63,7 @@ class TestWasabi:
             "postcode": "BN77UU",
         }
         expected_points = 0
-        wasabi.register(credentials=credentials)
+        wasabi.join(credentials=credentials)
 
         # WHEN
         wasabi.attempt_login(credentials=credentials)

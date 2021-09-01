@@ -16,8 +16,8 @@ from app.agents.exceptions import (
     STATUS_LOGIN_FAILED,
     STATUS_REGISTRATION_FAILED,
     AgentError,
+    JoinError,
     LoginError,
-    RegistrationError,
     errors,
 )
 from app.agents.harvey_nichols import HarveyNichols
@@ -26,7 +26,7 @@ from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_d
 from app.encryption import AESCipher
 from app.http_request import get_headers
 from app.journeys.common import agent_login
-from app.journeys.join import agent_register, log_task, registration_task
+from app.journeys.join import agent_join, join_task, log_task
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
@@ -373,10 +373,10 @@ class TestResources(TestCase):
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.json, {"message": "success"})
 
-    @mock.patch.object(HarveyNichols, "register")
+    @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-    def test_agent_register_success(self, mock_update_pending_join_account, mock_register):
-        mock_register.return_value = {"message": "success"}
+    def test_agent_join_success(self, mock_update_pending_join_account, mock_join):
+        mock_join.return_value = {"message": "success"}
         user_info = {
             "metadata": {},
             "scheme_slug": "test slug",
@@ -387,17 +387,17 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = agent_register(HarveyNichols, user_info, {}, 1)
+        result = agent_join(HarveyNichols, user_info, {}, 1)
 
-        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_join.called)
         self.assertFalse(mock_update_pending_join_account.called)
         self.assertFalse(result["error"])
         self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
-    @mock.patch.object(HarveyNichols, "register")
+    @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_register_fail(self, mock_update_pending_join_account, mock_register):
-        mock_register.side_effect = RegistrationError(STATUS_REGISTRATION_FAILED)
+    def test_agent_join_fail(self, mock_update_pending_join_account, mock_join):
+        mock_join.side_effect = JoinError(STATUS_REGISTRATION_FAILED)
         mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
         user_info = {
             "metadata": {},
@@ -410,55 +410,55 @@ class TestResources(TestCase):
         }
 
         with self.assertRaises(AgentException):
-            agent_register(HarveyNichols, user_info, {}, 1)
+            agent_join(HarveyNichols, user_info, {}, 1)
 
-        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_join.called)
         self.assertTrue(mock_update_pending_join_account.called)
         consent_data_sent = list(mock_update_pending_join_account.call_args[1]["consent_ids"])
         self.assertTrue(consent_data_sent, [1])
 
-    @mock.patch.object(HarveyNichols, "register")
+    @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_register_fail_account_exists(self, mock_update_pending_join_account, mock_register):
-        mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
+    def test_agent_join_fail_account_exists(self, mock_update_pending_join_account, mock_join):
+        mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
         user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
-        result = agent_register(HarveyNichols, user_info, {}, "")
+        result = agent_join(HarveyNichols, user_info, {}, "")
 
-        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_join.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(result["error"])
         self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
-    @mock.patch.object(MerchantAPIGeneric, "register")
+    @mock.patch.object(MerchantAPIGeneric, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_register_fail_merchant_api(self, mock_update_pending_join_account, mock_register):
-        mock_register.side_effect = RegistrationError(ACCOUNT_ALREADY_EXISTS)
+    def test_agent_join_fail_merchant_api(self, mock_update_pending_join_account, mock_join):
+        mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
         mock_update_pending_join_account.side_effect = AgentException(ACCOUNT_ALREADY_EXISTS)
         user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
 
         with self.assertRaises(AgentException):
-            agent_register(MerchantAPIGeneric, user_info, {}, "")
+            agent_join(MerchantAPIGeneric, user_info, {}, "")
 
-        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_join.called)
         self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch("app.publish.balance", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.join.publish_transactions", autospec=True)
-    @mock.patch("app.journeys.join.agent_register", autospec=True)
+    @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
-    def test_registration(
+    def test_join(
         self,
         mock_update_pending_join_account,
         mock_agent_login,
-        mock_agent_register,
+        mock_agent_join,
         mock_publish_transaction,
         mock_publish_status,
         mock_publish_balance,
     ):
         scheme_slug = "harvey-nichols"
-        mock_agent_register.return_value = {
+        mock_agent_join.return_value = {
             "agent": HarveyNichols(0, {"scheme_account_id": "1", "status": None, "channel": "com.bink.wallet"}),
             "error": None,
         }
@@ -470,24 +470,22 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = registration_task(scheme_slug, user_info, tid=None)
+        result = join_task(scheme_slug, user_info, tid=None)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
         self.assertTrue(mock_publish_status.called)
-        self.assertTrue(mock_agent_register.called)
+        self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue("success" in mock_update_pending_join_account.call_args[0])
         self.assertEqual(result, True)
 
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
-    @mock.patch("app.journeys.join.agent_register", autospec=True)
+    @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
-    def test_registration_already_exists_fail(
-        self, mock_agent_login, mock_agent_register, mock_update_pending_join_account
-    ):
-        mock_agent_register.return_value = {
+    def test_join_already_exists_fail(self, mock_agent_login, mock_agent_join, mock_update_pending_join_account):
+        mock_agent_join.return_value = {
             "agent": HarveyNichols(0, {"scheme_account_id": "1", "status": None, "channel": "com.bink.wallet"}),
             "error": ACCOUNT_ALREADY_EXISTS,
         }
@@ -501,8 +499,8 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = registration_task(scheme_slug, user_info, tid=None)
-        self.assertTrue(mock_agent_register.called)
+        result = join_task(scheme_slug, user_info, tid=None)
+        self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertEqual(result, True)
@@ -530,7 +528,7 @@ class TestResources(TestCase):
         mock_login.side_effect = AgentError(NO_SUCH_RECORD)
         user_info = {"scheme_account_id": 1, "credentials": {}, "status": "", "channel": "com.bink.wallet"}
         with self.assertRaises(AgentError):
-            agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_register=True)
+            agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_join=True)
         self.assertTrue(mock_login.called)
 
     @mock.patch("app.journeys.common.retry", autospec=True)

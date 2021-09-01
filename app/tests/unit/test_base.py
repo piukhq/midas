@@ -16,13 +16,13 @@ class TestBase(TestCase):
 
         self.assertIn("NOT_SENT", response_json)
 
-    @mock.patch.object(ApiMiner, "register")
-    def test_attempt_register(self, mocked_register):
+    @mock.patch.object(ApiMiner, "join")
+    def test_attempt_join(self, mocked_join):
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
 
-        m.attempt_register(credentials={})
-        self.assertTrue(mocked_register.called)
+        m.attempt_join(credentials={})
+        self.assertTrue(mocked_join.called)
 
     @httpretty.activate
     @mock.patch("app.agents.base.signal", autospec=True)

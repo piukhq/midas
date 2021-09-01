@@ -14,7 +14,7 @@ from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
 from app.exceptions import AgentException, UnknownException
 from app.journeys.common import agent_login, get_agent_class
-from app.journeys.join import registration_task
+from app.journeys.join import join_task
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.reporting import get_logger
@@ -106,7 +106,7 @@ class Balance(Resource):
         return prev_balance
 
 
-class Register(Resource):
+class Join(Resource):
     def post(self, scheme_slug):
         data = request.get_json()
         scheme_account_id = int(data["scheme_account_id"])
@@ -120,8 +120,8 @@ class Register(Resource):
         }
         tid = request.headers.get("transaction")
 
-        log.debug("Creating registration task for scheme account: {scheme_account_id}")
-        thread_pool_executor.submit(registration_task, scheme_slug, user_info, tid)
+        log.debug("Creating join task for scheme account: {scheme_account_id}")
+        thread_pool_executor.submit(join_task, scheme_slug, user_info, tid)
 
         return create_response({"message": "success"})
 

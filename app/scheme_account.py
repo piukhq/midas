@@ -60,7 +60,7 @@ def update_pending_join_account(
     user_info, message, tid, identifier=None, scheme_slug=None, consent_ids=(), raise_exception=True
 ):
     scheme_account_id = user_info["scheme_account_id"]
-    # for updating user ID credential you get for registering (e.g. getting issued a card number)
+    # for updating user ID credential you get for joining (e.g. getting issued a card number)
     headers = get_headers(tid)
     if identifier:
         try:

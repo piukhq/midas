@@ -35,8 +35,8 @@ from app.agents.exceptions import (
     UNKNOWN,
     VALIDATION,
     AgentError,
+    JoinError,
     LoginError,
-    RegistrationError,
     RetryLimitError,
     UnauthorisedError,
     errors,
@@ -73,7 +73,7 @@ class BaseMiner(object):
     create_journey: Optional[str] = None
     scheme_id = -1  # this is replaced by the derived classes. remove this when bases are merged into one.
 
-    def register(self, credentials):
+    def join(self, credentials):
         raise NotImplementedError()
 
     def login(self, credentials):
@@ -158,9 +158,9 @@ class BaseMiner(object):
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
-    def attempt_register(self, credentials):
+    def attempt_join(self, credentials):
         try:
-            self.register(credentials)
+            self.join(credentials)
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
@@ -358,17 +358,17 @@ class MerchantApi(BaseMiner):
         except KeyError:
             self.identifier = identifiers
 
-    def register(self, data, inbound=False):
+    def join(self, data, inbound=False):
         """
         Calls handler, passing in 'join' as the handler_type.
-        :param data: user account credentials to register for merchant scheme or validated merchant response data
+        :param data: user account credentials to join for merchant scheme or validated merchant response data
         for outbound or inbound processes respectively.
         :param inbound: Boolean for if the data should be handled for an inbound response or outbound request
         :return: None
         """
         consents_data = self.user_info["credentials"].get("consents")
         self.consents_data = consents_data.copy() if consents_data else []
-        log.debug(f"Registering with consents: {consents_data} and scheme slug: {self.scheme_slug}")
+        log.debug(f"Joining with consents: {consents_data} and scheme slug: {self.scheme_slug}")
 
         if inbound:
             self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
@@ -403,7 +403,7 @@ class MerchantApi(BaseMiner):
                 try:
                     error = self._check_for_error_response(self.result)
                     if error:
-                        self._handle_errors(error[0]["code"], exception_type=RegistrationError)
+                        self._handle_errors(error[0]["code"], exception_type=JoinError)
 
                 except (AgentException, LoginError, AgentError):
                     consent_status = ConsentStatus.FAILED
@@ -422,7 +422,7 @@ class MerchantApi(BaseMiner):
         try:
             error = self._check_for_error_response(self.result)
             if error:
-                self._handle_errors(error[0]["code"], exception_type=RegistrationError)
+                self._handle_errors(error[0]["code"], exception_type=JoinError)
 
             identifier = self._get_identifiers(self.result)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
@@ -860,12 +860,12 @@ class MockedMiner(BaseMiner):
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
             if ghost_card in self.existing_card_numbers:
-                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+                raise JoinError(ACCOUNT_ALREADY_EXISTS)
             if self._check_email_already_exists(email):
-                raise RegistrationError(JOIN_ERROR)
+                raise JoinError(JOIN_ERROR)
         else:
             if self._check_email_already_exists(email):
-                raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+                raise JoinError(ACCOUNT_ALREADY_EXISTS)
 
     def _validate_join_credentials(self, data):
         for join_field in self.join_fields:
@@ -877,12 +877,12 @@ class MockedMiner(BaseMiner):
         self._check_existing_join_credentials(email, ghost_card)
 
         if email == "fail@unknown.com":
-            raise RegistrationError(UNKNOWN)
+            raise JoinError(UNKNOWN)
         elif email == "slowjoin@testbink.com":
             time.sleep(30)
 
         title = data.get("title").capitalize()
         if self.titles and title not in self.titles:
-            raise RegistrationError(JOIN_ERROR)
+            raise JoinError(JOIN_ERROR)
 
         return {"message": "success"}

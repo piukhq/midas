@@ -15,11 +15,11 @@ from app.scheme_account import SchemeAccountStatus, update_pending_join_account
 log = get_logger("join-journey")
 
 
-def agent_register(agent_class, user_info, tid, scheme_slug=None):
+def agent_join(agent_class, user_info, tid, scheme_slug=None):
     agent_instance = agent_class(0, user_info, scheme_slug=scheme_slug)
     error = None
     try:
-        agent_instance.attempt_register(user_info["credentials"])
+        agent_instance.attempt_join(user_info["credentials"])
     except Exception as e:
         error = e.args[0]
 
@@ -60,7 +60,7 @@ def log_task(func):
 
 
 @log_task
-def registration_task(scheme_slug, user_info, tid):
+def join_task(scheme_slug, user_info, tid):
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
@@ -68,22 +68,22 @@ def registration_task(scheme_slug, user_info, tid):
         publish.status(user_info["scheme_account_id"], 900, tid, user_info)
         abort(e.code, message=e.data["message"])
 
-    register_result = agent_register(agent_class, user_info, tid, scheme_slug=scheme_slug)
+    join_result = agent_join(agent_class, user_info, tid, scheme_slug=scheme_slug)
     try:
-        if register_result["agent"].expecting_callback:
+        if join_result["agent"].expecting_callback:
             return True
-        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug, from_register=True)
+        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug, from_join=True)
         if agent_instance.identifier:
             update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
-        elif register_result["agent"].identifier:
+        elif join_result["agent"].identifier:
             update_pending_join_account(
                 user_info,
                 "success",
                 tid,
-                identifier=register_result["agent"].identifier,
+                identifier=join_result["agent"].identifier,
             )
     except (LoginError, AgentError, AgentException) as e:
-        if register_result["error"] == ACCOUNT_ALREADY_EXISTS:
+        if join_result["error"] == ACCOUNT_ALREADY_EXISTS:
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
             update_pending_join_account(

@@ -1,15 +1,15 @@
 from flask_restful import Api
 
 from app.bpl_callback import JoinCallbackBpl
-from app.resources import AccountOverview, AgentQuestions, Balance, Healthz, Register, Transactions
+from app.resources import AccountOverview, AgentQuestions, Balance, Healthz, Join, Transactions
 from app.resources_callbacks import JoinCallback
 
 api = Api()
 
 api.add_resource(Balance, "/<string:scheme_slug>/balance", endpoint="api.points_balance")
 api.add_resource(Transactions, "/<string:scheme_slug>/transactions", endpoint="api.transactions")
-api.add_resource(Register, "/<string:scheme_slug>/register", endpoint="api.register")
-api.add_resource(Register, "/<string:scheme_slug>/join", endpoint="api.join")
+api.add_resource(Join, "/<string:scheme_slug>/register", endpoint="api.register")
+api.add_resource(Join, "/<string:scheme_slug>/join", endpoint="api.join")
 api.add_resource(AccountOverview, "/<string:scheme_slug>/account_overview", endpoint="api.account_overview")
 
 api.add_resource(AgentQuestions, "/agent_questions", endpoint="api.agent_questions")

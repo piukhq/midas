@@ -28,13 +28,13 @@ from app.agents.exceptions import (
     UNKNOWN,
     VALIDATION,
     AgentError,
+    JoinError,
     LoginError,
-    RegistrationError,
     UnauthorisedError,
     errors,
 )
 from app.back_off_service import BackOffService
-from app.journeys.join import agent_register
+from app.journeys.join import agent_join
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.security.oauth import OAuth
 from app.security.open_auth import OpenAuth
@@ -181,10 +181,10 @@ class TestMerchantApi(FlaskTestCase):
 
         self.assertFalse(self.m.expecting_callback)
 
-    @mock.patch.object(MerchantApi, "attempt_register")
+    @mock.patch.object(MerchantApi, "attempt_join")
     @mock.patch("app.scheme_account.update_pending_join_account", autospec=True)
-    def test_attempt_register_returns_agent_instance(self, mock_update_pending_join_account, mock_register):
-        mock_register.return_value = {"message": "success"}
+    def test_attempt_join_returns_agent_instance(self, mock_update_pending_join_account, mock_join):
+        mock_join.return_value = {"message": "success"}
         self.config.integration_service = "ASYNC"
         user_info = {
             "metadata": {},
@@ -195,11 +195,11 @@ class TestMerchantApi(FlaskTestCase):
             "channel": "com.bink.wallet",
         }
 
-        register_data = agent_register(MerchantApi, user_info, {}, 1)
-        agent_instance = register_data["agent"]
+        join_data = agent_join(MerchantApi, user_info, {}, 1)
+        agent_instance = join_data["agent"]
 
         self.assertTrue(hasattr(agent_instance, "expecting_callback"))
-        self.assertTrue(mock_register.called)
+        self.assertTrue(mock_join.called)
         self.assertFalse(mock_update_pending_join_account.called)
 
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -796,10 +796,10 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, "process_join_response")
     @mock.patch.object(MerchantApi, "_outbound_handler")
-    def test_register_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
+    def test_join_success_does_not_raise_exceptions(self, mock_outbound_handler, mock_process_join_response):
         mock_outbound_handler.return_value = {"error_codes": []}
         self.m.config = self.config
-        self.m.register({})
+        self.m.join({})
 
         self.assertTrue(mock_outbound_handler.called)
         self.assertTrue(mock_process_join_response.called)
@@ -824,7 +824,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(BaseMiner, "consent_confirmation")
     @mock.patch.object(MerchantApi, "_outbound_handler")
-    def test_register_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
+    def test_join_handles_error_payload(self, mock_outbound_handler, mock_consent_confirmation):
         self.m.message_uid = "test_message_uid"
         mock_outbound_handler.return_value = {
             "message_uid": self.m.message_uid,
@@ -837,8 +837,8 @@ class TestMerchantApi(FlaskTestCase):
         }
         self.m.config = self.config
 
-        with self.assertRaises(RegistrationError) as e:
-            self.m.register({})
+        with self.assertRaises(JoinError) as e:
+            self.m.join({})
         self.assertEqual(e.exception.message, errors[GENERAL_ERROR]["message"])
         self.assertTrue(mock_consent_confirmation.called)
 
@@ -1379,7 +1379,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.update_pending_join_account", autospec=True)
     @mock.patch.object(MerchantApi, "_outbound_handler")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_consents_confirmation_is_called_on_sync_register(
+    def test_consents_confirmation_is_called_on_sync_join(
         self, mock_consent_confirmation, mock_outbound_handler, mock_update_pending_join_account, mock_publish
     ):
         # Confirmation is setting calling the endpoint to update UserConsent status to either SUCCESS or FAILURE
@@ -1395,7 +1395,7 @@ class TestMerchantApi(FlaskTestCase):
         mock_outbound_handler.return_value = {"message_uid": self.m.message_uid}
         self.m.config = self.config
 
-        self.m.register(credentials)
+        self.m.join(credentials)
 
         mock_consent_confirmation.assert_called_with(credentials["consents"], ConsentStatus.SUCCESS)
 
@@ -1405,7 +1405,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch.object(MerchantApi, "_outbound_handler")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_consents_confirmed_as_pending_on_async_register(self, mock_consent_confirmation, mock_outbound_handler):
+    def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_outbound_handler):
         credentials = {
             "consents": [
                 {"id": 1, "slug": "consent1", "value": True, "journey_type": JourneyTypes.JOIN.value},
@@ -1419,14 +1419,14 @@ class TestMerchantApi(FlaskTestCase):
         self.m.config = self.config
         self.m.config.integration_service = "ASYNC"
 
-        self.m.register(credentials)
+        self.m.join(credentials)
 
         mock_consent_confirmation.assert_called_with(credentials["consents"], ConsentStatus.PENDING)
         self.assertTrue(mock_outbound_handler.called)
 
     @mock.patch.object(MerchantApi, "_outbound_handler")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_consents_confirmed_on_failed_async_register(self, mock_consent_confirmation, mock_outbound_handler):
+    def test_consents_confirmed_on_failed_async_join(self, mock_consent_confirmation, mock_outbound_handler):
         credentials = {
             "consents": [
                 {"id": 1, "slug": "consent1", "value": True, "journey_type": JourneyTypes.JOIN.value},
@@ -1440,8 +1440,8 @@ class TestMerchantApi(FlaskTestCase):
         self.m.config = self.config
         self.m.config.integration_service = "ASYNC"
 
-        with self.assertRaises(RegistrationError):
-            self.m.register(credentials)
+        with self.assertRaises(JoinError):
+            self.m.join(credentials)
 
         mock_consent_confirmation.assert_called_with(credentials["consents"], ConsentStatus.FAILED)
         self.assertTrue(mock_outbound_handler.called)

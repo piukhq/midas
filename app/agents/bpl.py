@@ -59,7 +59,7 @@ class BplBase(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-        # for updating user ID credential you get for registering (e.g. getting issued a card number)
+        # for updating user ID credential you get for joining (e.g. getting issued a card number)
         api_url = urljoin(
             settings.HERMES_URL,
             f"schemes/accounts/{scheme_account_id}/credentials",
@@ -81,7 +81,7 @@ class Trenette(BplBase):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
-    def register(self, credentials):
+    def join(self, credentials):
         consents = credentials.get("consents", [])
         url = f"{self.base_url}enrolment"
         payload = {

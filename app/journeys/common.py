@@ -30,7 +30,7 @@ def get_agent_class(scheme_slug):
         abort(404, message="No such agent")
 
 
-def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
+def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
     """
     Instantiates an agent class and attempts to login.
     :param agent_class: Class object inheriting BaseMiner class.
@@ -43,14 +43,14 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         'journey_type': int
     }
     :param scheme_slug: String of merchant identifier e.g 'harvey-nichols'
-    :param from_register: Boolean of whether the login call is from the registration process.
+    :param from_join: Boolean of whether the login call is from the join journey.
     :return: Class instance of the agent.
     """
     key = retry.get_key(agent_class.__name__, user_info["scheme_account_id"])
     retry_count = retry.get_count(key)
-    if from_register:
+    if from_join:
         user_info["journey_type"] = JourneyTypes.UPDATE.value
-        user_info["from_register"] = True
+        user_info["from_join"] = True
 
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
@@ -62,7 +62,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_register=False):
         # If this is an UNKNOWN error, also log to sentry
         if e.code == errors[UNKNOWN]["code"]:
             sentry_sdk.capture_exception()
-        if e.args[0] in SYSTEM_ACTION_REQUIRED and from_register:
+        if e.args[0] in SYSTEM_ACTION_REQUIRED and from_join:
             raise e
         retry.inc_count(key)
         raise AgentException(e)

@@ -56,7 +56,7 @@ class MockPerformance(MockedMiner):
 
         return transactions
 
-    def register(self, credentials):
+    def join(self, credentials):
         return {"message": "success"}
 
 
@@ -101,5 +101,5 @@ class MockPerformanceVoucher(MockedMiner):
     def scrape_transactions(self) -> list[dict]:
         return []
 
-    def register(self, credentials):
+    def join(self, credentials):
         return {"message": "success"}

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import httpretty
 
 from app.agents.ecrebo import BurgerKing, FatFace, WhSmith
-from app.agents.exceptions import LoginError, RegistrationError
+from app.agents.exceptions import JoinError, LoginError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 cred = {
@@ -32,7 +32,7 @@ class TestEcrebo(unittest.TestCase):
         cls.agents = [agent_class(*AGENT_CLASS_ARGUMENTS) for agent_class in (FatFace, BurgerKing, WhSmith)]
 
         for agent in cls.agents:
-            agent.register(cred)
+            agent.join(cred)
             agent.login(agent.user_info["credentials"])
 
     def test_login(self):
@@ -81,7 +81,7 @@ class TestEcrebo(unittest.TestCase):
 
     @httpretty.activate
     @patch("app.agents.ecrebo.Configuration")
-    def test_register_409(self, mock_config):
+    def test_join_409(self, mock_config):
         conf = MagicMock()
         conf.merchant_url = "http://ecrebo.test"
         conf.security_credentials = {
@@ -102,8 +102,8 @@ class TestEcrebo(unittest.TestCase):
             httpretty.POST, f"{conf.merchant_url}/v1/list/append_item/{retailer_id}/assets/membership", status=409
         )
 
-        with self.assertRaises(RegistrationError) as e:
-            agent.attempt_register(
+        with self.assertRaises(JoinError) as e:
+            agent.attempt_join(
                 {
                     "email": "testuser@test",
                     "first_name": "test",

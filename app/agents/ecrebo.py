@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 import settings
 from app import constants
 from app.agents.base import ApiMiner
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, LoginError, RegistrationError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
 from app.encryption import hash_ids
@@ -131,14 +131,14 @@ class Ecrebo(ApiMiner):
                     record_uid=record_uid,
                 )
 
-    def register(self, credentials):
+    def join(self, credentials):
         consents = credentials.get("consents", [])
         message_uid = str(uuid4())
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         consents_data = {c["slug"]: c["value"] for c in consents}
-        data = {"data": self._get_registration_credentials(credentials, consents_data)}
+        data = {"data": self._get_join_credentials(credentials, consents_data)}
 
         self.audit_logger.add_request(
             payload=data,
@@ -177,7 +177,7 @@ class Ecrebo(ApiMiner):
         if resp.status_code == 409:
             signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=ACCOUNT_ALREADY_EXISTS)
-            raise RegistrationError(ACCOUNT_ALREADY_EXISTS)
+            raise JoinError(ACCOUNT_ALREADY_EXISTS)
         else:
             try:
                 resp.raise_for_status()
@@ -311,7 +311,7 @@ class Ecrebo(ApiMiner):
         # if we just set the create journey to "join", hermes will set the card to pending,
         # and then attempt to get a balance update. i added the "join-with-balance" identifier
         # to allow hermes to simply set the join date, and stop there.
-        if self.user_info.get("from_register") is True:
+        if self.user_info.get("from_join") is True:
             self.create_journey = "join-with-balance"
 
         campaign_type = rewards["type"].strip()
@@ -337,7 +337,7 @@ class FatFace(Ecrebo):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
 
-    def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
+    def _get_join_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
             "email": credentials[constants.EMAIL],
             "first_name": credentials[constants.FIRST_NAME],
@@ -352,7 +352,7 @@ class FatFace(Ecrebo):
 class BurgerKing(Ecrebo):
     RETAILER_ID = "95"
 
-    def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
+    def _get_join_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
             "email": credentials[constants.EMAIL],
             "first_name": credentials[constants.FIRST_NAME],
@@ -366,7 +366,7 @@ class BurgerKing(Ecrebo):
 class WhSmith(Ecrebo):
     RETAILER_ID = "100"
 
-    def _get_registration_credentials(self, credentials: dict, consents: dict) -> dict:
+    def _get_join_credentials(self, credentials: dict, consents: dict) -> dict:
         data = {
             "email": credentials[constants.EMAIL],
             "title": credentials[constants.TITLE],

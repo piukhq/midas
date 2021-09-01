@@ -15,8 +15,8 @@ from app.agents.exceptions import (
     STATUS_LOGIN_FAILED,
     STATUS_REGISTRATION_FAILED,
     UNKNOWN,
+    JoinError,
     LoginError,
-    RegistrationError,
 )
 from app.agents.schemas import Balance, Transaction
 from app.mocks import card_numbers
@@ -131,13 +131,13 @@ class MockAgentHN(MockedMiner):
         else:
             return transactions[:max_transactions]
 
-    def register(self, credentials):
+    def join(self, credentials):
         self._validate_join_credentials(credentials)
         return {"message": "success"}
 
     def _validate_join_credentials(self, data):
         if len(data["password"]) < 6:
-            raise RegistrationError(STATUS_REGISTRATION_FAILED)
+            raise JoinError(STATUS_REGISTRATION_FAILED)
 
         return super()._validate_join_credentials(data)
 
@@ -172,11 +172,11 @@ class MockAgentIce(MockedMiner):
 
             self.identifier["card_number"] = card_number
             self.identifier["barcode"] = card_number
-            self.identifier["merchant_identifier"] = "testregister"
+            self.identifier["merchant_identifier"] = "testjoin"
             return
 
         # if created from join, dont check credentials on balance updates
-        if credentials.get("merchant_identifier") == "testregister":
+        if credentials.get("merchant_identifier") == "testjoin":
             self.user_info = USER_STORE["000000"]
             return
 
@@ -240,12 +240,12 @@ class MockAgentIce(MockedMiner):
         else:
             return transactions[:max_transactions]
 
-    def register(self, credentials, inbound=False):
+    def join(self, credentials, inbound=False):
         return self._validate_join_credentials(credentials)
 
     def _validate_join_credentials(self, data):
         if data["postcode"].lower() in JOIN_FAIL_POSTCODES:
-            raise RegistrationError(UNKNOWN)
+            raise JoinError(UNKNOWN)
 
         return super()._validate_join_credentials(data)
 
@@ -349,7 +349,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
     def scrape_transactions(self) -> list[dict]:
         return []
 
-    def register(self, credentials):
+    def join(self, credentials):
         return self._validate_join_credentials(credentials)
 
     def _validate_join_credentials(self, credentials):
@@ -357,7 +357,7 @@ class MockAgentWHS(MockedMiner, Ecrebo):
             # This is to force a PENDING status for this email credential. See MER-432
             sleep(20)
         elif credentials["email"] == "whsmithx201@bink.com":
-            raise RegistrationError(STATUS_REGISTRATION_FAILED)
+            raise JoinError(STATUS_REGISTRATION_FAILED)
 
         return super()._validate_join_credentials(data=credentials)
 

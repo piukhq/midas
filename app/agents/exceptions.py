@@ -184,7 +184,7 @@ class AgentModifiedError(Exception):
     pass
 
 
-class RegistrationError(AgentError):
+class JoinError(AgentError):
     pass
 
 
