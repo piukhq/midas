@@ -76,6 +76,7 @@ class HarveyNichols(ApiMiner):
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         payload = deepcopy(data)
         payload["url"] = self.HAS_LOYALTY_ACCOUNT_URL
+        payload["password"] = "********"
 
         self.audit_logger.add_request(
             payload=payload,
