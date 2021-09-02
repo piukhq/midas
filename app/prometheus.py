@@ -17,8 +17,8 @@ class PrometheusManager:
         self.metric_types = self._get_metric_types()
         signal("log-in-success").connect(self.log_in_success)
         signal("log-in-fail").connect(self.log_in_fail)
-        signal("register-success").connect(self.register_success)
-        signal("register-fail").connect(self.register_fail)
+        signal("join-success").connect(self.join_success)
+        signal("join-fail").connect(self.join_fail)
         signal("record-http-request").connect(self.record_http_request)
         signal("callback-success").connect(self.callback_success)
         signal("callback-fail").connect(self.callback_fail)
@@ -43,23 +43,23 @@ class PrometheusManager:
         labels = {"slug": slug}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
-    def register_success(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
+    def join_success(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
         :param channel: The origin of this request e.g. 'com.bink.wallet'
         """
-        counter = self.metric_types["counters"]["register_success"]
+        counter = self.metric_types["counters"]["join_success"]
         labels = {"slug": slug, "channel": channel}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
-    def register_fail(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
+    def join_fail(self, sender: t.Union[object, str], slug: str, channel: str) -> None:
         """
         :param sender: Could be an agent, or a string description of who the sender is
         :param slug: A slug, e.g. 'harvey-nichols'
         :param channel: The origin of this request e.g. 'com.bink.wallet'
         """
-        counter = self.metric_types["counters"]["register_fail"]
+        counter = self.metric_types["counters"]["join_fail"]
         labels = {"slug": slug, "channel": channel}
         self._increment_counter(counter=counter, increment_by=1, labels=labels)
 
@@ -150,14 +150,14 @@ class PrometheusManager:
                     documentation="Incremental count of failed logins",
                     labelnames=("slug",),
                 ),
-                "register_success": Counter(
-                    name="register_success",
-                    documentation="Incremental count of successful registrations",
+                "join_success": Counter(
+                    name="join_success",
+                    documentation="Incremental count of successful joins",
                     labelnames=("slug", "channel"),
                 ),
-                "register_fail": Counter(
-                    name="register_fail",
-                    documentation="Incremental count of failed registrations",
+                "join_fail": Counter(
+                    name="join_fail",
+                    documentation="Incremental count of failed joins",
                     labelnames=("slug", "channel"),
                 ),
                 "callback_success": Counter(

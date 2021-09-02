@@ -175,18 +175,18 @@ class Ecrebo(ApiMiner):
         self.audit_logger.send_to_atlas()
 
         if resp.status_code == 409:
-            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=ACCOUNT_ALREADY_EXISTS)
             raise JoinError(ACCOUNT_ALREADY_EXISTS)
         else:
             try:
                 resp.raise_for_status()
             except requests.HTTPError as e:
-                signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=e.response.reason)
                 raise
             else:
-                signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+                signal("join-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
                 json = resp.json()
                 message = json["publisher"][0]["message"]
 

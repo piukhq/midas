@@ -386,7 +386,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.OK,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("register-success"),
+            call("join-success"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
         ]
 
@@ -424,7 +424,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.CONFLICT,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("register-fail"),
+            call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
             call().send(
@@ -466,7 +466,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.GATEWAY_TIMEOUT,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("register-fail"),
+            call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
             call().send(

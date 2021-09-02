@@ -304,10 +304,10 @@ class HarveyNichols(ApiMiner):
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
-            signal("register-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
             return {"message": "success"}
 
-        signal("register-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+        signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
         self.handle_errors(message, exception_type=JoinError)
 
     def _login(self, credentials):

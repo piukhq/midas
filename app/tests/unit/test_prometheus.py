@@ -31,33 +31,33 @@ class TestPrometheus(TestCase):
         mock_prometheus_counter_inc.assert_called_once()
 
     @mock.patch("app.prometheus.Counter.inc", autospec=True)
-    def test_register_success(self, mock_prometheus_counter_inc):
+    def test_join_success(self, mock_prometheus_counter_inc):
         """
-        Test that the register success counter increments
+        Test that the join success counter increments
         """
         # GIVEN
         settings.PUSH_PROMETHEUS_METRICS = False  # Disable the attempted push
         # WHEN
-        signal("register-success").send(self, slug="test-prometheus", channel="com.bink.wallet")
+        signal("join-success").send(self, slug="test-prometheus", channel="com.bink.wallet")
         # THEN
         mock_prometheus_counter_inc.assert_called_once()
 
     @mock.patch("app.prometheus.Counter.inc", autospec=True)
-    def test_register_fail(self, mock_prometheus_counter_inc):
+    def test_join_fail(self, mock_prometheus_counter_inc):
         """
-        Test that the register fail counter increments
+        Test that the join fail counter increments
         """
         # GIVEN
         settings.PUSH_PROMETHEUS_METRICS = False  # Disable the attempted push
         # WHEN
-        signal("register-fail").send(self, slug="test-prometheus", channel="com.bink.wallet")
+        signal("join-fail").send(self, slug="test-prometheus", channel="com.bink.wallet")
         # THEN
         mock_prometheus_counter_inc.assert_called_once()
 
     @mock.patch("app.prometheus.Histogram.observe", autospec=True)
     def test_record_http_request(self, mock_prometheus_histogram_observe):
         """
-        Test that the register fail counter increments
+        Test that the join fail counter increments
         """
         # GIVEN
         settings.PUSH_PROMETHEUS_METRICS = False  # Disable the attempted push

@@ -2159,6 +2159,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
+
     def test_join_calls_signal_fail_for_join_error(self, mock_signal, mock_authenticate, mock_account_already_exists):
         """
         Test JOIN journey calls signal join fail
@@ -2169,7 +2170,7 @@ class TestWasabi(unittest.TestCase):
         credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
-            call("register-fail"),
+            call("join-fail"),
             call().send(self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug),
         ]
 
@@ -2203,7 +2204,7 @@ class TestWasabi(unittest.TestCase):
         credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
-            call("register-fail"),
+            call("join-fail"),
             call().send(self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug),
         ]
 
@@ -2241,7 +2242,7 @@ class TestWasabi(unittest.TestCase):
         credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
-            call("register-fail"),
+            call("join-fail"),
             call().send(self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug),
         ]
 
@@ -2293,7 +2294,7 @@ class TestWasabi(unittest.TestCase):
         credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
-            call("register-success"),
+            call("join-success"),
             call().send(self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug),
         ]
 

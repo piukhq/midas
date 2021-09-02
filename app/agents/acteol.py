@@ -139,10 +139,10 @@ class Acteol(ApiMiner):
                 )
                 raise JoinError(JOIN_ERROR)
         except (AgentError, LoginError, JoinError):
-            signal("register-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
         else:
-            signal("register-success").send(self, slug=self.scheme_slug, channel=self.channel)
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
         consents = credentials.get("consents", [{}])
