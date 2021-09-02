@@ -100,7 +100,11 @@ class MockAgentHN(MockedMiner):
         )
 
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
-        return None
+        return Transaction(
+            date=row["date"],
+            description=row["description"],
+            points=row["points"],
+        )
 
     def scrape_transactions(self) -> list[dict]:
         max_transactions = self.user_info["len_transactions"]
@@ -213,7 +217,11 @@ class MockAgentIce(MockedMiner):
         )
 
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
-        return None
+        return Transaction(
+            date=row["date"],
+            description=row["description"],
+            points=row["points"],
+        )
 
     def scrape_transactions(self) -> list[dict]:
         max_transactions = self.user_info["len_transactions"]

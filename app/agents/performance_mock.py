@@ -37,7 +37,11 @@ class MockPerformance(MockedMiner):
         )
 
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
-        return None
+        return Transaction(
+            date=row["date"],
+            description=row["description"],
+            points=row["points"],
+        )
 
     def scrape_transactions(self) -> list[dict]:
         transactions = []
