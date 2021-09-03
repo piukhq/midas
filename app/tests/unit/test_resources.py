@@ -884,6 +884,35 @@ class TestResources(TestCase):
             },
         }
 
+        httpretty.register_uri(
+            httpretty.GET,
+            "http://testbink.com/bpl/loyalty/trenette/accounts/test-uuid",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "UUID": "5ff1bda5-cd8f-4991-86d4-dac89379f47a",
+                            "email": "test_zero_balance_user_100@autogen.bpl",
+                            "status": "active",
+                            "account_number": "TRNT0000000100",
+                            "current_balances": [{"value": 0.0, "campaign_slug": "trenette-campaign"}],
+                            "transaction_history": [],
+                            "vouchers": [
+                                {
+                                    "voucher_code": "1qv7lgUyUVMBkxK",
+                                    "issued_date": "1629385871",
+                                    "redeemed_date": None,
+                                    "expiry_date": "1893456000",
+                                    "status": "issued",
+                                }
+                            ],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
         credentials = {
             "merchant_identifier": "test-uuid",
         }
@@ -900,6 +929,15 @@ class TestResources(TestCase):
                             "current_balances": [
                                 {
                                     "value": 123.45,
+                                }
+                            ],
+                            "vouchers": [
+                                {
+                                    "voucher_code": "1qv7lgUyUVMBkxK",
+                                    "issued_date": "1629385871",
+                                    "redeemed_date": None,
+                                    "expiry_date": "1893456000",
+                                    "status": "issued",
                                 }
                             ],
                         }
@@ -930,7 +968,16 @@ class TestResources(TestCase):
                     "type": 2,
                     "value": 123.45,
                     "target_value": None,
-                }
+                },
+                {
+                    "state": "issued",
+                    "type": 2,
+                    "issue_date": "1629385871",
+                    "expiry_date": "1893456000",
+                    "code": "1qv7lgUyUVMBkxK",
+                    "value": None,
+                    "target_value": None,
+                },
             ],
             "scheme_account_id": 2,
             "user_set": "1",

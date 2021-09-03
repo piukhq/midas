@@ -89,8 +89,11 @@ class TestBplCallback(TestCase):
             "transaction_history": [],
             "vouchers": [
                 {
-                    "state": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "status": voucher_state_names[VoucherState.IN_PROGRESS],
                     "type": VoucherType.STAMPS.value,
+                    "issued_date": 1629385871,
+                    "expiry_date": 1629385871,
+                    "voucher_code": "somecode",
                     "value": 0.1,
                     "target_value": 0.1,
                 }
@@ -108,6 +111,41 @@ class TestBplCallback(TestCase):
         balance = self.trenette.balance()
         self.assertEqual(balance.value, Decimal("0.1"))
         self.assertEqual(balance.vouchers[0].value, Decimal("0.1"))
+
+    @httpretty.activate
+    def test_vouchers(self):
+        url = f"{self.trenette.base_url}54a259f2-3602-4cc8-8f57-1239de7e5700"
+        response_data = {
+            "UUID": "54a259f2-3602-4cc8-8f57-7839de7e5700",
+            "email": "johnb@bink.com",
+            "created_date": 1621266592,
+            "status": "active",
+            "account_number": "TRNT9288336436",
+            "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
+            "transaction_history": [],
+            "vouchers": [
+                {
+                    "status": voucher_state_names[VoucherState.IN_PROGRESS],
+                    "type": VoucherType.STAMPS.value,
+                    "issued_date": 1629385871,
+                    "expiry_date": 1629385871,
+                    "voucher_code": "somecode",
+                },
+            ],
+        }
+        httpretty.register_uri(
+            httpretty.GET, url, status=HTTPStatus.OK, responses=[httpretty.Response(body=json.dumps(response_data))]
+        )
+        api_url = urljoin(settings.HERMES_URL, "schemes/accounts/1/credentials")
+        httpretty.register_uri(
+            httpretty.PUT,
+            api_url,
+            status=HTTPStatus.OK,
+        )
+        balance = self.trenette.balance()
+
+        self.assertEqual(balance.vouchers[1].value, None)
+        self.assertEqual(len(balance.vouchers), 2)
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)

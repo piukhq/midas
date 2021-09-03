@@ -124,6 +124,22 @@ class Trenette(BplBase):
         self.identifier = {"merchant_identifier": membership_data["UUID"]}
         self.user_info["credentials"].update(self.identifier)
 
+    @staticmethod
+    def _make_issued_vouchers(vouchers):
+        return [
+            Voucher(
+                issue_date=voucher["issued_date"],
+                redeem_date=voucher.get("redeemed_date"),
+                expiry_date=voucher["expiry_date"],
+                code=voucher["voucher_code"],
+                target_value=None,
+                value=None,
+                type=VoucherType.STAMPS.value,
+                state=voucher["status"],
+            )
+            for voucher in vouchers
+        ]
+
     def balance(self) -> Optional[Balance]:
         credentials = self.user_info["credentials"]
         merchant_id = credentials["merchant_identifier"]
@@ -133,6 +149,7 @@ class Trenette(BplBase):
         bpl_data = resp.json()
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
+        vouchers = bpl_data["vouchers"]
         if len(bpl_data["current_balances"]) == 0:
             return None
 
@@ -149,5 +166,6 @@ class Trenette(BplBase):
                     target_value=None,
                     value=balance,
                 ),
+                *self._make_issued_vouchers(vouchers),
             ],
         )
