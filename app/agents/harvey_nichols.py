@@ -163,7 +163,7 @@ class HarveyNichols(ApiMiner):
             f"customer num. ending = {self.customer_number[-4:]}"
         )
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
-        log.info(f"Harvey Nichols balance response = {balance_response}")
+        log.info(f"Harvey Nichols balance response = {balance_response.json()}")
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
