@@ -134,6 +134,7 @@ class HarveyNichols(ApiMiner):
         # account. If there's a token in redis, we have previously logged in and
         # so should be able to login again.
         sign_on_required = False
+        log.info(f"Login in for Harvey Nichols for scheme account id = {self.scheme_id}")
         try:
             self.token = self.token_store.get(self.scheme_id)
         except self.token_store.NoSuchToken:
@@ -151,12 +152,18 @@ class HarveyNichols(ApiMiner):
             sign_on_required = True
 
         if sign_on_required:
+            log.info(f"SignOn required for Harvey Nichols for scheme account id = {self.scheme_id}")
             self._login(credentials)
 
     def call_balance_url(self):
         url = self.BASE_URL + "/GetProfile"
         data = {"CustomerLoyaltyProfileRequest": {"token": self.token, "customerNumber": self.customer_number}}
+        log.info(
+            f"Call Harvey Nichols GetProfile, token ending: {self.token[-4:]},"
+            f"customer num. ending = {self.customer_number[-4:]}"
+        )
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
+        log.info(f"Harvey Nichols balance response = {balance_response}")
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -335,6 +342,7 @@ class HarveyNichols(ApiMiner):
         )
 
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
+        log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
