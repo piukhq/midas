@@ -375,7 +375,6 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-
     def test_agent_join_success(self, mock_update_pending_join_account, mock_join):
         mock_join.return_value = {"message": "success"}
         user_info = {
@@ -397,7 +396,6 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-
     def test_agent_join_fail(self, mock_update_pending_join_account, mock_join):
         mock_join.side_effect = JoinError(STATUS_REGISTRATION_FAILED)
         mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
@@ -421,7 +419,6 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-
     def test_agent_join_fail_account_exists(self, mock_update_pending_join_account, mock_join):
         mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
         user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
@@ -434,7 +431,6 @@ class TestResources(TestCase):
 
     @mock.patch.object(MerchantAPIGeneric, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-
     def test_agent_join_fail_merchant_api(self, mock_update_pending_join_account, mock_join):
         mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
         mock_update_pending_join_account.side_effect = AgentException(ACCOUNT_ALREADY_EXISTS)

@@ -2159,7 +2159,6 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-
     def test_join_calls_signal_fail_for_join_error(self, mock_signal, mock_authenticate, mock_account_already_exists):
         """
         Test JOIN journey calls signal join fail
