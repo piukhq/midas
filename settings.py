@@ -5,7 +5,6 @@ import typing as t
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
-from app.exceptions import SENTRY_IGNORED_EXCEPTIONS
 from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
@@ -57,8 +56,10 @@ REDIS_URL = getenv("REDIS_URL", default=f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}
 
 task_default_queue = "midas_consents"
 
+AMQP_DSN = getenv("AMQP_DSN", "amqp://localhost:5672")
+
 RETRY_PERIOD = getenv("RETRY_PERIOD", default="1800", conv=int)
-broker_url = getenv("AMQP_DSN", "redis://redis:6379/0")
+broker_url = AMQP_DSN
 worker_enable_remote_control = False  # Disables pidbox exchanges
 task_serializer = "json"
 beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
@@ -74,20 +75,11 @@ SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
 SENTRY_DSN = getenv("SENTRY_DSN", required=False)
 SENTRY_ENV = getenv("SENTRY_ENV", required=False)
 if SENTRY_DSN:
-
-    def ignore_errors(event, hint):
-        if "exc_info" in hint:
-            exc_type, exc_value, tb = hint["exc_info"]
-            if isinstance(exc_value, SENTRY_IGNORED_EXCEPTIONS):
-                return None
-        return event
-
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration()],
         release=__version__,
-        before_send=ignore_errors,
     )
 
 PROPAGATE_EXCEPTIONS = True
@@ -112,3 +104,8 @@ PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
 PROMETHEUS_JOB = "midas"
 
 API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
+
+
+# olympus-messaging interface
+LOYALTY_REQUEST_QUEUE = getenv("LOYALTY_REQUEST_QUEUE", default="loyalty-request")
+LOYALTY_RESPONSE_QUEUE = getenv("LOYALTY_RESPONSE_QUEUE", default="loyalty-response")

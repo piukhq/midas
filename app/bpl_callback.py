@@ -10,10 +10,11 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 import settings
-from app import UnknownException, retry
+from app import retry
 from app.agents.exceptions import UNKNOWN, AgentError
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
+from app.exceptions import UnknownException
 from app.http_request import get_headers
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus

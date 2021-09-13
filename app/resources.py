@@ -1,5 +1,7 @@
 import json
+from uuid import uuid4
 
+import olympus_messaging
 import requests
 from flask import make_response, request
 from flask_restful import Resource, abort
@@ -14,8 +16,8 @@ from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
 from app.exceptions import AgentException, UnknownException
 from app.journeys.common import agent_login, get_agent_class
-from app.journeys.join import join_task
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
+from app.messaging import queue
 from app.publish import thread_pool_executor
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
@@ -109,19 +111,23 @@ class Balance(Resource):
 class Join(Resource):
     def post(self, scheme_slug):
         data = request.get_json()
-        scheme_account_id = int(data["scheme_account_id"])
-        user_info = {
-            "user_set": get_user_set_from_request(data),
-            "credentials": decrypt_credentials(request.get_json()["credentials"]),
-            "status": int(data["status"]),
-            "journey_type": int(data["journey_type"]),
-            "scheme_account_id": scheme_account_id,
-            "channel": data.get("channel", ""),
-        }
-        tid = request.headers.get("transaction")
+        scheme_account_id = str(data["scheme_account_id"])
 
-        log.debug("Creating join task for scheme account: {scheme_account_id}")
-        thread_pool_executor.submit(join_task, scheme_slug, user_info, tid)
+        log.debug(f"Creating join task for scheme account: {scheme_account_id}")
+
+        user_id = str(data["user_id"])
+
+        message = olympus_messaging.JoinApplication(
+            channel=data["channel"],
+            transaction_id=request.headers.get("X-Azure-Ref", uuid4().hex),
+            bink_user_id=user_id,
+            request_id=scheme_account_id,
+            loyalty_plan=scheme_slug,
+            account_id=scheme_account_id,
+            join_data=decrypt_credentials(data["credentials"]),
+        )
+
+        queue.enqueue_request(message)
 
         return create_response({"message": "success"})
 

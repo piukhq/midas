@@ -60,7 +60,13 @@ def get_aes_key(secret_name):
 
 
 def connect_to_vault():
-    return SecretClient(vault_url=settings.VAULT_URL, credential=DefaultAzureCredential())
+    kv_credential = DefaultAzureCredential(
+        exclude_environment_credential=True,
+        exclude_shared_token_cache_credential=True,
+        exclude_visual_studio_code_credential=True,
+        exclude_interactive_browser_credential=True,
+    )
+    return SecretClient(vault_url=settings.VAULT_URL, credential=kv_credential)
 
 
 class HashSHA1:

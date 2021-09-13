@@ -1,7 +1,7 @@
 import json
 from unittest import TestCase, mock
 
-from app import AgentException
+from app.exceptions import AgentException
 from app.scheme_account import (
     SchemeAccountStatus,
     delete_scheme_account,

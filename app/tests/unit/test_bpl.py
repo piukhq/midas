@@ -13,7 +13,7 @@ from app.agents.bpl import Trenette
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 settings.API_AUTH_ENABLED = False
-from app import create_app  # noqa
+from app.api import create_app  # noqa
 from app.bpl_callback import JoinCallbackBpl  # noqa
 
 data = {

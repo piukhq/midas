@@ -33,6 +33,7 @@ azure-oidc = "*"
 soteria = "*"
 gunicorn = "*"
 user-token-store = "*"
+olympus-messaging = "*"
 
 [dev-packages]
 black = "==21.6b0"

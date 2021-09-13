@@ -7,9 +7,10 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from soteria.configuration import Configuration
 
-from app import AgentException, UnknownException, retry
+from app import retry
 from app.agents.exceptions import SERVICE_CONNECTION_ERROR, UNKNOWN, AgentError, JoinError
 from app.encryption import hash_ids
+from app.exceptions import AgentException, UnknownException
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import authorise

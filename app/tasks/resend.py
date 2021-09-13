@@ -4,7 +4,7 @@ import json
 from redis import StrictRedis
 
 import settings
-from app import celery
+from app.api import celery
 
 
 @celery.task

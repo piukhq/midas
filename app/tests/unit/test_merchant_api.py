@@ -14,7 +14,6 @@ from requests import Response
 from soteria.configuration import Configuration, ConfigurationException
 
 import settings
-from app import create_app
 from app.agents.base import BaseMiner, MerchantApi
 from app.agents.exceptions import (
     CARD_NOT_REGISTERED,
@@ -33,6 +32,7 @@ from app.agents.exceptions import (
     UnauthorisedError,
     errors,
 )
+from app.api import create_app
 from app.back_off_service import BackOffService
 from app.journeys.join import agent_join
 from app.scheme_account import JourneyTypes, SchemeAccountStatus

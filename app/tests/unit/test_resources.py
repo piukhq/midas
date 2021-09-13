@@ -8,7 +8,7 @@ import arrow
 import httpretty
 from flask_testing import TestCase
 
-from app import AgentException, UnknownException, create_app, publish
+from app import publish
 from app.agents.base import BaseMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
@@ -23,10 +23,12 @@ from app.agents.exceptions import (
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
+from app.api import create_app
 from app.encryption import AESCipher
+from app.exceptions import AgentException, UnknownException
 from app.http_request import get_headers
 from app.journeys.common import agent_login
-from app.journeys.join import agent_join, join_task, log_task
+from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
@@ -57,13 +59,6 @@ class TestResources(TestCase):
         headers = get_headers("success")
 
         self.assertEqual(headers["transaction"], "success")
-
-    def test_log_task(self):
-        @log_task
-        def decorated(x):
-            return x
-
-        self.assertEqual(decorated.__name__, "logged_func")
 
     def test_balance_tuple_to_dict(self):
         balance_tuple = Balance(
@@ -336,8 +331,8 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {"message": 'Please provide either "user_set" or "user_id" parameters'})
 
     @mock.patch("app.resources.get_aes_key")
-    @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
-    def test_register_view(self, mock_pool, mock_get_aes_key):
+    @mock.patch("app.resources.queue.enqueue_request", autospec=True)
+    def test_register_view(self, mock_enqueue_request, mock_get_aes_key):
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
         url = "/harvey-nichols/register"
@@ -351,12 +346,12 @@ class TestResources(TestCase):
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
-        self.assertTrue(mock_pool.called)
+        self.assertTrue(mock_enqueue_request.called)
         self.assertEqual(response.json, {"message": "success"})
 
     @mock.patch("app.resources.get_aes_key")
-    @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
-    def test_join_view(self, mock_pool, mock_get_aes_key):
+    @mock.patch("app.resources.queue.enqueue_request", autospec=True)
+    def test_join_view(self, mock_enqueue_request, mock_get_aes_key):
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
         url = "/harvey-nichols/join"
@@ -370,7 +365,7 @@ class TestResources(TestCase):
         }
         response = self.client.post(url, data=json.dumps(data), content_type="application/json")
 
-        self.assertTrue(mock_pool.called)
+        self.assertTrue(mock_enqueue_request.called)
         self.assertEqual(response.json, {"message": "success"})
 
     @mock.patch.object(HarveyNichols, "join")
@@ -470,7 +465,7 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = join_task(scheme_slug, user_info, tid=None)
+        result = attempt_join(scheme_slug, user_info, tid=None)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -499,7 +494,7 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = join_task(scheme_slug, user_info, tid=None)
+        result = attempt_join(scheme_slug, user_info, tid=None)
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)

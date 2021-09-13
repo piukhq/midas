@@ -1,11 +1,8 @@
-import traceback
-
-import sentry_sdk
 from flask_restful import abort
 from werkzeug.exceptions import NotFound
 
 from app import publish
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, UNKNOWN, AgentError, LoginError, errors
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, AgentError, LoginError
 from app.agents.schemas import balance_tuple_to_dict
 from app.exceptions import AgentException, UnknownException
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
@@ -30,37 +27,7 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
     return {"agent": agent_instance, "error": error}
 
 
-def log_task(func):
-    def logged_func(*args, **kwargs):
-        try:
-            scheme_account_message = f" for scheme account: {args[1]['scheme_account_id']}"
-        except KeyError:
-            scheme_account_message = ""
-
-        try:
-            log.debug(f"Starting {func.__name__} task{scheme_account_message}")
-            result = func(*args, **kwargs)
-            log.debug(f"Finished {func.__name__} task{scheme_account_message}")
-        except Exception as e:
-            # If this is an UNKNOWN error, also log to sentry but first make this a more specific UnknownException
-            if isinstance(e, AgentException) and e.status_code == errors[UNKNOWN]["code"]:
-                try:
-                    raise UnknownException(scheme_account_message) from e
-                except UnknownException as ue:
-                    sentry_sdk.capture_exception(ue)
-
-            # Extract stack trace from exception
-            tb_str = "".join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))
-            log.debug(f"Error with {func.__name__} task{scheme_account_message}. error: {repr(e)}, traceback: {tb_str}")
-            raise
-
-        return result
-
-    return logged_func
-
-
-@log_task
-def join_task(scheme_slug, user_info, tid):
+def attempt_join(scheme_slug, user_info, tid):
     try:
         agent_class = get_agent_class(scheme_slug)
     except NotFound as e:
