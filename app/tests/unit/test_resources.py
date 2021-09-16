@@ -965,13 +965,13 @@ class TestResources(TestCase):
             "vouchers": [
                 {
                     "state": "inprogress",
-                    "type": 2,
+                    "type": 1,
                     "value": 123.45,
                     "target_value": None,
                 },
                 {
                     "state": "issued",
-                    "type": 2,
+                    "type": 1,
                     "issue_date": "1629385871",
                     "expiry_date": "1893456000",
                     "code": "1qv7lgUyUVMBkxK",

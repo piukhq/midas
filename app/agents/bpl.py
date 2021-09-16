@@ -134,7 +134,7 @@ class Trenette(BplBase):
                 code=voucher["voucher_code"],
                 target_value=None,
                 value=None,
-                type=VoucherType.STAMPS.value,
+                type=VoucherType.ACCUMULATOR.value,
                 state=voucher["status"],
             )
             for voucher in vouchers
@@ -162,7 +162,7 @@ class Trenette(BplBase):
             vouchers=[
                 Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
-                    type=VoucherType.STAMPS.value,
+                    type=VoucherType.ACCUMULATOR.value,
                     target_value=None,
                     value=balance,
                 ),
