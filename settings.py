@@ -6,7 +6,6 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 from app.version import __version__
-from app.exceptions import AgentException
 
 os.chdir(os.path.dirname(__file__))
 
@@ -81,7 +80,6 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration()],
         release=__version__,
-        ignore_errors=(AgentException("ACCOUNT_ALREADY_EXISTS"),),
     )
 
 PROPAGATE_EXCEPTIONS = True
