@@ -1,7 +1,7 @@
 import importlib
 import json
 
-from redis import StrictRedis
+from redis import Redis
 
 import settings
 from app.api import celery
@@ -21,7 +21,7 @@ class ReTryTaskStore:
         self.task_list = task_list
         self.retry_name = retry_name
         self.retry_results = retry_results
-        self.storage = StrictRedis.from_url(settings.REDIS_URL, charset="utf-8", decode_responses=True)
+        self.storage = Redis.from_url(settings.REDIS_URL, charset="utf-8", decode_responses=True)
 
     @property
     def length(self):

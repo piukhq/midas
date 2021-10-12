@@ -4,11 +4,12 @@ Handle our persistence of the retry counts
 from functools import wraps
 
 import redis.exceptions as redis_exceptions
-from flask_redis import FlaskRedis
+from redis import Redis
 
+import settings
 from app.agents.exceptions import SERVICE_CONNECTION_ERROR, AgentError
 
-redis = FlaskRedis()
+redis = Redis.from_url(settings.REDIS_URL)
 
 
 def redis_connection(func):

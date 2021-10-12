@@ -1485,8 +1485,8 @@ class TestMerchantApi(FlaskTestCase):
             self.assertIsNone(result)
 
 
-@mock.patch("redis.StrictRedis.get")
-@mock.patch("redis.StrictRedis.set")
+@mock.patch("redis.Redis.get")
+@mock.patch("redis.Redis.set")
 class TestBackOffService(TestCase):
     back_off = BackOffService()
 

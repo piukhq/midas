@@ -6,7 +6,6 @@ import settings
 from app.exceptions import AgentException, UnknownException
 from app.prometheus import PrometheusManager
 from app.reporting import get_logger
-from app.retry import redis
 
 celery = Celery(broker=settings.broker_url, config_source=settings)
 prometheus_manager = PrometheusManager()
@@ -21,7 +20,6 @@ def create_app(config_name="settings"):
     app.config.from_object(config_name)
 
     api.init_app(app)
-    redis.init_app(app)
 
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):

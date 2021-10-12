@@ -1,6 +1,6 @@
 import time
 
-from redis import StrictRedis
+from redis import Redis
 
 from app.retry import redis_connection
 from settings import REDIS_URL
@@ -11,7 +11,7 @@ class BackOffService:
         """
         Connect to the Redis database containing merchant API cool downs.
         """
-        self.storage = StrictRedis.from_url(REDIS_URL)
+        self.storage = Redis.from_url(REDIS_URL)
 
     @redis_connection
     def is_on_cooldown(self, scheme_slug, handler_type):
