@@ -55,8 +55,13 @@ class HarveyNichols(ApiMiner):
         for audit_log in req_audit_logs_copy:
             if audit_log.audit_log_type == AuditLogType.REQUEST and isinstance(audit_log.payload, Mapping):
                 try:
-                    audit_log.payload["CustomerSignUpRequest"]["password"] = aes.encrypt(
-                        audit_log.payload["CustomerSignUpRequest"]["password"]
+                    customer_request_type = (
+                        "CustomerSignUpRequest"
+                        if "CustomerSignUpRequest" in audit_log.payload.keys()
+                        else "CustomerSignOnRequest"
+                    )
+                    audit_log.payload[customer_request_type]["password"] = aes.encrypt(
+                        audit_log.payload[customer_request_type]["password"]
                     ).decode()
                 except KeyError as e:
                     log.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
