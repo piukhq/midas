@@ -11,9 +11,8 @@ from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 from flask_testing import TestCase as FlaskTestCase
 from redis import RedisError
 from requests import Response
-from soteria.configuration import Configuration, ConfigurationException
+from soteria.configuration import Configuration
 
-import settings
 from app.agents.base import BaseMiner, MerchantApi
 from app.agents.exceptions import (
     CARD_NOT_REGISTERED,
@@ -937,40 +936,6 @@ class TestMerchantApi(FlaskTestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    # TODO: update for new soteria
-    # @mock.patch('app.configuration.Configuration.get_security_credentials')
-    # @mock.patch('requests.get', autospec=True)
-    # def test_configuration_processes_data_correctly(self, mock_request, mock_get_security_creds):
-    #     mock_request.return_value.status_code = 200
-    #     mock_request.return_value.json.return_value = {
-    #         'id': 2,
-    #         'merchant_id': 'fake-merchant',
-    #         'merchant_url': '',
-    #         'handler_type': 1,
-    #         'integration_service': 1,
-    #         'callback_url': None,
-    #         'retry_limit': 0,
-    #         'log_level': 2,
-    #         'country': 'GB',
-    #         'security_credentials': self.config.security_credentials
-    #     }
-
-    #     mock_get_security_creds.return_value = self.config.security_credentials
-
-    #     expected = {
-    #         'handler_type': (1, 'JOIN'),
-    #         'integration_service': 'ASYNC',
-    #         'log_level': 'WARNING',
-    #         'country': 'GB',
-    #         'retry_limit': 0
-    #     }
-
-    #     c = Configuration('fake-merchant', Configuration.JOIN_HANDLER)
-
-    #     config_items = c.__dict__.items()
-    #     for item in expected.items():
-    #         self.assertIn(item, config_items)
-
     def test_open_auth_encode(self):
         json_data = json.dumps(
             OrderedDict([("message_uid", "123-123-123-123"), ("record_uid", "0XzkL39J4q2VolejRejNmGQBW71gPv58")])
@@ -1119,72 +1084,6 @@ class TestMerchantApi(FlaskTestCase):
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertEqual(response.status_code, 520)
-
-    @mock.patch("requests.get", autospec=True)
-    def test_config_service_handles_connection_error(self, mock_request):
-        mock_request.side_effect = requests.ConnectionError
-
-        with self.assertRaises(ConfigurationException) as e:
-            Configuration("", 1, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
-
-        self.assertEqual(e.exception.args[0], "Failed to connect to configuration service.")
-
-    def test_vault_connection_error_is_handled(self):
-        with self.assertRaises(ConfigurationException) as e:
-            Configuration(
-                "", 0, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
-            ).get_security_credentials([{"storage_key": "value"}])
-
-        self.assertEqual(e.exception.args[0], "Failed to connect to configuration service.")
-
-    # TODO: update for new soteria
-    # @mock.patch('requests.get', autospec=True)
-    # @mock.patch('hvac.Client.read')
-    # def test_vault_credentials_not_found_raises_error(self, mock_client, mock_request):
-    #     mock_request.return_value.status_code = 200
-    #     mock_request.return_value.json.return_value = {
-    #         'id': 2,
-    #         'merchant_id': 'fake-merchant',
-    #         'merchant_url': '',
-    #         'handler_type': 1,
-    #         'integration_service': 1,
-    #         'callback_url': None,
-    #         'retry_limit': 0,
-    #         'log_level': 2,
-    #         'country': 'GB',
-    #         'security_credentials': self.config.security_credentials
-    #     }
-
-    #     # vault returns None type if there is nothing stored for the key provided
-    #     mock_client.side_effect = TypeError
-
-    #     with self.assertRaises(AgentError) as e:
-    #         Configuration(
-    #             'fake-merchant',
-    #             Configuration.JOIN_HANDLER
-    #         ).get_security_credentials([{'storage_key': 'value'}])
-
-    #     self.assertEqual(e.exception.code, errors[CONFIGURATION_ERROR]['code'])
-    #     self.assertEqual(e.exception.message, 'Could not locate security credentials in vault.')
-
-    @mock.patch("requests.get", autospec=True)
-    def test_exception_is_raised_if_credentials_not_in_vault(self, mock_request):
-        mock_request.return_value.status_code = 200
-        mock_request.return_value.json.return_value = {
-            "id": 2,
-            "merchant_id": "fake-merchant",
-            "merchant_url": "",
-            "handler_type": 1,
-            "integration_service": 1,
-            "callback_url": None,
-            "retry_limit": 0,
-            "log_level": 2,
-            "country": "GB",
-            "security_credentials": self.config.security_credentials,
-        }
-
-        with self.assertRaises(ConfigurationException):
-            Configuration("", 1, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL)
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.retry", autospec=True)
