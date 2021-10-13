@@ -25,7 +25,10 @@ class TaskConsumer(ConsumerMixin):
         return [Consumer(queues=[self.loyalty_request_queue], callbacks=[self.on_message])]
 
     def on_message(self, body: dict, message: kombu.Message) -> None:
-        self.dispatcher.dispatch(build_message(message.headers, body))
+        try:
+            self.dispatcher.dispatch(build_message(message.headers, body))
+        finally:
+            message.ack()
 
     def on_join_application(self, message: Message) -> None:
         message = cast(JoinApplication, message)
@@ -43,5 +46,3 @@ class TaskConsumer(ConsumerMixin):
         except AgentException as ex:  # we don't want AgentExceptions to go to Sentry
             log.warning(f"attempt_join raised {repr(ex)}")
             return
-
-        message.ack()
