@@ -5,7 +5,7 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
 from app.encoding import JsonEncoder
 from app.exceptions import AgentException
 from app.http_request import get_headers
@@ -112,7 +112,7 @@ def update_pending_join_account(
     )
 
     if raise_exception:
-        raise AgentException(message)
+        raise AgentException(JoinError(message))
 
 
 def update_pending_link_account(user_info, message, tid, scheme_slug=None, raise_exception=True):
@@ -140,7 +140,7 @@ def update_pending_link_account(user_info, message, tid, scheme_slug=None, raise
     )
 
     if raise_exception:
-        raise AgentException(message)
+        raise AgentException(LoginError(message))
 
 
 def remove_pending_consents(consent_ids, headers):
