@@ -24,7 +24,7 @@ def create_app(config_name="settings"):
     @app.errorhandler(AgentException)
     def agent_error_request_handler(error):
         error = error.args[0]
-        log.exception(error.message)
+        log.warning(error.message)
 
         response = jsonify({"message": error.message, "code": error.code, "name": error.name})
         response.status_code = error.code
