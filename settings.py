@@ -4,6 +4,7 @@ import typing as t
 
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 
 from app.version import __version__
 
@@ -78,7 +79,7 @@ if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=SENTRY_ENV,
-        integrations=[FlaskIntegration()],
+        integrations=[FlaskIntegration(), RedisIntegration()],
         release=__version__,
     )
 
