@@ -8,6 +8,7 @@ import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
+from urllib.parse import urljoin
 
 import settings
 from app.agents.base import ApiMiner, Balance, Transaction
@@ -31,10 +32,6 @@ log = get_logger("harvey-nichols-agent")
 
 
 class HarveyNichols(ApiMiner):
-    BASE_URL = "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty"
-    CONSENTS_URL = "https://hn_sso.harveynichols.com/preferences/create"
-    HAS_LOYALTY_ACCOUNT_URL = "https://hn_sso.harveynichols.com/user/hasloyaltyaccount"
-
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"  # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10  # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents
@@ -42,6 +39,16 @@ class HarveyNichols(ApiMiner):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        slugs = [scheme_slug, "harvey-nichols-sso"]
+        configurations = [
+            Configuration(
+                slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
+            )
+            for slug in slugs
+        ]
+
+        self.BASE_URL = configurations[0].merchant_url
+        self.HN_SSO_URL = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
         self.audit_logger.filter_fields = self.encrypt_sensitive_fields
 
@@ -74,13 +81,14 @@ class HarveyNichols(ApiMiner):
 
         Don't go any further unless the account is valid
         """
+        has_loyalty_account_url = urljoin(self.HN_SSO_URL, "user/hasloyaltyaccount")
         message_uid = str(uuid4())
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
         record_uid = hash_ids.encode(self.scheme_id)
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         payload = deepcopy(data)
-        payload["url"] = self.HAS_LOYALTY_ACCOUNT_URL
+        payload["url"] = has_loyalty_account_url
         payload["password"] = "********"
 
         self.audit_logger.add_request(
@@ -92,9 +100,7 @@ class HarveyNichols(ApiMiner):
             integration_service=integration_service,
         )
 
-        response = self.make_request(
-            self.HAS_LOYALTY_ACCOUNT_URL, method="post", headers=headers, timeout=10, json=data
-        )
+        response = self.make_request(has_loyalty_account_url, method="post", headers=headers, timeout=10, json=data)
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -396,10 +402,10 @@ class HarveyNichols(ApiMiner):
                     "Accept": "application/json",
                     "Auth-key": self.CONSENTS_AUTH_KEY,
                 }
-
+                consents_url = urljoin(self.HN_SSO_URL, "preferences/create")
                 send_consents(
                     {
-                        "url": self.CONSENTS_URL,  # set to scheme url for the agent to accept consents
+                        "url": consents_url,  # set to scheme url for the agent to accept consents
                         "headers": headers,  # headers used for agent consent call
                         "message": json.dumps(hn_post_message),  # set to message body encoded as required
                         "agent_tries": self.AGENT_TRIES,  # max number of attempts to send consents to agent
