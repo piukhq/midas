@@ -1,6 +1,7 @@
 import json
 import unittest
 from unittest import mock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from soteria.configuration import Configuration
@@ -66,6 +67,12 @@ def mocked_requests_post_200_on_lastretry(*args, **kwargs):
     return MockResponse(None, 400)
 
 
+def mocked_hn_configuration(*args, **kwargs):
+    conf = MagicMock()
+    conf.merchant_url = "http://hn.test"
+    return conf
+
+
 def mocked_requests_post_400(*args, **kwargs):
     return MockResponse(None, 400)
 
@@ -110,8 +117,9 @@ class TestUserConsents(unittest.TestCase):
         settings.CELERY_ALWAYS_EAGER = False
 
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_join)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.audit.AuditLogger.send_to_atlas")
-    def test_harvey_nick_mock_join(self, mock_make_request, mock_atlas):
+    def test_harvey_nick_mock_join(self, mock_make_request, mock_config, mock_atlas):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -131,8 +139,9 @@ class TestUserConsents(unittest.TestCase):
         self.assertTrue(mock_atlas.called)
 
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_has_loyalty_account)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.audit.AuditLogger.send_to_atlas")
-    def test_check_loyalty_account_valid(self, mock_make_request, mock_atlas):
+    def test_check_loyalty_account_valid(self, mock_make_request, mock_config, mock_atlas):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -186,9 +195,10 @@ class TestUserConsents(unittest.TestCase):
             status_code=mock_harvey_nick_join().status_code,
         )
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.harvey_nichols.get_aes_key")
     @mock.patch("requests.Session.post")
-    def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request, mock_get_aes_key):
+    def test_harvey_nick_send_to_atlas_success(self, mock_atlas_request, mock_get_aes_key, mock_config):
         local_aes_key = "testing1234567898765432345674562"
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         mock_get_aes_key.return_value = local_aes_key.encode()
@@ -207,8 +217,9 @@ class TestUserConsents(unittest.TestCase):
                 password = aes.decrypt(log["payload"]["CustomerSignUpRequest"]["password"])
                 self.assertEqual(password, "testPassword")
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("requests.Session.post")
-    def test_harvey_nick_send_to_atlas_only_sends_for_specified_journeys(self, mock_atlas_request):
+    def test_harvey_nick_send_to_atlas_only_sends_for_specified_journeys(self, mock_atlas_request, mock_config):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
 
@@ -226,10 +237,11 @@ class TestUserConsents(unittest.TestCase):
         hn.audit_logger.send_to_atlas()
         self.assertTrue(mock_atlas_request.called)
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put):
+    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_config):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -257,10 +269,11 @@ class TestUserConsents(unittest.TestCase):
         self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_200_ok)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put):
+    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_config):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -288,6 +301,7 @@ class TestUserConsents(unittest.TestCase):
         self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.audit.AuditLogger.add_request")
     @mock.patch("app.audit.AuditLogger.add_response")
     @mock.patch("app.audit.AuditLogger.send_to_atlas")
@@ -296,7 +310,15 @@ class TestUserConsents(unittest.TestCase):
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200_on_lastretry)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
     def test_harvey_nick_mock_login_retry(
-        self, mock_login, mock_post, mock_put, mock_retry, mock_send_to_atlas, mock_add_response, mock_add_request
+        self,
+        mock_login,
+        mock_post,
+        mock_put,
+        mock_retry,
+        mock_send_to_atlas,
+        mock_add_response,
+        mock_add_request,
+        mock_config,
     ):
         global saved_consents_data
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
@@ -350,6 +372,7 @@ class TestUserConsents(unittest.TestCase):
         self.assertTrue(mock_add_response.called)
         self.assertTrue(mock_send_to_atlas.called)
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.audit.AuditLogger.add_request")
     @mock.patch("app.audit.AuditLogger.add_response")
     @mock.patch("app.audit.AuditLogger.send_to_atlas")
@@ -358,7 +381,15 @@ class TestUserConsents(unittest.TestCase):
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
     def test_harvey_nick_mock_login_agent_fails(
-        self, mock_login, mock_post, mock_put, mock_retry, mock_send_to_atlas, mock_add_response, mock_add_request
+        self,
+        mock_login,
+        mock_post,
+        mock_put,
+        mock_retry,
+        mock_send_to_atlas,
+        mock_add_response,
+        mock_add_request,
+        mock_config,
     ):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
@@ -429,9 +460,10 @@ class TestLoginJourneyTypes(unittest.TestCase):
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
         self.hn.token_store = MockStore()
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_join_journey(self, mock_make_request, mock_send_consents):
+    def test_login_join_journey(self, mock_make_request, mock_send_consents, mock_config):
         self.hn.scheme_id = 101
         self.hn.journey_type = JourneyTypes.UPDATE.value
         mock_make_request.side_effect = [
@@ -447,9 +479,10 @@ class TestLoginJourneyTypes(unittest.TestCase):
             mock_make_request.call_args_list[0][0][0],
         )
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_update_journey(self, mock_make_request, mock_send_consents):
+    def test_login_update_journey(self, mock_make_request, mock_send_consents, mock_config):
         credentials = self.credentials.copy()
         credentials["card_number"] = "card number"
         self.hn.scheme_id = 101
@@ -468,9 +501,10 @@ class TestLoginJourneyTypes(unittest.TestCase):
         )
         self.assertEqual("1234", self.hn.token)
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents):
+    def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents, mock_config):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.token_store = MockStore()
 
@@ -496,9 +530,12 @@ class TestLoginJourneyTypes(unittest.TestCase):
             mock_make_request.call_args_list[1][0][0],
         )
 
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_add_journey_loyalty_account_check_no_cached_token(self, mock_make_request, mock_send_consents):
+    def test_login_add_journey_loyalty_account_check_no_cached_token(
+        self, mock_make_request, mock_send_consents, mock_config
+    ):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.scheme_id = 101
         for i, msg in enumerate(["Not found", "User details not authenticated"]):  # Web account only  # Bad credentials
@@ -508,9 +545,12 @@ class TestLoginJourneyTypes(unittest.TestCase):
                 "https://hn_sso.harveynichols.com/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0]
             )
 
-    @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_add_journey_loyaly_account_check_token_cached(self, mock_make_request, mock_send_consents):
+    @mock.patch("app.tasks.resend_consents.send_consents")
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    def test_login_add_journey_loyaly_account_check_token_cached(
+        self, mock_make_request, mock_send_consents, mock_config
+    ):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.scheme_id = 101
         self.hn.token_store.set(self.hn.scheme_id, "a token")

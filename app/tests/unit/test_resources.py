@@ -3,6 +3,7 @@ import time
 from decimal import Decimal
 from typing import Optional
 from unittest import mock
+from unittest.mock import MagicMock
 
 import arrow
 import httpretty
@@ -42,6 +43,11 @@ local_aes_key = "testing1234567898765432345674562"
 def encrypted_credentials():
     aes = AESCipher(local_aes_key.encode())
     return aes.encrypt(json.dumps({})).decode()
+
+
+def mocked_hn_configuration(*args, **kwargs):
+    conf = MagicMock()
+    return conf
 
 
 class TestResources(TestCase):
@@ -369,8 +375,9 @@ class TestResources(TestCase):
         self.assertEqual(response.json, {"message": "success"})
 
     @mock.patch.object(HarveyNichols, "join")
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-    def test_agent_join_success(self, mock_update_pending_join_account, mock_join):
+    def test_agent_join_success(self, mock_update_pending_join_account, hn_mock, mock_join):
         mock_join.return_value = {"message": "success"}
         user_info = {
             "metadata": {},
@@ -390,8 +397,9 @@ class TestResources(TestCase):
         self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
     @mock.patch.object(HarveyNichols, "join")
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail(self, mock_update_pending_join_account, mock_join):
+    def test_agent_join_fail(self, mock_update_pending_join_account, hn_mock, mock_join):
         mock_join.side_effect = JoinError(STATUS_REGISTRATION_FAILED)
         mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
         user_info = {
@@ -413,8 +421,9 @@ class TestResources(TestCase):
         self.assertTrue(consent_data_sent, [1])
 
     @mock.patch.object(HarveyNichols, "join")
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail_account_exists(self, mock_update_pending_join_account, mock_join):
+    def test_agent_join_fail_account_exists(self, mock_update_pending_join_account, hn_mock, mock_join):
         mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
         user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
         result = agent_join(HarveyNichols, user_info, {}, "")
@@ -443,8 +452,10 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def test_join(
         self,
+        hn_mock,
         mock_update_pending_join_account,
         mock_agent_login,
         mock_agent_join,
@@ -479,7 +490,10 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
-    def test_join_already_exists_fail(self, mock_agent_login, mock_agent_join, mock_update_pending_join_account):
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    def test_join_already_exists_fail(
+        self, hn_mock, mock_agent_login, mock_agent_join, mock_update_pending_join_account
+    ):
         mock_agent_join.return_value = {
             "agent": HarveyNichols(0, {"scheme_account_id": "1", "status": None, "channel": "com.bink.wallet"}),
             "error": ACCOUNT_ALREADY_EXISTS,
@@ -501,8 +515,9 @@ class TestResources(TestCase):
         self.assertEqual(result, True)
 
     @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_success(self, mock_login, mock_retry):
+    def test_agent_login_success(self, mock_login, hn_mock, mock_retry):
         mock_login.return_value = {"message": "success"}
 
         agent_login(
@@ -518,8 +533,9 @@ class TestResources(TestCase):
         self.assertTrue(mock_login.called)
 
     @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_system_fail_(self, mock_login, mock_retry):
+    def test_agent_login_system_fail_(self, mock_login, hn_mock, mock_retry):
         mock_login.side_effect = AgentError(NO_SUCH_RECORD)
         user_info = {"scheme_account_id": 1, "credentials": {}, "status": "", "channel": "com.bink.wallet"}
         with self.assertRaises(AgentError):
@@ -527,8 +543,9 @@ class TestResources(TestCase):
         self.assertTrue(mock_login.called)
 
     @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_user_fail_(self, mock_login, mock_retry):
+    def test_agent_login_user_fail_(self, mock_login, hn_mock, mock_retry):
         mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):

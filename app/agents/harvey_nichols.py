@@ -2,13 +2,13 @@ import json
 from copy import deepcopy
 from decimal import Decimal
 from typing import Mapping, Optional
+from urllib.parse import urljoin
 from uuid import uuid4
 
 import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
-from urllib.parse import urljoin
 
 import settings
 from app.agents.base import ApiMiner, Balance, Transaction
