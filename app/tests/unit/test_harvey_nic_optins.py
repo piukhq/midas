@@ -237,11 +237,12 @@ class TestUserConsents(unittest.TestCase):
         hn.audit_logger.send_to_atlas()
         self.assertTrue(mock_atlas_request.called)
 
+    @mock.patch("app.audit.AuditLogger.send_to_atlas")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_config):
+    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_config, mock_atlas):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -257,7 +258,7 @@ class TestUserConsents(unittest.TestCase):
             ],
         }
         hn._login(credentials)
-        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
             '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
@@ -269,11 +270,12 @@ class TestUserConsents(unittest.TestCase):
         self.assertIn("/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
         self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
 
+    @mock.patch("app.audit.AuditLogger.send_to_atlas")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_200_ok)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_config):
+    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_config, mock_atlas):
         user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
@@ -289,7 +291,7 @@ class TestUserConsents(unittest.TestCase):
             ],
         }
         hn._login(credentials)
-        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
             '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
@@ -340,7 +342,7 @@ class TestUserConsents(unittest.TestCase):
         settings.PUSH_PROMETHEUS_METRICS = False
 
         hn._login(credentials)
-        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
             '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
@@ -409,7 +411,8 @@ class TestUserConsents(unittest.TestCase):
         settings.PUSH_PROMETHEUS_METRICS = False
 
         hn._login(credentials)
-        self.assertEqual("https://hn_sso.harveynichols.com/preferences/create", mock_post.call_args_list[0][0][0])
+        print("THIS IS MOCK POST CALL ARGS LIST", mock_post.call_args_list[0][0][0])
+        self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
             '{"enactor_id": "2601507998647", "email_optin": true, "push_optin": false}',
