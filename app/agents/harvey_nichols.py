@@ -47,8 +47,8 @@ class HarveyNichols(ApiMiner):
             for slug in slugs
         ]
 
-        self.BASE_URL = configurations[0].merchant_url
-        self.HN_SSO_URL = configurations[1].merchant_url
+        self.base_url = configurations[0].merchant_url
+        self.hn_sso_url = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
         self.audit_logger.filter_fields = self.encrypt_sensitive_fields
 
@@ -81,7 +81,7 @@ class HarveyNichols(ApiMiner):
 
         Don't go any further unless the account is valid
         """
-        has_loyalty_account_url = urljoin(self.HN_SSO_URL, "user/hasloyaltyaccount")
+        has_loyalty_account_url = urljoin(self.hn_sso_url, "user/hasloyaltyaccount")
         message_uid = str(uuid4())
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
@@ -167,7 +167,7 @@ class HarveyNichols(ApiMiner):
             self._login(credentials)
 
     def call_balance_url(self):
-        url = self.BASE_URL + "/GetProfile"
+        url = self.base_url + "/GetProfile"
         data = {"CustomerLoyaltyProfileRequest": {"token": self.token, "customerNumber": self.customer_number}}
         log.info(
             f"Call Harvey Nichols GetProfile, token ending: {self.token[-4:]},"
@@ -205,7 +205,7 @@ class HarveyNichols(ApiMiner):
         )
 
     def call_transaction_url(self):
-        url = self.BASE_URL + "/ListTransactions"
+        url = self.base_url + "/ListTransactions"
         from_date = arrow.get("2001/01/01").format("YYYY-MM-DDTHH:mm:ssZ")
         to_date = arrow.utcnow().format("YYYY-MM-DDTHH:mm:ssZ")
         data = {
@@ -262,7 +262,7 @@ class HarveyNichols(ApiMiner):
     def join(self, credentials):
         message_uid = str(uuid4())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
-        url = self.BASE_URL + "/SignUp"
+        url = self.base_url + "/SignUp"
         data = {
             "CustomerSignUpRequest": {
                 "username": credentials["email"],
@@ -326,7 +326,7 @@ class HarveyNichols(ApiMiner):
         Retrieves user token and customer number, saving token in user token redis db.
         """
         message_uid = str(uuid4())
-        url = self.BASE_URL + "/SignOn"
+        url = self.base_url + "/SignOn"
         data = {
             "CustomerSignOnRequest": {
                 "username": credentials["email"],
@@ -402,7 +402,7 @@ class HarveyNichols(ApiMiner):
                     "Accept": "application/json",
                     "Auth-key": self.CONSENTS_AUTH_KEY,
                 }
-                consents_url = urljoin(self.HN_SSO_URL, "preferences/create")
+                consents_url = urljoin(self.hn_sso_url, "preferences/create")
                 send_consents(
                     {
                         "url": consents_url,  # set to scheme url for the agent to accept consents
