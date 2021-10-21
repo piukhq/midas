@@ -538,9 +538,13 @@ class TestLoginJourneyTypes(unittest.TestCase):
             self.assertRaises(LoginError, self.hn.login, self.credentials)
             self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0])
 
-    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
     @mock.patch("app.tasks.resend_consents.send_consents")
-    def test_login_add_journey_loyaly_account_check_token_cached(self, mock_make_request, mock_send_consents):
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
+    @mock.patch("app.agents.harvey_nichols.signal")
+    def test_login_add_journey_loyaly_account_check_token_cached(
+        self, mock_signals, mock_make_request, mock_send_consents
+    ):
+        mock_signals.return_value.send = MagicMock()
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.scheme_id = 101
         self.hn.token_store.set(self.hn.scheme_id, "a token")
