@@ -540,9 +540,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
     @mock.patch("app.tasks.resend_consents.send_consents")
-    def test_login_add_journey_loyaly_account_check_token_cached(
-        self, mock_make_request, mock_send_consents, mock_config
-    ):
+    def test_login_add_journey_loyaly_account_check_token_cached(self, mock_make_request, mock_send_consents):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.scheme_id = 101
         self.hn.token_store.set(self.hn.scheme_id, "a token")
