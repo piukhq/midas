@@ -411,7 +411,6 @@ class TestUserConsents(unittest.TestCase):
         settings.PUSH_PROMETHEUS_METRICS = False
 
         hn._login(credentials)
-        print("THIS IS MOCK POST CALL ARGS LIST", mock_post.call_args_list[0][0][0])
         self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
@@ -454,7 +453,8 @@ class TestLoginJourneyTypes(unittest.TestCase):
     Don't allow this during LINK journey.
     """
 
-    def setUp(self):
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    def setUp(self, mock_config):
         self.credentials = {
             "email": "mytest@localhost.com",
             "password": "12345",
@@ -463,10 +463,9 @@ class TestLoginJourneyTypes(unittest.TestCase):
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
         self.hn.token_store = MockStore()
 
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_join_journey(self, mock_make_request, mock_send_consents, mock_config):
+    def test_login_join_journey(self, mock_make_request, mock_send_consents):
         self.hn.scheme_id = 101
         self.hn.journey_type = JourneyTypes.UPDATE.value
         mock_make_request.side_effect = [
@@ -478,14 +477,13 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
         self.hn.login(self.credentials)
         self.assertEqual(
-            "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn",
+            "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
         )
 
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_update_journey(self, mock_make_request, mock_send_consents, mock_config):
+    def test_login_update_journey(self, mock_make_request, mock_send_consents):
         credentials = self.credentials.copy()
         credentials["card_number"] = "card number"
         self.hn.scheme_id = 101
@@ -499,15 +497,14 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
         self.hn.login(credentials)
         self.assertEqual(
-            "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn",
+            "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
         )
         self.assertEqual("1234", self.hn.token)
 
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents, mock_config):
+    def test_login_add_journey_loyalty_account_check_valid(self, mock_make_request, mock_send_consents):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.token_store = MockStore()
 
@@ -522,35 +519,27 @@ class TestLoginJourneyTypes(unittest.TestCase):
         ]
 
         self.hn.login(self.credentials)
-        self.assertEqual(
-            "https://hn_sso.harveynichols.com/user/hasloyaltyaccount", mock_make_request.call_args_list[0][0][0]
-        )
+        self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[0][0][0])
         self.assertEqual(mock_make_request.call_args_list[0][1]["headers"], {"Accept": "application/json"})
         submitted_json = mock_make_request.call_args_list[0][1]["json"]
         self.assertEqual(submitted_json, self.credentials)
         self.assertEqual(
-            "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn",
+            "http://hn.test/SignOn",
             mock_make_request.call_args_list[1][0][0],
         )
 
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
-    def test_login_add_journey_loyalty_account_check_no_cached_token(
-        self, mock_make_request, mock_send_consents, mock_config
-    ):
+    def test_login_add_journey_loyalty_account_check_no_cached_token(self, mock_make_request, mock_send_consents):
         self.hn.journey_type = JourneyTypes.LINK.value
         self.hn.scheme_id = 101
         for i, msg in enumerate(["Not found", "User details not authenticated"]):  # Web account only  # Bad credentials
             mock_make_request.side_effect = [MockResponse({"auth_resp": {"message": msg, "status_code": "404"}}, 200)]
             self.assertRaises(LoginError, self.hn.login, self.credentials)
-            self.assertEqual(
-                "https://hn_sso.harveynichols.com/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0]
-            )
+            self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0])
 
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
     @mock.patch("app.tasks.resend_consents.send_consents")
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def test_login_add_journey_loyaly_account_check_token_cached(
         self, mock_make_request, mock_send_consents, mock_config
     ):
@@ -571,6 +560,6 @@ class TestLoginJourneyTypes(unittest.TestCase):
             self.fail("Unexpected LoginError (JourneyType: LINK)")
 
         self.assertEqual(
-            "https://loyalty.harveynichols.com/WebCustomerLoyalty/services/CustomerLoyalty/SignOn",
+            "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
         )
