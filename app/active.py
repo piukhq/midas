@@ -15,4 +15,5 @@ AGENTS = {
     "whsmith-rewards-mock": "mock_agents.MockAgentWHS",
     "wasabi-club": "acteol.Wasabi",
     "bpl-trenette": "bpl.Trenette",
+    "squaremeal-restaurant-rewards": "squaremeal.Squaremeal",
 }
