@@ -16,7 +16,8 @@ from app.agents.exceptions import (
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
 
-log = get_logger('squaremeal-restaurant-rewards')
+log = get_logger("squaremeal-restaurant-rewards")
+
 
 class Squaremeal(ApiMiner):
     token_store = UserTokenStore(settings.REDIS_URL)
@@ -39,7 +40,7 @@ class Squaremeal(ApiMiner):
 
     def authenticate(self):
         have_valid_token = False
-        current_timestamp = arrow.utcnow().int_timestamp,
+        current_timestamp = (arrow.utcnow().int_timestamp,)
         token = {}
         try:
             token = json.loads(self.token_store.get(self.scheme_id))
@@ -48,7 +49,7 @@ class Squaremeal(ApiMiner):
                     have_valid_token = True
             except (KeyError, TypeError) as ex:
                 log.exception(ex)
-        except(KeyError, self.token_store.NoSuchToken):
+        except (KeyError, self.token_store.NoSuchToken):
             pass
 
         if not have_valid_token:
@@ -63,7 +64,7 @@ class Squaremeal(ApiMiner):
             "grant_type": "client_credentials",
             "client_secret": settings.AZURE_SM_CLIENT_SECRET,
             "client_id": settings.AZURE_SM_CLIENT_ID,
-            "scope": settings.AZURE_SM_SCOPE
+            "scope": settings.AZURE_SM_SCOPE,
         }
         resp = requests.post(url, data=payload)
         token = resp.json()["access_token"]
@@ -90,7 +91,7 @@ class Squaremeal(ApiMiner):
             "password": credentials["password"],
             "FirstName": credentials["first_name"],
             "LastName": credentials["last_name"],
-            "Source": self.channel
+            "Source": self.channel,
         }
         try:
             resp = self.make_request(url, method="post", json=payload)
@@ -102,10 +103,7 @@ class Squaremeal(ApiMiner):
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
             url = f"{self.base_url}update/newsletters/{user_id}"
-            payload = [{
-                "Newsletter": "Weekly restaurants and bars news",
-                "Subscription": "true"
-            }]
+            payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": "true"}]
             try:
                 self.make_request(url, method="put", json=payload)
             except Exception as ex:
@@ -117,10 +115,7 @@ class Squaremeal(ApiMiner):
 
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {
-            "email": credentials["email"],
-            "password": credentials["password"]
-        }
+        payload = {"email": credentials["email"], "password": credentials["password"]}
         try:
             resp = self.make_request(url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
@@ -129,7 +124,7 @@ class Squaremeal(ApiMiner):
         membership_data = resp.json()
         self.identifier = {
             "merchant_identifier": membership_data["UserId"],
-            "card_number": membership_data["MembershipNumber"]
+            "card_number": membership_data["MembershipNumber"],
         }
         self.user_info["credentials"].update(self.identifier)
 
@@ -140,7 +135,7 @@ class Squaremeal(ApiMiner):
         return Transaction(
             date=transaction["ConfirmedDate"],
             points=transaction["AwardedPoints"],
-            description=transaction["EarnReason"]
+            description=transaction["EarnReason"],
         )
 
     def balance(self):
@@ -161,4 +156,3 @@ class Squaremeal(ApiMiner):
             value_label="",
             reward_tier=tier,
         )
-
