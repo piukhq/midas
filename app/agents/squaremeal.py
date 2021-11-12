@@ -1,5 +1,7 @@
-from soteria.configuration import Configuration
 import settings
+
+from soteria.configuration import Configuration
+
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     GENERAL_ERROR,
@@ -21,9 +23,10 @@ class SquaremealBase(ApiMiner):
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
         self.secondary_key = str(config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"])
+        self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.headers = {"Authorization": "", "Secondary-Key": self.secondary_key}
+        self.headers = {"Authorization":"", "Secondary-Key": self.secondary_key}
 
 
 class Squaremeal(SquaremealBase):
@@ -38,7 +41,7 @@ class Squaremeal(SquaremealBase):
             "password": credentials["password"],
             "FirstName": credentials["first_name"],
             "LastName": credentials["last_name"],
-            "Source": "Bink"
+            "Source": self.channel
         }
         try:
             resp = self.make_request(url, method="post", json=payload)
