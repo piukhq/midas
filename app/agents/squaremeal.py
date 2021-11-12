@@ -18,7 +18,7 @@ from app.reporting import get_logger
 
 log = get_logger('squaremeal-restaurant-rewards')
 
-class SquaremealBase(ApiMiner):
+class Squaremeal(ApiMiner):
     token_store = UserTokenStore(settings.REDIS_URL)
     AUTH_TOKEN_TIMEOUT = 3599
 
@@ -80,11 +80,6 @@ class SquaremealBase(ApiMiner):
     def _token_is_valid(self, token, current_timestamp):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
-
-
-class Squaremeal(SquaremealBase):
-    def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
