@@ -98,7 +98,9 @@ HERMES_CONFIRMATION_TRIES = 10
 
 ENABLE_ICELAND_VALIDATE = getenv("ENABLE_ICELAND_VALIDATE", default="false", conv=boolconv)
 
-
+AZURE_SM_CLIENT_SECRET = getenv("AZUREM_SM_CLIENT_SECRET", default="")
+AZURE_SM_CLIENT_ID = getenv("AZURE_SM_CLIENT_ID", default="")
+AZURE_SM_SCOPE = getenv("AZURE_SM_SCOPE", default="")
 # Prometheus settings
 PUSH_PROMETHEUS_METRICS = getenv("PUSH_PROMETHEUS_METRICS", default="true", conv=boolconv)
 PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
