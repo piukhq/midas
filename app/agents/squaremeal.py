@@ -16,7 +16,7 @@ from app.agents.exceptions import (
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
 
-log = get_logger("squaremeal-restaurant-rewards")
+log = get_logger("squaremeal")
 
 
 class Squaremeal(ApiMiner):
@@ -34,6 +34,13 @@ class Squaremeal(ApiMiner):
         self.base_url = config.merchant_url
         self.auth_url = config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
         self.secondary_key = str(config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"])
+
+        self.azure_sm_client_secret = config.security_credentials["outbound"]["credentials"][0]["value"][
+            "client-secret"
+        ]
+        self.azure_sm_client_id = config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
+        self.azure_sm_scope = config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
+
         self.channel = user_info.get("channel", "Bink")
         self.journey_type = user_info["journey_type"]
         self.point_transactions = []
@@ -63,9 +70,9 @@ class Squaremeal(ApiMiner):
         url = self.auth_url
         payload = {
             "grant_type": "client_credentials",
-            "client_secret": settings.AZURE_SM_CLIENT_SECRET,
-            "client_id": settings.AZURE_SM_CLIENT_ID,
-            "scope": settings.AZURE_SM_SCOPE,
+            "client_secret": self.azure_sm_client_secret,
+            "client_id": self.azure_sm_client_id,
+            "scope": self.azure_sm_scope,
         }
         resp = requests.post(url, data=payload)
         token = resp.json()["access_token"]
@@ -118,7 +125,7 @@ class Squaremeal(ApiMiner):
                 self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
 
     def login(self, credentials):
-        # SM is not supposed to login as part of the JOIN journey
+        # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN:
             return
 
