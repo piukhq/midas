@@ -6,7 +6,7 @@ import json
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
-
+from app.scheme_account import JourneyTypes
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     GENERAL_ERROR,
@@ -35,6 +35,7 @@ class Squaremeal(ApiMiner):
         self.auth_url = config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
         self.secondary_key = str(config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"])
         self.channel = user_info.get("channel", "Bink")
+        self.journey_type = user_info["journey_type"]
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
@@ -99,6 +100,13 @@ class Squaremeal(ApiMiner):
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
 
+        membership_data = resp_json
+        self.identifier = {
+            "merchant_identifier": membership_data["UserId"],
+            "card_number": membership_data["MembershipNumber"],
+        }
+        self.user_info["credentials"].update(self.identifier)
+
         user_id = resp_json["UserId"]
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
@@ -110,23 +118,17 @@ class Squaremeal(ApiMiner):
                 self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
 
     def login(self, credentials):
-        if credentials.get("merchant_identifier"):
+        # SM is not supposed to login as part of the JOIN journey
+        if self.journey_type == JourneyTypes.JOIN:
             return
 
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
         try:
-            resp = self.make_request(url, method="post", json=payload)
+            self.make_request(url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
-
-        membership_data = resp.json()
-        self.identifier = {
-            "merchant_identifier": membership_data["UserId"],
-            "card_number": membership_data["MembershipNumber"],
-        }
-        self.user_info["credentials"].update(self.identifier)
 
     def scrape_transactions(self):
         return self.point_transactions
