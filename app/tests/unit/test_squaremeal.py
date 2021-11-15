@@ -1,13 +1,14 @@
+from app.agents.squaremeal import Squaremeal
+from app.api import create_app
+
+import arrow
 import json
+from flask_testing import TestCase
 from unittest import mock
 from unittest.mock import MagicMock
 import settings
-import arrow
-from flask_testing import TestCase
 
 settings.API_AUTH_ENABLED = False
-from app.agents.squaremeal import Squaremeal
-from app.api import create_app
 
 
 class TestSquaremeal(TestCase):
@@ -56,7 +57,7 @@ class TestSquaremeal(TestCase):
             )
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
 
-    @mock.patch("app.messaging.queue")
+    @mock.patch("app.resources.queue.enqueue_request")
     @mock.patch("app.resources.decrypt_credentials")
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     def test_join(self, mock_authenticate, mock_decrypt_credentials, mock_queue):
