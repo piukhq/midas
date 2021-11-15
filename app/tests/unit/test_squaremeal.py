@@ -56,11 +56,12 @@ class TestSquaremeal(TestCase):
             )
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
 
+    @mock.patch("app.messaging.queue")
     @mock.patch("app.resources.decrypt_credentials")
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
-    def test_join(self, mock_authenticate, mock_decrypt_credentials):
+    def test_join(self, mock_authenticate, mock_decrypt_credentials, mock_queue):
         mock_decrypt_credentials.return_value = self.credentials
-        url = "/squaremeal/register"
+        url = "/squaremeal-restaurant-rewards/register"
         data = {
             "scheme_account_id": 1,
             "credentials": self.security_credentials,
