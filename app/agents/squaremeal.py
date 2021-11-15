@@ -1,20 +1,16 @@
-import settings
-import requests
+import json
 
 import arrow
-import json
+import requests
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
-from app.scheme_account import JourneyTypes
+import settings
 from app.agents.base import ApiMiner
-from app.agents.exceptions import (
-    GENERAL_ERROR,
-    AgentError,
-    LoginError,
-)
+from app.agents.exceptions import GENERAL_ERROR, AgentError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 
 log = get_logger("squaremeal")
 

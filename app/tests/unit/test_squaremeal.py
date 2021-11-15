@@ -1,12 +1,13 @@
-from app.agents.squaremeal import Squaremeal
-from app.api import create_app
-
-import arrow
 import json
-from flask_testing import TestCase
 from unittest import mock
 from unittest.mock import MagicMock
+
+import arrow
+from flask_testing import TestCase
+
 import settings
+from app.agents.squaremeal import Squaremeal
+from app.api import create_app
 
 settings.API_AUTH_ENABLED = False
 
@@ -25,7 +26,7 @@ class TestSquaremeal(TestCase):
                             "secondary-key": "12345678",
                             "client-id": "123",
                             "client-secret": "123a6ba",
-                            "scope": "dunno"
+                            "scope": "dunno",
                         },
                     }
                 ]
