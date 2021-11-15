@@ -19,7 +19,13 @@ class TestSquaremeal(TestCase):
             "outbound": {
                 "credentials": [
                     {
-                        "value": {"url": "http://fake.com", "secondary-key": "12345678"},
+                        "value": {
+                            "url": "http://fake.com",
+                            "secondary-key": "12345678",
+                            "client-id": "123",
+                            "client-secret": "123a6ba",
+                            "scope": "dunno"
+                        },
                     }
                 ]
             }
