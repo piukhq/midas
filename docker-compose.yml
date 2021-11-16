@@ -1,4 +1,0 @@
-redis:
-    image: redis:3.0.3
-    ports:
-      - "6379:6379"
