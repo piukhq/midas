@@ -103,10 +103,9 @@ class Squaremeal(ApiMiner):
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
 
-        membership_data = resp_json
         self.identifier = {
-            "merchant_identifier": membership_data["UserId"],
-            "card_number": membership_data["MembershipNumber"],
+            "merchant_identifier": resp_json["UserId"],
+            "card_number": resp_json["MembershipNumber"],
         }
         self.user_info["credentials"].update(self.identifier)
 
@@ -144,8 +143,7 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
-        credentials = self.user_info["credentials"]
-        merchant_id = credentials["merchant_identifier"]
+        merchant_id = self.user_info["credentials"]["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         resp = self.make_request(url, method="get")
@@ -153,11 +151,9 @@ class Squaremeal(ApiMiner):
         points_data = resp.json()
         self.point_transactions = points_data["PointsActivity"]
 
-        total_points = points_data["TotalPoints"]
-        tier = points_data["LoyaltyTier"]
         return Balance(
-            points=total_points,
+            points=points_data["TotalPoints"],
             value=0,
             value_label="",
-            reward_tier=tier,
+            reward_tier=points_data["LoyaltyTier"],
         )
