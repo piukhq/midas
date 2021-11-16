@@ -98,6 +98,7 @@ HERMES_CONFIRMATION_TRIES = 10
 
 ENABLE_ICELAND_VALIDATE = getenv("ENABLE_ICELAND_VALIDATE", default="false", conv=boolconv)
 
+
 # Prometheus settings
 PUSH_PROMETHEUS_METRICS = getenv("PUSH_PROMETHEUS_METRICS", default="true", conv=boolconv)
 PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
