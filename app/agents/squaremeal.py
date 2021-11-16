@@ -109,10 +109,9 @@ class Squaremeal(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-        user_id = resp_json["UserId"]
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
-            url = f"{self.base_url}update/newsletters/{user_id}"
+            url = f"{0}update/newsletters/{1}".format(self.base_url, resp_json["user_id"])
             payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": "true"}]
             try:
                 self.make_request(url, method="put", json=payload)
