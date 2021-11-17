@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 import arrow
 import requests
@@ -10,7 +11,6 @@ from app.agents.base import ApiMiner
 from app.agents.exceptions import GENERAL_ERROR, AgentError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
-from app.scheme_account import JourneyTypes
 
 log = get_logger("squaremeal")
 
@@ -38,9 +38,9 @@ class Squaremeal(ApiMiner):
         self.azure_sm_scope = config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
 
         self.channel = user_info.get("channel", "Bink")
-        self.journey_type = user_info["journey_type"]
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.journey_type = config.handler_type[1]
 
     def authenticate(self):
         have_valid_token = False
@@ -111,7 +111,7 @@ class Squaremeal(ApiMiner):
 
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
-            url = f"{0}update/newsletters/{1}".format(self.base_url, resp_json["user_id"])
+            url = "{}update/newsletters/{}".format(self.base_url, resp_json["UserId"])
             payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": "true"}]
             try:
                 self.make_request(url, method="put", json=payload)
@@ -120,7 +120,7 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == JourneyTypes.JOIN:
+        if self.journey_type == "JOIN":
             return
 
         url = f"{self.base_url}login"
@@ -137,7 +137,7 @@ class Squaremeal(ApiMiner):
     def parse_transaction(self, transaction: dict):
         return Transaction(
             date=transaction["ConfirmedDate"],
-            points=transaction["AwardedPoints"],
+            points=Decimal(transaction["AwardedPoints"]),
             description=transaction["EarnReason"],
         )
 
@@ -151,7 +151,7 @@ class Squaremeal(ApiMiner):
         self.point_transactions = points_data["PointsActivity"]
 
         return Balance(
-            points=points_data["TotalPoints"],
+            points=Decimal(points_data["TotalPoints"]),
             value=0,
             value_label="",
             reward_tier=points_data["LoyaltyTier"],
