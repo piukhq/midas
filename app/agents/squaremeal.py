@@ -11,7 +11,6 @@ from app.agents.base import ApiMiner
 from app.agents.exceptions import GENERAL_ERROR, AgentError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
-from app.scheme_account import JourneyTypes
 
 log = get_logger("squaremeal")
 
