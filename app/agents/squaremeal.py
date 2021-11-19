@@ -11,9 +11,11 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
-    GENERAL_ERROR,
+    END_SITE_DOWN,
+    IP_BLOCKED,
     NO_SUCH_RECORD,
-    STATUS_LOGIN_FAILED,
+    SERVICE_CONNECTION_ERROR,
+    UNKNOWN,
     AgentError,
     JoinError,
     LoginError,
@@ -101,6 +103,34 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
+    def make_request(self, url, method="get", timeout=5, **kwargs):
+        """
+        Overrides the parent method make_request() in order to call signal events
+        """
+        # Combine the passed kwargs with our headers and timeout values.
+        args = {
+            "headers": self.headers,
+            "timeout": timeout,
+        }
+        args.update(kwargs)
+
+        try:
+            resp = requests.request(method, url=url, **args)
+        except requests.Timeout as exception:
+            raise AgentError(END_SITE_DOWN) from exception
+
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            if e.response.status_code == 401:
+                raise LoginError(SERVICE_CONNECTION_ERROR)
+            elif e.response.status_code == 403:
+                raise AgentError(IP_BLOCKED) from e
+            elif e.response.status_code not in [200, 201, 422]:
+                raise AgentError(UNKNOWN) from e
+
+        return resp
+
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
@@ -119,8 +149,6 @@ class Squaremeal(ApiMiner):
         resp = self.make_request(url, method="post", json=payload)
         if resp.status_code == 422:
             raise JoinError(ACCOUNT_ALREADY_EXISTS)
-        elif resp.status_code == 401:
-            raise JoinError(STATUS_LOGIN_FAILED)
 
         return resp.json()
 
@@ -135,8 +163,6 @@ class Squaremeal(ApiMiner):
         resp = self.make_request(url, method="put", json=payload)
         if resp.status_code == 422:
             raise AgentError(NO_SUCH_RECORD)
-        elif resp.status_code == 401:
-            raise LoginError(STATUS_LOGIN_FAILED)
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -150,8 +176,6 @@ class Squaremeal(ApiMiner):
         resp = self.make_request(url, method="post", json=payload)
         if resp.status_code == 422:
             raise AgentError(NO_SUCH_RECORD)
-        elif resp.status_code == 401:
-            raise LoginError(STATUS_LOGIN_FAILED)
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -163,38 +187,30 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}points/{merchant_id}"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         resp = self.make_request(url, method="get")
-        if resp.status == 422:
+        if resp.status_code == 422:
             raise AgentError(NO_SUCH_RECORD)
-        elif resp.status_code == 401:
-            raise LoginError(STATUS_LOGIN_FAILED)
 
         return resp.json()
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        try:
-            resp_json = self._create_account(credentials)
+        resp_json = self._create_account(credentials)
 
-            self.identifier = {
-                "merchant_identifier": resp_json["UserId"],
-                "card_number": resp_json["MembershipNumber"],
-            }
-            self.user_info["credentials"].update(self.identifier)
+        self.identifier = {
+            "merchant_identifier": resp_json["UserId"],
+            "card_number": resp_json["MembershipNumber"],
+        }
+        self.user_info["credentials"].update(self.identifier)
 
-            newsletter_optin = consents[0]["value"] if consents else False
-            if newsletter_optin:
-                self._update_newsletters()
-        except (LoginError, AgentError, JoinError) as ex:
-            self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+        newsletter_optin = consents[0]["value"] if consents else False
+        if newsletter_optin:
+            self._update_newsletters(resp_json["UserId"])
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == "JOIN":
             return
-        try:
-            self._login(credentials)
-        except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+        self._login(credentials)
 
     def scrape_transactions(self):
         return self.point_transactions
@@ -207,11 +223,8 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
-        try:
-            points_data = self._get_balance()
-            self.point_transactions = points_data["PointsActivity"]
-        except AgentError as ex:
-            self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+        points_data = self._get_balance()
+        self.point_transactions = points_data["PointsActivity"]
 
         return Balance(
             points=Decimal(points_data["TotalPoints"]),

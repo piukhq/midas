@@ -5,7 +5,7 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, SERVICE_CONNECTION_ERROR, UNKNOWN, JoinError, LoginError
 from app.encoding import JsonEncoder
 from app.exceptions import AgentException
 from app.http_request import get_headers
@@ -47,6 +47,7 @@ class SchemeAccountStatus:
     ENROL_FAILED = 901
     REGISTRATION_FAILED = 902
     ACCOUNT_ALREADY_EXISTS = 445
+    SERVICE_CONNECTION_ERROR = 537
 
 
 class JourneyTypes(IntEnum):
@@ -84,6 +85,10 @@ def update_pending_join_account(
     delete_data = {"all": True}
     if message == ACCOUNT_ALREADY_EXISTS:
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
+    elif message == SERVICE_CONNECTION_ERROR:
+        status = SchemeAccountStatus.SERVICE_CONNECTION_ERROR
+    elif message == UNKNOWN:
+        status = SchemeAccountStatus.UNKNOWN_ERROR
     elif card_number:
         status = SchemeAccountStatus.REGISTRATION_FAILED
         delete_data = {"keep_card_number": True}
