@@ -5,7 +5,14 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, SERVICE_CONNECTION_ERROR, UNKNOWN, JoinError, LoginError
+from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
+    NO_SUCH_RECORD,
+    SERVICE_CONNECTION_ERROR,
+    UNKNOWN,
+    JoinError,
+    LoginError,
+)
 from app.encoding import JsonEncoder
 from app.exceptions import AgentException
 from app.http_request import get_headers
@@ -65,6 +72,8 @@ def _get_status_and_delete_data(message, card_number=None):
         return SchemeAccountStatus.SERVICE_CONNECTION_ERROR, delete_data
     elif message == UNKNOWN:
         return SchemeAccountStatus.UNKNOWN_ERROR, delete_data
+    elif message == NO_SUCH_RECORD:
+        return SchemeAccountStatus.NO_SUCH_RECORD, delete_data
     elif card_number:
         return SchemeAccountStatus.REGISTRATION_FAILED, {"keep_card_number": True}
     else:
