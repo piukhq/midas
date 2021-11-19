@@ -105,7 +105,7 @@ class Squaremeal(ApiMiner):
 
     def make_request(self, url, method="get", timeout=5, **kwargs):
         """
-        Overrides the parent method make_request() in order to call signal events
+        Overrides the parent method make_request() to handle specific status codes
         """
         # Combine the passed kwargs with our headers and timeout values.
         args = {
