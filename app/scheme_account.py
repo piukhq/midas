@@ -57,6 +57,20 @@ class JourneyTypes(IntEnum):
     UPDATE = 3
 
 
+def _get_status_and_delete_data(message, card_number=None):
+    delete_data = {"all": True}
+    if message == ACCOUNT_ALREADY_EXISTS:
+        return SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS, delete_data
+    elif message == SERVICE_CONNECTION_ERROR:
+        return SchemeAccountStatus.SERVICE_CONNECTION_ERROR, delete_data
+    elif message == UNKNOWN:
+        return SchemeAccountStatus.UNKNOWN_ERROR, delete_data
+    elif card_number:
+        return SchemeAccountStatus.REGISTRATION_FAILED, {"keep_card_number": True}
+    else:
+        return SchemeAccountStatus.ENROL_FAILED, delete_data
+
+
 def update_pending_join_account(
     user_info, message, tid, identifier=None, scheme_slug=None, consent_ids=(), raise_exception=True
 ):
@@ -82,18 +96,7 @@ def update_pending_join_account(
     if credentials:
         card_number = credentials.get("card_number") or credentials.get("barcode")
 
-    delete_data = {"all": True}
-    if message == ACCOUNT_ALREADY_EXISTS:
-        status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
-    elif message == SERVICE_CONNECTION_ERROR:
-        status = SchemeAccountStatus.SERVICE_CONNECTION_ERROR
-    elif message == UNKNOWN:
-        status = SchemeAccountStatus.UNKNOWN_ERROR
-    elif card_number:
-        status = SchemeAccountStatus.REGISTRATION_FAILED
-        delete_data = {"keep_card_number": True}
-    else:
-        status = SchemeAccountStatus.ENROL_FAILED
+    status, delete_data = _get_status_and_delete_data(message, card_number=card_number)
 
     data = {
         "status": status,
