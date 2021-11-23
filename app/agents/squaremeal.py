@@ -4,14 +4,17 @@ from decimal import Decimal
 import arrow
 import requests
 from soteria.configuration import Configuration
+from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner
-from app.agents.exceptions import GENERAL_ERROR, AgentError, LoginError
+from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
 
+HANDLED_STATUS_CODES = [200, 201, 422, 401]
+RETRY_LIMIT = 3
 log = get_logger("squaremeal")
 
 
@@ -41,6 +44,11 @@ class Squaremeal(ApiMiner):
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.journey_type = config.handler_type[1]
+        self.errors = {
+            "ACCOUNT_ALREADY_EXISTS": [422],
+            "SERVICE_CONNECTION_ERROR": [401],
+            "UNKNOWN": ["UNKNOWN"],
+        }
 
     def authenticate(self):
         have_valid_token = False
@@ -62,6 +70,11 @@ class Squaremeal(ApiMiner):
 
         return token["sm_access_token"]
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _refresh_token(self):
         url = self.auth_url
         payload = {
@@ -86,8 +99,12 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    def join(self, credentials):
-        consents = credentials.get("consents", [])
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _create_account(self, credentials):
         url = f"{self.base_url}register"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {
@@ -97,11 +114,51 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
+        resp = self.make_request(url, method="post", json=payload)
+        return resp.json()
+
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _update_newsletters(self, user_id, newsletter_optin):
+        user_choice = "true" if newsletter_optin else "false"
+        url = "{}update/newsletters/{}".format(self.base_url, user_id)
+        payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
+        self.make_request(url, method="put", json=payload)
+
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _login(self, credentials):
+        url = f"{self.base_url}login"
+        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
+        payload = {"email": credentials["email"], "password": credentials["password"]}
+        self.make_request(url, method="post", json=payload)
+
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _get_balance(self):
+        merchant_id = self.user_info["credentials"]["merchant_identifier"]
+        url = f"{self.base_url}points/{merchant_id}"
+        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
+        resp = self.make_request(url, method="get")
+        return resp.json()
+
+    def join(self, credentials):
+        consents = credentials.get("consents", [])
         try:
-            resp = self.make_request(url, method="post", json=payload)
-            resp_json = resp.json()
-        except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+            resp_json = self._create_account(credentials)
+        except (AgentError, JoinError) as ex:
+            if ex.response.status_code not in HANDLED_STATUS_CODES:
+                ex.response.status_code = "UNKNOWN"
+            self.handle_errors(ex.response.status_code)
 
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
@@ -111,25 +168,21 @@ class Squaremeal(ApiMiner):
 
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
-            url = "{}update/newsletters/{}".format(self.base_url, resp_json["UserId"])
-            payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": "true"}]
             try:
-                self.make_request(url, method="put", json=payload)
-            except Exception as ex:
-                self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+                self._update_newsletters(resp_json["UserId"], newsletter_optin)
+            except (AgentError, JoinError):
+                pass
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == "JOIN":
             return
-
-        url = f"{self.base_url}login"
-        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {"email": credentials["email"], "password": credentials["password"]}
         try:
-            self.make_request(url, method="post", json=payload)
-        except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json(), unhandled_exception_code=GENERAL_ERROR)
+            self._login(credentials)
+        except (JoinError, AgentError) as ex:
+            if ex.response.status_code not in HANDLED_STATUS_CODES:
+                ex.response.status_code = "UNKNOWN"
+            self.handle_errors(ex.response.status_code)
 
     def scrape_transactions(self):
         return self.point_transactions
@@ -142,12 +195,13 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
-        merchant_id = self.user_info["credentials"]["merchant_identifier"]
-        url = f"{self.base_url}points/{merchant_id}"
-        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        resp = self.make_request(url, method="get")
+        try:
+            points_data = self._get_balance()
+        except (JoinError, AgentError) as ex:
+            if ex.response.status_code not in HANDLED_STATUS_CODES:
+                ex.response.status_code = "UNKNOWN"
+            self.handle_errors(ex.response.status_code)
 
-        points_data = resp.json()
         self.point_transactions = points_data["PointsActivity"]
 
         return Balance(
