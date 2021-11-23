@@ -14,7 +14,7 @@ from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
-RETRY_LIMIT = 1
+RETRY_LIMIT = 3
 log = get_logger("squaremeal")
 
 
