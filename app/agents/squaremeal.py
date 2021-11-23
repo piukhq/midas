@@ -122,9 +122,9 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _update_newsletters(self, user_id):
+    def _update_newsletters(self, user_id, newsletter_optin):
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
-        payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": "true"}]
+        payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": newsletter_optin}]
         self.make_request(url, method="put", json=payload)
 
     @retry(
@@ -168,7 +168,7 @@ class Squaremeal(ApiMiner):
         newsletter_optin = consents[0]["value"] if consents else False
         if newsletter_optin:
             try:
-                self._update_newsletters(resp_json["UserId"])
+                self._update_newsletters(resp_json["UserId"], newsletter_optin)
             except (AgentError, JoinError):
                 pass
 
