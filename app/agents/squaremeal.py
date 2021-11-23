@@ -123,8 +123,9 @@ class Squaremeal(ApiMiner):
         reraise=True,
     )
     def _update_newsletters(self, user_id, newsletter_optin):
+        user_choice = "true" if newsletter_optin else "false"
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
-        payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": newsletter_optin}]
+        payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         self.make_request(url, method="put", json=payload)
 
     @retry(
