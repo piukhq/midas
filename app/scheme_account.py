@@ -5,14 +5,7 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    NO_SUCH_RECORD,
-    SERVICE_CONNECTION_ERROR,
-    UNKNOWN,
-    JoinError,
-    LoginError,
-)
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
 from app.encoding import JsonEncoder
 from app.exceptions import AgentException
 from app.http_request import get_headers
@@ -54,7 +47,6 @@ class SchemeAccountStatus:
     ENROL_FAILED = 901
     REGISTRATION_FAILED = 902
     ACCOUNT_ALREADY_EXISTS = 445
-    SERVICE_CONNECTION_ERROR = 537
 
 
 class JourneyTypes(IntEnum):
@@ -62,22 +54,6 @@ class JourneyTypes(IntEnum):
     LINK = 1
     ADD = 2
     UPDATE = 3
-
-
-def _get_status_and_delete_data(message, card_number=None):
-    delete_data = {"all": True}
-    if message == ACCOUNT_ALREADY_EXISTS:
-        return SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS, delete_data
-    elif message == SERVICE_CONNECTION_ERROR:
-        return SchemeAccountStatus.SERVICE_CONNECTION_ERROR, delete_data
-    elif message == UNKNOWN:
-        return SchemeAccountStatus.UNKNOWN_ERROR, delete_data
-    elif message == NO_SUCH_RECORD:
-        return SchemeAccountStatus.NO_SUCH_RECORD, delete_data
-    elif card_number:
-        return SchemeAccountStatus.REGISTRATION_FAILED, {"keep_card_number": True}
-    else:
-        return SchemeAccountStatus.ENROL_FAILED, delete_data
 
 
 def update_pending_join_account(
@@ -105,7 +81,14 @@ def update_pending_join_account(
     if credentials:
         card_number = credentials.get("card_number") or credentials.get("barcode")
 
-    status, delete_data = _get_status_and_delete_data(message, card_number=card_number)
+    delete_data = {"all": True}
+    if message == ACCOUNT_ALREADY_EXISTS:
+        status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
+    elif card_number:
+        status = SchemeAccountStatus.REGISTRATION_FAILED
+        delete_data = {"keep_card_number": True}
+    else:
+        status = SchemeAccountStatus.ENROL_FAILED
 
     data = {
         "status": status,
