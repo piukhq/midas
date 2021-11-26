@@ -139,6 +139,11 @@ class Squaremeal(ApiMiner):
             integration_service=integration_service,
         )
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _create_account(self, credentials, message_uid, integration_service):
         url = f"{self.base_url}register"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
@@ -156,6 +161,11 @@ class Squaremeal(ApiMiner):
 
         return resp.json()
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _update_newsletters(self, user_id, consents):
         newsletter_optin = consents[0]["value"]
         user_choice = "true" if newsletter_optin else "false"
@@ -164,12 +174,22 @@ class Squaremeal(ApiMiner):
         self.make_request(url, method="put", json=payload)
         self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
         self.make_request(url, method="post", json=payload)
 
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
     def _get_balance(self):
         merchant_id = self.user_info["credentials"]["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
@@ -177,11 +197,6 @@ class Squaremeal(ApiMiner):
         resp = self.make_request(url, method="get")
         return resp.json()
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def join(self, credentials):
         consents = credentials.get("consents", [])
         message_uid = str(uuid4())
@@ -205,11 +220,6 @@ class Squaremeal(ApiMiner):
         except (AgentError, JoinError):
             pass
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == "JOIN":
@@ -231,11 +241,6 @@ class Squaremeal(ApiMiner):
             description=transaction["EarnReason"],
         )
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def balance(self):
         try:
             points_data = self._get_balance()
