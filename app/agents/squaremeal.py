@@ -5,7 +5,6 @@ from uuid import uuid4
 
 import arrow
 import requests
-from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
@@ -157,13 +156,6 @@ class Squaremeal(ApiMiner):
         }
         self._log_audit_request(payload, message_uid, integration_service)
         resp = self.make_request(url, method="post", json=payload)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
         self._log_audit_response(resp, message_uid, integration_service)
         self.audit_logger.send_to_atlas()
 
@@ -179,14 +171,7 @@ class Squaremeal(ApiMiner):
         user_choice = "true" if newsletter_optin else "false"
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
-        resp = self.make_request(url, method="put", json=payload)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
+        self.make_request(url, method="put", json=payload)
         self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     @retry(
@@ -198,14 +183,7 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
-        resp = self.make_request(url, method="post", json=payload)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
+        self.make_request(url, method="post", json=payload)
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -217,13 +195,6 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}points/{merchant_id}"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         resp = self.make_request(url, method="get")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
         return resp.json()
 
     def join(self, credentials):
@@ -256,7 +227,6 @@ class Squaremeal(ApiMiner):
         try:
             self._login(credentials)
         except (JoinError, AgentError) as ex:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
