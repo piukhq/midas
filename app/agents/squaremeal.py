@@ -136,7 +136,7 @@ class Squaremeal(ApiMiner):
     def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {"email": credentials["email"], "password": credentials["password"]}
+        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         self.make_request(url, method="post", json=payload)
 
     @retry(
@@ -174,8 +174,8 @@ class Squaremeal(ApiMiner):
                 pass
 
     def login(self, credentials):
-        # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == "JOIN":
+        # Only join has this credential
+        if 'first_name' in credentials.keys():
             return
         try:
             self._login(credentials)
