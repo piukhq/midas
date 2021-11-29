@@ -184,7 +184,9 @@ class Squaremeal(ApiMiner):
         consents = credentials.get("consents", [])
         try:
             resp_json = self._create_account(credentials)
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
@@ -208,6 +210,7 @@ class Squaremeal(ApiMiner):
             return
         try:
             self._login(credentials)
+            signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (JoinError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             if ex.response.status_code not in HANDLED_STATUS_CODES:
