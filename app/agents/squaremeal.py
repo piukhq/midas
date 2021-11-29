@@ -1,8 +1,11 @@
 import json
+from copy import deepcopy
 from decimal import Decimal
+from uuid import uuid4
 
 import arrow
 import requests
+from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
@@ -11,7 +14,9 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
+from app.encryption import hash_ids
 from app.reporting import get_logger
+from app.tasks.resend_consents import ConsentStatus
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
 RETRY_LIMIT = 3
@@ -49,6 +54,19 @@ class Squaremeal(ApiMiner):
             "SERVICE_CONNECTION_ERROR": [401],
             "UNKNOWN": ["UNKNOWN"],
         }
+        self.audit_logger.filter_fields = self.hide_sensitive_fields
+
+    @staticmethod
+    def hide_sensitive_fields(req_audit_logs):
+        req_audit_logs_copy = deepcopy(req_audit_logs)
+        try:
+            for audit_log in req_audit_logs_copy:
+                audit_log.payload["password"] = "********"
+
+        except KeyError as e:
+            log.warning(f"Unexpected payload format for Squaremeal audit log - Missing key: {e}")
+
+        return req_audit_logs_copy
 
     def authenticate(self):
         have_valid_token = False
@@ -99,12 +117,35 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
+    def _log_audit_request(self, payload, message_uid, integration_service):
+        record_uid = hash_ids.encode(self.scheme_id)
+        self.audit_logger.add_request(
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+        )
+
+    def _log_audit_response(self, response, message_uid, integration_service):
+        record_uid = hash_ids.encode(self.scheme_id)
+        self.audit_logger.add_response(
+            response=response,
+            message_uid=message_uid,
+            record_uid=record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            status_code=response.status_code,
+            integration_service=integration_service,
+        )
+
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _create_account(self, credentials):
+    def _create_account(self, credentials, message_uid, integration_service):
         url = f"{self.base_url}register"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {
@@ -114,7 +155,18 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
+        self._log_audit_request(payload, message_uid, integration_service)
         resp = self.make_request(url, method="post", json=payload)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=resp.request.path_url,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
+        self._log_audit_response(resp, message_uid, integration_service)
+        self.audit_logger.send_to_atlas()
+
         return resp.json()
 
     @retry(
@@ -122,11 +174,20 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _update_newsletters(self, user_id, newsletter_optin):
+    def _update_newsletters(self, user_id, consents):
+        newsletter_optin = consents[0]["value"]
         user_choice = "true" if newsletter_optin else "false"
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
-        self.make_request(url, method="put", json=payload)
+        resp = self.make_request(url, method="put", json=payload)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=resp.request.path_url,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
+        self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -137,7 +198,14 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
-        self.make_request(url, method="post", json=payload)
+        resp = self.make_request(url, method="post", json=payload)
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=resp.request.path_url,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -149,13 +217,24 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}points/{merchant_id}"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         resp = self.make_request(url, method="get")
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=resp.request.path_url,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
         return resp.json()
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
+        message_uid = str(uuid4())
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         try:
-            resp_json = self._create_account(credentials)
+            resp_json = self._create_account(credentials, message_uid, integration_service)
         except (AgentError, JoinError) as ex:
+            self._log_audit_response(ex.response, message_uid, integration_service)
+            self.audit_logger.send_to_atlas()
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
@@ -165,13 +244,10 @@ class Squaremeal(ApiMiner):
             "card_number": resp_json["MembershipNumber"],
         }
         self.user_info["credentials"].update(self.identifier)
-
-        newsletter_optin = consents[0]["value"] if consents else False
-        if newsletter_optin:
-            try:
-                self._update_newsletters(resp_json["UserId"], newsletter_optin)
-            except (AgentError, JoinError):
-                pass
+        try:
+            self._update_newsletters(resp_json["UserId"], consents)
+        except (AgentError, JoinError):
+            pass
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
@@ -180,6 +256,7 @@ class Squaremeal(ApiMiner):
         try:
             self._login(credentials)
         except (JoinError, AgentError) as ex:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
@@ -210,3 +287,4 @@ class Squaremeal(ApiMiner):
             value_label="",
             reward_tier=points_data["LoyaltyTier"],
         )
+
