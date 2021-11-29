@@ -175,7 +175,7 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         # Only join has this credential
-        if 'first_name' in credentials.keys():
+        if "first_name" in credentials.keys():
             return
         try:
             self._login(credentials)
