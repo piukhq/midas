@@ -230,7 +230,7 @@ class Squaremeal(ApiMiner):
         message_uid = str(uuid4())
         integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         try:
-            resp_json = self._create_account(credentials)
+            resp_json = self._create_account(credentials, message_uid, integration_service)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
