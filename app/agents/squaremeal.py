@@ -253,7 +253,7 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         self.errors = {
-            "NO_SUCH_RECORD": [422],
+            "INVALID_CREDENTIALS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
             "UNKNOWN": ["UNKNOWN"],
         }
