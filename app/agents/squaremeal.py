@@ -252,15 +252,16 @@ class Squaremeal(ApiMiner):
             pass
 
     def login(self, credentials):
+        # SM is not supposed to use login as part of the JOIN journey
+        if self.journey_type == "JOIN":
+            return
+
         self.errors = {
             "INVALID_CREDENTIALS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
             "UNKNOWN": ["UNKNOWN"],
         }
 
-        # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == "JOIN":
-            return
         try:
             self._login(credentials)
             signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
