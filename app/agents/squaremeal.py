@@ -193,11 +193,13 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, credentials):
+    def _login(self, credentials, message_uid, integration_service):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
+        self._log_audit_request(payload, message_uid, integration_service)
         resp = self.make_request(url, method="post", json=payload)
+        self._log_audit_response(resp, message_uid, integration_service)
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -255,11 +257,15 @@ class Squaremeal(ApiMiner):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == "JOIN":
             return
+        message_uid = str(uuid4())
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         try:
-            self._login(credentials)
+            self._login(credentials, message_uid, integration_service)
             signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (JoinError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self._log_audit_response(ex.response, message_uid, integration_service)
+            self.audit_logger.send_to_atlas()
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
