@@ -11,8 +11,8 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
-from app.scheme_account import JourneyTypes
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
 RETRY_LIMIT = 3
