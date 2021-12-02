@@ -14,6 +14,7 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
+from app.audit import AuditLogType
 from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
@@ -156,7 +157,7 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
-        if not self.audit_logger.check_log_exists("REQUEST", message_uid):
+        if not self.audit_logger.check_log_exists(AuditLogType.REQUEST, message_uid):
             self._log_audit_request(payload, message_uid, integration_service)
         resp = self.make_request(url, method="post", json=payload)
         signal("record-http-request").send(
