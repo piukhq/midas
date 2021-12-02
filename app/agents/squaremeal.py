@@ -16,6 +16,7 @@ from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
@@ -48,7 +49,6 @@ class Squaremeal(ApiMiner):
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.journey_type = config.handler_type[1]
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
@@ -118,27 +118,27 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    def _log_audit_request(self, payload, message_uid, integration_service):
+    def _log_audit_request(self, payload, message_uid, handler_type):
         record_uid = hash_ids.encode(self.scheme_id)
         self.audit_logger.add_request(
             payload=payload,
             scheme_slug=self.scheme_slug,
             message_uid=message_uid,
             record_uid=record_uid,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
+            handler_type=handler_type,
+            integration_service=self.integration_service,
         )
 
-    def _log_audit_response(self, response, message_uid, integration_service):
+    def _log_audit_response(self, response, message_uid, handler_type):
         record_uid = hash_ids.encode(self.scheme_id)
         self.audit_logger.add_response(
             response=response,
             message_uid=message_uid,
             record_uid=record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
+            handler_type=handler_type,
             status_code=response.status_code,
-            integration_service=integration_service,
+            integration_service=self.integration_service,
         )
 
     @retry(
@@ -156,7 +156,7 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
-        self._log_audit_request(payload, message_uid, self.integration_service)
+        self._log_audit_request(payload, message_uid, Configuration.JOIN_HANDLER)
         resp = self.make_request(url, method="post", json=payload)
         signal("record-http-request").send(
             self,
@@ -165,7 +165,7 @@ class Squaremeal(ApiMiner):
             latency=resp.elapsed.total_seconds(),
             response_code=resp.status_code,
         )
-        self._log_audit_response(resp, message_uid, self.integration_service)
+        self._log_audit_response(resp, message_uid, Configuration.JOIN_HANDLER)
         self.audit_logger.send_to_atlas()
         return resp.json()
 
@@ -198,9 +198,9 @@ class Squaremeal(ApiMiner):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"]}
-        self._log_audit_request(payload, message_uid, self.integration_service)
+        self._log_audit_request(payload, message_uid, Configuration.VALIDATE_HANDLER)
         resp = self.make_request(url, method="post", json=payload)
-        self._log_audit_response(resp, message_uid, self.integration_service)
+        self._log_audit_response(resp, message_uid, Configuration.VALIDATE_HANDLER)
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -236,7 +236,7 @@ class Squaremeal(ApiMiner):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self._log_audit_response(ex.response, message_uid, self.integration_service)
+            self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
             self.audit_logger.send_to_atlas()
 
             if ex.response.status_code not in HANDLED_STATUS_CODES:
@@ -255,15 +255,16 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == "JOIN":
+        if self.journey_type == JourneyTypes.JOIN.value:
             return
+
         message_uid = str(uuid4())
         try:
             self._login(credentials, message_uid)
-            signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
+            signal("log-in-success").send(self, slug=self.scheme_slug)
         except (JoinError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._log_audit_response(ex.response, message_uid)
+            self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
             self.audit_logger.send_to_atlas()
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
