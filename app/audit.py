@@ -221,6 +221,12 @@ class AuditLogger:
         else:
             log.debug(f"Audit logging is disabled for journey type {handler_type_str} and scheme {scheme_slug}.")
 
+    def check_log_exists(self, log_type, message_uid):
+        for audit_log in self.audit_logs:
+            if audit_log.audit_log_type == log_type and audit_log.message_uid == message_uid:
+                return True
+        return False
+
     def _build_request_audit_log(
         self,
         data: Union[dict, str],

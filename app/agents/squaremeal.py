@@ -156,7 +156,8 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
-        self._log_audit_request(payload, message_uid, integration_service)
+        if not self.audit_logger.check_log_exists("REQUEST", message_uid):
+            self._log_audit_request(payload, message_uid, integration_service)
         resp = self.make_request(url, method="post", json=payload)
         signal("record-http-request").send(
             self,
