@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import arrow
 import requests
+from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
@@ -15,6 +16,7 @@ from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
@@ -157,6 +159,13 @@ class Squaremeal(ApiMiner):
         self._log_audit_request(payload, message_uid, integration_service)
         try:
             resp = self.make_request(url, method="post", json=payload)
+            signal("record-http-request").send(
+              self,
+              slug=self.scheme_slug,
+              endpoint=resp.request.path_url,
+              latency=resp.elapsed.total_seconds(),
+              response_code=resp.status_code,
+            )
         except (AgentError, JoinError) as ex:
             self._log_audit_response(ex.response, message_uid, integration_service)
             self.audit_logger.send_to_atlas()
@@ -165,7 +174,6 @@ class Squaremeal(ApiMiner):
             self.handle_errors(ex.response.status_code)
         self._log_audit_response(resp, message_uid, integration_service)
         self.audit_logger.send_to_atlas()
-
         return resp.json()
 
     @retry(
@@ -180,6 +188,13 @@ class Squaremeal(ApiMiner):
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
             self.make_request(url, method="put", json=payload)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
             self.consent_confirmation(consents, ConsentStatus.SUCCESS)
         except (AgentError, JoinError):
             pass
@@ -192,9 +207,16 @@ class Squaremeal(ApiMiner):
     def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {"email": credentials["email"], "password": credentials["password"]}
+        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
             self.make_request(url, method="post", json=payload)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+        )
         except (JoinError, AgentError) as ex:
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
@@ -211,6 +233,13 @@ class Squaremeal(ApiMiner):
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         try:
             resp = self.make_request(url, method="get")
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+        )
         except (JoinError, AgentError) as ex:
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
@@ -231,8 +260,15 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == "JOIN":
+        if self.journey_type == JourneyTypes.JOIN.value:
             return
+
+        self.errors = {
+            "INVALID_CREDENTIALS": [422],
+            "SERVICE_CONNECTION_ERROR": [401],
+            "UNKNOWN": ["UNKNOWN"],
+        }
+
         self._login(credentials)
 
     def scrape_transactions(self):
@@ -246,6 +282,11 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
+        self.errors = {
+            "NO_SUCH_RECORD": [422],
+            "SERVICE_CONNECTION_ERROR": [401],
+            "UNKNOWN": ["UNKNOWN"],
+        }
         points_data = self._get_balance()
         self.point_transactions = points_data["PointsActivity"]
 
