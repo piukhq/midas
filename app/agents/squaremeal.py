@@ -160,11 +160,11 @@ class Squaremeal(ApiMiner):
         try:
             resp = self.make_request(url, method="post", json=payload)
             signal("record-http-request").send(
-              self,
-              slug=self.scheme_slug,
-              endpoint=resp.request.path_url,
-              latency=resp.elapsed.total_seconds(),
-              response_code=resp.status_code,
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
             )
         except (AgentError, JoinError) as ex:
             self._log_audit_response(ex.response, message_uid, integration_service)
@@ -216,7 +216,7 @@ class Squaremeal(ApiMiner):
                 endpoint=resp.request.path_url,
                 latency=resp.elapsed.total_seconds(),
                 response_code=resp.status_code,
-        )
+            )
         except (JoinError, AgentError) as ex:
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
@@ -239,7 +239,7 @@ class Squaremeal(ApiMiner):
                 endpoint=resp.request.path_url,
                 latency=resp.elapsed.total_seconds(),
                 response_code=resp.status_code,
-        )
+            )
         except (JoinError, AgentError) as ex:
             if ex.response.status_code not in HANDLED_STATUS_CODES:
                 ex.response.status_code = "UNKNOWN"
