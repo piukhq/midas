@@ -16,6 +16,7 @@ from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
@@ -196,7 +197,7 @@ class Squaremeal(ApiMiner):
     def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {"email": credentials["email"], "password": credentials["password"]}
+        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         resp = self.make_request(url, method="post", json=payload)
         signal("record-http-request").send(
             self,
@@ -253,7 +254,7 @@ class Squaremeal(ApiMiner):
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
-        if self.journey_type == "JOIN":
+        if self.journey_type == JourneyTypes.JOIN.value:
             return
 
         self.errors = {
@@ -261,10 +262,9 @@ class Squaremeal(ApiMiner):
             "SERVICE_CONNECTION_ERROR": [401],
             "UNKNOWN": ["UNKNOWN"],
         }
-
         try:
             self._login(credentials)
-            signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
+            signal("log-in-success").send(self, slug=self.scheme_slug)
         except (JoinError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             if ex.response.status_code not in HANDLED_STATUS_CODES:
