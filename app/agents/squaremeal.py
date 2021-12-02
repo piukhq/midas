@@ -11,6 +11,7 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError
 from app.agents.schemas import Balance, Transaction
+from app.scheme_account import JourneyTypes
 from app.reporting import get_logger
 
 HANDLED_STATUS_CODES = [200, 201, 422, 401]
@@ -174,9 +175,10 @@ class Squaremeal(ApiMiner):
                 pass
 
     def login(self, credentials):
-        # Only join has this credential
-        if "first_name" in credentials.keys():
+        # SM is not supposed to use login as part of the JOIN journey
+        if self.journey_type == JourneyTypes.JOIN.value:
             return
+
         try:
             self._login(credentials)
         except (JoinError, AgentError) as ex:
