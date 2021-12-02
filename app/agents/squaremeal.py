@@ -187,7 +187,7 @@ class Squaremeal(ApiMiner):
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
-            self.make_request(url, method="put", json=payload)
+            resp = self.make_request(url, method="put", json=payload)
             signal("record-http-request").send(
                 self,
                 slug=self.scheme_slug,
@@ -209,7 +209,7 @@ class Squaremeal(ApiMiner):
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
-            self.make_request(url, method="post", json=payload)
+            resp = self.make_request(url, method="post", json=payload)
             signal("record-http-request").send(
                 self,
                 slug=self.scheme_slug,
