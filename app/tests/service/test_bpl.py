@@ -22,7 +22,7 @@ class TestBPL(unittest.TestCase):
     def test_join_400(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
-        error_response = {"display_message": "Malformed request.", "error": "MALFORMED_REQUEST"}
+        error_response = {"display_message": "Malformed request.", "code": "MALFORMED_REQUEST"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -44,7 +44,7 @@ class TestBPL(unittest.TestCase):
     def test_join_401(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
-        error_response = {"display_message": "Supplied token is invalid.", "error": "INVALID_TOKEN"}
+        error_response = {"display_message": "Supplied token is invalid.", "code": "INVALID_TOKEN"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -66,7 +66,7 @@ class TestBPL(unittest.TestCase):
     def test_join_403(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
-        error_response = {"display_message": "The requestor does not access to this retailer.", "error": "FORBIDDEN"}
+        error_response = {"display_message": "The requestor does not access to this retailer.", "code": "FORBIDDEN"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -90,7 +90,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
             "display_message": "It appears this account already exists.",
-            "error": "ACCOUNT_EXISTS",
+            "code": "ACCOUNT_EXISTS",
             "fields": ["email"],
         }
 
@@ -116,7 +116,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
             "display_message": "Missing credentials from request.",
-            "error": "MISSING_FIELDS",
+            "code": "MISSING_FIELDS",
             "fields": [
                 "address_line1",
                 "postcode",
@@ -145,7 +145,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
             "display_message": "Submitted credentials did not pass validation.",
-            "error": "VALIDATION_FAILED",
+            "code": "VALIDATION_FAILED",
             "fields": [
                 "email",
                 "first_name",
@@ -175,7 +175,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/enrolment"
         error_response = {
             "display_message": "The requestor does not access to this retailer.",
-            "error": "any error will do",
+            "code": "any error will do",
         }
 
         httpretty.register_uri(
@@ -199,7 +199,7 @@ class TestBPL(unittest.TestCase):
     def test_login_400(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
-        error_response = {"display_message": "Malformed request.", "error": "MALFORMED_REQUEST"}
+        error_response = {"display_message": "Malformed request.", "code": "MALFORMED_REQUEST"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -219,7 +219,7 @@ class TestBPL(unittest.TestCase):
     def test_login_401(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
-        error_response = {"display_message": "Supplied token is invalid.", "error": "INVALID_TOKEN"}
+        error_response = {"display_message": "Supplied token is invalid.", "code": "INVALID_TOKEN"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -239,7 +239,7 @@ class TestBPL(unittest.TestCase):
     def test_login_403(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
-        error_response = {"display_message": "The requestor does not access to this retailer.", "error": "FORBIDDEN"}
+        error_response = {"display_message": "The requestor does not access to this retailer.", "code": "FORBIDDEN"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -259,7 +259,7 @@ class TestBPL(unittest.TestCase):
     def test_login_404(self):
         conf = MagicMock()
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
-        error_response = {"display_message": "Account not found for provided credentials.", "error": "NO_ACCOUNT_FOUND"}
+        error_response = {"display_message": "Account not found for provided credentials.", "code": "NO_ACCOUNT_FOUND"}
 
         httpretty.register_uri(
             httpretty.POST,
@@ -281,7 +281,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
         error_response = {
             "display_message": "Missing credentials from request.",
-            "error": "MISSING_FIELDS",
+            "code": "MISSING_FIELDS",
             "fields": [
                 "address_line1",
                 "postcode",
@@ -309,7 +309,7 @@ class TestBPL(unittest.TestCase):
         conf.merchant_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/getbycredentials"
         error_response = {
             "display_message": "The requestor does not access to this retailer.",
-            "error": "any error will do",
+            "code": "any error will do",
         }
 
         httpretty.register_uri(
