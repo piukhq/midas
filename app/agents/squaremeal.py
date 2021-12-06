@@ -49,10 +49,10 @@ class Squaremeal(ApiMiner):
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.journey_type = self.user_info["journey_type"]
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
-            "UNKNOWN": ["UNKNOWN"],
         }
         self.audit_logger.filter_fields = self.hide_sensitive_fields
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
@@ -157,14 +157,19 @@ class Squaremeal(ApiMiner):
             "Source": self.channel,
         }
         self._log_audit_request(payload, message_uid, Configuration.JOIN_HANDLER)
-        resp = self.make_request(url, method="post", json=payload)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
+        try:
+            resp = self.make_request(url, method="post", json=payload)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
+        except (AgentError, JoinError) as ex:
+            self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
+            self.audit_logger.send_to_atlas()
+            self.handle_errors(ex.response.status_code)
         self._log_audit_response(resp, message_uid, Configuration.JOIN_HANDLER)
         self.audit_logger.send_to_atlas()
         return resp.json()
@@ -179,15 +184,18 @@ class Squaremeal(ApiMiner):
         user_choice = "true" if newsletter_optin else "false"
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
-        resp = self.make_request(url, method="put", json=payload)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
-        self.consent_confirmation(consents, ConsentStatus.SUCCESS)
+        try:
+            resp = self.make_request(url, method="put", json=payload)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
+            self.consent_confirmation(consents, ConsentStatus.SUCCESS)
+        except (AgentError, JoinError):
+            pass
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -197,17 +205,23 @@ class Squaremeal(ApiMiner):
     def _login(self, credentials, message_uid):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        payload = {"email": credentials["email"], "password": credentials["password"]}
+        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         self._log_audit_request(payload, message_uid, Configuration.VALIDATE_HANDLER)
-        resp = self.make_request(url, method="post", json=payload)
+        try:
+            resp = self.make_request(url, method="post", json=payload)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
+        except (JoinError, AgentError) as ex:
+            self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
+            self.audit_logger.send_to_atlas()
+            self.handle_errors(ex.response.status_code)
         self._log_audit_response(resp, message_uid, Configuration.VALIDATE_HANDLER)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
+        self.audit_logger.send_to_atlas()
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -218,57 +232,41 @@ class Squaremeal(ApiMiner):
         merchant_id = self.user_info["credentials"]["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
-        resp = self.make_request(url, method="get")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=resp.request.path_url,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
+        try:
+            resp = self.make_request(url, method="get")
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=resp.request.path_url,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
+        except (JoinError, AgentError) as ex:
+            self.handle_errors(ex.response.status_code)
         return resp.json()
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
         message_uid = str(uuid4())
-        try:
-            resp_json = self._create_account(credentials, message_uid)
-            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
-        except (AgentError, JoinError) as ex:
-            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
-            self.audit_logger.send_to_atlas()
-
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
-            self.handle_errors(ex.response.status_code)
-
+        resp_json = self._create_account(credentials, message_uid)
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
         }
         self.user_info["credentials"].update(self.identifier)
-        try:
-            self._update_newsletters(resp_json["UserId"], consents)
-        except (AgentError, JoinError):
-            pass
+        self._update_newsletters(resp_json["UserId"], consents)
 
     def login(self, credentials):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN.value:
             return
 
+        self.errors = {
+            "INVALID_CREDENTIALS": [422],
+            "SERVICE_CONNECTION_ERROR": [401],
+        }
         message_uid = str(uuid4())
-        try:
-            self._login(credentials, message_uid)
-            signal("log-in-success").send(self, slug=self.scheme_slug)
-        except (JoinError, AgentError) as ex:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
-            self.audit_logger.send_to_atlas()
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
-            self.handle_errors(ex.response.status_code)
+        self._login(credentials, message_uid)
 
     def scrape_transactions(self):
         return self.point_transactions
@@ -281,13 +279,11 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
-        try:
-            points_data = self._get_balance()
-        except (JoinError, AgentError) as ex:
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
-            self.handle_errors(ex.response.status_code)
-
+        self.errors = {
+            "NO_SUCH_RECORD": [422],
+            "SERVICE_CONNECTION_ERROR": [401],
+        }
+        points_data = self._get_balance()
         self.point_transactions = points_data["PointsActivity"]
 
         return Balance(
