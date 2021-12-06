@@ -53,7 +53,6 @@ class Squaremeal(ApiMiner):
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
-            "UNKNOWN": ["UNKNOWN"],
         }
         self.audit_logger.filter_fields = self.hide_sensitive_fields
 
@@ -169,8 +168,6 @@ class Squaremeal(ApiMiner):
         except (AgentError, JoinError) as ex:
             self._log_audit_response(ex.response, message_uid, integration_service)
             self.audit_logger.send_to_atlas()
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
         self._log_audit_response(resp, message_uid, integration_service)
         self.audit_logger.send_to_atlas()
@@ -218,8 +215,6 @@ class Squaremeal(ApiMiner):
                 response_code=resp.status_code,
             )
         except (JoinError, AgentError) as ex:
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
 
     @retry(
@@ -241,8 +236,6 @@ class Squaremeal(ApiMiner):
                 response_code=resp.status_code,
             )
         except (JoinError, AgentError) as ex:
-            if ex.response.status_code not in HANDLED_STATUS_CODES:
-                ex.response.status_code = "UNKNOWN"
             self.handle_errors(ex.response.status_code)
         return resp.json()
 
