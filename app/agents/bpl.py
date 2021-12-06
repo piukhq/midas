@@ -94,7 +94,7 @@ class Trenette(BplBase):
         try:
             self.make_request(url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
+            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
             if consents:
@@ -115,7 +115,7 @@ class Trenette(BplBase):
         try:
             resp = self.make_request(url, method="post", json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["error"], unhandled_exception_code=GENERAL_ERROR)
+            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
 
