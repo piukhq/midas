@@ -222,6 +222,7 @@ class Squaremeal(ApiMiner):
             self.handle_errors(ex.response.status_code)
         self._log_audit_response(resp, message_uid, Configuration.VALIDATE_HANDLER)
         self.audit_logger.send_to_atlas()
+        return resp.json()
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -266,7 +267,12 @@ class Squaremeal(ApiMiner):
             "SERVICE_CONNECTION_ERROR": [401],
         }
         message_uid = str(uuid4())
-        self._login(credentials, message_uid)
+        resp = self._login(credentials, message_uid)
+        self.identifier = {
+            "merchant_identifier": resp["UserId"],
+            "card_number": resp["MembershipNumber"],
+        }
+        self.user_info["credentials"].update(self.identifier)
 
     def scrape_transactions(self):
         return self.point_transactions
