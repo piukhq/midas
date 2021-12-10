@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import requests
 import sentry_sdk
+import requests
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
 
