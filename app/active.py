@@ -4,7 +4,7 @@
 # Commented entries are agents whose tests are currently not passing.
 AGENTS = {
     "iceland-bonus-card": "iceland_merchant_integration.Iceland",
-    # "iceland-bonus-card": "iceland.Iceland",
+    "iceland-bonus-card-temp": "iceland.Iceland",
     "iceland-bonus-card-mock": "mock_agents.MockAgentIce",
     "harvey-nichols-mock": "mock_agents.MockAgentHN",
     "harvey-nichols": "harvey_nichols.HarveyNichols",
