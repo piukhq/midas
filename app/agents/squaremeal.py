@@ -263,7 +263,7 @@ class Squaremeal(ApiMiner):
             return
 
         self.errors = {
-            "INVALID_CREDENTIALS": [422],
+            "STATUS_LOGIN_FAILED": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
         message_uid = str(uuid4())
