@@ -166,7 +166,9 @@ class Squaremeal(ApiMiner):
                 latency=resp.elapsed.total_seconds(),
                 response_code=resp.status_code,
             )
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
             self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
@@ -216,7 +218,9 @@ class Squaremeal(ApiMiner):
                 latency=resp.elapsed.total_seconds(),
                 response_code=resp.status_code,
             )
+            signal("log-in-success").send(self, slug=self.scheme_slug)
         except (JoinError, AgentError) as ex:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
             self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
             self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
