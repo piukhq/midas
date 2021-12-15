@@ -34,6 +34,7 @@ class Iceland(ApiMiner):
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
+        self.security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
         self._balance_amount = 0.0
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
@@ -43,16 +44,12 @@ class Iceland(ApiMiner):
         reraise=True,
     )
     def _get_oauth_token(self) -> str:
-        url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
+        url = self.security_credentials["url"]
         payload = {
             "grant_type": "client_credentials",
-            "client_secret": self.config.security_credentials["outbound"]["credentials"][0]["value"]["payload"][
-                "client_secret"
-            ],
-            "client_id": self.config.security_credentials["outbound"]["credentials"][0]["value"]["payload"][
-                "client_id"
-            ],
-            "resource": self.config.security_credentials["outbound"]["credentials"][0]["value"]["payload"]["resource"],
+            "client_secret": self.security_credentials["payload"]["client_secret"],
+            "client_id": self.security_credentials["payload"]["client_id"],
+            "resource": self.security_credentials["payload"]["resource"],
         }
         response = requests.post(url, data=payload)
         return response.json()["access_token"]
@@ -70,7 +67,7 @@ class Iceland(ApiMiner):
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
         self.headers = {"Authorization": f"Bearer {token}"}
-        response = self.make_request(url=f"{self.config.merchant_url}", method="post", json=payload)
+        response = self.make_request(url={self.config.merchant_url}, method="post", json=payload)
         self._balance_amount = response.json()["balance"]
 
     def balance(self) -> Optional[Balance]:
