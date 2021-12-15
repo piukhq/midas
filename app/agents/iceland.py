@@ -52,6 +52,7 @@ class Iceland(ApiMiner):
             "resource": self.security_credentials["payload"]["resource"],
         }
         response = requests.post(url, data=payload)
+        response.raise_for_status()
         return response.json()["access_token"]
 
     def login(self, credentials) -> None:
@@ -67,7 +68,7 @@ class Iceland(ApiMiner):
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
         self.headers = {"Authorization": f"Bearer {token}"}
-        response = self.make_request(url={self.config.merchant_url}, method="post", json=payload)
+        response = self.make_request(url=self.config.merchant_url, method="post", json=payload)
         self._balance_amount = response.json()["balance"]
 
     def balance(self) -> Optional[Balance]:
