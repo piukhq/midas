@@ -98,6 +98,24 @@ class TestIceland(TestCase):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
+            status=401,
+        )
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+
+        with self.assertRaises(LoginError):
+            with self.assertRaises(AgentError):
+                agent.login(self.credentials)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_login_401(self, mock_configuration, mock_oath):
+        mock_configuration.return_value = self.mock_link_configuration_object()
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
             responses=[
                 httpretty.Response(body="You do not have permission to view this directory or page.", status=401)
             ],
