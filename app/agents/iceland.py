@@ -16,9 +16,8 @@ from app.agents.exceptions import (
     GENERAL_ERROR,
     LINK_LIMIT_EXCEEDED,
     SERVICE_CONNECTION_ERROR,
-    VALIDATION,
+    STATUS_LOGIN_FAILED,
     AgentError,
-    LoginError,
 )
 from app.encryption import hash_ids
 from app.reporting import get_logger
@@ -50,7 +49,7 @@ class Iceland(ApiMiner):
         self.security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
         self._balance_amount = 0.0
         self.errors = {
-            VALIDATION: "VALIDATION",
+            STATUS_LOGIN_FAILED: "VALIDATION",
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
             LINK_LIMIT_EXCEEDED: "LINK_LIMIT_EXCEEDED",
             CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
@@ -103,12 +102,9 @@ class Iceland(ApiMiner):
         }
         self.headers = {"Authorization": f"Bearer {token}"}
 
-        try:
-            response = self._login(payload)
-        except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["code"])
-
+        response = self._login(payload)
         response_json = response.json()
+
         error = response_json.get("error_codes")
         if error:
             self.handle_errors(error[0]["code"])

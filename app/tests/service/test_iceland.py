@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 
 import httpretty
 
-from app.agents import iceland_merchant_integration
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
@@ -18,17 +17,15 @@ cred = {
     "password": "testpassword",
 }
 
+credentials = {
+    "card_number": "0000000000000000000",
+    "last_name": "Smith",
+    "postcode": "XX0 0XX",
+}
+
 
 # Needs to be renamed to TestIceland once it has replaced the existing class TestIceland
-class TestIcelandTemp(TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.credentials = {
-            "card_number": "0000000000000000000",
-            "last_name": "Smith",
-            "postcode": "XX0 0XX",
-        }
-
+class TestIceland(TestCase):
     def mock_link_configuration_object(self):
         self.merchant_url = "https://customergateway-uat.iceland.co.uk/api/v1/bink/link"
         mock_configuration_object = MagicMock()
@@ -84,12 +81,12 @@ class TestIcelandTemp(TestCase):
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
-        agent.login(self.credentials)
+        agent.login(credentials)
         self.assertEqual(agent.headers, {"Authorization": f"Bearer {'a_token'}"})
         self.assertIn("barcode", str(agent.user_info))
         self.assertEqual(agent._balance_amount, 10.0)
@@ -102,25 +99,32 @@ class TestIcelandTemp(TestCase):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
-            responses=[httpretty.Response(body="You do not have permission to view this directory or page.", status=401)],
+            responses=[
+                httpretty.Response(body="You do not have permission to view this directory or page.", status=401)
+            ],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
-        agent.login(self.credentials)
+        with self.assertRaises(LoginError) as e:
+            agent.login(credentials)
+
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_validation_error_401(self, mock_configuration, mock_oath):
+    def test_login_200_validation_error_403(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
             responses=[
                 httpretty.Response(
-                    body=json.dumps({"error_codes": [{"code": "VALIDATION", "description": "card_number not valid."}]}),
+                    body=json.dumps(
+                        {"error_codes": [{"code": "VALIDATION", "description": "Card owner details do not match"}]}
+                    ),
                     status=200,
                 )
             ],
@@ -128,9 +132,9 @@ class TestIcelandTemp(TestCase):
 
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
-        with self.assertRaises(LoginError) as e:
-            agent.login(self.credentials)
-        self.assertEqual(e.exception.code, 401)
+        with self.assertRaises(AgentError) as e:
+            agent.login(credentials)
+        self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
@@ -153,7 +157,7 @@ class TestIcelandTemp(TestCase):
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
         with self.assertRaises(LoginError) as e:
-            agent.login(self.credentials)
+            agent.login(credentials)
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
@@ -178,7 +182,7 @@ class TestIcelandTemp(TestCase):
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
         with self.assertRaises(LoginError) as e:
-            agent.login(self.credentials)
+            agent.login(credentials)
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
@@ -206,7 +210,7 @@ class TestIcelandTemp(TestCase):
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
         with self.assertRaises(LoginError) as e:
-            agent.login(self.credentials)
+            agent.login(credentials)
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
@@ -230,7 +234,7 @@ class TestIcelandTemp(TestCase):
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
         with self.assertRaises(LoginError) as e:
-            agent.login(self.credentials)
+            agent.login(credentials)
         self.assertEqual(e.exception.code, 439)
 
     @mock.patch("app.agents.iceland.Configuration")
@@ -246,7 +250,7 @@ class TestIcelandTemp(TestCase):
         self.assertEqual(agent.balance(), expected_result)
 
 
-class TestIceland(TestCase):
+class TestIcelandMerchantIntegration(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS, scheme_slug="iceland-bonus-card")
