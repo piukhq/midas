@@ -2,6 +2,7 @@ import json
 from enum import Enum
 from typing import Any, Iterable, NamedTuple, Optional, Union
 from uuid import uuid4
+from blinker import signal
 
 import arrow
 import requests
@@ -71,6 +72,10 @@ class AuditLogger:
         self.channel = channel
         self.session = self.retry_session()
         self.journeys = journeys
+
+        signal("add-request").connect(self.add_request)
+        signal("add-response").connect(self.add_response)
+        signal("send-to-atlas").connect(self.send_to_atlas)
 
     def add_request(
         self,
