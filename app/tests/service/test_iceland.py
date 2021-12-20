@@ -242,9 +242,11 @@ class TestIceland(TestCase):
             agent.login(credentials)
         self.assertEqual(e.exception.code, 439)
 
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_balance(self, mock_configuration):
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
         agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
