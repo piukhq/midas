@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import httpretty
 from tenacity import wait_none
 
+from app.agents import iceland_merchant_integration
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
@@ -98,15 +99,13 @@ class TestIceland(TestCase):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
-            status=401,
+            responses=[httpretty.Response(body="You do not have permission to view this directory or page.", status=401)],
         )
 
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
 
-        with self.assertRaises(LoginError):
-            with self.assertRaises(AgentError):
-                agent.login(self.credentials)
+        agent.login(self.credentials)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
