@@ -247,9 +247,9 @@ class ApiMiner(BaseMiner):
 
         return resp
 
-    def handle_errors(self, response, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
+    def handle_errors(self, error_code, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
         for key, values in self.errors.items():
-            if response in values:
+            if error_code in values:
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
 
