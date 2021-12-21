@@ -83,8 +83,6 @@ class TestIceland(TestCase):
         )
 
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = self.credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         agent.login(credentials)
@@ -106,7 +104,7 @@ class TestIceland(TestCase):
         )
 
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
         agent._login.retry.wait = wait_none()
 
         with self.assertRaises(LoginError) as e:
@@ -132,7 +130,7 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         with self.assertRaises(AgentError) as e:
             agent.login(credentials)
@@ -156,7 +154,7 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         with self.assertRaises(LoginError) as e:
             agent.login(credentials)
@@ -181,7 +179,7 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         with self.assertRaises(LoginError) as e:
             agent.login(credentials)
@@ -209,7 +207,7 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         with self.assertRaises(LoginError) as e:
             agent.login(credentials)
@@ -233,7 +231,7 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         with self.assertRaises(LoginError) as e:
             agent.login(credentials)
