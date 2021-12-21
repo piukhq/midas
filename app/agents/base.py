@@ -212,9 +212,27 @@ class ApiMiner(BaseMiner):
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=self.channel)
+        self.audit_finished = False
+
+    def _audit_journey(self):
+        if self.journey_type in (0, 1, 3):
+            return True
+        return False
+
+    def _get_handler(self):
+        if self.journey_type == 0:
+            return Configuration.JOIN_HANDLER
+        elif self.journey_type == 1:
+            return Configuration.VALIDATE_HANDLER
+        elif self.journey_type == 3:
+            return Configuration.UPDATE_HANDLER
 
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
+        send_audit = False
+        if self.journey_type in (0, 2, 3) and not self.audit_finished:
+            send_audit = True
+
         args = {
             "headers": self.headers,
             "timeout": timeout,
@@ -223,6 +241,30 @@ class ApiMiner(BaseMiner):
 
         try:
             resp = requests.request(method, url=url, **args)
+            if send_audit:
+                record_uid = hash_ids.encode(self.scheme_id)
+                handler_type = self._get_handler()
+                message_uid = str(uuid4())
+                request_audit_data = {
+                    "payload": kwargs["json"],
+                    "scheme_slug": self.scheme_slug,
+                    "handler_type": handler_type,
+                    "integration_service": self.integration_service,
+                    "message_uid": message_uid,
+                    "record_uid": record_uid
+                }
+                signal("add-audit-request").send(self, data=request_audit_data)
+                response_audit_data = {
+                    "response": resp,
+                    "scheme_slug": self.scheme_slug,
+                    "handler_type": handler_type,
+                    "integration_service": self.integration_service,
+                    "status_code": resp.status_code,
+                    "message_uid": message_uid,
+                    "record_uid": record_uid,
+                }
+                signal("add-audit-response").send(self, data=response_audit_data)
+                signal("send-to-atlas").send(self)
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception

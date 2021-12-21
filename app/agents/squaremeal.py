@@ -1,7 +1,6 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
-from uuid import uuid4
 
 import arrow
 import requests
@@ -146,7 +145,7 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _create_account(self, credentials, message_uid):
+    def _create_account(self, credentials):
         url = f"{self.base_url}register"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {
@@ -156,9 +155,9 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
-        self._log_audit_request(payload, message_uid, Configuration.JOIN_HANDLER)
         try:
             resp = self.make_request(url, method="post", json=payload)
+            self.audit_finished = True
             signal("record-http-request").send(
                 self,
                 slug=self.scheme_slug,
@@ -169,11 +168,7 @@ class Squaremeal(ApiMiner):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
-            self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
-        self._log_audit_response(resp, message_uid, Configuration.JOIN_HANDLER)
-        self.audit_logger.send_to_atlas()
         return resp.json()
 
     @retry(
@@ -204,11 +199,10 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, credentials, message_uid):
+    def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
-        self._log_audit_request(payload, message_uid, Configuration.VALIDATE_HANDLER)
         try:
             resp = self.make_request(url, method="post", json=payload)
             signal("record-http-request").send(
@@ -221,11 +215,7 @@ class Squaremeal(ApiMiner):
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
-            self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
-        self._log_audit_response(resp, message_uid, Configuration.VALIDATE_HANDLER)
-        self.audit_logger.send_to_atlas()
         return resp.json()
 
     @retry(
@@ -252,8 +242,7 @@ class Squaremeal(ApiMiner):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        message_uid = str(uuid4())
-        resp_json = self._create_account(credentials, message_uid)
+        resp_json = self._create_account(credentials)
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
@@ -270,8 +259,7 @@ class Squaremeal(ApiMiner):
             "STATUS_LOGIN_FAILED": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
-        message_uid = str(uuid4())
-        resp = self._login(credentials, message_uid)
+        resp = self._login(credentials)
         self.identifier = {
             "merchant_identifier": resp["UserId"],
             "card_number": resp["MembershipNumber"],
