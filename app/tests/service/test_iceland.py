@@ -1,7 +1,8 @@
 import json
 from decimal import Decimal
+from http import HTTPStatus
 from unittest import TestCase, main, mock
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock, call
 
 import httpretty
 from tenacity import wait_none
@@ -246,7 +247,7 @@ class TestIceland(TestCase):
     @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_balance(self, mock_configuration):
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
         agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
@@ -255,6 +256,109 @@ class TestIceland(TestCase):
         )
 
         self.assertEqual(agent.balance(), expected_result)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.signal", autospec=True)
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_login_success_signals(self, mock_configuration, mock_signal, mock_oauth):
+        mock_configuration.return_value = self.mock_link_configuration_object()
+        httpretty.register_uri(
+            httpretty.POST,
+            self.merchant_url,
+            responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
+        )
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+        agent.login(credentials)
+
+        expected_calls = [
+            call("record-http-request"),
+            call().send(
+                agent,
+                slug=agent.scheme_slug,
+                endpoint="/api/v1/bink/link",
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+            ),
+            call("log-in-success"),
+            call().send(agent, slug=agent.scheme_slug),
+        ]
+
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.signal", autospec=True)
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_login_error_signals(self, mock_configuration, mock_signal, mock_oauth):
+        mock_configuration.return_value = self.mock_link_configuration_object()
+        httpretty.register_uri(
+            httpretty.POST,
+            self.merchant_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {"error_codes": [{"code": "VALIDATION", "description": "Card owner details do not match"}]}
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+
+        expected_calls = [
+            call("log-in-fail"),
+            call().send(agent, slug=agent.scheme_slug),
+            call("request-fail"),
+            call().send(
+                agent,
+                slug=agent.scheme_slug,
+                channel="",
+                error="VALIDATION",
+            ),
+        ]
+
+        with self.assertRaises(LoginError):
+            agent.login(credentials)
+
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_login_401_failure_signals(self, mock_configuration, mock_signal, mock_oauth):
+        mock_configuration.return_value = self.mock_link_configuration_object()
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(body="You do not have permission to view this directory or page.", status=401)
+            ],
+        )
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+        agent._login.retry.wait = wait_none()
+
+        expected_calls = [
+            call("request-fail"),
+            call().send(
+                agent,
+                slug=agent.scheme_slug,
+                channel="",
+                error="STATUS_LOGIN_FAILED",
+            ),
+        ]
+
+        with self.assertRaises(LoginError):
+            agent.login(credentials)
+
+        mock_signal.assert_has_calls(expected_calls)
 
 
 class TestIcelandMerchantIntegration(TestCase):
