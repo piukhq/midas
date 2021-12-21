@@ -471,32 +471,7 @@ class Acteol(ApiMiner):
             "BirthDate": credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
-
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
-
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
 
@@ -521,32 +496,7 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
-        payload = {"ctcid": ctcid}
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
@@ -710,9 +660,6 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
@@ -723,27 +670,7 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
-                self.audit_logger.add_request(
-                    payload=payload,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=Configuration.VALIDATE_HANDLER,
-                    integration_service=integration_service,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-
                 resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
-
-                self.audit_logger.add_response(
-                    response=resp,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=Configuration.JOIN_HANDLER,
-                    integration_service=integration_service,
-                    status_code=resp.status_code,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-                self.audit_logger.send_to_atlas()
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()

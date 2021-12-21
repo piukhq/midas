@@ -117,29 +117,6 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    def _log_audit_request(self, payload, message_uid, handler_type):
-        record_uid = hash_ids.encode(self.scheme_id)
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=handler_type,
-            integration_service=self.integration_service,
-        )
-
-    def _log_audit_response(self, response, message_uid, handler_type):
-        record_uid = hash_ids.encode(self.scheme_id)
-        self.audit_logger.add_response(
-            response=response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=handler_type,
-            status_code=response.status_code,
-            integration_service=self.integration_service,
-        )
-
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),

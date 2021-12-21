@@ -663,6 +663,7 @@ class MerchantApi(BaseMiner):
         return response_json
 
     def _send_request(self):
+        # replace this with signal later  - - - - - IMPORTANT 
         self.audit_logger.add_request(
             payload=self.request["json"],
             message_uid=self.message_uid,

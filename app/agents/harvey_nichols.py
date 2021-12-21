@@ -91,15 +91,6 @@ class HarveyNichols(ApiMiner):
         payload["url"] = has_loyalty_account_url
         payload["password"] = "********"
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-        )
-
         response = self.make_request(has_loyalty_account_url, method="post", headers=headers, timeout=10, json=data)
         signal("record-http-request").send(
             self,
@@ -108,17 +99,6 @@ class HarveyNichols(ApiMiner):
             latency=response.elapsed.total_seconds(),
             response_code=response.status_code,
         )
-
-        self.audit_logger.add_response(
-            response=response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-            status_code=response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
@@ -283,15 +263,6 @@ class HarveyNichols(ApiMiner):
         payload = deepcopy(data)
         payload["CustomerSignUpRequest"].update({"url": url})
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-        )
-
         self.join_response = self.make_request(url, method="post", timeout=10, json=data)
         signal("record-http-request").send(
             self,
@@ -300,17 +271,6 @@ class HarveyNichols(ApiMiner):
             latency=self.join_response.elapsed.total_seconds(),
             response_code=self.join_response.status_code,
         )
-
-        self.audit_logger.add_response(
-            response=self.join_response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=self.join_response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
@@ -343,15 +303,6 @@ class HarveyNichols(ApiMiner):
         payload["CustomerSignOnRequest"].update({"url": url})
         payload["CustomerSignOnRequest"].update({"password": "********"})
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-        )
-
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
         signal("record-http-request").send(
@@ -361,17 +312,6 @@ class HarveyNichols(ApiMiner):
             latency=self.login_response.elapsed.total_seconds(),
             response_code=self.login_response.status_code,
         )
-
-        self.audit_logger.add_response(
-            response=self.login_response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-            status_code=self.login_response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":

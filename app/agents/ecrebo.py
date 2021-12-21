@@ -133,28 +133,13 @@ class Ecrebo(ApiMiner):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         consents_data = {c["slug"]: c["value"] for c in consents}
         data = {"data": self._get_join_credentials(credentials, consents_data)}
 
-        self.audit_logger.add_request(
-            payload=data,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
-        resp = requests.post(
-            f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
-            json=data,
-            headers=self._make_headers(self._authenticate()),
-        )
-
+        url = f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
+        self.headers = self._make_headers(self._authenticate())
+        resp = self.make_request(url, method="post", json=data)
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -162,17 +147,6 @@ class Ecrebo(ApiMiner):
             latency=resp.elapsed.total_seconds(),
             response_code=resp.status_code,
         )
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
 
         if resp.status_code == 409:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
