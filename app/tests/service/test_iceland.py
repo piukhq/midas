@@ -4,6 +4,7 @@ from unittest import TestCase, main, mock
 from unittest.mock import MagicMock
 
 import httpretty
+from tenacity import wait_none
 
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
@@ -106,6 +107,7 @@ class TestIceland(TestCase):
 
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent._login.retry.wait = wait_none()
 
         with self.assertRaises(LoginError) as e:
             agent.login(credentials)
