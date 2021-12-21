@@ -54,7 +54,7 @@ class TestIcelandTemp(TestCase):
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=200)],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         self.assertEqual(agent._get_oauth_token(), "a_token")
 
@@ -76,7 +76,7 @@ class TestIcelandTemp(TestCase):
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
         agent.login(credentials)
         self.assertEqual(agent.headers, {"Authorization": f"Bearer {'a_token'}"})
@@ -84,7 +84,7 @@ class TestIcelandTemp(TestCase):
 
     @mock.patch("app.agents.iceland.Configuration")
     def test_balance(self, mock_configuration):
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card-temp")
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
         agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
