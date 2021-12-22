@@ -62,7 +62,10 @@ class Squaremeal(ApiMiner):
         req_audit_logs_copy = deepcopy(req_audit_logs)
         try:
             for audit_log in req_audit_logs_copy:
-                audit_log.payload["password"] = "********"
+                try:
+                    audit_log.payload["password"] = "********"
+                except TypeError:
+                    continue
 
         except KeyError as e:
             log.warning(f"Unexpected payload format for Squaremeal audit log - Missing key: {e}")
