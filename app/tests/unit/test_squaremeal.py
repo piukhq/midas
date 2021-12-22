@@ -158,7 +158,7 @@ class TestSquaremealLogin(TestCase):
             responses=[
                 httpretty.Response(
                     body="<html>\\n  <head>\\n    <title>Internal Server Error</title>\\n  </head>\\n  <body>\\n    "
-                         "<h1><p>Internal Server Error</p></h1>\\n    \\n  </body>\\n</html>\\n",
+                    "<h1><p>Internal Server Error</p></h1>\\n    \\n  </body>\\n</html>\\n",
                     status=HTTPStatus.INTERNAL_SERVER_ERROR,
                 )
             ],
