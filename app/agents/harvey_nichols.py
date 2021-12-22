@@ -92,13 +92,6 @@ class HarveyNichols(ApiMiner):
         payload["password"] = "********"
 
         response = self.make_request(has_loyalty_account_url, method="post", headers=headers, timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=response.request.path_url,
-            latency=response.elapsed.total_seconds(),
-            response_code=response.status_code,
-        )
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
@@ -155,13 +148,7 @@ class HarveyNichols(ApiMiner):
         )
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"Harvey Nichols balance response = {balance_response.json()}")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=balance_response.request.path_url,
-            latency=balance_response.elapsed.total_seconds(),
-            response_code=balance_response.status_code,
-        )
+
         return balance_response.json()["CustomerLoyaltyProfileResult"]
 
     def balance(self) -> Optional[Balance]:
@@ -201,13 +188,7 @@ class HarveyNichols(ApiMiner):
         }
 
         transaction_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=transaction_response.request.path_url,
-            latency=transaction_response.elapsed.total_seconds(),
-            response_code=transaction_response.status_code,
-        )
+
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
@@ -264,13 +245,6 @@ class HarveyNichols(ApiMiner):
         payload["CustomerSignUpRequest"].update({"url": url})
 
         self.join_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=self.join_response.request.path_url,
-            latency=self.join_response.elapsed.total_seconds(),
-            response_code=self.join_response.status_code,
-        )
 
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
@@ -305,14 +279,7 @@ class HarveyNichols(ApiMiner):
 
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=self.login_response.request.path_url,
-            latency=self.login_response.elapsed.total_seconds(),
-            response_code=self.login_response.status_code,
-        )
-
+        
         json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":
             signal("log-in-success").send(self, slug=self.scheme_slug)

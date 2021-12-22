@@ -135,13 +135,6 @@ class Squaremeal(ApiMiner):
         try:
             resp = self.make_request(url, method="post", json=payload)
             self.audit_finished = True
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
@@ -159,14 +152,7 @@ class Squaremeal(ApiMiner):
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
-            resp = self.make_request(url, method="put", json=payload)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
+            self.make_request(url, method="put", json=payload)
             self.consent_confirmation(consents, ConsentStatus.SUCCESS)
         except (AgentError, JoinError):
             pass
@@ -182,13 +168,6 @@ class Squaremeal(ApiMiner):
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
             resp = self.make_request(url, method="post", json=payload)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
@@ -206,13 +185,6 @@ class Squaremeal(ApiMiner):
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         try:
             resp = self.make_request(url, method="get")
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
         except (JoinError, AgentError) as ex:
             self.handle_errors(ex.response.status_code)
         return resp.json()
