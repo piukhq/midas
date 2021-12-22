@@ -121,7 +121,7 @@ class Ecrebo(ApiMiner):
                 raise  # base agent will convert this to an unknown error
         finally:
             if from_login:
-                self.audit_logger.add_response(
+                signal("add-audit-response").send(
                     response=resp,
                     scheme_slug=self.scheme_slug,
                     handler_type=journey_type,
@@ -133,13 +133,28 @@ class Ecrebo(ApiMiner):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
+        message_uid = str(uuid4())
+        record_uid = hash_ids.encode(self.scheme_id)
+        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         consents_data = {c["slug"]: c["value"] for c in consents}
         data = {"data": self._get_join_credentials(credentials, consents_data)}
 
-        url = f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
-        self.headers = self._make_headers(self._authenticate())
-        resp = self.make_request(url, method="post", json=data)
+        signal("add-audit-request").send(
+            payload=data,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+
+        resp = requests.post(
+            f"{self.base_url}/v1/list/append_item/{self.RETAILER_ID}/assets/membership",
+            json=data,
+            headers=self._make_headers(self._authenticate()),
+        )
+
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
@@ -147,6 +162,17 @@ class Ecrebo(ApiMiner):
             latency=resp.elapsed.total_seconds(),
             response_code=resp.status_code,
         )
+
+        signal("add-audit-response").send(
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=Configuration.JOIN_HANDLER,
+            integration_service=integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        signal("send-to-atlas").send()
 
         if resp.status_code == 409:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
@@ -184,7 +210,7 @@ class Ecrebo(ApiMiner):
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
 
-            self.audit_logger.add_request(
+            signal("add-audit-request").send(
                 payload={"card_number": card_number},
                 scheme_slug=self.scheme_slug,
                 handler_type=journey_type,
@@ -208,7 +234,7 @@ class Ecrebo(ApiMiner):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
             finally:
-                self.audit_logger.send_to_atlas()
+                signal("send-to-atlas").send()
 
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]

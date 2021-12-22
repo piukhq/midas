@@ -73,36 +73,13 @@ class AuditLogger:
         self.session = self.retry_session()
         self.journeys = journeys
 
-        signal("add-audit-request").connect(self.signal_audit_request)
-        signal("add-audit-response").connect(self.signal_audit_response)
-        signal("send-to-atlas").connect(self.send_logs_to_atlas)
-
-    def signal_audit_request(self, sender: Union[object, str], data):
-        self.add_request(
-            payload=data["payload"],
-            scheme_slug=data["scheme_slug"],
-            handler_type=data["handler_type"],
-            integration_service=data["integration_service"],
-            message_uid=data["message_uid"],
-            record_uid=data["record_uid"]
-        )
-
-    def signal_audit_response(self, sender: Union[object, str], data):
-        self.add_response(
-            response=data["response"],
-            scheme_slug=data["scheme_slug"],
-            handler_type=data["handler_type"],
-            integration_service=data["integration_service"],
-            message_uid=data["message_uid"],
-            status_code=data["status_code"],
-            record_uid=data["record_uid"]
-        )
-
-    def send_logs_to_atlas(self, sender: Union[object, str]):
-        self.send_to_atlas()
+        signal("add-audit-request").connect(self.add_request)
+        signal("add-audit-response").connect(self.add_response)
+        signal("send-to-atlas").connect(self.send_to_atlas)
 
     def add_request(
         self,
+        sender: Union[object, str],
         payload: Union[Iterable[dict], dict],
         scheme_slug: str,
         handler_type: int,
@@ -122,6 +99,7 @@ class AuditLogger:
 
     def add_response(
         self,
+        sender: Union[object, str],
         response: Union[str, Response],
         scheme_slug: str,
         handler_type: int,
@@ -160,7 +138,7 @@ class AuditLogger:
         return session
 
     # @celery.task
-    def send_to_atlas(self):
+    def send_to_atlas(self, sender: Union[object, str]):
         if not self.audit_logs:
             log.debug("No request or response data to send to Atlas.")
             return

@@ -4,10 +4,8 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 from urllib.parse import urljoin, urlsplit
-from uuid import uuid4
 
 import arrow
-import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
@@ -19,7 +17,6 @@ from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
-    IP_BLOCKED,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -494,10 +491,12 @@ class Acteol(ApiMiner):
         Add member number to Acteol
 
         :param ctcid: ID returned from Acteol when creating the account
+
+        Sent as part of GET for auditing purposes.
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
-        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-
+        audit_payload = {"ctcid": ctcid}
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=audit_payload)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
             raise JoinError(JOIN_ERROR)  # The join journey ends
@@ -948,49 +947,6 @@ class Acteol(ApiMiner):
         if customer_id == "0":
             log.error(f"Acteol card number has been deleted: Card number: {card_number}")
             raise AgentError(NO_SUCH_RECORD)
-
-    def make_request(self, url, method="get", timeout=5, **kwargs):
-        """
-        Overrides the parent method make_request() in order to call signal events
-        """
-        path = urlsplit(url).path  # Get the path part of the url for signal call
-
-        # Combine the passed kwargs with our headers and timeout values.
-        args = {
-            "headers": self.headers,
-            "timeout": timeout,
-        }
-        args.update(kwargs)
-
-        try:
-            resp = requests.request(method, url=url, **args)
-        except requests.Timeout as exception:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
-            raise AgentError(END_SITE_DOWN) from exception
-
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=path,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
-
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError as e:
-            if e.response.status_code == 401:
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
-                )
-                raise LoginError(STATUS_LOGIN_FAILED)
-            elif e.response.status_code == 403:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
-                raise AgentError(IP_BLOCKED) from e
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
-            raise AgentError(END_SITE_DOWN) from e
-
-        return resp
 
 
 def agent_consent_response(resp):
