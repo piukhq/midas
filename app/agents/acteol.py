@@ -4,6 +4,7 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 from urllib.parse import urljoin, urlsplit
+import requests
 
 import arrow
 import sentry_sdk
@@ -252,13 +253,19 @@ class Acteol(ApiMiner):
             "Content-type": "application/json",
             "Authorization": "token " + settings.SERVICE_API_KEY,
         }
-        super().make_request(  # Don't want to call any signals for internal calls
+        requests.put(  # Don't want to call any signals for internal calls
             api_url,
-            method="put",
-            timeout=self.API_TIMEOUT,
-            json=self.identifier,
+            data=self.identifier,
             headers=headers,
+            timeout=self.API_TIMEOUT
         )
+        # super().make_request(  # Don't want to call any signals for internal calls
+        #     api_url,
+        #     method="put",
+        #     timeout=self.API_TIMEOUT,
+        #     json=self.identifier,
+        #     headers=headers,
+        # )
 
     def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
         """

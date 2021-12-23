@@ -514,9 +514,28 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload='{}',
+                message_uid=None,
+                record_uid=None,
+                scheme_slug='id',
+                handler_type=0,
+                integration_service='SYNC'
+            ),
             call("record-http-request"),
             call().send(
                 self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK, slug=self.m.scheme_slug
+            ),
+            call("add-audit-response"),
+            call().send(
+                response=mock_request.return_value,
+                message_uid=None,
+                record_uid=None,
+                scheme_slug='id',
+                handler_type=0,
+                integration_service='SYNC',
+                status_code=HTTPStatus.OK
             ),
             call("request-success"),
             call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),
@@ -532,7 +551,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch("requests.Session.post")
     @mock.patch.object(MerchantApi, "process_join_response", autospec=True)
-    def test_async_inbound_success(self, mock_process_join, mock_session_post, mock_signal):
+    def test_async_inbound_success(self, mock_process_join, mock_session_post, mock_signal):  # todo: fix this
         mock_process_join.return_value = ""
         self.m.config = self.config
         self.m.record_uid = self.m.scheme_id

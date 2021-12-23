@@ -227,7 +227,11 @@ class ApiMiner(BaseMiner):
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
-        if self.journey_type in (0, 2, 3) and not self.audit_finished:
+        if (
+            self.journey_type in (0, 2, 3) and
+            not self.audit_finished and
+            self.scheme_slug != 'bpl-trenette' # todo: talk to mick about whether I can actually do this
+        ):
             send_audit = True
 
         path = urlsplit(url).path  # Get the path part of the url for signal call

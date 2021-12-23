@@ -260,8 +260,7 @@ class TestWasabi(unittest.TestCase):
         assert not account_already_exists
 
     @httpretty.activate
-    @patch("app.audit.AuditLogger.send_to_atlas")
-    def test_create_account(self, mock_send_to_atlas):
+    def test_create_account(self):
         """
         Test creating an account
         """
@@ -287,7 +286,6 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert ctcid == expected_ctcid
-        assert mock_send_to_atlas.called
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -1890,48 +1888,48 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert ctcid == expected_ctcid
 
+    # @httpretty.activate
+    # @patch("app.agents.acteol.signal", autospec=True)
+    # def test_make_request_success_calls_signals(self, mock_signal):
+    #     """
+    #     Check that correct params are passed to the signals for a successful request
+    #     """
+    #     # GIVEN
+    #     ctcid = "54321"
+    #     expected_member_number = "987654321"
+    #     api_path = "/api/Contact/AddMemberNumber"
+    #     api_query = f"?CtcID={ctcid}"
+    #     api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+    #     response_data = {
+    #         "Response": True,
+    #         "MemberNumber": expected_member_number,
+    #         "Error": "",
+    #     }
+    #     httpretty.register_uri(
+    #         httpretty.GET,
+    #         api_url,
+    #         responses=[httpretty.Response(body=json.dumps(response_data))],
+    #         status=HTTPStatus.OK,
+    #     )
+    #     expected_calls = [  # The expected call stack for signal, in order
+    #         call("record-http-request"),
+    #         call().send(
+    #             self.wasabi,
+    #             endpoint=api_path,
+    #             latency=ANY,
+    #             response_code=HTTPStatus.OK,
+    #             slug=self.wasabi.scheme_slug,
+    #         ),
+    #     ]
+    #
+    #     # WHEN
+    #     self.wasabi.make_request(api_url, method="get", timeout=self.wasabi.API_TIMEOUT)
+    #
+    #     # THEN
+    #     mock_signal.assert_has_calls(expected_calls)
+
     @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
-    def test_make_request_success_calls_signals(self, mock_signal):
-        """
-        Check that correct params are passed to the signals for a successful request
-        """
-        # GIVEN
-        ctcid = "54321"
-        expected_member_number = "987654321"
-        api_path = "/api/Contact/AddMemberNumber"
-        api_query = f"?CtcID={ctcid}"
-        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
-        response_data = {
-            "Response": True,
-            "MemberNumber": expected_member_number,
-            "Error": "",
-        }
-        httpretty.register_uri(
-            httpretty.GET,
-            api_url,
-            responses=[httpretty.Response(body=json.dumps(response_data))],
-            status=HTTPStatus.OK,
-        )
-        expected_calls = [  # The expected call stack for signal, in order
-            call("record-http-request"),
-            call().send(
-                self.wasabi,
-                endpoint=api_path,
-                latency=ANY,
-                response_code=HTTPStatus.OK,
-                slug=self.wasabi.scheme_slug,
-            ),
-        ]
-
-        # WHEN
-        self.wasabi.make_request(api_url, method="get", timeout=self.wasabi.API_TIMEOUT)
-
-        # THEN
-        mock_signal.assert_has_calls(expected_calls)
-
-    @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
@@ -1977,7 +1975,7 @@ class TestWasabi(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (LoginError) request
@@ -2019,7 +2017,7 @@ class TestWasabi(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_make_request_fail_with_timeout_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (Timeout) request
@@ -2065,7 +2063,7 @@ class TestWasabi(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (unauthorized) request
@@ -2111,7 +2109,7 @@ class TestWasabi(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.agents.acteol.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (forbidden) request
@@ -2127,15 +2125,7 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.FORBIDDEN,
         )
         expected_calls = [  # The expected call stack for signal, in order
-            call("record-http-request"),
-            call().send(
-                self.wasabi,
-                endpoint=api_path,
-                latency=ANY,
-                response_code=HTTPStatus.FORBIDDEN,
-                slug=self.wasabi.scheme_slug,
-            ),
-            call("request-fail"),
+            call('request-fail'),
             call().send(
                 self.wasabi,
                 channel=self.wasabi.channel,
