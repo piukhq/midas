@@ -474,6 +474,15 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload='{}',
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC"
+            ),
             call("record-http-request"),
             call().send(
                 self.m,
@@ -481,6 +490,16 @@ class TestMerchantApi(FlaskTestCase):
                 latency=total_seconds,
                 response_code=HTTPStatus.UNAUTHORIZED,
                 slug=self.m.scheme_slug,
+            ),
+            call("add-audit-response"),
+            call().send(
+                response=ANY,
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC",
+                status_code=HTTPStatus.UNAUTHORIZED
             ),
             call("request-fail"),
             call().send(self.m, channel=self.m.user_info["channel"], error=mock_reason, slug=self.m.scheme_slug),
