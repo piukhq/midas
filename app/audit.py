@@ -2,10 +2,10 @@ import json
 from enum import Enum
 from typing import Any, Iterable, NamedTuple, Optional, Union
 from uuid import uuid4
-from blinker import signal
 
 import arrow
 import requests
+from blinker import signal
 from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry

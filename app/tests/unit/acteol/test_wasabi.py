@@ -2125,7 +2125,7 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.FORBIDDEN,
         )
         expected_calls = [  # The expected call stack for signal, in order
-            call('request-fail'),
+            call("request-fail"),
             call().send(
                 self.wasabi,
                 channel=self.wasabi.channel,

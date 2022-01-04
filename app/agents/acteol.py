@@ -4,9 +4,9 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 from urllib.parse import urljoin, urlsplit
-import requests
 
 import arrow
+import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
@@ -254,10 +254,7 @@ class Acteol(ApiMiner):
             "Authorization": "token " + settings.SERVICE_API_KEY,
         }
         requests.put(  # Don't want to call any signals for internal calls
-            api_url,
-            data=self.identifier,
-            headers=headers,
-            timeout=self.API_TIMEOUT
+            api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT
         )
         # super().make_request(  # Don't want to call any signals for internal calls
         #     api_url,

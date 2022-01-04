@@ -4,8 +4,8 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
-from uuid import uuid4
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import arrow
 import requests
@@ -228,9 +228,9 @@ class ApiMiner(BaseMiner):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
         if (
-            self.journey_type in (0, 2, 3) and
-            not self.audit_finished and
-            self.scheme_slug != 'bpl-trenette' # todo: talk to mick about whether I can actually do this
+            self.journey_type in (0, 2, 3)
+            and not self.audit_finished
+            and self.scheme_slug != "bpl-trenette"  # todo: talk to mick about whether I can actually do this
         ):
             send_audit = True
 
@@ -256,7 +256,7 @@ class ApiMiner(BaseMiner):
                     handler_type=handler_type,
                     integration_service=self.integration_service,
                     message_uid=message_uid,
-                    record_uid=record_uid
+                    record_uid=record_uid,
                 )
                 signal("add-audit-response").send(
                     self,
@@ -266,7 +266,7 @@ class ApiMiner(BaseMiner):
                     integration_service=self.integration_service,
                     status_code=resp.status_code,
                     message_uid=message_uid,
-                    record_uid=record_uid
+                    record_uid=record_uid,
                 )
                 signal("send-to-atlas").send(self)
         except Timeout as exception:

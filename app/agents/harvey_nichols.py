@@ -279,7 +279,7 @@ class HarveyNichols(ApiMiner):
 
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
-        
+
         json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":
             signal("log-in-success").send(self, slug=self.scheme_slug)
