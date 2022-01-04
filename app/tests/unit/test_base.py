@@ -6,7 +6,7 @@ import arrow
 import httpretty
 
 from app.agents.base import ApiMiner, create_error_response
-from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, NOT_SENT, STATUS_LOGIN_FAILED, AgentError, LoginError
 from app.agents.schemas import Transaction
 
 
@@ -72,7 +72,7 @@ class TestBase(TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=END_SITE_DOWN),
+            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=NOT_SENT),
         ]
 
         # WHEN
