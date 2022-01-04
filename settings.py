@@ -110,3 +110,8 @@ API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
 # olympus-messaging interface
 LOYALTY_REQUEST_QUEUE = getenv("LOYALTY_REQUEST_QUEUE", default="loyalty-request")
 LOYALTY_RESPONSE_QUEUE = getenv("LOYALTY_RESPONSE_QUEUE", default="loyalty-response")
+
+# Environment using new iceland agent, i.e.:
+# true: iceland.py
+# false: iceland_merchant_integration.py
+NEW_ICELAND_AGENT_ACTIVE = getenv("NEW_ICELAND_AGENT_ACTIVE", default="false", conv=boolconv)
