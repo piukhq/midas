@@ -85,9 +85,6 @@ class Iceland(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, payload):
-        return self.make_request(url=self.config.merchant_url, method="post", json=payload)
-
     def login(self, credentials) -> None:
         token = self._get_oauth_token()
         payload = {
@@ -102,7 +99,7 @@ class Iceland(ApiMiner):
         }
         self.headers = {"Authorization": f"Bearer {token}"}
 
-        response = self._login(payload)
+        response = self.make_request(url=self.config.merchant_url, method="post", json=payload)
         response_json = response.json()
 
         error = response_json.get("error_codes")
