@@ -12,7 +12,7 @@ from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner
-from app.agents.exceptions import AgentError, JoinError
+from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.reporting import get_logger
@@ -62,7 +62,10 @@ class Squaremeal(ApiMiner):
         req_audit_logs_copy = deepcopy(req_audit_logs)
         try:
             for audit_log in req_audit_logs_copy:
-                audit_log.payload["password"] = "********"
+                try:
+                    audit_log.payload["password"] = "********"
+                except TypeError:
+                    continue
 
         except KeyError as e:
             log.warning(f"Unexpected payload format for Squaremeal audit log - Missing key: {e}")
@@ -219,7 +222,7 @@ class Squaremeal(ApiMiner):
                 response_code=resp.status_code,
             )
             signal("log-in-success").send(self, slug=self.scheme_slug)
-        except (JoinError, AgentError) as ex:
+        except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
             self.audit_logger.send_to_atlas()
