@@ -70,7 +70,7 @@ class TestIceland(TestCase):
 
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
-        self.assertEqual(agent._get_oauth_token(), "a_token")
+        self.assertEqual(agent._refresh_oauth_token(), "a_token")
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
