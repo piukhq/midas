@@ -551,7 +551,7 @@ class TestMerchantApi(FlaskTestCase):
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch("requests.Session.post")
     @mock.patch.object(MerchantApi, "process_join_response", autospec=True)
-    def test_async_inbound_success(self, mock_process_join, mock_session_post, mock_signal):  # todo: fix this
+    def test_async_inbound_success(self, mock_process_join, mock_session_post, mock_signal):  # todo: fix later
         mock_process_join.return_value = ""
         self.m.config = self.config
         self.m.record_uid = self.m.scheme_id

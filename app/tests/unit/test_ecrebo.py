@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 from uuid import uuid4
 
 import httpretty
-from requests import HTTPError, RequestException
+from requests import HTTPError, RequestException, Response
 
 from app.agents.ecrebo import FatFace, WhSmith
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
@@ -17,6 +17,19 @@ class TestEcreboSignal(unittest.TestCase):
 
     @classmethod
     def setUp(cls) -> None:
+        cls.audit_payload = {
+            'data': {
+                'email': 'mrtestman@thing.com',
+                'title': 'Mr',
+                'first_name': 'Test',
+                'surname': 'Man',
+                'mobile_number': 1234567890,
+                'address_line1': '1 The Street',
+                'city': 'Nowhereton',
+                'postcode': 'NW11NW',
+                'validated': True
+            }
+        }
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
@@ -265,10 +278,9 @@ class TestEcreboSignal(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
-    def test_get_membership_data_calls_audit_add_response(self, mock_signal, mock_authenticate, mock_add_response):
+    def test_get_membership_data_calls_audit_add_response(self, mock_signal, mock_authenticate):
         """
         Check that correct params are passed to signals when the call is OK
         """
@@ -290,15 +302,14 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # THEN
-        assert mock_add_response.called
+        assert mock_signal.called
         assert membership_data == mock_membership_data
 
     @httpretty.activate
-    @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_get_membership_data_calls_audit_add_response_on_http_error(
-        self, mock_signal, mock_authenticate, mock_add_response
+        self, mock_signal, mock_authenticate
     ):
         """
         Check that correct params are passed to signals when the call is OK
@@ -323,14 +334,13 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # THEN
-        assert mock_add_response.called
+        assert mock_signal.called
 
     @httpretty.activate
-    @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_get_membership_data_calls_audit_add_response_on_requests_exceptions(
-        self, mock_signal, mock_authenticate, mock_add_response
+        self, mock_signal, mock_authenticate
     ):
         """
         Check that correct params are passed to signals when the call is OK
@@ -355,7 +365,7 @@ class TestEcreboSignal(unittest.TestCase):
         )
 
         # THEN
-        assert mock_add_response.called
+        assert mock_signal.called
 
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
@@ -378,6 +388,15 @@ class TestEcreboSignal(unittest.TestCase):
             status=HTTPStatus.OK,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload=self.audit_payload,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                message_uid=ANY,
+                record_uid=ANY
+            ),
             call("record-http-request"),
             call().send(
                 self.whsmith,
@@ -386,6 +405,17 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.OK,
                 slug=self.whsmith.scheme_slug,
             ),
+            call("add-audit-response"),
+            call().send(
+                response=ANY,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                status_code=HTTPStatus.GATEWAY_TIMEOUT,
+                message_uid=ANY,
+                record_uid=ANY
+            ),
+            call('send-to-atlas'),
             call("join-success"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
         ]
@@ -399,7 +429,7 @@ class TestEcreboSignal(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
-    @patch("app.agents.ecrebo.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_join_calls_signals_for_409(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
         """
         Check that correct params are passed to the signals for a CONFLICT (409) response during join
@@ -458,6 +488,15 @@ class TestEcreboSignal(unittest.TestCase):
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload=self.audit_payload,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                message_uid=ANY,
+                record_uid=ANY
+            ),
             call("record-http-request"),
             call().send(
                 self.whsmith,
@@ -466,6 +505,18 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.GATEWAY_TIMEOUT,
                 slug=self.whsmith.scheme_slug,
             ),
+            call("add-audit-response"),
+            call().send(
+                response=ANY,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                status_code=HTTPStatus.GATEWAY_TIMEOUT,
+                message_uid=ANY,
+                record_uid=ANY
+            ),
+            call('send-to-atlas'),
+            call().send(),
             call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
@@ -517,30 +568,44 @@ class TestEcreboSignal(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @patch("app.audit.AuditLogger.send_to_atlas")
-    @patch("app.audit.AuditLogger.add_request")
-    @patch("app.audit.AuditLogger.add_response")
     @patch("app.agents.ecrebo.Ecrebo._get_membership_response")
     @patch("app.agents.ecrebo.signal", autospec=True)
     def test_login_fatface(
-        self, mock_signal, mock_get_membership_response, mock_add_response, mock_add_request, mock_send_to_atlas
+        self, mock_signal, mock_get_membership_response
     ):
         """
         Testing FatFace login journey to ensure audit request/responses are created
         """
         # GIVEN
-        card_number = "1234567"
         path = "/v1/list/query_item/"
+        card_number = "1234567"
+        mock_endpoint = f"{self.fatface.base_url}{path}{self.fatface.RETAILER_ID}/assets/membership/token/{card_number}" # noqa
 
         httpretty.register_uri(
             httpretty.GET,
             f"{self.fatface.base_url}{path}{self.fatface.RETAILER_ID}/assets/membership/token/{card_number}",
             status=HTTPStatus.OK,
         )
-
+        expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload={'card_number': '1234567'},
+                scheme_slug=self.fatface.scheme_slug,
+                handler_type=2,
+                integration_service='SYNC',
+                message_uid=ANY,
+                record_uid=ANY
+            ),
+            call("log-in-success"),
+            call().send(
+                self.fatface,
+                slug=self.fatface.scheme_slug
+            ),
+            call('send-to-atlas'),
+            call().send(),
+        ]
         # WHEN
         self.fatface.login(credentials=self.fatface.user_info["credentials"])
 
         # THEN
-        assert mock_send_to_atlas.called_with(self.fatface.user_info["credentials"])
-        assert mock_send_to_atlas.called
+        mock_signal.assert_has_calls(expected_calls)

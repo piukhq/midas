@@ -212,25 +212,22 @@ class TestUserConsents(unittest.TestCase):
     #             password = aes.decrypt(log["payload"]["CustomerSignUpRequest"]["password"])
     #             self.assertEqual(password, "testPassword")
 
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch("requests.Session.post")
-    def test_harvey_nick_send_to_atlas_only_sends_for_specified_journeys(self, mock_atlas_request, mock_config):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
-        hn = HarveyNichols(retry_count=1, user_info=user_info)
-
-        hn.audit_logger.journeys = (Configuration.UPDATE_HANDLER,)
-        self.add_audit_logs(hn)
-        self.assertEqual(len(hn.audit_logger.audit_logs), 0)
-
-        hn.audit_logger.send_to_atlas()
-        self.assertFalse(mock_atlas_request.called)
-
-        hn.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
-        self.add_audit_logs(hn)
-        self.assertEqual(len(hn.audit_logger.audit_logs), 2)
-
-        hn.audit_logger.send_to_atlas()
-        self.assertTrue(mock_atlas_request.called)
+    # @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    # @mock.patch("requests.Session.post")
+    # def test_harvey_nick_send_to_atlas_only_sends_for_specified_journeys(self, mock_atlas_request, mock_config): # todo: use this logic to test make_request
+    #     user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+    #     hn = HarveyNichols(retry_count=1, user_info=user_info)
+    #
+    #     hn.audit_logger.journeys = (Configuration.UPDATE_HANDLER,)
+    #     self.add_audit_logs(hn)
+    #     self.assertEqual(len(hn.audit_logger.audit_logs), 0)
+    #
+    #     hn.audit_logger.send_to_atlas()
+    #     self.assertFalse(mock_atlas_request.called)
+    #
+    #     hn.audit_logger.journeys = (Configuration.JOIN_HANDLER,)
+    #     self.add_audit_logs(hn)
+    #     self.assertEqual(len(hn.audit_logger.audit_logs), 2)
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
