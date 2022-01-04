@@ -411,11 +411,12 @@ class TestEcreboSignal(unittest.TestCase):
                 scheme_slug=self.whsmith.scheme_slug,
                 handler_type=1,
                 integration_service='SYNC',
-                status_code=HTTPStatus.GATEWAY_TIMEOUT,
+                status_code=HTTPStatus.OK,
                 message_uid=ANY,
                 record_uid=ANY
             ),
             call('send-to-atlas'),
+            call().send(),
             call("join-success"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
         ]
@@ -429,7 +430,7 @@ class TestEcreboSignal(unittest.TestCase):
     @httpretty.activate
     @patch("app.agents.ecrebo.Ecrebo._get_card_number_and_uid")
     @patch("app.agents.ecrebo.Ecrebo._authenticate")
-    @patch("app.agents.base.signal", autospec=True)
+    @patch("app.agents.ecrebo.signal", autospec=True)
     def test_join_calls_signals_for_409(self, mock_signal, mock_authenticate, mock_get_card_number_and_uid):
         """
         Check that correct params are passed to the signals for a CONFLICT (409) response during join
@@ -446,6 +447,15 @@ class TestEcreboSignal(unittest.TestCase):
             status=HTTPStatus.CONFLICT,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload=self.audit_payload,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                message_uid=ANY,
+                record_uid=ANY
+            ),
             call("record-http-request"),
             call().send(
                 self.whsmith,
@@ -454,6 +464,18 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.CONFLICT,
                 slug=self.whsmith.scheme_slug,
             ),
+            call("add-audit-response"),
+            call().send(
+                response=ANY,
+                scheme_slug=self.whsmith.scheme_slug,
+                handler_type=1,
+                integration_service='SYNC',
+                status_code=HTTPStatus.CONFLICT,
+                message_uid=ANY,
+                record_uid=ANY
+            ),
+            call("send-to-atlas"),
+            call().send(),
             call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
