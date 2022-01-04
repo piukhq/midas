@@ -360,6 +360,26 @@ class TestIceland(TestCase):
 
         mock_signal.assert_has_calls(expected_calls)
 
+    @mock.patch("app.agents.iceland.token_store.set")
+    def test_store_token(self, mock_iceland_token_store):
+        mock_iceland_token_store.return_value = True
+        mock_acteol_access_token = "abcde12345fghij"
+        mock_current_timestamp = 123456789
+        expected_token = {
+            "acteol_access_token": mock_acteol_access_token,
+            "timestamp": mock_current_timestamp,
+        }
+
+        with unittest.mock.patch.object(self.wasabi.token_store, "set", return_value=True):
+            token = self.wasabi._store_token(
+                acteol_access_token=mock_acteol_access_token,
+                current_timestamp=mock_current_timestamp,
+            )
+
+            # THEN
+            assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
+            assert token == expected_token
+
 
 class TestIcelandMerchantIntegration(TestCase):
     @classmethod
