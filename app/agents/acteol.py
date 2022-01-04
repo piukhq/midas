@@ -256,13 +256,6 @@ class Acteol(ApiMiner):
         requests.put(  # Don't want to call any signals for internal calls
             api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT
         )
-        # super().make_request(  # Don't want to call any signals for internal calls
-        #     api_url,
-        #     method="put",
-        #     timeout=self.API_TIMEOUT,
-        #     json=self.identifier,
-        #     headers=headers,
-        # )
 
     def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
         """

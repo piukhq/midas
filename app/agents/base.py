@@ -230,7 +230,6 @@ class ApiMiner(BaseMiner):
         if (
             self.journey_type in (0, 2, 3)
             and not self.audit_finished
-            and self.scheme_slug != "bpl-trenette"  # todo: talk to mick about whether I can actually do this
         ):
             send_audit = True
 
