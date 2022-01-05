@@ -230,6 +230,7 @@ class ApiMiner(BaseMiner):
         if (
             self.journey_type in (0, 2, 3)
             and not self.audit_finished
+            and kwargs
         ):
             send_audit = True
 

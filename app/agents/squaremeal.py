@@ -168,7 +168,6 @@ class Squaremeal(ApiMiner):
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
             resp = self.make_request(url, method="post", json=payload)
-            self.audit_finished = True
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)

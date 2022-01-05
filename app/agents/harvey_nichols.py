@@ -138,8 +138,6 @@ class HarveyNichols(ApiMiner):
         if sign_on_required:
             log.info(f"SignOn required for Harvey Nichols for scheme account id = {self.scheme_id}")
             self._login(credentials)
-            # Don't send audit beyond this point
-            self.audit_finished = True
 
     def call_balance_url(self):
         url = self.base_url + "/GetProfile"
