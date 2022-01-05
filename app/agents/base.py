@@ -246,12 +246,17 @@ class ApiMiner(BaseMiner):
         try:
             resp = requests.request(method, url=url, **args)
             if send_audit:
+                # Mask password before sending to Atlas
+                payload = kwargs["json"]
+                if payload.get("password"):
+                    payload["password"] = "*****"
+
                 record_uid = hash_ids.encode(self.scheme_id)
                 handler_type = self._get_handler()
                 message_uid = str(uuid4())
                 signal("add-audit-request").send(
                     self,
-                    payload=kwargs["json"],
+                    payload=payload,
                     scheme_slug=self.scheme_slug,
                     handler_type=handler_type,
                     integration_service=self.integration_service,
