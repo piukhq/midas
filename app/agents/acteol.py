@@ -360,6 +360,8 @@ class Acteol(ApiMiner):
         ):
             try:
                 ctcid = self._validate_member_number(credentials)
+                # Don't send audit beyond this point
+                self.audit_finished = True
                 signal("log-in-success").send(self, slug=self.scheme_slug)
                 self.identifier_type = [
                     "card_number",  # Not sure this is needed but the base class has one

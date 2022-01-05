@@ -114,6 +114,7 @@ class Trenette(BplBase):
 
         try:
             resp = self.make_request(url, method="post", json=payload)
+            self.audit_finished = True
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
         else:

@@ -138,6 +138,8 @@ class HarveyNichols(ApiMiner):
         if sign_on_required:
             log.info(f"SignOn required for Harvey Nichols for scheme account id = {self.scheme_id}")
             self._login(credentials)
+            # Don't send audit beyond this point
+            self.audit_finished = True
 
     def call_balance_url(self):
         url = self.base_url + "/GetProfile"
@@ -259,7 +261,6 @@ class HarveyNichols(ApiMiner):
         """
         Retrieves user token and customer number, saving token in user token redis db.
         """
-        message_uid = str(uuid4())
         url = self.base_url + "/SignOn"
         data = {
             "CustomerSignOnRequest": {
@@ -269,8 +270,6 @@ class HarveyNichols(ApiMiner):
             }
         }
 
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         # Add in email, expected by Atlas
         data["CustomerSignOnRequest"].update({"email": credentials["email"]})
         payload = deepcopy(data)
