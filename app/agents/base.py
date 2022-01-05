@@ -224,13 +224,44 @@ class ApiMiner(BaseMiner):
         elif self.journey_type == 3:
             return Configuration.UPDATE_HANDLER
 
+    def send_audit_logs(self, kwargs, resp):
+        if not kwargs.get("json"):
+            return
+
+        payload = kwargs["json"]
+        if payload.get("password"):
+            payload["password"] = "*****"
+
+        record_uid = hash_ids.encode(self.scheme_id)
+        handler_type = self._get_handler()
+        message_uid = str(uuid4())
+        signal("add-audit-request").send(
+            self,
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=handler_type,
+            integration_service=self.integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        signal("add-audit-response").send(
+            self,
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=handler_type,
+            integration_service=self.integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        signal("send-to-atlas").send(self)
+
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
         if (
             self.journey_type in (0, 2, 3)
             and not self.audit_finished
-            and kwargs.get("json")
         ):
             send_audit = True
 
@@ -246,34 +277,8 @@ class ApiMiner(BaseMiner):
         try:
             resp = requests.request(method, url=url, **args)
             if send_audit:
-                # Mask password before sending to Atlas
-                payload = kwargs["json"]
-                if payload.get("password"):
-                    payload["password"] = "*****"
+                self.send_audit_logs(kwargs, resp)
 
-                record_uid = hash_ids.encode(self.scheme_id)
-                handler_type = self._get_handler()
-                message_uid = str(uuid4())
-                signal("add-audit-request").send(
-                    self,
-                    payload=payload,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=handler_type,
-                    integration_service=self.integration_service,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-                signal("add-audit-response").send(
-                    self,
-                    response=resp,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=handler_type,
-                    integration_service=self.integration_service,
-                    status_code=resp.status_code,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-                signal("send-to-atlas").send(self)
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
