@@ -1917,7 +1917,7 @@ class TestWasabi(unittest.TestCase):
             call().send(
                 self.wasabi,
                 channel=self.wasabi.channel,
-                error=NOT_SENT,
+                error=END_SITE_DOWN,
                 slug=self.wasabi.scheme_slug,
             ),
         ]
