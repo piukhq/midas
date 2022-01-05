@@ -13,7 +13,7 @@ import pytest
 from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
+from app.agents.exceptions import END_SITE_DOWN, NOT_SENT, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Voucher
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -1917,7 +1917,7 @@ class TestWasabi(unittest.TestCase):
             call().send(
                 self.wasabi,
                 channel=self.wasabi.channel,
-                error=END_SITE_DOWN,
+                error=NOT_SENT,
                 slug=self.wasabi.scheme_slug,
             ),
         ]
