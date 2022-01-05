@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import requests
 import sentry_sdk
+from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -107,7 +108,23 @@ class Iceland(ApiMiner):
 
         error = response_json.get("error_codes")
         if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            signal("request-fail").send(
+                self,
+                slug=self.scheme_slug,
+                channel=self.user_info.get("channel", ""),
+                error=error[0]["code"],
+            )
             self.handle_errors(error[0]["code"])
+        else:
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=response.request.path_url,
+                latency=response.elapsed.total_seconds(),
+                response_code=response.status_code,
+            )
+            signal("log-in-success").send(self, slug=self.scheme_slug)
 
         self.identifier = {
             "barcode": response_json.get("barcode"),

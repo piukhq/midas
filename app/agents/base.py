@@ -241,7 +241,7 @@ class ApiMiner(BaseMiner):
             elif e.response.status_code == 403:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
                 raise AgentError(IP_BLOCKED, response=e.response) from e
-            elif e.response.status_code in [503, 504, 408]:
+            elif e.response.status_code in [503, 504]:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NOT_SENT)
                 raise AgentError(NOT_SENT, response=e.response) from e
             else:
