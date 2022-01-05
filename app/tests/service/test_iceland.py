@@ -5,6 +5,7 @@ from unittest import TestCase, main, mock
 from unittest.mock import ANY, MagicMock, call
 
 import httpretty
+import arrow
 from tenacity import wait_none
 
 from app.agents.base import Balance
@@ -60,7 +61,7 @@ class TestIceland(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Configuration")
-    def test_get_oauth_token(self, mock_configuration):
+    def test_refresh_token(self, mock_configuration):
         mock_configuration.return_value = self.mock_link_configuration_object()
         httpretty.register_uri(
             httpretty.POST,
@@ -70,10 +71,60 @@ class TestIceland(TestCase):
 
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
 
-        self.assertEqual(agent._refresh_oauth_token(), "a_token")
+        self.assertEqual(agent._refresh_token(), "a_token")
+
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_token_is_valid_true(self, mock_configuration):
+        token = {
+            "iceland_access_token": "abcde12345fghij",
+            "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
+        }
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+
+        result = agent._token_is_valid(token, (arrow.get(2022, 1, 1, 7, 30).int_timestamp,))
+
+        self.assertEqual(
+            result,
+            True,
+        )
+
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_token_is_valid_false(self, mock_configuration):
+        token = {
+            "iceland_access_token": "abcde12345fghij",
+            "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
+        }
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+
+        result = agent._token_is_valid(token, (arrow.get(2022, 1, 1, 8, 0).int_timestamp,))
+
+        self.assertEqual(
+            result,
+            False,
+        )
+
+    @mock.patch("app.agents.iceland.Configuration")
+    def test_store_token(self, mock_configuration):
+        access_token = "abcde12345fghij"
+        current_timestamp = arrow.get(2022, 1, 1, 7, 0).int_timestamp
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+
+        with mock.patch.object(agent.token_store, "set", return_value=True) as mock_token_store:
+            agent._store_token(access_token, current_timestamp)
+
+        self.assertEqual(
+            mock_token_store.call_args[1]["token"],
+            '{"iceland_access_token": "abcde12345fghij", "timestamp": 1641020400}',
+        )
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -92,7 +143,7 @@ class TestIceland(TestCase):
         self.assertEqual(agent._balance_amount, 10.0)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_401(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -114,7 +165,7 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.name, "Invalid credentials")
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200_validation_error_403(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -139,7 +190,7 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200_card_number_error_436(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -164,7 +215,7 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200_link_limit_exceeded_437(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -190,7 +241,7 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200_link_limit_exceeded_438(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -219,7 +270,7 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_200_link_limit_exceeded_439(self, mock_configuration, mock_oath):
         mock_configuration.return_value = self.mock_link_configuration_object()
@@ -244,9 +295,9 @@ class TestIceland(TestCase):
         self.assertEqual(e.exception.code, 439)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Configuration")
-    def test_balance(self, mock_configuration):
+    def test_balance(self, mock_configuration, mock_oauth):
         agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
         agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
@@ -258,7 +309,7 @@ class TestIceland(TestCase):
         self.assertEqual(agent.balance(), expected_result)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_success_signals(self, mock_configuration, mock_signal, mock_oauth):
@@ -289,7 +340,7 @@ class TestIceland(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_error_signals(self, mock_configuration, mock_signal, mock_oauth):
@@ -328,7 +379,7 @@ class TestIceland(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._get_oauth_token", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch("app.agents.iceland.Configuration")
     def test_login_401_failure_signals(self, mock_configuration, mock_signal, mock_oauth):
@@ -360,26 +411,6 @@ class TestIceland(TestCase):
 
         mock_signal.assert_has_calls(expected_calls)
 
-    @mock.patch("app.agents.iceland.token_store.set")
-    def test_store_token(self, mock_iceland_token_store):
-        mock_iceland_token_store.return_value = True
-        mock_acteol_access_token = "abcde12345fghij"
-        mock_current_timestamp = 123456789
-        expected_token = {
-            "acteol_access_token": mock_acteol_access_token,
-            "timestamp": mock_current_timestamp,
-        }
-
-        with unittest.mock.patch.object(self.wasabi.token_store, "set", return_value=True):
-            token = self.wasabi._store_token(
-                acteol_access_token=mock_acteol_access_token,
-                current_timestamp=mock_current_timestamp,
-            )
-
-            # THEN
-            assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
-            assert token == expected_token
-
 
 class TestIcelandMerchantIntegration(TestCase):
     @classmethod
@@ -396,7 +427,7 @@ class TestIcelandMerchantIntegration(TestCase):
         self.assertIsNotNone(transactions)
 
 
-class TestIcelandValidate(TestCase):
+class TestIcelandMerchantIntegrationValidate(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
@@ -410,7 +441,7 @@ class TestIcelandValidate(TestCase):
         self.assertIsNotNone(balance)
 
 
-class TestIcelandFail(TestCase):
+class TestIcelandMerchantIntegrationFail(TestCase):
     def test_login_fail(self):
         i = MerchantAPIGeneric(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
         credentials = cred

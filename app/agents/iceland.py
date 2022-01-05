@@ -107,15 +107,14 @@ class Iceland(ApiMiner):
 
         return response.json()["access_token"]
 
-    def _store_token(self, token, current_timestamp):
+    def _store_token(self, token, current_timestamp) -> None:
         token = {
             "iceland_access_token": token,
             "timestamp": current_timestamp,
         }
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
-        return token
 
-    def _token_is_valid(self, token, current_timestamp):
+    def _token_is_valid(self, token, current_timestamp) -> bool:
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
