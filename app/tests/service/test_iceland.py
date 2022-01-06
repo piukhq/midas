@@ -61,7 +61,7 @@ class TestIcelandValidate(TestCase):
         AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
         with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
             self.agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        self.agent._login.retry.wait = wait_none()
+        self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @httpretty.activate
     def test_refresh_token(self):
