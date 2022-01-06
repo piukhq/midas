@@ -230,7 +230,7 @@ class ApiMiner(BaseMiner):
             payload["password"] = "REDACTED"
 
         record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = self.audit_handlers(self.journey_type)
+        handler_type = self.audit_handlers[self.journey_type]
         message_uid = str(uuid4())
         signal("add-audit-request").send(
             self,
