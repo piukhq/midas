@@ -79,7 +79,6 @@ class AuditLogger:
 
     def add_request(
         self,
-        sender: Union[object, str],
         payload: Union[Iterable[dict], dict],
         scheme_slug: str,
         handler_type: int,
@@ -99,7 +98,6 @@ class AuditLogger:
 
     def add_response(
         self,
-        sender: Union[object, str],
         response: Union[str, Response],
         scheme_slug: str,
         handler_type: int,
@@ -137,8 +135,7 @@ class AuditLogger:
         session.mount("https://", adapter)
         return session
 
-    # @celery.task
-    def send_to_atlas(self, sender: Union[object, str]):
+    def send_to_atlas(self):
         if not self.audit_logs:
             log.debug("No request or response data to send to Atlas.")
             return

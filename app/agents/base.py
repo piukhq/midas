@@ -215,14 +215,11 @@ class ApiMiner(BaseMiner):
         self.audit_logger = AuditLogger(channel=self.channel)
         self.audit_finished = False
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
-    def _get_handler(self):
-        if self.journey_type == 0:
-            return Configuration.JOIN_HANDLER
-        elif self.journey_type == 2:
-            return Configuration.VALIDATE_HANDLER
-        elif self.journey_type == 3:
-            return Configuration.UPDATE_HANDLER
+        self.audit_handlers = {
+            JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
+            JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+            JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER
+        }
 
     def send_audit_logs(self, kwargs, resp):
         if not kwargs.get("json"):
@@ -230,10 +227,10 @@ class ApiMiner(BaseMiner):
 
         payload = kwargs["json"]
         if payload.get("password"):
-            payload["password"] = "*****"
+            payload["password"] = "REDACTED"
 
         record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = self._get_handler()
+        handler_type = self.audit_handlers(self.journey_type)
         message_uid = str(uuid4())
         signal("add-audit-request").send(
             self,
@@ -259,7 +256,7 @@ class ApiMiner(BaseMiner):
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
-        if self.journey_type in (0, 2, 3) and not self.audit_finished:
+        if self.journey_type in self.audit_handlers.keys() and not self.audit_finished:
             send_audit = True
 
         path = urlsplit(url).path  # Get the path part of the url for signal call
@@ -273,20 +270,19 @@ class ApiMiner(BaseMiner):
 
         try:
             resp = requests.request(method, url=url, **args)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=path,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
             if send_audit:
                 self.send_audit_logs(kwargs, resp)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
-
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=path,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
 
         try:
             resp.raise_for_status()
