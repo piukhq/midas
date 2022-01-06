@@ -1,12 +1,15 @@
+import json
 from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
 
+import arrow
 import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
+from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner, Balance
@@ -37,6 +40,9 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
 
 
 class Iceland(ApiMiner):
+    token_store = UserTokenStore(settings.REDIS_URL)
+    AUTH_TOKEN_TIMEOUT = 3599
+
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
@@ -57,12 +63,32 @@ class Iceland(ApiMiner):
             GENERAL_ERROR: "GENERAL_ERROR",
         }
 
+    def _authenticate(self) -> str:
+        have_valid_token = False
+        current_timestamp = (arrow.utcnow().int_timestamp,)
+        token_dict = {}
+        try:
+            token_dict = json.loads(self.token_store.get(self.scheme_id))
+            try:
+                if self._token_is_valid(token_dict, current_timestamp):
+                    have_valid_token = True
+            except (KeyError, TypeError) as e:
+                log.exception(e)
+        except (KeyError, self.token_store.NoSuchToken):
+            pass
+
+        if not have_valid_token:
+            token = self._refresh_token()
+            self._store_token(token, current_timestamp)
+
+        return token
+
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _get_oauth_token(self) -> str:
+    def _refresh_token(self) -> str:
         url = self.security_credentials["url"]
         payload = {
             "grant_type": "client_credentials",
@@ -81,16 +107,27 @@ class Iceland(ApiMiner):
 
         return response.json()["access_token"]
 
+    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
+        token_dict = {
+            "iceland_access_token": token,
+            "timestamp": current_timestamp,
+        }
+        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
+
+    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
+        time_diff = current_timestamp[0] - token["timestamp"][0]
+        return time_diff < self.AUTH_TOKEN_TIMEOUT
+
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, payload):
+    def _login(self, payload: dict):
         return self.make_request(url=self.config.merchant_url, method="post", json=payload)
 
     def login(self, credentials) -> None:
-        token = self._get_oauth_token()
+        token = self._authenticate()
         payload = {
             "card_number": credentials["card_number"],
             "last_name": credentials["last_name"],
