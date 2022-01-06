@@ -5,7 +5,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 from uuid import uuid4
 
 import httpretty
-from requests import HTTPError, RequestException, Response
+from requests import HTTPError, RequestException
 
 from app.agents.ecrebo import FatFace, WhSmith
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
@@ -621,9 +621,6 @@ class TestEcreboSignal(unittest.TestCase):
         # GIVEN
         path = "/v1/list/query_item/"
         card_number = "1234567"
-        mock_endpoint = (
-            f"{self.fatface.base_url}{path}{self.fatface.RETAILER_ID}/assets/membership/token/{card_number}"  # noqa
-        )
 
         httpretty.register_uri(
             httpretty.GET,

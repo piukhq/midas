@@ -3,7 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from http import HTTPStatus
 from typing import Optional
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin
 
 import arrow
 import requests
@@ -28,7 +28,7 @@ from app.agents.exceptions import (
 )
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
-from app.encryption import HashSHA1, hash_ids
+from app.encryption import HashSHA1
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents

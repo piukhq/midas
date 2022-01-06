@@ -13,7 +13,6 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
-from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus

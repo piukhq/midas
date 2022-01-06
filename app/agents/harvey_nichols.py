@@ -3,7 +3,6 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Mapping, Optional
 from urllib.parse import urljoin
-from uuid import uuid4
 
 import arrow
 from blinker import signal
@@ -23,7 +22,7 @@ from app.agents.exceptions import (
     LoginError,
 )
 from app.audit import AuditLogType, RequestAuditLog
-from app.encryption import AESCipher, get_aes_key, hash_ids
+from app.encryption import AESCipher, get_aes_key
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import send_consents
@@ -82,11 +81,8 @@ class HarveyNichols(ApiMiner):
         Don't go any further unless the account is valid
         """
         has_loyalty_account_url = urljoin(self.hn_sso_url, "user/hasloyaltyaccount")
-        message_uid = str(uuid4())
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         payload = deepcopy(data)
         payload["url"] = has_loyalty_account_url
         payload["password"] = "********"
@@ -221,7 +217,6 @@ class HarveyNichols(ApiMiner):
         return sorted_transactions
 
     def join(self, credentials):
-        message_uid = str(uuid4())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.base_url + "/SignUp"
         data = {
@@ -237,9 +232,6 @@ class HarveyNichols(ApiMiner):
         }
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
-
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         payload = deepcopy(data)
         payload["CustomerSignUpRequest"].update({"url": url})

@@ -9,8 +9,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
-from app.audit import AuditLogType
-from app.encryption import AESCipher, hash_ids
+from app.encryption import hash_ids
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
