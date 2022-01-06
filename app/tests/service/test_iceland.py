@@ -136,8 +136,6 @@ class TestIcelandValidate(TestCase):
             ],
         )
 
-        self.agent._login.retry.wait = wait_none()
-
         with self.assertRaises(LoginError) as e:
             self.agent.login(credentials)
 
@@ -178,8 +176,6 @@ class TestIcelandValidate(TestCase):
                 )
             ],
         )
-
-        self.agent._login.retry.wait = wait_none()
 
         with self.assertRaises(LoginError) as e:
             self.agent.login(credentials)
