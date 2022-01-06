@@ -4,8 +4,8 @@ from http import HTTPStatus
 from unittest import TestCase, main, mock
 from unittest.mock import ANY, MagicMock, call
 
-import httpretty
 import arrow
+import httpretty
 from tenacity import wait_none
 
 from app.agents.base import Balance
@@ -27,10 +27,10 @@ credentials = {
 }
 
 
-# Needs to be renamed to TestIceland once it has replaced the existing class TestIceland
-class TestIceland(TestCase):
-    def mock_link_configuration_object(self):
+class TestIcelandValidate(TestCase):
+    def setUp(self) -> None:
         self.merchant_url = "https://customergateway-uat.iceland.co.uk/api/v1/bink/link"
+
         mock_configuration_object = MagicMock()
         mock_configuration_object.security_credentials = {
             "inbound": {"service": 1, "credentials": []},
@@ -54,69 +54,56 @@ class TestIceland(TestCase):
                 ],
             },
         }
-
         mock_configuration_object.merchant_url = self.merchant_url
         mock_configuration_object.callback_url = None
-        return mock_configuration_object
+
+        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
+        with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
+            self.agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+        self.agent._login.retry.wait = wait_none()
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_refresh_token(self, mock_configuration):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_refresh_token(self):
         httpretty.register_uri(
             httpretty.POST,
             "https://reflector.dev.gb.bink.com/mock/api/v1/bink/link",
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=200)],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
+        self.assertEqual(self.agent._refresh_token(), "a_token")
 
-        self.assertEqual(agent._refresh_token(), "a_token")
-
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_token_is_valid_true(self, mock_configuration):
+    def test_token_is_valid_true(self):
         token = {
             "iceland_access_token": "abcde12345fghij",
             "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
         }
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-
-        result = agent._token_is_valid(token, (arrow.get(2022, 1, 1, 7, 30).int_timestamp,))
+        result = self.agent._token_is_valid(token, (arrow.get(2022, 1, 1, 7, 30).int_timestamp,))
 
         self.assertEqual(
             result,
             True,
         )
 
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_token_is_valid_false(self, mock_configuration):
+    def test_token_is_valid_false(self):
         token = {
             "iceland_access_token": "abcde12345fghij",
             "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
         }
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-
-        result = agent._token_is_valid(token, (arrow.get(2022, 1, 1, 8, 0).int_timestamp,))
+        result = self.agent._token_is_valid(token, (arrow.get(2022, 1, 1, 8, 0).int_timestamp,))
 
         self.assertEqual(
             result,
             False,
         )
 
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_store_token(self, mock_configuration):
+    def test_store_token(self):
         access_token = "abcde12345fghij"
         current_timestamp = arrow.get(2022, 1, 1, 7, 0).int_timestamp
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-
-        with mock.patch.object(agent.token_store, "set", return_value=True) as mock_token_store:
-            agent._store_token(access_token, current_timestamp)
+        with mock.patch.object(self.agent.token_store, "set", return_value=True) as mock_token_store:
+            self.agent._store_token(access_token, current_timestamp)
 
         self.assertEqual(
             mock_token_store.call_args[1]["token"],
@@ -125,28 +112,21 @@ class TestIceland(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_200(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-
-        agent.login(credentials)
-        self.assertEqual(agent.headers, {"Authorization": f"Bearer {'a_token'}"})
-        self.assertIn("barcode", str(agent.user_info))
-        self.assertEqual(agent._balance_amount, 10.0)
+        self.agent.login(credentials)
+        self.assertEqual(self.agent.headers, {"Authorization": f"Bearer {'a_token'}"})
+        self.assertIn("barcode", str(self.agent.user_info))
+        self.assertEqual(self.agent._balance_amount, 10.0)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_401(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_401(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -155,20 +135,16 @@ class TestIceland(TestCase):
             ],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
+        self.agent._login.retry.wait = wait_none()
 
         with self.assertRaises(LoginError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
 
         self.assertEqual(e.exception.name, "Invalid credentials")
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_validation_error_403(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_200_validation_error_403(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -182,18 +158,13 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
-
         with self.assertRaises(AgentError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
         self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_card_number_error_436(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_200_card_number_error_436(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -207,19 +178,15 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
+        self.agent._login.retry.wait = wait_none()
 
         with self.assertRaises(LoginError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_link_limit_exceeded_437(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
-
+    def test_login_200_link_limit_exceeded_437(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -233,18 +200,13 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
-
         with self.assertRaises(LoginError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_link_limit_exceeded_438(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_200_link_limit_exceeded_438(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -262,18 +224,13 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
-
         with self.assertRaises(LoginError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_200_link_limit_exceeded_439(self, mock_configuration, mock_oath):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_200_link_limit_exceeded_439(self, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -287,54 +244,45 @@ class TestIceland(TestCase):
             ],
         )
 
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
-
         with self.assertRaises(LoginError) as e:
-            agent.login(credentials)
+            self.agent.login(credentials)
         self.assertEqual(e.exception.code, 439)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_balance(self, mock_configuration, mock_oauth):
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
+    def test_balance(self, mock_oauth):
+        self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
             value=amount,
             value_label="£{}".format(amount),
         )
 
-        self.assertEqual(agent.balance(), expected_result)
+        self.assertEqual(self.agent.balance(), expected_result)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_success_signals(self, mock_configuration, mock_signal, mock_oauth):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_success_signals(self, mock_signal, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent.login(credentials)
+        self.agent.login(credentials)
 
         expected_calls = [
             call("record-http-request"),
             call().send(
-                agent,
-                slug=agent.scheme_slug,
+                self.agent,
+                slug=self.agent.scheme_slug,
                 endpoint="/api/v1/bink/link",
                 latency=ANY,
                 response_code=HTTPStatus.OK,
             ),
             call("log-in-success"),
-            call().send(agent, slug=agent.scheme_slug),
+            call().send(self.agent, slug=self.agent.scheme_slug),
         ]
 
         mock_signal.assert_has_calls(expected_calls)
@@ -342,9 +290,7 @@ class TestIceland(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_error_signals(self, mock_configuration, mock_signal, mock_oauth):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_error_signals(self, mock_signal, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
@@ -358,32 +304,27 @@ class TestIceland(TestCase):
             ],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-
         expected_calls = [
             call("log-in-fail"),
-            call().send(agent, slug=agent.scheme_slug),
+            call().send(self.agent, slug=self.agent.scheme_slug),
             call("request-fail"),
             call().send(
-                agent,
-                slug=agent.scheme_slug,
+                self.agent,
+                slug=self.agent.scheme_slug,
                 channel="",
                 error="VALIDATION",
             ),
         ]
 
         with self.assertRaises(LoginError):
-            agent.login(credentials)
+            self.agent.login(credentials)
 
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch("app.agents.iceland.Configuration")
-    def test_login_401_failure_signals(self, mock_configuration, mock_signal, mock_oauth):
-        mock_configuration.return_value = self.mock_link_configuration_object()
+    def test_login_401_failure_signals(self, mock_signal, mock_oauth):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -392,22 +333,18 @@ class TestIceland(TestCase):
             ],
         )
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
-        agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        agent._login.retry.wait = wait_none()
-
         expected_calls = [
             call("request-fail"),
             call().send(
-                agent,
-                slug=agent.scheme_slug,
+                self.agent,
+                slug=self.agent.scheme_slug,
                 channel="",
                 error="STATUS_LOGIN_FAILED",
             ),
         ]
 
         with self.assertRaises(LoginError):
-            agent.login(credentials)
+            self.agent.login(credentials)
 
         mock_signal.assert_has_calls(expected_calls)
 

@@ -1,15 +1,15 @@
+import json
 from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
-import json
-import arrow
-from user_auth_token import UserTokenStore
 
+import arrow
 import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
 from tenacity import retry, stop_after_attempt, wait_exponential
+from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import ApiMiner, Balance
@@ -63,14 +63,14 @@ class Iceland(ApiMiner):
             GENERAL_ERROR: "GENERAL_ERROR",
         }
 
-    def _authenticate(self):
+    def _authenticate(self) -> str:
         have_valid_token = False
         current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {}
+        token_dict = {}
         try:
-            token = json.loads(self.token_store.get(self.scheme_id))
+            token_dict = json.loads(self.token_store.get(self.scheme_id))
             try:
-                if self._token_is_valid(token, current_timestamp):
+                if self._token_is_valid(token_dict, current_timestamp):
                     have_valid_token = True
             except (KeyError, TypeError) as e:
                 log.exception(e)
@@ -107,14 +107,14 @@ class Iceland(ApiMiner):
 
         return response.json()["access_token"]
 
-    def _store_token(self, token, current_timestamp) -> None:
-        token = {
+    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
+        token_dict = {
             "iceland_access_token": token,
             "timestamp": current_timestamp,
         }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
+        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
-    def _token_is_valid(self, token, current_timestamp) -> bool:
+    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
@@ -123,7 +123,7 @@ class Iceland(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, payload):
+    def _login(self, payload: dict):
         return self.make_request(url=self.config.merchant_url, method="post", json=payload)
 
     def login(self, credentials) -> None:
