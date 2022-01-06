@@ -30,6 +30,7 @@ credentials = {
 class TestIcelandValidate(TestCase):
     def setUp(self) -> None:
         self.merchant_url = "https://customergateway-uat.iceland.co.uk/api/v1/bink/link"
+        self.token_url = "https://reflector.dev.gb.bink.com/mock/api/v1/bink/link"
 
         mock_configuration_object = MagicMock()
         mock_configuration_object.security_credentials = {
@@ -48,7 +49,7 @@ class TestIcelandValidate(TestCase):
                                 "resource": "a_resource",
                             },
                             "prefix": "Bearer",
-                            "url": "https://reflector.dev.gb.bink.com/mock/api/v1/bink/link",
+                            "url": self.token_url,
                         },
                     }
                 ],
@@ -66,7 +67,7 @@ class TestIcelandValidate(TestCase):
     def test_refresh_token(self):
         httpretty.register_uri(
             httpretty.POST,
-            "https://reflector.dev.gb.bink.com/mock/api/v1/bink/link",
+            self.token_url,
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=200)],
         )
 
