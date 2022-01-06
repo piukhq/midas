@@ -159,12 +159,13 @@ class AuditLogger:
                 log.info("Successfully sent audit logs to Atlas.")
                 self.audit_logs.clear()
             else:
-                log.error(f"Error response from Atlas when sending audit logs. Response: {resp.content}")
+                resp_content = resp.content.decode("utf-8")
+                log.error(f"Error response from Atlas when sending audit logs. Response: {resp_content}")
         except requests.exceptions.RequestException as e:
             log.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
     @staticmethod
-    def filter_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
+    def filter_fields(req_audit_logs: list[AuditLog]) -> list[AuditLog]:
         """
         Override per merchant to modify which fields are omitted/encrypted.
 

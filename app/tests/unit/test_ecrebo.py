@@ -17,19 +17,6 @@ class TestEcreboSignal(unittest.TestCase):
 
     @classmethod
     def setUp(cls) -> None:
-        cls.audit_payload = {
-            "data": {
-                "email": "mrtestman@thing.com",
-                "title": "Mr",
-                "first_name": "Test",
-                "surname": "Man",
-                "mobile_number": 1234567890,
-                "address_line1": "1 The Street",
-                "city": "Nowhereton",
-                "postcode": "NW11NW",
-                "validated": True,
-            }
-        }
         with unittest.mock.patch("app.agents.ecrebo.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
@@ -383,10 +370,23 @@ class TestEcreboSignal(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps({"publisher": [{"message": "testingonetwothree"}]}))],
             status=HTTPStatus.OK,
         )
+        audit_payload = {
+            "data": {
+                "email": "mrtestman@thing.com",
+                "title": "Mr",
+                "first_name": "Test",
+                "surname": "Man",
+                "mobile_number": 1234567890,
+                "address_line1": "1 The Street",
+                "city": "Nowhereton",
+                "postcode": "NW11NW",
+                "validated": True,
+            }
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("add-audit-request"),
             call().send(
-                payload=self.audit_payload,
+                payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
                 handler_type=1,
                 integration_service="SYNC",
@@ -442,10 +442,23 @@ class TestEcreboSignal(unittest.TestCase):
             mock_api_url,
             status=HTTPStatus.CONFLICT,
         )
+        audit_payload = {
+            "data": {
+                "email": "mrtestman@thing.com",
+                "title": "Mr",
+                "first_name": "Test",
+                "surname": "Man",
+                "mobile_number": 1234567890,
+                "address_line1": "1 The Street",
+                "city": "Nowhereton",
+                "postcode": "NW11NW",
+                "validated": True,
+            }
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("add-audit-request"),
             call().send(
-                payload=self.audit_payload,
+                payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
                 handler_type=1,
                 integration_service="SYNC",
@@ -505,10 +518,23 @@ class TestEcreboSignal(unittest.TestCase):
             mock_api_url,
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
+        audit_payload = {
+            "data": {
+                "email": "mrtestman@thing.com",
+                "title": "Mr",
+                "first_name": "Test",
+                "surname": "Man",
+                "mobile_number": 1234567890,
+                "address_line1": "1 The Street",
+                "city": "Nowhereton",
+                "postcode": "NW11NW",
+                "validated": True,
+            }
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("add-audit-request"),
             call().send(
-                payload=self.audit_payload,
+                payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
                 handler_type=1,
                 integration_service="SYNC",
