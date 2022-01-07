@@ -3,8 +3,10 @@ from collections import OrderedDict
 from http import HTTPStatus
 from unittest import TestCase, mock
 from unittest.mock import ANY, MagicMock, call
+from urllib.parse import urljoin
 from uuid import uuid4
 
+import httpretty
 import requests
 from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
@@ -19,6 +21,7 @@ from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
     END_SITE_DOWN,
     GENERAL_ERROR,
+    IP_BLOCKED,
     NO_SUCH_RECORD,
     NOT_SENT,
     SERVICE_CONNECTION_ERROR,
@@ -1550,3 +1553,221 @@ class TestOAuth(TestCase):
                 auth.encode(self.json_data)
 
             self.assertEqual(e.exception.name, "Configuration error")
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (AgentError) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                slug=self.wasabi.scheme_slug,
+            ),
+            call("request-fail"),
+            call().send(
+                self.wasabi,
+                channel=self.wasabi.channel,
+                error=END_SITE_DOWN,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (LoginError) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED)
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.UNAUTHORIZED,
+                slug=self.wasabi.scheme_slug,
+            ),
+            call("request-fail"),
+            call().send(
+                self.wasabi,
+                channel=self.wasabi.channel,
+                error=STATUS_LOGIN_FAILED,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            LoginError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_timeout_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (Timeout) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            status=HTTPStatus.REQUEST_TIMEOUT,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.REQUEST_TIMEOUT,
+                slug=self.wasabi.scheme_slug,
+            ),
+            call("request-fail"),
+            call().send(
+                self.wasabi,
+                channel=self.wasabi.channel,
+                error=END_SITE_DOWN,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (unauthorized) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            status=HTTPStatus.UNAUTHORIZED,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("record-http-request"),
+            call().send(
+                self.wasabi,
+                endpoint=api_path,
+                latency=ANY,
+                response_code=HTTPStatus.UNAUTHORIZED,
+                slug=self.wasabi.scheme_slug,
+            ),
+            call("request-fail"),
+            call().send(
+                self.wasabi,
+                channel=self.wasabi.channel,
+                error=STATUS_LOGIN_FAILED,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (forbidden) request
+        """
+        # GIVEN
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(self.wasabi.base_url, api_path) + api_query
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            status=HTTPStatus.FORBIDDEN,
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("request-fail"),
+            call().send(
+                self.wasabi,
+                channel=self.wasabi.channel,
+                error=IP_BLOCKED,
+                slug=self.wasabi.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(
+            AgentError,
+            self.wasabi.make_request,
+            api_url,
+            method="get",
+            timeout=self.wasabi.API_TIMEOUT,
+        )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
