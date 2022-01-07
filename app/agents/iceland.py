@@ -175,6 +175,17 @@ class Iceland(ApiMiner):
         self._balance_amount = response_json["balance"]
         self._transactions = response_json.get("transactions")
 
+    def join(self, credentials):
+        consents = credentials.get("consents", [])
+        message_uid = str(uuid4())
+        resp_json = self._create_account(credentials, message_uid)
+        self.identifier = {
+            "merchant_identifier": resp_json["UserId"],
+            "card_number": resp_json["MembershipNumber"],
+        }
+        self.user_info["credentials"].update(self.identifier)
+        self._update_newsletters(resp_json["UserId"], consents)
+
     def balance(self) -> Optional[Balance]:
         amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
         return Balance(
