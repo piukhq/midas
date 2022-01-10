@@ -1,6 +1,7 @@
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
+from urllib.parse import urljoin
 
 import arrow
 import httpretty
@@ -33,24 +34,80 @@ class TestBase(TestCase):
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
-        url = "http://someexcitingplace.com"
+        m.base_url = "http://fake.com"
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(m.base_url, api_path) + api_query
         httpretty.register_uri(
             httpretty.GET,
-            url,
+            api_url,
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            mock.call("record-http-request"),
+            mock.call().send(
+                m,
+                endpoint=api_path,
+                latency=mock.ANY,
+                response_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                slug=m.scheme_slug,
+            ),
             mock.call("request-fail"),
-            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=END_SITE_DOWN),
+            mock.call().send(
+                m,
+                channel=m.channel,
+                error=END_SITE_DOWN,
+                slug=m.scheme_slug,
+            ),
         ]
 
         # WHEN
         self.assertRaises(
             AgentError,
             m.make_request,
-            url,
+            api_url,
             method="get",
         )
+
+        # THEN
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
+        """
+        Check that correct params are passed to the signals for an unsuccessful (LoginError) request
+        """
+        # GIVEN
+        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        m = ApiMiner(0, user_info)
+        m.base_url = "http://fake.com"
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(m.base_url, api_path) + api_query
+        httpretty.register_uri(httpretty.GET, api_url, status=HTTPStatus.UNAUTHORIZED)
+        expected_calls = [  # The expected call stack for signal, in order
+            mock.call("record-http-request"),
+            mock.call().send(
+                m,
+                endpoint=api_path,
+                latency=mock.ANY,
+                response_code=HTTPStatus.UNAUTHORIZED,
+                slug=m.scheme_slug,
+            ),
+            mock.call("request-fail"),
+            mock.call().send(
+                m,
+                channel=m.channel,
+                error=STATUS_LOGIN_FAILED,
+                slug=m.scheme_slug,
+            ),
+        ]
+
+        # WHEN
+        self.assertRaises(LoginError, m.make_request, api_url, method="get")
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -64,22 +121,39 @@ class TestBase(TestCase):
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
-        url = "http://someexcitingplace.com"
+        m.base_url = "http://fake.com"
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(m.base_url, api_path) + api_query
         httpretty.register_uri(
             httpretty.GET,
-            url,
+            api_url,
             status=HTTPStatus.REQUEST_TIMEOUT,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            mock.call("record-http-request"),
+            mock.call().send(
+                m,
+                endpoint=api_path,
+                latency=mock.ANY,
+                response_code=HTTPStatus.REQUEST_TIMEOUT,
+                slug=m.scheme_slug,
+            ),
             mock.call("request-fail"),
-            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=END_SITE_DOWN),
+            mock.call().send(
+                m,
+                channel=m.channel,
+                error=END_SITE_DOWN,
+                slug=m.scheme_slug,
+            ),
         ]
 
         # WHEN
         self.assertRaises(
             AgentError,
             m.make_request,
-            url,
+            api_url,
             method="get",
         )
 
@@ -95,22 +169,39 @@ class TestBase(TestCase):
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
-        url = "http://someexcitingplace.com"
+        m.base_url = "http://fake.com"
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(m.base_url, api_path) + api_query
         httpretty.register_uri(
             httpretty.GET,
-            url,
+            api_url,
             status=HTTPStatus.UNAUTHORIZED,
         )
         expected_calls = [  # The expected call stack for signal, in order
+            mock.call("record-http-request"),
+            mock.call().send(
+                m,
+                endpoint=api_path,
+                latency=mock.ANY,
+                response_code=HTTPStatus.UNAUTHORIZED,
+                slug=m.scheme_slug,
+            ),
             mock.call("request-fail"),
-            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=STATUS_LOGIN_FAILED),
+            mock.call().send(
+                m,
+                channel=m.channel,
+                error=STATUS_LOGIN_FAILED,
+                slug=m.scheme_slug,
+            ),
         ]
 
         # WHEN
         self.assertRaises(
-            LoginError,
+            AgentError,
             m.make_request,
-            url,
+            api_url,
             method="get",
         )
 
@@ -126,22 +217,31 @@ class TestBase(TestCase):
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         m = ApiMiner(0, user_info)
-        url = "http://someexcitingplace.com"
+        m.base_url = "http://fake.com"
+        ctcid = "54321"
+        api_path = "/api/Contact/AddMemberNumber"
+        api_query = f"?CtcID={ctcid}"
+        api_url = urljoin(m.base_url, api_path) + api_query
         httpretty.register_uri(
             httpretty.GET,
-            url,
+            api_url,
             status=HTTPStatus.FORBIDDEN,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("request-fail"),
-            mock.call().send(m, slug=m.scheme_slug, channel=m.channel, error=IP_BLOCKED),
+            mock.call().send(
+                m,
+                channel=m.channel,
+                error=IP_BLOCKED,
+                slug=m.scheme_slug,
+            ),
         ]
 
         # WHEN
         self.assertRaises(
             AgentError,
             m.make_request,
-            url,
+            api_url,
             method="get",
         )
 

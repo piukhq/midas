@@ -35,6 +35,7 @@ class Ecrebo(ApiMiner):
 
         # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
         self.audit_logger = AuditLogger(channel=self.channel, journeys=())
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     def _authenticate(self):
         """
@@ -121,7 +122,7 @@ class Ecrebo(ApiMiner):
                 raise  # base agent will convert this to an unknown error
         finally:
             if from_login:
-                self.audit_logger.add_response(
+                signal("add-audit-response").send(
                     response=resp,
                     scheme_slug=self.scheme_slug,
                     handler_type=journey_type,
@@ -140,7 +141,7 @@ class Ecrebo(ApiMiner):
         consents_data = {c["slug"]: c["value"] for c in consents}
         data = {"data": self._get_join_credentials(credentials, consents_data)}
 
-        self.audit_logger.add_request(
+        signal("add-audit-request").send(
             payload=data,
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
@@ -163,7 +164,7 @@ class Ecrebo(ApiMiner):
             response_code=resp.status_code,
         )
 
-        self.audit_logger.add_response(
+        signal("add-audit-response").send(
             response=resp,
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
@@ -172,7 +173,7 @@ class Ecrebo(ApiMiner):
             message_uid=message_uid,
             record_uid=record_uid,
         )
-        self.audit_logger.send_to_atlas()
+        signal("send-to-atlas").send()
 
         if resp.status_code == 409:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
@@ -210,7 +211,7 @@ class Ecrebo(ApiMiner):
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
 
-            self.audit_logger.add_request(
+            signal("add-audit-request").send(
                 payload={"card_number": card_number},
                 scheme_slug=self.scheme_slug,
                 handler_type=journey_type,
@@ -234,7 +235,7 @@ class Ecrebo(ApiMiner):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
             finally:
-                self.audit_logger.send_to_atlas()
+                signal("send-to-atlas").send()
 
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]

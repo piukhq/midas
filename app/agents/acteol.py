@@ -3,8 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from http import HTTPStatus
 from typing import Optional
-from urllib.parse import urljoin, urlsplit
-from uuid import uuid4
+from urllib.parse import urljoin
 
 import arrow
 import requests
@@ -19,7 +18,6 @@ from app.agents.base import ApiMiner
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
-    IP_BLOCKED,
     JOIN_ERROR,
     NO_SUCH_RECORD,
     STATUS_LOGIN_FAILED,
@@ -30,7 +28,7 @@ from app.agents.exceptions import (
 )
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.audit import AuditLogger
-from app.encryption import HashSHA1, hash_ids
+from app.encryption import HashSHA1
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents
@@ -255,12 +253,8 @@ class Acteol(ApiMiner):
             "Content-type": "application/json",
             "Authorization": "token " + settings.SERVICE_API_KEY,
         }
-        super().make_request(  # Don't want to call any signals for internal calls
-            api_url,
-            method="put",
-            timeout=self.API_TIMEOUT,
-            json=self.identifier,
-            headers=headers,
+        requests.put(  # Don't want to call any signals for internal calls
+            api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT
         )
 
     def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
@@ -471,32 +465,7 @@ class Acteol(ApiMiner):
             "BirthDate": credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
-
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
-
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
 
@@ -521,33 +490,7 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
-        payload = {"ctcid": ctcid}
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-
-        self.audit_logger.add_response(
-            response=resp,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
-        )
-        self.audit_logger.send_to_atlas()
-
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
             raise JoinError(JOIN_ERROR)  # The join journey ends
@@ -710,9 +653,6 @@ class Acteol(ApiMiner):
             "MemberNumber": member_number,
             "Email": credentials["email"],
         }
-        message_uid = str(uuid4())
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
         # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
         # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
@@ -723,27 +663,7 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
-                self.audit_logger.add_request(
-                    payload=payload,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=Configuration.VALIDATE_HANDLER,
-                    integration_service=integration_service,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-
                 resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
-
-                self.audit_logger.add_response(
-                    response=resp,
-                    scheme_slug=self.scheme_slug,
-                    handler_type=Configuration.JOIN_HANDLER,
-                    integration_service=integration_service,
-                    status_code=resp.status_code,
-                    message_uid=message_uid,
-                    record_uid=record_uid,
-                )
-                self.audit_logger.send_to_atlas()
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -1022,49 +942,6 @@ class Acteol(ApiMiner):
             log.error(f"Acteol card number has been deleted: Card number: {card_number}")
             raise AgentError(NO_SUCH_RECORD)
 
-    def make_request(self, url, method="get", timeout=5, **kwargs):
-        """
-        Overrides the parent method make_request() in order to call signal events
-        """
-        path = urlsplit(url).path  # Get the path part of the url for signal call
-
-        # Combine the passed kwargs with our headers and timeout values.
-        args = {
-            "headers": self.headers,
-            "timeout": timeout,
-        }
-        args.update(kwargs)
-
-        try:
-            resp = requests.request(method, url=url, **args)
-        except requests.Timeout as exception:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
-            raise AgentError(END_SITE_DOWN) from exception
-
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=path,
-            latency=resp.elapsed.total_seconds(),
-            response_code=resp.status_code,
-        )
-
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError as e:
-            if e.response.status_code == 401:
-                signal("request-fail").send(
-                    self, slug=self.scheme_slug, channel=self.channel, error=STATUS_LOGIN_FAILED
-                )
-                raise LoginError(STATUS_LOGIN_FAILED)
-            elif e.response.status_code == 403:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
-                raise AgentError(IP_BLOCKED) from e
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
-            raise AgentError(END_SITE_DOWN) from e
-
-        return resp
-
 
 def agent_consent_response(resp):
     """
@@ -1097,3 +974,4 @@ class Wasabi(Acteol):
             Configuration.JOIN_HANDLER,
             Configuration.VALIDATE_HANDLER,
         )
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()

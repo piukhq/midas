@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
+from urllib.parse import urlparse, urlsplit
 from uuid import uuid4
 
 import arrow
@@ -212,9 +213,58 @@ class ApiMiner(BaseMiner):
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=self.channel)
+        self.audit_finished = False
+        self.audit_handlers = {
+            JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
+            JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+            JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
+        }
+
+    def send_audit_logs(self, payload, resp):
+        if payload.get("password"):
+            payload["password"] = "REDACTED"
+
+        record_uid = hash_ids.encode(self.scheme_id)
+        handler_type = self.audit_handlers[self.journey_type]
+        message_uid = str(uuid4())
+        signal("add-audit-request").send(
+            self,
+            payload=payload,
+            scheme_slug=self.scheme_slug,
+            handler_type=handler_type,
+            integration_service=self.integration_service,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        signal("add-audit-response").send(
+            self,
+            response=resp,
+            scheme_slug=self.scheme_slug,
+            handler_type=handler_type,
+            integration_service=self.integration_service,
+            status_code=resp.status_code,
+            message_uid=message_uid,
+            record_uid=record_uid,
+        )
+        signal("send-to-atlas").send(self)
+
+    def _get_audit_payload(self, kwargs, url):
+        if "json" in kwargs or "data" in kwargs:
+            return kwargs["json"] if kwargs.get("json") else kwargs["data"]
+        else:
+            return urlparse(url).query
+
+        return {}
 
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
+        send_audit = False
+
+        if self.journey_type in self.audit_handlers.keys() and not self.audit_finished:
+            send_audit = True
+
+        path = urlsplit(url).path  # Get the path part of the url for signal call
+
         args = {
             "headers": self.headers,
             "timeout": timeout,
@@ -223,6 +273,17 @@ class ApiMiner(BaseMiner):
 
         try:
             resp = requests.request(method, url=url, **args)
+            signal("record-http-request").send(
+                self,
+                slug=self.scheme_slug,
+                endpoint=path,
+                latency=resp.elapsed.total_seconds(),
+                response_code=resp.status_code,
+            )
+            if send_audit:
+                audit_payload = self._get_audit_payload(kwargs, url)
+                self.send_audit_logs(audit_payload, resp)
+
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
@@ -505,7 +566,7 @@ class MerchantApi(BaseMiner):
             else:
                 log.info(json.dumps(logging_info))
 
-        self.audit_logger.send_to_atlas()
+        signal("send-to-atlas").send()
         return response_data
 
     def _inbound_handler(self, data, scheme_slug):
@@ -528,7 +589,7 @@ class MerchantApi(BaseMiner):
             "INBOUND",
         )
 
-        self.audit_logger.add_response(
+        signal("add-audit-response").send(
             response=json.dumps(data),
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -537,7 +598,7 @@ class MerchantApi(BaseMiner):
             integration_service=self.config.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
         )
-        self.audit_logger.send_to_atlas()
+        signal("send-to-atlas").send()
 
         if self._check_for_error_response(self.result):
             logging_info["contains_errors"] = True
@@ -624,7 +685,7 @@ class MerchantApi(BaseMiner):
         return response_json
 
     def _send_request(self):
-        self.audit_logger.add_request(
+        signal("add-audit-request").send(
             payload=self.request["json"],
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -646,7 +707,7 @@ class MerchantApi(BaseMiner):
 
         log.debug(f"Raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
-        self.audit_logger.add_response(
+        signal("add-audit-response").send(
             response=response,
             message_uid=self.message_uid,
             record_uid=self.record_uid,

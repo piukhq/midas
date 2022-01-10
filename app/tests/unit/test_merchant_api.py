@@ -474,6 +474,15 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload="{}",
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC",
+            ),
             call("record-http-request"),
             call().send(
                 self.m,
@@ -481,6 +490,16 @@ class TestMerchantApi(FlaskTestCase):
                 latency=total_seconds,
                 response_code=HTTPStatus.UNAUTHORIZED,
                 slug=self.m.scheme_slug,
+            ),
+            call("add-audit-response"),
+            call().send(
+                response=ANY,
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC",
+                status_code=HTTPStatus.UNAUTHORIZED,
             ),
             call("request-fail"),
             call().send(self.m, channel=self.m.user_info["channel"], error=mock_reason, slug=self.m.scheme_slug),
@@ -514,9 +533,28 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
+            call("add-audit-request"),
+            call().send(
+                payload="{}",
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC",
+            ),
             call("record-http-request"),
             call().send(
                 self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK, slug=self.m.scheme_slug
+            ),
+            call("add-audit-response"),
+            call().send(
+                response=mock_request.return_value,
+                message_uid=None,
+                record_uid=None,
+                scheme_slug="id",
+                handler_type=0,
+                integration_service="SYNC",
+                status_code=HTTPStatus.OK,
             ),
             call("request-success"),
             call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),
@@ -543,7 +581,6 @@ class TestMerchantApi(FlaskTestCase):
 
         resp = self.m._inbound_handler(json.loads(self.json_data), "")
 
-        self.assertTrue(mock_session_post.called)
         self.assertEqual(resp, "")
         mock_signal.assert_has_calls(expected_calls)
 
@@ -597,7 +634,6 @@ class TestMerchantApi(FlaskTestCase):
         with self.assertRaises(AgentError):
             self.m._inbound_handler(data, "")
         self.assertTrue(mock_consents.called)
-        self.assertTrue(mock_session_post.called)
         self.assertIn("status", mock_requests.post.call_args[0][0])
         self.assertEqual(
             SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS, json.loads(mock_requests.post.call_args[1]["data"])["status"]

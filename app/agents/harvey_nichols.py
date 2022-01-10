@@ -3,7 +3,6 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Mapping, Optional
 from urllib.parse import urljoin
-from uuid import uuid4
 
 import arrow
 from blinker import signal
@@ -23,7 +22,7 @@ from app.agents.exceptions import (
     LoginError,
 )
 from app.audit import AuditLogType, RequestAuditLog
-from app.encryption import AESCipher, get_aes_key, hash_ids
+from app.encryption import AESCipher, get_aes_key
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import send_consents
@@ -51,6 +50,7 @@ class HarveyNichols(ApiMiner):
         self.hn_sso_url = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
         self.audit_logger.filter_fields = self.encrypt_sensitive_fields
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     @staticmethod
     def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
@@ -82,43 +82,13 @@ class HarveyNichols(ApiMiner):
         Don't go any further unless the account is valid
         """
         has_loyalty_account_url = urljoin(self.hn_sso_url, "user/hasloyaltyaccount")
-        message_uid = str(uuid4())
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         payload = deepcopy(data)
         payload["url"] = has_loyalty_account_url
         payload["password"] = "********"
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-        )
-
         response = self.make_request(has_loyalty_account_url, method="post", headers=headers, timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=response.request.path_url,
-            latency=response.elapsed.total_seconds(),
-            response_code=response.status_code,
-        )
-
-        self.audit_logger.add_response(
-            response=response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-            status_code=response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
@@ -175,13 +145,7 @@ class HarveyNichols(ApiMiner):
         )
         balance_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"Harvey Nichols balance response = {balance_response.json()}")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=balance_response.request.path_url,
-            latency=balance_response.elapsed.total_seconds(),
-            response_code=balance_response.status_code,
-        )
+
         return balance_response.json()["CustomerLoyaltyProfileResult"]
 
     def balance(self) -> Optional[Balance]:
@@ -221,13 +185,7 @@ class HarveyNichols(ApiMiner):
         }
 
         transaction_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=transaction_response.request.path_url,
-            latency=transaction_response.elapsed.total_seconds(),
-            response_code=transaction_response.status_code,
-        )
+
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
@@ -260,7 +218,6 @@ class HarveyNichols(ApiMiner):
         return sorted_transactions
 
     def join(self, credentials):
-        message_uid = str(uuid4())
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.base_url + "/SignUp"
         data = {
@@ -277,40 +234,10 @@ class HarveyNichols(ApiMiner):
         if credentials.get("phone"):
             data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
 
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
         payload = deepcopy(data)
         payload["CustomerSignUpRequest"].update({"url": url})
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-        )
-
         self.join_response = self.make_request(url, method="post", timeout=10, json=data)
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=self.join_response.request.path_url,
-            latency=self.join_response.elapsed.total_seconds(),
-            response_code=self.join_response.status_code,
-        )
-
-        self.audit_logger.add_response(
-            response=self.join_response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.JOIN_HANDLER,
-            integration_service=integration_service,
-            status_code=self.join_response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
@@ -325,7 +252,6 @@ class HarveyNichols(ApiMiner):
         """
         Retrieves user token and customer number, saving token in user token redis db.
         """
-        message_uid = str(uuid4())
         url = self.base_url + "/SignOn"
         data = {
             "CustomerSignOnRequest": {
@@ -335,43 +261,14 @@ class HarveyNichols(ApiMiner):
             }
         }
 
-        record_uid = hash_ids.encode(self.scheme_id)
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         # Add in email, expected by Atlas
         data["CustomerSignOnRequest"].update({"email": credentials["email"]})
         payload = deepcopy(data)
         payload["CustomerSignOnRequest"].update({"url": url})
         payload["CustomerSignOnRequest"].update({"password": "********"})
 
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-        )
-
         self.login_response = self.make_request(url, method="post", timeout=10, json=data)
         log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
-        signal("record-http-request").send(
-            self,
-            slug=self.scheme_slug,
-            endpoint=self.login_response.request.path_url,
-            latency=self.login_response.elapsed.total_seconds(),
-            response_code=self.login_response.status_code,
-        )
-
-        self.audit_logger.add_response(
-            response=self.login_response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=Configuration.VALIDATE_HANDLER,
-            integration_service=integration_service,
-            status_code=self.login_response.status_code,
-        )
-        self.audit_logger.send_to_atlas()
 
         json_result = self.login_response.json()["CustomerSignOnResult"]
         if json_result["outcome"] == "Success":

@@ -62,6 +62,7 @@ class Iceland(ApiMiner):
             CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
             GENERAL_ERROR: "GENERAL_ERROR",
         }
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
 
     def _authenticate(self) -> str:
         have_valid_token = False
@@ -146,21 +147,8 @@ class Iceland(ApiMiner):
         error = response_json.get("error_codes")
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            signal("request-fail").send(
-                self,
-                slug=self.scheme_slug,
-                channel=self.user_info.get("channel", ""),
-                error=error[0]["code"],
-            )
             self.handle_errors(error[0]["code"])
         else:
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=response.request.path_url,
-                latency=response.elapsed.total_seconds(),
-                response_code=response.status_code,
-            )
             signal("log-in-success").send(self, slug=self.scheme_slug)
 
         self.identifier = {

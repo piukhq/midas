@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import arrow
 import requests
+from blinker import signal
 from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -72,8 +73,13 @@ class AuditLogger:
         self.session = self.retry_session()
         self.journeys = journeys
 
+        signal("add-audit-request").connect(self.add_request)
+        signal("add-audit-response").connect(self.add_response)
+        signal("send-to-atlas").connect(self.send_to_atlas)
+
     def add_request(
         self,
+        sender: Union[object, str],
         payload: Union[Iterable[dict], dict],
         scheme_slug: str,
         handler_type: int,
@@ -93,6 +99,7 @@ class AuditLogger:
 
     def add_response(
         self,
+        sender: Union[object, str],
         response: Union[str, Response],
         scheme_slug: str,
         handler_type: int,
@@ -130,8 +137,7 @@ class AuditLogger:
         session.mount("https://", adapter)
         return session
 
-    # @celery.task
-    def send_to_atlas(self):
+    def send_to_atlas(self, sender: Union[object, str]):
         if not self.audit_logs:
             log.debug("No request or response data to send to Atlas.")
             return
@@ -152,12 +158,13 @@ class AuditLogger:
                 log.info("Successfully sent audit logs to Atlas.")
                 self.audit_logs.clear()
             else:
-                log.error(f"Error response from Atlas when sending audit logs. Response: {resp.content}")
+                resp_content = resp.content.decode("utf-8")
+                log.error(f"Error response from Atlas when sending audit logs. Response: {resp_content}")
         except requests.exceptions.RequestException as e:
             log.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
 
     @staticmethod
-    def filter_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
+    def filter_fields(req_audit_logs: list[AuditLog]) -> list[AuditLog]:
         """
         Override per merchant to modify which fields are omitted/encrypted.
 

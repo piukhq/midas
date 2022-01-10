@@ -43,6 +43,7 @@ class BplBase(ApiMiner):
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
             STATUS_LOGIN_FAILED: ["NO_ACCOUNT_FOUND"],
         }
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
 
     def update_async_join(self, data):
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
@@ -93,6 +94,7 @@ class Trenette(BplBase):
 
         try:
             self.make_request(url, method="post", json=payload)
+            self.audit_finished = True
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
         else:
@@ -114,6 +116,7 @@ class Trenette(BplBase):
 
         try:
             resp = self.make_request(url, method="post", json=payload)
+            self.audit_finished = True
         except (LoginError, AgentError) as ex:
             self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
         else:

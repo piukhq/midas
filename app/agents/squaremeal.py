@@ -1,7 +1,6 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
-from uuid import uuid4
 
 import arrow
 import requests
@@ -14,7 +13,6 @@ import settings
 from app.agents.base import ApiMiner
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
-from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
@@ -121,35 +119,12 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    def _log_audit_request(self, payload, message_uid, handler_type):
-        record_uid = hash_ids.encode(self.scheme_id)
-        self.audit_logger.add_request(
-            payload=payload,
-            scheme_slug=self.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=handler_type,
-            integration_service=self.integration_service,
-        )
-
-    def _log_audit_response(self, response, message_uid, handler_type):
-        record_uid = hash_ids.encode(self.scheme_id)
-        self.audit_logger.add_response(
-            response=response,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=handler_type,
-            status_code=response.status_code,
-            integration_service=self.integration_service,
-        )
-
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _create_account(self, credentials, message_uid):
+    def _create_account(self, credentials):
         url = f"{self.base_url}register"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {
@@ -159,24 +134,13 @@ class Squaremeal(ApiMiner):
             "LastName": credentials["last_name"],
             "Source": self.channel,
         }
-        self._log_audit_request(payload, message_uid, Configuration.JOIN_HANDLER)
         try:
             resp = self.make_request(url, method="post", json=payload)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
+            self.audit_finished = True
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self._log_audit_response(ex.response, message_uid, Configuration.JOIN_HANDLER)
-            self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
-        self._log_audit_response(resp, message_uid, Configuration.JOIN_HANDLER)
-        self.audit_logger.send_to_atlas()
         return resp.json()
 
     @retry(
@@ -190,14 +154,7 @@ class Squaremeal(ApiMiner):
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
-            resp = self.make_request(url, method="put", json=payload)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
+            self.make_request(url, method="put", json=payload)
             self.consent_confirmation(consents, ConsentStatus.SUCCESS)
         except (AgentError, JoinError):
             pass
@@ -207,28 +164,16 @@ class Squaremeal(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _login(self, credentials, message_uid):
+    def _login(self, credentials):
         url = f"{self.base_url}login"
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
-        self._log_audit_request(payload, message_uid, Configuration.VALIDATE_HANDLER)
         try:
             resp = self.make_request(url, method="post", json=payload)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._log_audit_response(ex.response, message_uid, Configuration.VALIDATE_HANDLER)
-            self.audit_logger.send_to_atlas()
             self.handle_errors(ex.response.status_code)
-        self._log_audit_response(resp, message_uid, Configuration.VALIDATE_HANDLER)
-        self.audit_logger.send_to_atlas()
         return resp.json()
 
     @retry(
@@ -242,21 +187,13 @@ class Squaremeal(ApiMiner):
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         try:
             resp = self.make_request(url, method="get")
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=resp.request.path_url,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
         except (JoinError, AgentError) as ex:
             self.handle_errors(ex.response.status_code)
         return resp.json()
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        message_uid = str(uuid4())
-        resp_json = self._create_account(credentials, message_uid)
+        resp_json = self._create_account(credentials)
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
@@ -273,8 +210,7 @@ class Squaremeal(ApiMiner):
             "STATUS_LOGIN_FAILED": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
-        message_uid = str(uuid4())
-        resp = self._login(credentials, message_uid)
+        resp = self._login(credentials)
         self.identifier = {
             "merchant_identifier": resp["UserId"],
             "card_number": resp["MembershipNumber"],
