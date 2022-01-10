@@ -248,13 +248,17 @@ class ApiMiner(BaseMiner):
         )
         signal("send-to-atlas").send(self)
 
+    def _get_audit_payload(self, kwargs, url):
+        if "json" in kwargs or "data" in kwargs:
+            return kwargs["json"] if kwargs.get("json") else kwargs["data"]
+        else:
+            return urlparse(url).query
+
+        return {}
+
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
-        if "json" in kwargs or "data" in kwargs:
-            audit_payload = kwargs["json"] if kwargs.get("json") else kwargs["data"]
-        else:
-            audit_payload = urlparse(url).query
 
         if self.journey_type in self.audit_handlers.keys() and not self.audit_finished:
             send_audit = True
@@ -277,6 +281,7 @@ class ApiMiner(BaseMiner):
                 response_code=resp.status_code,
             )
             if send_audit:
+                audit_payload = self._get_audit_payload(kwargs, url)
                 self.send_audit_logs(audit_payload, resp)
 
         except Timeout as exception:
