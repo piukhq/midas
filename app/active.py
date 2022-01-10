@@ -11,7 +11,6 @@ AGENTS = {
     "harvey-nichols": "harvey_nichols.HarveyNichols",
     "performance-mock": "performance_mock.MockPerformance",
     "performance-voucher-mock": "performance_mock.MockPerformanceVoucher",
-    "whsmith-rewards-mock": "mock_agents.MockAgentWHS",
     "wasabi-club": "acteol.Wasabi",
     "bpl-trenette": "bpl.Trenette",
     "squaremeal": "squaremeal.Squaremeal",
