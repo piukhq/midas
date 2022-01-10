@@ -1,6 +1,6 @@
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
-AGENT_CLASS_ARGUMENTS = [
+AGENT_CLASS_ARGUMENTS = (
     1,
     {
         "scheme_account_id": 1,
@@ -10,9 +10,9 @@ AGENT_CLASS_ARGUMENTS = [
         "credentials": {},
         "channel": "com.bink.wallet",
     },
-]
+)
 
-AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
+AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = (
     1,
     {
         "scheme_account_id": 1,
@@ -20,4 +20,4 @@ AGENT_CLASS_ARGUMENTS_FOR_VALIDATE = [
         "journey_type": JourneyTypes.LINK.value,
         "user_set": "1,2",
     },
-]
+)

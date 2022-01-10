@@ -35,6 +35,7 @@ class Ecrebo(ApiMiner):
 
         # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
         self.audit_logger = AuditLogger(channel=self.channel, journeys=())
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     def _authenticate(self):
         """

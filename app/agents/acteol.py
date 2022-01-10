@@ -976,3 +976,4 @@ class Wasabi(Acteol):
             Configuration.JOIN_HANDLER,
             Configuration.VALIDATE_HANDLER,
         )
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
