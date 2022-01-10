@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlparse
 from uuid import uuid4
 
 import arrow
@@ -214,18 +214,13 @@ class ApiMiner(BaseMiner):
         self.channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=self.channel)
         self.audit_finished = False
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
             JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
 
-    def send_audit_logs(self, kwargs, resp):
-        if not kwargs.get("json"):
-            return
-
-        payload = kwargs["json"]
+    def send_audit_logs(self, payload, resp):
         if payload.get("password"):
             payload["password"] = "REDACTED"
 
@@ -256,6 +251,11 @@ class ApiMiner(BaseMiner):
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         send_audit = False
+        if "json" in kwargs or "data" in kwargs:
+            audit_payload = kwargs["json"] if kwargs.get("json") else kwargs["data"]
+        else:
+            audit_payload = urlparse(url).query
+
         if self.journey_type in self.audit_handlers.keys() and not self.audit_finished:
             send_audit = True
 
@@ -265,8 +265,7 @@ class ApiMiner(BaseMiner):
             "headers": self.headers,
             "timeout": timeout,
         }
-        if method != "get":
-            args.update(kwargs)
+        args.update(kwargs)
 
         try:
             resp = requests.request(method, url=url, **args)
@@ -278,7 +277,7 @@ class ApiMiner(BaseMiner):
                 response_code=resp.status_code,
             )
             if send_audit:
-                self.send_audit_logs(kwargs, resp)
+                self.send_audit_logs(audit_payload, resp)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
