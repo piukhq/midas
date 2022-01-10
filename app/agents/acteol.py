@@ -488,7 +488,6 @@ class Acteol(ApiMiner):
         Add member number to Acteol
 
         :param ctcid: ID returned from Acteol when creating the account
-
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
