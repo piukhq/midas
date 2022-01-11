@@ -9,7 +9,7 @@ import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
-from app.agents.base import Balance
+from app.agents.base import Balance, BaseMiner
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
@@ -551,3 +551,69 @@ class TestIcelandValidate(TestCase):
         self.assertEqual(12, mock_base_signal.call_count)
         self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls[:2])
         self.assertEqual(3, mock_iceland_signal.call_count)
+
+
+class TestIcelandJoin(TestCase):
+    def setUp(self) -> None:
+        self.credentials = {
+            "town_city": "a_town",
+            "county": "a_county",
+            "title": "a_title",
+            "address_1": "an_address_1",
+            "first_name": "John",
+            "last_name": "Smith",
+            "date_of_birth": "1987-08-08",
+            "email": "ba_test_01@testbink.com",
+            "phone": "0790000000",
+            "postcode": "XX0 0XX",
+            "address_2": "an_address_2",
+            "consents": [
+                {"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": JourneyTypes.JOIN.value},
+                {"id": 2, "slug": "marketing_opt_in_thirdparty", "value": False, "journey_type": JourneyTypes.JOIN.value},
+            ]
+        }
+        self.merchant_url = "https://reflector.dev.gb.bink.com/mock/api/v1/bink/"
+        self.token_url = "https://reflector.dev.gb.bink.com/mock/"
+
+        mock_configuration_object = MagicMock()
+        mock_configuration_object.security_credentials = {
+            "outbound": {
+                "service": 0,
+                "credentials": [{"storage_key": "", "value": PRIVATE_KEY, "credential_type": "bink_private_key"}],
+            },
+            "inbound": {
+                "service": 0,
+                "credentials": [
+                    {"storage_key": "", "value": PRIVATE_KEY, "credential_type": "bink_private_key"},
+                    {"storage_key": "", "value": PUBLIC_KEY, "credential_type": "merchant_public_key"},
+                ],
+            },
+        }
+        mock_configuration_object.merchant_url = self.merchant_url
+        mock_configuration_object.callback_url = None
+        mock_configuration_object.integration_service = "ASYNC"
+
+        with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
+            self.agent = Iceland(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
+                    "journey_type": JourneyTypes.JOIN.value,
+                    "user_set": "1,2",
+                    "credentials": self.credentials,
+                },
+                scheme_slug="iceland-bonus-card",
+            )
+        self.agent._join.retry.wait = wait_none()  # type:ignore
+
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_consents_confirmed_as_pending_on_async_join(
+        self, mock_consent_confirmation, mock_login, mock_authenticate
+    ):
+        self.agent.join(self.credentials)
+
+        mock_consent_confirmation.assert_called_with(self.credentials["consents"], ConsentStatus.PENDING)
+        self.assertTrue(mock_login.called)

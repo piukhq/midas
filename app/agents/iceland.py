@@ -25,8 +25,10 @@ from app.agents.exceptions import (
 )
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
+from app.exceptions import AgentException
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes
+from app.tasks.resend_consents import ConsentStatus
 
 RETRY_LIMIT = 3
 log = get_logger("iceland")
@@ -175,16 +177,70 @@ class Iceland(ApiMiner):
         self._balance_amount = response_json["balance"]
         self._transactions = response_json.get("transactions")
 
-    def join(self, credentials):
+    def _check_for_error_response(self, response):
+        error = None
+        for key in self.ERRORS_KEYS:
+            error = response.get(key)
+            if error:
+                break
+        return error
+
+    @retry(
+        stop=stop_after_attempt(RETRY_LIMIT),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    def _join(self, payload: dict) -> dict:
+        response = self.make_request(self.config.merchant_url, method="post", json=payload)
+        return response.json()
+
+    def join(self, credentials: dict) -> None:
         consents = credentials.get("consents", [])
-        message_uid = str(uuid4())
-        resp_json = self._create_account(credentials, message_uid)
-        self.identifier = {
-            "merchant_identifier": resp_json["UserId"],
-            "card_number": resp_json["MembershipNumber"],
+        if consents:
+            if len(consents) < 2:
+                journey_type = consents[0]["journey_type"]
+                consent = {
+                    "id": 99999999999,
+                    "slug": "marketing_opt_in_thirdparty",
+                    "value": False,
+                    "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
+                    "journey_type": journey_type,
+                }
+                credentials["consents"].append(consent)
+            else:
+                log.debug("Too many consents for Iceland scheme.")
+        marketing_mapping = {i["slug"]: i["value"] for i in credentials["consents"]}
+
+        payload = {
+            "town_city": credentials["town_city"],
+            "county": credentials["county"],
+            "title": credentials["title"],
+            "address_1": credentials["address_1"],
+            "first_name": credentials["first_name"],
+            "last_name": credentials["last_name"],
+            "email": credentials["email"],
+            "postcode": credentials["postcode"],
+            "address_2": credentials["address_2"],
+            "record_uid": hash_ids.encode(self.scheme_id),
+            "country": self.config.country,
+            "message_uid": str(uuid4()),
+            "callback_url": self.config.callback_url,
+            "marketing_opt_in": marketing_mapping["marketing_opt_in"],
+            "marketing_opt_in_thirdparty": marketing_mapping["marketing_opt_in_thirdparty"],
+            "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
+            "dob": credentials["date_of_birth"],
+            "phone1": credentials["phone"],
         }
-        self.user_info["credentials"].update(self.identifier)
-        self._update_newsletters(resp_json["UserId"], consents)
+        self.headers = {"Authorization": f"Bearer {self._authenticate()}"}
+
+        async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+        if self.config.integration_service == async_service_identifier:
+            self.expecting_callback = True
+
+        response_json = self._join(payload)
+
+        consent_status = ConsentStatus.PENDING
+        self.consent_confirmation(consents, consent_status)
 
     def balance(self) -> Optional[Balance]:
         amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
