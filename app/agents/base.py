@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
-from urllib.parse import urlparse, urlsplit
+from urllib.parse import urlparse, urlsplit, parse_qs
 from uuid import uuid4
 
 import arrow
@@ -252,9 +252,8 @@ class ApiMiner(BaseMiner):
         if "json" in kwargs or "data" in kwargs:
             return kwargs["json"] if kwargs.get("json") else kwargs["data"]
         else:
-            return urlparse(url).query
-
-        return {}
+            data = urlsplit(url).query
+            return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
     def make_request(self, url, method="get", timeout=5, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
