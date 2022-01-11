@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
+from soteria.configuration import Configuration
 from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
@@ -23,7 +24,10 @@ from settings import HERMES_URL
 class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with unittest.mock.patch("app.agents.acteol.Configuration"):
+        with unittest.mock.patch("app.agents.acteol.Configuration") as mock_config:
+            mock_config.SYNC_INTEGRATION = Configuration.SYNC_INTEGRATION
+            mock_config.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
+
             cls.mock_token = {
                 "acteol_access_token": "abcde12345fghij",
                 "timestamp": 123456789,
