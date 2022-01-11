@@ -99,7 +99,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        resp_json = self.squaremeal._create_account(credentials=self.credentials, message_uid="XXX")
+        resp_json = self.squaremeal._create_account(credentials=self.credentials)
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
@@ -340,7 +340,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        resp_json = self.squaremeal._login(credentials=self.credentials, message_uid="XXX")
+        resp_json = self.squaremeal._login(credentials=self.credentials)
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
