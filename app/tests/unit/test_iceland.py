@@ -14,6 +14,8 @@ from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
+from app.tasks.resend_consents import ConsentStatus
+from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 
 credentials = {
     "card_number": "0000000000000000000",
