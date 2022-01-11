@@ -490,7 +490,7 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
-        resp = self.make_request(api_url, method="get", audit=True, timeout=self.API_TIMEOUT)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
             raise JoinError(JOIN_ERROR)  # The join journey ends

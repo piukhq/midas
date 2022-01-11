@@ -259,10 +259,6 @@ class ApiMiner(BaseMiner):
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
-
-        print(kwargs, "THIS IS KWARGS")
-        print("THIS IS SEND AUDIT ", audit)
-
         args = {
             "headers": self.headers,
             "timeout": timeout,
