@@ -253,7 +253,7 @@ class ApiMiner(BaseMiner):
             return kwargs["json"] if kwargs.get("json") else kwargs["data"]
         else:
             data = urlsplit(url).query
-            return dict((k, v[-1] if isinstance(v, list) else v) for k, v in parse_qs(data).items())
+            return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
         return {}
 
