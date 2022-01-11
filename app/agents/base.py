@@ -255,8 +255,6 @@ class ApiMiner(BaseMiner):
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
-        return {}
-
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
