@@ -663,7 +663,7 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
-                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)
+                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
