@@ -247,12 +247,14 @@ class ApiMiner(BaseMiner):
         )
         signal("send-to-atlas").send(self)
 
-    def _get_audit_payload(self, kwargs, url):
+    @staticmethod
+    def _get_audit_payload(kwargs, url):
         if "json" in kwargs or "data" in kwargs:
             return kwargs["json"] if kwargs.get("json") else kwargs["data"]
         else:
-            split = urlsplit(url).query
-            return parse_qs(split)
+            data = urlsplit(url).query
+            return dict((k, v[-1] if isinstance(v, list) else v)
+                        for k, v in parse_qs(data).items())
 
         return {}
 
@@ -784,14 +786,14 @@ class MerchantApi(BaseMiner):
         raise AgentError(UNKNOWN)
 
     def _create_log_message(
-        self,
-        json_msg,
-        msg_uid,
-        scheme_slug,
-        handler_type,
-        integration_service,
-        direction,
-        contains_errors=False,
+            self,
+            json_msg,
+            msg_uid,
+            scheme_slug,
+            handler_type,
+            integration_service,
+            direction,
+            contains_errors=False,
     ):
         return {
             "json": json_msg,

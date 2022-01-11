@@ -355,6 +355,7 @@ class TestWasabi(unittest.TestCase):
         Test adding member number to Acteol
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         ctcid = "54321"
         expected_member_number = "987654321"
         api_url = urljoin(self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
