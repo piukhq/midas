@@ -253,8 +253,7 @@ class ApiMiner(BaseMiner):
             return kwargs["json"] if kwargs.get("json") else kwargs["data"]
         else:
             data = urlsplit(url).query
-            return dict((k, v[-1] if isinstance(v, list) else v)
-                        for k, v in parse_qs(data).items())
+            return dict((k, v[-1] if isinstance(v, list) else v) for k, v in parse_qs(data).items())
 
         return {}
 
@@ -786,14 +785,14 @@ class MerchantApi(BaseMiner):
         raise AgentError(UNKNOWN)
 
     def _create_log_message(
-            self,
-            json_msg,
-            msg_uid,
-            scheme_slug,
-            handler_type,
-            integration_service,
-            direction,
-            contains_errors=False,
+        self,
+        json_msg,
+        msg_uid,
+        scheme_slug,
+        handler_type,
+        integration_service,
+        direction,
+        contains_errors=False,
     ):
         return {
             "json": json_msg,
