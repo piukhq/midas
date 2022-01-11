@@ -215,8 +215,18 @@ class Squaremeal(ApiMiner):
         }
         self.user_info["credentials"].update(self.identifier)
 
-    def scrape_transactions(self):
-        return self.point_transactions
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            return []
+
+    def transaction_history(self) -> list[Transaction]:
+        transactions = [
+            parsed_tx for raw_tx in self.point_transactions if (parsed_tx := self.parse_transaction(raw_tx))
+        ]
+        return transactions
 
     def parse_transaction(self, transaction: dict):
         return Transaction(

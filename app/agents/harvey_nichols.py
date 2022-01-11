@@ -144,6 +144,13 @@ class HarveyNichols(ApiMiner):
             reward_tier=tier,
         )
 
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            return []
+
     def call_transaction_url(self):
         url = self.base_url + "/ListTransactions"
         from_date = arrow.get("2001/01/01").format("YYYY-MM-DDTHH:mm:ssZ")
@@ -177,7 +184,7 @@ class HarveyNichols(ApiMiner):
             points=Decimal(row["pointsValue"]),
         )
 
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         result = self.call_transaction_url()
 
         if result["outcome"] == "InvalidToken":
@@ -187,11 +194,14 @@ class HarveyNichols(ApiMiner):
         if result["outcome"] != "Success":
             self.handle_errors(result["outcome"])
 
-        transactions = [transaction["CustomerTransaction"] for transaction in result["transactions"]]
+        customer_transactions = [transaction["CustomerTransaction"] for transaction in result["transactions"]]
         transaction_types = ["Sale", "Refund"]
-        sorted_transactions = [transaction for transaction in transactions if transaction["type"] in transaction_types]
+        sorted_transactions = [
+            transaction for transaction in customer_transactions if transaction["type"] in transaction_types
+        ]
 
-        return sorted_transactions
+        transactions = [parsed_tx for raw_tx in sorted_transactions if (parsed_tx := self.parse_transaction(raw_tx))]
+        return transactions
 
     def join(self, credentials):
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}

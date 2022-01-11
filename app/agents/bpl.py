@@ -16,11 +16,14 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
 )
-from app.agents.schemas import Balance, Voucher
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.encryption import hash_ids
+from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
+
+log = get_logger("bpl-agent")
 
 
 class BplBase(ApiMiner):
@@ -170,3 +173,14 @@ class Trenette(BplBase):
                 *self._make_issued_vouchers(vouchers),
             ],
         )
+
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            return []
+
+    def transaction_history(self) -> list[Transaction]:
+        raise NotImplementedError()
+

@@ -227,6 +227,13 @@ class Acteol(ApiMiner):
             vouchers=bink_mapped_vouchers,
         )
 
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            return []
+
     def update_hermes_credentials(self, ctcid, customer_details):
         # GIVEN user has Wasabi card with given ‘card number’ and 'CTCID'
         # WHEN the corresponding Acteol field is updated i.e CurrentMemberNumber and CustomerID
@@ -277,11 +284,11 @@ class Acteol(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         """
-        We're not scraping, we're calling the Acteol API
+        Call the Acteol API to retrieve transaction history
 
-        :return: list of transaction dicts from Acteol's API
+        :return: list of transactions from Acteol's API
         """
         # Ensure a valid API token
         self._get_valid_api_token_and_make_headers()
@@ -305,7 +312,9 @@ class Acteol(ApiMiner):
                 )
                 return []
 
-        return resp_json
+        transactions = [parsed_tx for raw_tx in resp_json if (parsed_tx := self.parse_transaction(raw_tx))]
+
+        return transactions
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),

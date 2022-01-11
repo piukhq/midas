@@ -15,7 +15,7 @@ from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
-from app.agents.schemas import Balance, Voucher
+from app.agents.schemas import Balance, Voucher, Transaction
 from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -1453,7 +1453,7 @@ class TestWasabi(unittest.TestCase):
 
     @httpretty.activate
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_scrape_transactions(self, mock_authenticate):
+    def test_transactions_success(self, mock_authenticate):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
@@ -1464,6 +1464,7 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.base_url,
             f"api/Order/Get?CtcID={ctcid}&LastRecordsCount={n_records}&IncludeOrderDetails=false",
         )
+
         mock_transactions = [
             {
                 "CustomerID": ctcid,
@@ -1496,12 +1497,27 @@ class TestWasabi(unittest.TestCase):
                 "UsedToEarnPoint": False,
             },
         ]
+
+        expected_transactions = [
+            Transaction(
+                date=arrow.get("2020-06-17T10:56:38.36"),
+                description="Kimchee Pancras Square £72.50",
+                points=Decimal("1.00"),
+                location="Kimchee Pancras Square",
+            ),
+            Transaction(
+                date=arrow.get("2020-06-17T10:56:38.36"),
+                description="Kimchee Pancras Square £0.00",
+                points=Decimal("1.00"),
+                location="Kimchee Pancras Square",
+            ),
+        ]
         httpretty.register_uri(
-            httpretty.GET,
-            api_url,
-            responses=[httpretty.Response(body=json.dumps(mock_transactions))],
-            status=HTTPStatus.OK,
-        )
+                httpretty.GET,
+                api_url,
+                responses=[httpretty.Response(body=json.dumps(mock_transactions))],
+                status=HTTPStatus.OK,
+            )
         self.wasabi.credentials = {
             "first_name": "Sarah",
             "last_name": "TestPerson",
@@ -1512,10 +1528,10 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        transactions = self.wasabi.scrape_transactions()
+        transactions = self.wasabi.transaction_history()
 
         # THEN
-        assert transactions == mock_transactions
+        assert transactions == expected_transactions
 
     @httpretty.activate
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -1929,6 +1945,7 @@ class TestWasabi(unittest.TestCase):
         "app.agents.acteol.Acteol._create_account",
         side_effect=AgentError(END_SITE_DOWN),
     )
+
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
