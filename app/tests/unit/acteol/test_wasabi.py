@@ -15,9 +15,9 @@ from tenacity import Retrying, stop_after_attempt
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Voucher
+from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
-from app.scheme_account import JourneyTypes
 
 
 class TestWasabi(unittest.TestCase):
