@@ -10,11 +10,13 @@ from urllib.parse import urljoin
 import arrow
 import httpretty
 import pytest
+from soteria.configuration import Configuration
 from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Voucher
+from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
 
@@ -22,7 +24,10 @@ from settings import HERMES_URL
 class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with unittest.mock.patch("app.agents.acteol.Configuration"):
+        with unittest.mock.patch("app.agents.acteol.Configuration") as mock_config:
+            mock_config.SYNC_INTEGRATION = Configuration.SYNC_INTEGRATION
+            mock_config.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
+
             cls.mock_token = {
                 "acteol_access_token": "abcde12345fghij",
                 "timestamp": 123456789,
@@ -265,6 +270,7 @@ class TestWasabi(unittest.TestCase):
         Test creating an account
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.JOIN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         expected_ctcid = "54321"
@@ -280,7 +286,6 @@ class TestWasabi(unittest.TestCase):
             "email": "testperson@bink.com",
             "date_of_birth": "1999-01-01",
         }
-
         # WHEN
         ctcid = self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
@@ -294,6 +299,7 @@ class TestWasabi(unittest.TestCase):
         Test _check_response_for_error
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.JOIN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         response_data = {
@@ -329,6 +335,7 @@ class TestWasabi(unittest.TestCase):
         Test creating an account raises an exception from base class's make_request()
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.JOIN
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
@@ -352,6 +359,7 @@ class TestWasabi(unittest.TestCase):
         Test adding member number to Acteol
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         ctcid = "54321"
         expected_member_number = "987654321"
         api_url = urljoin(self.wasabi.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
@@ -393,6 +401,7 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
+        self.wasabi.journey_type = JourneyTypes.ADD
 
         # Force fast-as-possible retries so we don't have slow running tests
         self.wasabi._add_member_number.retry.sleep = unittest.mock.Mock()
@@ -1700,9 +1709,9 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_timeout(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
-
         # Force fast-as-possible retries so we don't have slow running tests
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)
         mock_retrying.return_value = retrying
@@ -1729,6 +1738,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_authentication(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
@@ -1758,6 +1768,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_fail_forbidden(self, mock_authenticate, mock_retrying, mock_send_to_atlas):
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
@@ -1790,6 +1801,7 @@ class TestWasabi(unittest.TestCase):
         Test one of the LoginError scenarios
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
@@ -1827,6 +1839,7 @@ class TestWasabi(unittest.TestCase):
         Test _check_response_for_error
         """
         # GIVEN
+        self.wasabi.journey_type = JourneyTypes.ADD
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
@@ -1861,6 +1874,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
+        self.wasabi.journey_type = JourneyTypes.ADD
 
         # Force fast-as-possible retries so we don't have slow running tests
         retrying = Retrying(stop=stop_after_attempt(1), reraise=True)

@@ -465,7 +465,7 @@ class Acteol(ApiMiner):
             "BirthDate": credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
-        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=payload)
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
 
@@ -490,7 +490,7 @@ class Acteol(ApiMiner):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
-        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
             raise JoinError(JOIN_ERROR)  # The join journey ends
@@ -663,7 +663,7 @@ class Acteol(ApiMiner):
             retry=retry_if_exception_type(AgentError),
         ):
             with attempt:
-                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, json=payload)
+                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()

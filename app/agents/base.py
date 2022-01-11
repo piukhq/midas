@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from typing import Optional
-from urllib.parse import urlparse, urlsplit
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import arrow
@@ -213,7 +213,6 @@ class ApiMiner(BaseMiner):
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
         self.audit_logger = AuditLogger(channel=self.channel)
-        self.audit_finished = False
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
@@ -248,23 +247,17 @@ class ApiMiner(BaseMiner):
         )
         signal("send-to-atlas").send(self)
 
-    def _get_audit_payload(self, kwargs, url):
+    @staticmethod
+    def _get_audit_payload(kwargs, url):
         if "json" in kwargs or "data" in kwargs:
             return kwargs["json"] if kwargs.get("json") else kwargs["data"]
         else:
-            return urlparse(url).query
+            data = urlsplit(url).query
+            return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
-        return {}
-
-    def make_request(self, url, method="get", timeout=5, **kwargs):
+    def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
-        send_audit = False
-
-        if self.journey_type in self.audit_handlers.keys() and not self.audit_finished:
-            send_audit = True
-
         path = urlsplit(url).path  # Get the path part of the url for signal call
-
         args = {
             "headers": self.headers,
             "timeout": timeout,
@@ -280,7 +273,7 @@ class ApiMiner(BaseMiner):
                 latency=resp.elapsed.total_seconds(),
                 response_code=resp.status_code,
             )
-            if send_audit:
+            if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
                 self.send_audit_logs(audit_payload, resp)
 

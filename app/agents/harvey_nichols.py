@@ -88,7 +88,9 @@ class HarveyNichols(ApiMiner):
         payload["url"] = has_loyalty_account_url
         payload["password"] = "********"
 
-        response = self.make_request(has_loyalty_account_url, method="post", headers=headers, timeout=10, json=data)
+        response = self.make_request(
+            has_loyalty_account_url, method="post", headers=headers, timeout=10, audit=True, json=data
+        )
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
@@ -237,7 +239,7 @@ class HarveyNichols(ApiMiner):
         payload = deepcopy(data)
         payload["CustomerSignUpRequest"].update({"url": url})
 
-        self.join_response = self.make_request(url, method="post", timeout=10, json=data)
+        self.join_response = self.make_request(url, method="post", timeout=10, audit=True, json=data)
 
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
@@ -267,7 +269,7 @@ class HarveyNichols(ApiMiner):
         payload["CustomerSignOnRequest"].update({"url": url})
         payload["CustomerSignOnRequest"].update({"password": "********"})
 
-        self.login_response = self.make_request(url, method="post", timeout=10, json=data)
+        self.login_response = self.make_request(url, method="post", timeout=10, audit=True, json=data)
         log.info(f"SignOn called for scheme account id = {self.scheme_id}, response = {self.login_response}")
 
         json_result = self.login_response.json()["CustomerSignOnResult"]

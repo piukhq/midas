@@ -52,7 +52,6 @@ class Squaremeal(ApiMiner):
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
-        self.audit_logger.filter_fields = self.hide_sensitive_fields
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     @staticmethod
@@ -135,8 +134,7 @@ class Squaremeal(ApiMiner):
             "Source": self.channel,
         }
         try:
-            resp = self.make_request(url, method="post", json=payload)
-            self.audit_finished = True
+            resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
@@ -169,7 +167,7 @@ class Squaremeal(ApiMiner):
         self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
-            resp = self.make_request(url, method="post", json=payload)
+            resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)

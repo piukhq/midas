@@ -99,7 +99,6 @@ class TestBplCallback(TestCase):
                 }
             ],
         }
-        self.trenette.audit_finished = True
         httpretty.register_uri(
             httpretty.GET, url, status=HTTPStatus.OK, responses=[httpretty.Response(body=json.dumps(response_data))]
         )
@@ -134,7 +133,6 @@ class TestBplCallback(TestCase):
                 },
             ],
         }
-        self.trenette.audit_finished = True
         httpretty.register_uri(
             httpretty.GET, url, status=HTTPStatus.OK, responses=[httpretty.Response(body=json.dumps(response_data))]
         )
