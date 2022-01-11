@@ -125,7 +125,7 @@ class Iceland(ApiMiner):
         reraise=True,
     )
     def _login(self, payload: dict):
-        return self.make_request(url=self.config.merchant_url, method="post", json=payload)
+        return self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
 
     def login(self, credentials) -> None:
         token = self._authenticate()
