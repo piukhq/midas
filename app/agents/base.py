@@ -216,6 +216,7 @@ class ApiMiner(BaseMiner):
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+            JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
             JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
 
