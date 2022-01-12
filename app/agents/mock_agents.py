@@ -8,9 +8,7 @@ from typing import Optional
 import arrow
 
 from app.agents.base import MockedMiner
-from app.agents.ecrebo import Ecrebo
 from app.agents.exceptions import (
-    CARD_NUMBER_ERROR,
     END_SITE_DOWN,
     STATUS_LOGIN_FAILED,
     STATUS_REGISTRATION_FAILED,
@@ -20,10 +18,7 @@ from app.agents.exceptions import (
 )
 from app.agents.schemas import Balance, Transaction
 from app.mocks import card_numbers
-from app.mocks.ecrebo.card_numbers import WHSMITH as whsmith_card_numbers
-from app.mocks.ecrebo.users import USER_STORE as ecrebo_user_store
 from app.mocks.users import USER_STORE, transactions
-from app.vouchers import VoucherType
 
 JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 
@@ -256,147 +251,3 @@ class MockAgentIce(MockedMiner):
             self.identifier["card_number"] = card_number
         if not credentials.get("barcode"):
             self.identifier["barcode"] = card_number
-
-
-class MockAgentWHS(MockedMiner, Ecrebo):
-    existing_card_numbers = whsmith_card_numbers
-    join_fields = {
-        "email",
-        "title",
-        "first_name",
-        "last_name",
-        "phone",
-        "address_1",
-        "town_city",
-        "postcode",
-    }
-
-    titles = ["Mr", "Mrs", "Miss", "Ms", "Mx", "Dr", "Prefer not to say"]
-
-    def login(self, credentials):
-        self.check_and_raise_error_credentials(credentials)
-
-        # if join request, assign new user with zero balance and no vouchers
-        if self.join_fields.issubset(credentials.keys()):
-            merchant_identifier = str(uuid.uuid4())
-            self.user_info = ecrebo_user_store["whsmith"]["0000001"]
-            self.identifier = {
-                "card_number": self.user_info["card_number"],
-                "merchant_identifier": merchant_identifier,
-            }
-            self.user_info["credentials"].update(self.identifier)
-        else:
-            # Assume we're on an add journey from here on
-            card_number = credentials.get("card_number")
-            user_id = self._validate_card_number(card_numbers=whsmith_card_numbers, card_number=card_number)
-            self._check_for_and_raise_exceptions(
-                users=ecrebo_user_store["whsmith"],
-                card_numbers=whsmith_card_numbers,
-                card_number=card_number,
-            )
-
-            self.user_info = ecrebo_user_store["whsmith"][user_id]
-            merchant_identifier = credentials.get("merchant_identifier") or str(uuid.uuid4())
-            self.identifier = {
-                "card_number": credentials["card_number"],
-                "merchant_identifier": merchant_identifier,
-            }
-            existing_credentials: dict = self.user_info.get("credentials", {})
-            self.user_info["credentials"] = {**existing_credentials, **self.identifier}
-
-        return
-
-    def balance(self) -> Optional[Balance]:
-        """
-        For each voucher in the mock user store, a mock voucher dict must be created.
-        Each dict must have: "issued" (use today's date - 2 days), "code" and "expiry_date", which come from
-        the mock user store for each of the voucher states i.e. earned, expired and redeemed.
-        Redeemed vouchers (in order to be seen as such by Hermes) must also have a "redeem date"
-        (just make this yesterday).
-        Pass this list of voucher dicts to _make_balance_response as 'issued_vouchers' to mock ecrebo's real
-        balance() method
-        """
-        issued_vouchers = []
-        issued = arrow.now().shift(days=-2).format("YYYY-MM-DD")  # e.g. "2020-08-23"
-        redeemed = arrow.now().shift(days=-1).format("YYYY-MM-DD")  # e.g. "2020-08-24"
-        for earned_voucher in self.user_info.get("earned_vouchers", []):
-            mock_voucher = self._make_mock_voucher(code=earned_voucher[0], expiry_date=earned_voucher[1], issued=issued)
-            issued_vouchers.append(mock_voucher)
-
-        for expired_voucher in self.user_info.get("expired_vouchers", []):
-            mock_voucher = self._make_mock_voucher(
-                code=expired_voucher[0], expiry_date=expired_voucher[1], issued=issued
-            )
-            issued_vouchers.append(mock_voucher)
-
-        for redeemed_voucher in self.user_info.get("redeemed_vouchers", []):
-            mock_voucher = self._make_mock_voucher(
-                code=redeemed_voucher[0], expiry_date=redeemed_voucher[1], issued=issued
-            )
-            mock_voucher["redeemed"] = redeemed
-            issued_vouchers.append(mock_voucher)
-
-        return self._make_balance_response(
-            voucher_type=VoucherType.STAMPS,
-            value=self.user_info.get("points", 0),
-            target_value=Decimal("5"),
-            issued_vouchers=issued_vouchers,
-        )
-
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
-        return None
-
-    def scrape_transactions(self) -> list[dict]:
-        return []
-
-    def join(self, credentials):
-        return self._validate_join_credentials(credentials)
-
-    def _validate_join_credentials(self, credentials):
-        if credentials["email"] == "whsmithx200@bink.com":
-            # This is to force a PENDING status for this email credential. See MER-432
-            sleep(20)
-        elif credentials["email"] == "whsmithx201@bink.com":
-            raise JoinError(STATUS_REGISTRATION_FAILED)
-
-        return super()._validate_join_credentials(data=credentials)
-
-    @staticmethod
-    def _make_mock_voucher(code: str, expiry_date: str, issued: str):
-        mock_voucher = {
-            "code": code,
-            "expiry_date": expiry_date,
-            "issued": issued,
-        }
-
-        return mock_voucher
-
-    def _validate_card_number(self, card_numbers: dict[str, str], card_number: str):
-        """
-        Validation: does the incoming card match one of our test ones?
-        """
-        try:
-            user_id = card_numbers[card_number]
-        except (KeyError, TypeError):
-            raise LoginError(CARD_NUMBER_ERROR)
-        else:
-            return user_id
-
-    def _check_for_and_raise_exceptions(self, users: dict, card_numbers: dict[str, str], card_number: str):
-        """
-        Check against users dicts and raise the expected error for that card number, if there is one
-        """
-        user_id = card_numbers[card_number]
-        user_record = users[user_id]
-        code_to_return = user_record.get("code_to_return")
-        if code_to_return:
-            error = code_to_return[1]
-            if error:
-                if isinstance(error, str):
-                    # Is an error constant
-                    raise LoginError(error)
-                else:  # Is an error class
-                    raise error
-            elif error is None:
-                # This is to force a PENDING status for these cards. See MER-432
-                sleep(20)
