@@ -7,6 +7,7 @@ from unittest.mock import ANY, MagicMock, call
 import arrow
 import httpretty
 from tenacity import wait_none
+from user_auth_token import UserTokenStore
 
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
@@ -104,12 +105,29 @@ class TestIcelandValidate(TestCase):
         current_timestamp = arrow.get(2022, 1, 1, 7, 0).int_timestamp
 
         with mock.patch.object(self.agent.token_store, "set", return_value=True) as mock_token_store:
-            self.agent._store_token(access_token, current_timestamp)
+            self.agent._store_token(access_token, (current_timestamp,))
 
         self.assertEqual(
             mock_token_store.call_args[1]["token"],
-            '{"iceland_access_token": "abcde12345fghij", "timestamp": 1641020400}',
+            '{"iceland_access_token": "abcde12345fghij", "timestamp": [1641020400]}',
         )
+
+    @mock.patch.object(UserTokenStore, "get")
+    def test_authenticate_stored_token_valid(self, mock_token_store_get):
+        mock_token_store_get.return_value = (
+            f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp}]}}'
+        )
+        token = self.agent._authenticate()
+        self.assertEqual(token, "abcde12345fghij")
+
+    @mock.patch("app.agents.iceland.Iceland._refresh_token", return_value="")
+    @mock.patch.object(UserTokenStore, "get")
+    def test_authenticate_stored_token_expired(self, mock_token_store_get, mock_refresh_token):
+        mock_token_store_get.return_value = (
+            f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
+        )
+        self.agent._authenticate()
+        mock_refresh_token.assert_called()
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
