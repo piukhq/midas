@@ -1,5 +1,4 @@
 import random
-import uuid
 from copy import deepcopy
 from decimal import Decimal
 from time import sleep
