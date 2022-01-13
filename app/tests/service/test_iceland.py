@@ -144,6 +144,18 @@ class TestIcelandValidate(TestCase):
         self.assertEqual(self.agent._balance_amount, 10.0)
 
     @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate")
+    def test_login_bypasses_authentication_if_open_auth(self, mock_oath):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
+        )
+
+        self.agent.login(credentials)
+        self.assertEqual(mock_oath.call_count, 0)
+
+    @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     def test_login_401(self, mock_oath):
         httpretty.register_uri(
