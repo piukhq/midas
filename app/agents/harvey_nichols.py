@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
-from typing import Mapping, Optional
+from typing import Optional
 from urllib.parse import urljoin
 
 import arrow
@@ -21,8 +21,6 @@ from app.agents.exceptions import (
     JoinError,
     LoginError,
 )
-from app.audit import AuditLogType, RequestAuditLog
-from app.encryption import AESCipher, get_aes_key
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import send_consents
@@ -50,29 +48,6 @@ class HarveyNichols(ApiMiner):
         self.hn_sso_url = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-
-    @staticmethod
-    def encrypt_sensitive_fields(req_audit_logs: list[RequestAuditLog]) -> list[RequestAuditLog]:
-        aes = AESCipher(get_aes_key("aes-keys"))
-
-        # Values stored in AuditLog objects are references so they should be copied before modifying
-        # in case the values are also used elsewhere.
-        req_audit_logs_copy = deepcopy(req_audit_logs)
-        for audit_log in req_audit_logs_copy:
-            if audit_log.audit_log_type == AuditLogType.REQUEST and isinstance(audit_log.payload, Mapping):
-                try:
-                    customer_request_type = (
-                        "CustomerSignUpRequest"
-                        if "CustomerSignUpRequest" in audit_log.payload.keys()
-                        else "CustomerSignOnRequest"
-                    )
-                    audit_log.payload[customer_request_type]["password"] = aes.encrypt(
-                        audit_log.payload[customer_request_type]["password"]
-                    ).decode()
-                except KeyError as e:
-                    log.warning(f"Unexpected payload format for Harvey Nichols audit log - Missing key: {e}")
-
-        return req_audit_logs_copy
 
     def check_loyalty_account_valid(self, credentials):
         """

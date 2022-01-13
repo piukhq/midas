@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Iterable, NamedTuple, Union
+from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Union
 from uuid import uuid4
 
 import arrow
@@ -13,7 +13,7 @@ from soteria.configuration import Configuration
 
 from app.http_request import get_headers
 from app.reporting import get_logger
-from settings import ATLAS_URL
+from settings import ATLAS_URL, AUDIT_SANITISATION_STANDIN, AUDIT_SENSITIVE_KEYS
 
 
 class AuditLogType(str, Enum):
@@ -49,9 +49,24 @@ class ResponseAuditLog(NamedTuple):
 AuditLog = Union[RequestAuditLog, ResponseAuditLog]
 
 
+def sanitise(data: MutableMapping):
+    for k, v in data.items():
+        # if `k` is a sensitive key, redact the whole thing (even if it's a mapping itself.)
+        if k in AUDIT_SENSITIVE_KEYS:
+            data[k] = AUDIT_SANITISATION_STANDIN
+        # if `k` isn't sensitive but it is a mapping, sanitise that mapping.
+        elif isinstance(v, MutableMapping):
+            data[k] = sanitise(v)
+        # if `k` isn't sensitive but it is a list, sanitise all mappings in that list.
+        elif isinstance(v, list):
+            data[k] = [sanitise(item) for item in v if isinstance(item, MutableMapping)]
+    return data
+
+
 def serialize(audit_log: AuditLog) -> dict:
     data = audit_log._asdict()
     data["audit_log_type"] = data["audit_log_type"].value
+    data = sanitise(data)
     return data
 
 
@@ -157,7 +172,7 @@ class AuditLogger:
     def retry_session(self, backoff_factor: float = 0.3) -> requests.Session:
         session = requests.Session()
         retry = Retry(
-            total=3, backoff_factor=backoff_factor, method_whitelist=False, status_forcelist=[500, 502, 503, 504]
+            total=3, backoff_factor=backoff_factor, allowed_methods=False, status_forcelist=[500, 502, 503, 504]
         )
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)

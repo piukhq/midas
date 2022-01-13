@@ -23,8 +23,8 @@ jobs:
       - run: xenon --max-average A --max-modules B --max-absolute B .
       - run: mypy app
       - run: flake8 .
-      - run: black --line-length=120 --check .
-      - run: isort --check --line-length 120 --profile black .
+      - run: black --check .
+      - run: isort --check .
   create_dev_release:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     name: create_dev_release
