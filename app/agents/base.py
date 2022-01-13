@@ -227,7 +227,7 @@ class ApiMiner(BaseMiner):
         record_uid = hash_ids.encode(self.scheme_id)
         handler_type = self.audit_handlers[self.journey_type]
         message_uid = str(uuid4())
-        signal("add-audit-request").send(
+        signal("send-audit-request").send(
             self,
             payload=payload,
             scheme_slug=self.scheme_slug,
@@ -236,7 +236,7 @@ class ApiMiner(BaseMiner):
             message_uid=message_uid,
             record_uid=record_uid,
         )
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             self,
             response=resp,
             scheme_slug=self.scheme_slug,
@@ -246,7 +246,6 @@ class ApiMiner(BaseMiner):
             message_uid=message_uid,
             record_uid=record_uid,
         )
-        signal("send-to-atlas").send(self)
 
     @staticmethod
     def _get_audit_payload(kwargs, url):
@@ -560,7 +559,6 @@ class MerchantApi(BaseMiner):
             else:
                 log.info(json.dumps(logging_info))
 
-        signal("send-to-atlas").send()
         return response_data
 
     def _inbound_handler(self, data, scheme_slug):
@@ -583,7 +581,7 @@ class MerchantApi(BaseMiner):
             "INBOUND",
         )
 
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             response=json.dumps(data),
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -592,7 +590,6 @@ class MerchantApi(BaseMiner):
             integration_service=self.config.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
         )
-        signal("send-to-atlas").send()
 
         if self._check_for_error_response(self.result):
             logging_info["contains_errors"] = True
@@ -679,7 +676,7 @@ class MerchantApi(BaseMiner):
         return response_json
 
     def _send_request(self):
-        signal("add-audit-request").send(
+        signal("send-audit-request").send(
             payload=self.request["json"],
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -701,7 +698,7 @@ class MerchantApi(BaseMiner):
 
         log.debug(f"Raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             response=response,
             message_uid=self.message_uid,
             record_uid=self.record_uid,

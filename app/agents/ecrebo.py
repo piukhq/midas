@@ -122,7 +122,7 @@ class Ecrebo(ApiMiner):
                 raise  # base agent will convert this to an unknown error
         finally:
             if from_login:
-                signal("add-audit-response").send(
+                signal("send-audit-response").send(
                     response=resp,
                     scheme_slug=self.scheme_slug,
                     handler_type=journey_type,
@@ -141,7 +141,7 @@ class Ecrebo(ApiMiner):
         consents_data = {c["slug"]: c["value"] for c in consents}
         data = {"data": self._get_join_credentials(credentials, consents_data)}
 
-        signal("add-audit-request").send(
+        signal("send-audit-request").send(
             payload=data,
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
@@ -164,7 +164,7 @@ class Ecrebo(ApiMiner):
             response_code=resp.status_code,
         )
 
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             response=resp,
             scheme_slug=self.scheme_slug,
             handler_type=Configuration.JOIN_HANDLER,
@@ -173,7 +173,6 @@ class Ecrebo(ApiMiner):
             message_uid=message_uid,
             record_uid=record_uid,
         )
-        signal("send-to-atlas").send()
 
         if resp.status_code == 409:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
@@ -211,7 +210,7 @@ class Ecrebo(ApiMiner):
         if "merchant_identifier" not in credentials:
             endpoint = f"/v1/list/query_item/{self.RETAILER_ID}/assets/membership/token/{card_number}"
 
-            signal("add-audit-request").send(
+            signal("send-audit-request").send(
                 payload={"card_number": card_number},
                 scheme_slug=self.scheme_slug,
                 handler_type=journey_type,
@@ -234,8 +233,6 @@ class Ecrebo(ApiMiner):
                 # Any of these exceptions mean the login has failed
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
-            finally:
-                signal("send-to-atlas").send()
 
             # TODO: do we actually need all three of these
             self.credentials["merchant_identifier"] = membership_data["uuid"]
