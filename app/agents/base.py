@@ -220,13 +220,10 @@ class ApiMiner(BaseMiner):
             JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
 
-    def send_audit_logs(self, payload, resp):
+    def send_audit_request(self, payload, record_uid, message_uid, handler_type):
         if payload.get("password"):
             payload["password"] = "REDACTED"
 
-        record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = self.audit_handlers[self.journey_type]
-        message_uid = str(uuid4())
         signal("send-audit-request").send(
             self,
             payload=payload,
@@ -236,6 +233,8 @@ class ApiMiner(BaseMiner):
             message_uid=message_uid,
             record_uid=record_uid,
         )
+
+    def send_audit_response(self, resp, record_uid, message_uid, handler_type):
         signal("send-audit-response").send(
             self,
             response=resp,
@@ -265,21 +264,29 @@ class ApiMiner(BaseMiner):
         args.update(kwargs)
 
         try:
-            resp = requests.request(method, url=url, **args)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=path,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
             if audit:
+                record_uid = hash_ids.encode(self.scheme_id)
+                handler_type = self.audit_handlers[self.journey_type]
+                message_uid = str(uuid4())
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_logs(audit_payload, resp)
+                self.send_audit_request(audit_payload, record_uid, message_uid, handler_type)
+
+            resp = requests.request(method, url=url, **args)
+
+            if audit:
+                self.send_audit_response(resp, record_uid, message_uid, handler_type)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
+
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=path,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
 
         try:
             resp.raise_for_status()

@@ -134,7 +134,6 @@ class AuditLogger:
             return
 
         headers = get_headers(tid=str(uuid4()))
-
         payload = {"audit_logs": [serialize(audit_log)]}
         log.info(f"Sending payload to atlas: {payload}")
 
