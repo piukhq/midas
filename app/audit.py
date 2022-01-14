@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from typing import Iterable, NamedTuple, Union
 from uuid import uuid4
@@ -102,7 +103,7 @@ class AuditLogger:
     def send_response_audit_log(
         self,
         sender: Union[object, str],
-        response: Union[dict, str],
+        response: Union[str, Response],
         scheme_slug: str,
         handler_type: int,
         integration_service: str,
@@ -112,8 +113,13 @@ class AuditLogger:
     ):
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
-        if isinstance(response, Response):
-            response = response.json()
+        try:
+            data = response.json()
+        except AttributeError:
+            data = response
+        except (json.decoder.JSONDecodeError, TypeError):
+            data = response.text
+
         response_audit_log = ResponseAuditLog(
             audit_log_type=AuditLogType.RESPONSE,
             channel=self.channel,
@@ -123,7 +129,7 @@ class AuditLogger:
             record_uid=record_uid,
             timestamp=timestamp,
             integration_service=integration_service,
-            payload=response,
+            payload=data,
             status_code=status_code,
         )
         self.send_to_atlas(response_audit_log)
