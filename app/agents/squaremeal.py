@@ -28,22 +28,24 @@ class Squaremeal(ApiMiner):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        config = Configuration(
+        self.config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,
             settings.VAULT_URL,
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
-        self.base_url = config.merchant_url
-        self.auth_url = config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
-        self.secondary_key = str(config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"])
+        self.base_url = self.config.merchant_url
+        self.auth_url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
+        self.secondary_key = str(
+            self.config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"]
+        )
 
-        self.azure_sm_client_secret = config.security_credentials["outbound"]["credentials"][0]["value"][
+        self.azure_sm_client_secret = self.config.security_credentials["outbound"]["credentials"][0]["value"][
             "client-secret"
         ]
-        self.azure_sm_client_id = config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
-        self.azure_sm_scope = config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
+        self.azure_sm_client_id = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
+        self.azure_sm_scope = self.config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
 
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
@@ -51,7 +53,7 @@ class Squaremeal(ApiMiner):
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
-        self.integration_service = config.integration_service
+        self.integration_service = self.config.integration_service
 
     @staticmethod
     def hide_sensitive_fields(req_audit_logs):
@@ -71,11 +73,11 @@ class Squaremeal(ApiMiner):
     def authenticate(self):
         have_valid_token = False
         current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {}
+        token_dict = {}
         try:
-            token = json.loads(self.token_store.get(self.scheme_id))
+            token_dict = json.loads(self.token_store.get(self.scheme_id))
             try:
-                if self._token_is_valid(token, current_timestamp):
+                if self._token_is_valid(token_dict, current_timestamp):
                     have_valid_token = True
             except (KeyError, TypeError) as ex:
                 log.exception(ex)
@@ -84,9 +86,12 @@ class Squaremeal(ApiMiner):
 
         if not have_valid_token:
             sm_access_token = self._refresh_token()
-            token = self._store_token(sm_access_token, current_timestamp)
+            token_dict = self._store_token(sm_access_token, current_timestamp)
 
-        return token["sm_access_token"]
+        token = token_dict["sm_access_token"]
+        self.headers["Authorization"] = f"Bearer {token}"
+
+        return token
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
@@ -124,7 +129,9 @@ class Squaremeal(ApiMiner):
     )
     def _create_account(self, credentials):
         url = f"{self.base_url}register"
-        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
+        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
+            self.authenticate()
+        self.headers["Secondary-Key"] = self.secondary_key
         payload = {
             "email": credentials["email"],
             "password": credentials["password"],
@@ -163,7 +170,9 @@ class Squaremeal(ApiMiner):
     )
     def _login(self, credentials):
         url = f"{self.base_url}login"
-        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
+        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
+            self.authenticate()
+        self.headers["Secondary-Key"] = self.secondary_key
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
