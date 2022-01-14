@@ -143,7 +143,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -156,7 +157,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate")
-    def test_login_bypasses_authentication_if_open_auth(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_bypasses_authentication_if_open_auth(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -169,7 +171,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_401(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_401(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -185,7 +188,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200_validation_error_403(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200_validation_error_403(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -205,7 +209,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200_card_number_error_436(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200_card_number_error_436(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -225,7 +230,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200_link_limit_exceeded_437(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200_link_limit_exceeded_437(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -245,7 +251,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200_link_limit_exceeded_438(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200_link_limit_exceeded_438(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -269,7 +276,8 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_login_200_link_limit_exceeded_439(self, mock_oath):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_200_link_limit_exceeded_439(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -301,8 +309,9 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_login_success_signals(self, mock_signal, mock_oauth):
+    def test_login_success_signals(self, mock_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
@@ -328,8 +337,9 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_login_error_signals(self, mock_signal, mock_oauth):
+    def test_login_error_signals(self, mock_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
@@ -362,8 +372,9 @@ class TestIcelandValidate(TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_login_401_failure_signals(self, mock_signal, mock_oauth):
+    def test_login_401_failure_signals(self, mock_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,

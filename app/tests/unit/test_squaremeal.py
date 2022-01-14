@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import arrow
 import httpretty
 from flask_testing import TestCase
+from soteria.configuration import Configuration
 from tenacity import wait_none
 
 import settings
@@ -20,6 +21,7 @@ settings.API_AUTH_ENABLED = False
 
 SECURITY_CREDENTIALS = {
     "outbound": {
+        "service": Configuration.OAUTH_SECURITY,
         "credentials": [
             {
                 "value": {
@@ -30,7 +32,7 @@ SECURITY_CREDENTIALS = {
                     "scope": "dunno",
                 },
             }
-        ]
+        ],
     }
 }
 
@@ -83,6 +85,8 @@ class TestSquaremealJoin(TestCase):
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
             self.squaremeal._create_account.retry.wait = wait_none()
             self.squaremeal._get_balance.retry.wait = wait_none()
+            self.squaremeal._update_newsletters.retry.wait = wait_none()
+            self.squaremeal.integration_service = "SYNC"
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -130,6 +134,27 @@ class TestSquaremealJoin(TestCase):
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
         )
         self.assertEqual(mock_consent_confirmation.call_count, 1)
+
+    @httpretty.activate
+    @mock.patch("app.agents.squaremeal.Squaremeal._update_newsletters")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.squaremeal.Squaremeal.authenticate")
+    def test_join_bypasses_authentication_if_open_auth(self, mock_oath, mock_requests_session, mock_update_newsletters):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.squaremeal.base_url + "register",
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(RESPONSE_JSON_200),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
+
+        self.squaremeal.join(self.credentials)
+        self.assertEqual(0, mock_oath.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -323,6 +348,9 @@ class TestSquaremealLogin(TestCase):
             )
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
             self.squaremeal._login.retry.wait = wait_none()
+            self.squaremeal._get_balance.retry.wait = wait_none()
+            self.squaremeal._update_newsletters.retry.wait = wait_none()
+            self.squaremeal.integration_service = "SYNC"
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -355,6 +383,26 @@ class TestSquaremealLogin(TestCase):
         self.assertEqual(
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
         )
+
+    @httpretty.activate
+    @mock.patch("app.agents.squaremeal.Squaremeal.authenticate")
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_bypasses_authentication_if_open_auth(self, mock_requests_session, mock_oath):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.squaremeal.base_url + "login",
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(RESPONSE_JSON_200),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
+
+        self.squaremeal.login(self.credentials)
+        self.assertEqual(0, mock_oath.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
