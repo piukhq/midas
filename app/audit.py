@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Iterable, NamedTuple, Union
+from typing import Any, Iterable, NamedTuple, Union
 from uuid import uuid4
 
 import arrow
@@ -78,7 +78,7 @@ class AuditLogger:
     def send_request_audit_log(
         self,
         sender: Union[object, str],
-        payload: Union[Iterable[dict], dict],
+        payload: Union[dict[Any, Any], str],
         scheme_slug: str,
         handler_type: int,
         integration_service: str,
@@ -103,7 +103,7 @@ class AuditLogger:
     def send_response_audit_log(
         self,
         sender: Union[object, str],
-        response: Union[str, Response],
+        response: Response,
         scheme_slug: str,
         handler_type: int,
         integration_service: str,
