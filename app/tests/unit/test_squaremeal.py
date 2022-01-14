@@ -297,6 +297,20 @@ class TestSquaremealJoin(TestCase):
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
 
+    @httpretty.activate
+    @mock.patch("app.agents.squaremeal.Squaremeal._get_balance")
+    def test_transaction_history_success(self, mock_get_balance):
+        self.squaremeal.user_info["credentials"]["merchant_identifier"] = "some_merchant_identifier"
+        mock_get_balance.return_value = self.BALANCE_RESPONSE_200
+        # balance needs to be called to retrieve the transaction data
+        self.squaremeal.balance()
+
+        transactions = self.squaremeal.transaction_history()
+
+        self.assertEqual(len(transactions), 1)
+        self.assertEqual(transactions[0].points, 100)
+        self.assertEqual(transactions[0].description, "First Card Added")
+
 
 class TestSquaremealLogin(TestCase):
     def create_app(self):

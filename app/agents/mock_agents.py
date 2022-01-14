@@ -93,6 +93,12 @@ class MockAgentHN(MockedMiner):
             reward_tier=1,
         )
 
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            return []
+
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
         return Transaction(
             date=row["date"],
@@ -100,7 +106,7 @@ class MockAgentHN(MockedMiner):
             points=row["points"],
         )
 
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         max_transactions = self.user_info["len_transactions"]
         # MER-824: If the user is five@testbink.com, ensure the date associated with transactions all occur
         # after the 25th October 2020
@@ -109,7 +115,11 @@ class MockAgentHN(MockedMiner):
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
 
-            return transactions_copy[:max_transactions]
+            transactions_list = [
+                parsed_tx for raw_tx in transactions_copy if (parsed_tx := self.parse_transaction(raw_tx))
+            ]
+
+            return transactions_list[:max_transactions]
         elif self.user_info["credentials"]["email"] == "onetransaction@testbink.com":
             # MER-939: if the user is "onetransaction@testbink.com", we will need a single
             # transaction with a value of 0 and timestamp of 1612876767
@@ -120,10 +130,16 @@ class MockAgentHN(MockedMiner):
                     "points": Decimal("0"),
                 },
             ]
-
+            transactions_list = [
+                parsed_tx for raw_tx in transactions_single if (parsed_tx := self.parse_transaction(raw_tx))
+            ]
             return transactions_single
         else:
-            return transactions[:max_transactions]
+            transactions_list = [
+                parsed_tx for raw_tx in transactions if (parsed_tx := self.parse_transaction(raw_tx))
+            ]
+
+        return transactions[:max_transactions]
 
     def join(self, credentials):
         self._validate_join_credentials(credentials)
@@ -210,6 +226,12 @@ class MockAgentIce(MockedMiner):
             value_label="£{}".format(value),
         )
 
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            return []
+
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
         return Transaction(
             date=row["date"],
@@ -217,7 +239,7 @@ class MockAgentIce(MockedMiner):
             points=row["points"],
         )
 
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         max_transactions = self.user_info["len_transactions"]
         # MER-825: If the user is the 'five' test user, ensure the date associated with transactions all occur
         # after the 25th October 2020
@@ -229,10 +251,17 @@ class MockAgentIce(MockedMiner):
             transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
+            transactions_list = [
+                parsed_tx for raw_tx in transactions_copy if (parsed_tx := self.parse_transaction(raw_tx))
+            ]
 
-            return transactions_copy[:max_transactions]
+            return transactions_list[:max_transactions]
         else:
-            return transactions[:max_transactions]
+            transactions_list = [
+                parsed_tx for raw_tx in transactions if (parsed_tx := self.parse_transaction(raw_tx))
+            ]
+
+        return transactions_list[:max_transactions]
 
     def join(self, credentials, inbound=False):
         return self._validate_join_credentials(credentials)
