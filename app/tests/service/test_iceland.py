@@ -6,6 +6,8 @@ from unittest.mock import ANY, MagicMock, call
 
 import arrow
 import httpretty
+
+import requests_mock
 from tenacity import wait_none
 from user_auth_token import UserTokenStore
 
@@ -13,7 +15,7 @@ from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.merchant_api_generic import MerchantAPIGeneric
-from app.scheme_account import TWO_PLACES
+from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 cred = {
@@ -30,8 +32,8 @@ credentials = {
 
 class TestIcelandValidate(TestCase):
     def setUp(self) -> None:
-        self.merchant_url = "https://customergateway-uat.iceland.co.uk/api/v1/bink/link"
-        self.token_url = "https://reflector.dev.gb.bink.com/mock/api/v1/bink/link"
+        self.merchant_url = "https://reflector.dev.gb.bink.com/api/v1/bink/link"
+        self.token_url = "https://reflector.dev.gb.bink.com/mock/oauth2/token"
 
         mock_configuration_object = MagicMock()
         mock_configuration_object.security_credentials = {
@@ -59,10 +61,20 @@ class TestIcelandValidate(TestCase):
         mock_configuration_object.merchant_url = self.merchant_url
         mock_configuration_object.callback_url = None
 
-        AGENT_CLASS_ARGUMENTS_FOR_VALIDATE[1]["credentials"] = credentials
         with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
-            self.agent = Iceland(*AGENT_CLASS_ARGUMENTS_FOR_VALIDATE, scheme_slug="iceland-bonus-card")
-        self.agent._login.retry.wait = wait_none()  # type:ignore
+            self.agent = Iceland(
+                1,
+                {
+                    "scheme_account_id": 1,
+                    "status": SchemeAccountStatus.WALLET_ONLY,
+                    "journey_type": JourneyTypes.LINK.value,
+                    "user_set": "1,2",
+                    "credentials": credentials
+                },
+                scheme_slug="iceland-bonus-card",
+            )
+            self.agent.integration_service = "ASYNC"
+            self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @httpretty.activate
     def test_refresh_token(self):
