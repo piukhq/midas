@@ -83,6 +83,8 @@ class Iceland(ApiMiner):
             token = self._refresh_token()
             self._store_token(token, current_timestamp)
 
+        self.headers["Authorization"] = f"Bearer {token}"
+
         return token
 
     @retry(
@@ -129,7 +131,8 @@ class Iceland(ApiMiner):
         return self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
 
     def login(self, credentials) -> None:
-        token = self._authenticate()
+        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
+            self._authenticate()
         payload = {
             "card_number": credentials["card_number"],
             "last_name": credentials["last_name"],
@@ -140,7 +143,6 @@ class Iceland(ApiMiner):
             "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
-        self.headers = {"Authorization": f"Bearer {token}"}
 
         response = self._login(payload)
         response_json = response.json()

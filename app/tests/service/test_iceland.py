@@ -6,8 +6,7 @@ from unittest.mock import ANY, MagicMock, call
 
 import arrow
 import httpretty
-
-import requests_mock
+from soteria.configuration import Configuration
 from tenacity import wait_none
 from user_auth_token import UserTokenStore
 
@@ -15,7 +14,7 @@ from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.merchant_api_generic import MerchantAPIGeneric
-from app.scheme_account import TWO_PLACES, SchemeAccountStatus, JourneyTypes
+from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 cred = {
@@ -37,9 +36,9 @@ class TestIcelandValidate(TestCase):
 
         mock_configuration_object = MagicMock()
         mock_configuration_object.security_credentials = {
-            "inbound": {"service": 1, "credentials": []},
+            "inbound": {"service": Configuration.OPEN_AUTH_SECURITY, "credentials": []},
             "outbound": {
-                "service": 2,
+                "service": Configuration.OAUTH_SECURITY,
                 "credentials": [
                     {
                         "credential_type": "compound_key",
@@ -69,7 +68,7 @@ class TestIcelandValidate(TestCase):
                     "status": SchemeAccountStatus.WALLET_ONLY,
                     "journey_type": JourneyTypes.LINK.value,
                     "user_set": "1,2",
-                    "credentials": credentials
+                    "credentials": credentials,
                 },
                 scheme_slug="iceland-bonus-card",
             )
@@ -130,6 +129,7 @@ class TestIcelandValidate(TestCase):
             f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp}]}}'
         )
         token = self.agent._authenticate()
+        self.assertEqual(self.agent.headers, {"Authorization": f"Bearer {'abcde12345fghij'}"})
         self.assertEqual(token, "abcde12345fghij")
 
     @mock.patch("app.agents.iceland.Iceland._refresh_token", return_value="")
@@ -151,7 +151,6 @@ class TestIcelandValidate(TestCase):
         )
 
         self.agent.login(credentials)
-        self.assertEqual(self.agent.headers, {"Authorization": f"Bearer {'a_token'}"})
         self.assertIn("barcode", str(self.agent.user_info))
         self.assertEqual(self.agent._balance_amount, 10.0)
 
@@ -163,9 +162,10 @@ class TestIcelandValidate(TestCase):
             uri=self.merchant_url,
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
 
         self.agent.login(credentials)
-        self.assertEqual(mock_oath.call_count, 0)
+        self.assertEqual(0, mock_oath.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
