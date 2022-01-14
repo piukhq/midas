@@ -384,7 +384,7 @@ class TestEcreboSignal(unittest.TestCase):
             }
         }
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -401,7 +401,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.OK,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("add-audit-response"),
+            call("send-audit-response"),
             call().send(
                 response=ANY,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -411,8 +411,6 @@ class TestEcreboSignal(unittest.TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
             ),
-            call("send-to-atlas"),
-            call().send(),
             call("join-success"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
         ]
@@ -456,7 +454,7 @@ class TestEcreboSignal(unittest.TestCase):
             }
         }
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -473,7 +471,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.CONFLICT,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("add-audit-response"),
+            call("send-audit-response"),
             call().send(
                 response=ANY,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -483,8 +481,6 @@ class TestEcreboSignal(unittest.TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
             ),
-            call("send-to-atlas"),
-            call().send(),
             call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
@@ -532,7 +528,7 @@ class TestEcreboSignal(unittest.TestCase):
             }
         }
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload=audit_payload,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -549,7 +545,7 @@ class TestEcreboSignal(unittest.TestCase):
                 response_code=HTTPStatus.GATEWAY_TIMEOUT,
                 slug=self.whsmith.scheme_slug,
             ),
-            call("add-audit-response"),
+            call("send-audit-response"),
             call().send(
                 response=ANY,
                 scheme_slug=self.whsmith.scheme_slug,
@@ -559,8 +555,6 @@ class TestEcreboSignal(unittest.TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
             ),
-            call("send-to-atlas"),
-            call().send(),
             call("join-fail"),
             call().send(self.whsmith, channel=self.whsmith.user_info["channel"], slug=self.whsmith.scheme_slug),
             call("request-fail"),
@@ -628,7 +622,7 @@ class TestEcreboSignal(unittest.TestCase):
             status=HTTPStatus.OK,
         )
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload={"card_number": "1234567"},
                 scheme_slug=self.fatface.scheme_slug,
@@ -639,8 +633,6 @@ class TestEcreboSignal(unittest.TestCase):
             ),
             call("log-in-success"),
             call().send(self.fatface, slug=self.fatface.scheme_slug),
-            call("send-to-atlas"),
-            call().send(),
         ]
         # WHEN
         self.fatface.login(credentials=self.fatface.user_info["credentials"])
