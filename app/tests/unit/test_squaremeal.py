@@ -363,8 +363,6 @@ class TestSquaremealLogin(TestCase):
             )
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
             self.squaremeal._login.retry.wait = wait_none()
-            self.squaremeal._get_balance.retry.wait = wait_none()
-            self.squaremeal._update_newsletters.retry.wait = wait_none()
             self.squaremeal.integration_service = "SYNC"
 
     @httpretty.activate
