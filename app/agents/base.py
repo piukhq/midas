@@ -43,7 +43,6 @@ from app.agents.exceptions import (
     errors,
 )
 from app.agents.schemas import Balance, Transaction
-from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
@@ -212,7 +211,6 @@ class ApiMiner(BaseMiner):
         self.errors = {}
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=self.channel)
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
@@ -232,6 +230,7 @@ class ApiMiner(BaseMiner):
             integration_service=self.integration_service,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
 
     def send_audit_response(self, resp, record_uid, message_uid, handler_type):
@@ -244,6 +243,7 @@ class ApiMiner(BaseMiner):
             status_code=resp.status_code,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
 
     @staticmethod
@@ -355,8 +355,7 @@ class MerchantApi(BaseMiner):
         self.record_uid = None
         self.request = None
         self.result = None
-        channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=channel)
+        self.channel = user_info.get("channel", "")
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
@@ -596,6 +595,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
+            channel=self.channel,
         )
 
         if self._check_for_error_response(self.result):
@@ -690,6 +690,7 @@ class MerchantApi(BaseMiner):
             scheme_slug=self.config.scheme_slug,
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
+            channel=self.channel,
         )
 
         response = requests.post(f"{self.config.merchant_url}", **self.request)
@@ -713,6 +714,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=status,
+            channel=self.channel,
         )
 
         # Send signal for fail if not 2XX response

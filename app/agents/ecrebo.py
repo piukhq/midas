@@ -12,7 +12,6 @@ from app import constants
 from app.agents.base import ApiMiner
 from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, STATUS_LOGIN_FAILED, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction, Voucher
-from app.audit import AuditLogger
 from app.encryption import hash_ids
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, VoucherType, get_voucher_state, voucher_state_names
@@ -32,9 +31,6 @@ class Ecrebo(ApiMiner):
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-
-        # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
-        self.audit_logger = AuditLogger(channel=self.channel, journeys=())
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     def _authenticate(self):
@@ -333,7 +329,6 @@ class FatFace(Ecrebo):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (Configuration.JOIN_HANDLER, Configuration.VALIDATE_HANDLER)
 
     def _get_join_credentials(self, credentials: dict, consents: dict) -> dict:
         return {
