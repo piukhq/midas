@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
 from http import HTTPStatus
-from unittest import TestCase, main, mock
+from unittest import TestCase, mock
 from unittest.mock import ANY, MagicMock, call
 
 import arrow
@@ -13,9 +13,7 @@ from user_auth_token import UserTokenStore
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
-from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
-from app.tests.service.logins import AGENT_CLASS_ARGUMENTS, AGENT_CLASS_ARGUMENTS_FOR_VALIDATE
 
 credentials = {
     "card_number": "0000000000000000000",
