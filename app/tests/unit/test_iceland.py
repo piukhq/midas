@@ -571,8 +571,13 @@ class TestIcelandJoin(TestCase):
             "address_2": "an_address_2",
             "consents": [
                 {"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": JourneyTypes.JOIN.value},
-                {"id": 2, "slug": "marketing_opt_in_thirdparty", "value": False, "journey_type": JourneyTypes.JOIN.value},
-            ]
+                {
+                    "id": 2,
+                    "slug": "marketing_opt_in_thirdparty",
+                    "value": False,
+                    "journey_type": JourneyTypes.JOIN.value,
+                },
+            ],
         }
         self.merchant_url = "https://reflector.dev.gb.bink.com/mock/api/v1/bink/"
         self.token_url = "https://reflector.dev.gb.bink.com/mock/"
