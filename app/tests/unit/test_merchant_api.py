@@ -482,6 +482,7 @@ class TestMerchantApi(FlaskTestCase):
                 scheme_slug="id",
                 handler_type=0,
                 integration_service="SYNC",
+                channel="com.bink.wallet"
             ),
             call("record-http-request"),
             call().send(
@@ -500,6 +501,7 @@ class TestMerchantApi(FlaskTestCase):
                 handler_type=0,
                 integration_service="SYNC",
                 status_code=HTTPStatus.UNAUTHORIZED,
+                channel="com.bink.wallet",
             ),
             call("request-fail"),
             call().send(self.m, channel=self.m.user_info["channel"], error=mock_reason, slug=self.m.scheme_slug),
@@ -541,6 +543,7 @@ class TestMerchantApi(FlaskTestCase):
                 scheme_slug="id",
                 handler_type=0,
                 integration_service="SYNC",
+                channel="com.bink.wallet",
             ),
             call("record-http-request"),
             call().send(
@@ -555,6 +558,7 @@ class TestMerchantApi(FlaskTestCase):
                 handler_type=0,
                 integration_service="SYNC",
                 status_code=HTTPStatus.OK,
+                channel="com.bink.wallet"
             ),
             call("request-success"),
             call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),
