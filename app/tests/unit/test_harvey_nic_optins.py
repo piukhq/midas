@@ -152,43 +152,6 @@ class TestUserConsents(unittest.TestCase):
         with self.assertRaises(LoginError):
             hn.check_loyalty_account_valid(credentials)
 
-    @staticmethod
-    def add_audit_logs(hn: HarveyNichols) -> None:
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        handler_type = Configuration.JOIN_HANDLER
-        message_uid = str(uuid4())
-        data = {
-            "CustomerSignUpRequest": {
-                "username": "test@user.email",
-                "email": "test@user.email",
-                "password": "testPassword",
-                "title": "Dr",
-                "forename": "test",
-                "surname": "user",
-                "applicationId": "BINK_APP",
-            }
-        }
-
-        record_uid = hash_ids.encode(123)
-        hn.audit_logger.add_request(
-            payload=data,
-            scheme_slug=hn.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=handler_type,
-            integration_service=integration_service,
-        )
-
-        hn.audit_logger.add_response(
-            response=mock_harvey_nick_join(),
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=hn.scheme_slug,
-            handler_type=handler_type,
-            integration_service=integration_service,
-            status_code=mock_harvey_nick_join().status_code,
-        )
-
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
