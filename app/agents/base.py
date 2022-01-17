@@ -595,7 +595,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
-            channel=self.channel
+            channel=self.channel,
         )
 
         if self._check_for_error_response(self.result):
@@ -690,7 +690,7 @@ class MerchantApi(BaseMiner):
             scheme_slug=self.config.scheme_slug,
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
-            channel=self.channel
+            channel=self.channel,
         )
 
         response = requests.post(f"{self.config.merchant_url}", **self.request)
@@ -714,7 +714,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=status,
-            channel=self.channel
+            channel=self.channel,
         )
 
         # Send signal for fail if not 2XX response
