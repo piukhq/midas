@@ -55,8 +55,8 @@ class TestIcelandValidate(TestCase):
 
         with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
             self.agent = Iceland(
-                1,
-                {
+                retry_count=1,
+                user_info={
                     "scheme_account_id": 1,
                     "status": SchemeAccountStatus.WALLET_ONLY,
                     "journey_type": JourneyTypes.LINK.value,
@@ -174,10 +174,11 @@ class TestIcelandValidate(TestCase):
             ],
         )
 
-        with self.assertRaises(LoginError) as e:
-            self.agent.login(credentials)
+        with self.assertRaises(AgentError) as e:
+            with self.assertRaises(LoginError):
+                self.agent.login(credentials)
 
-        self.assertEqual(e.exception.name, "Invalid credentials")
+        self.assertEqual([e.exception.name, e.exception.code], ["An unknown error has occurred", 520])
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -304,7 +305,8 @@ class TestIcelandValidate(TestCase):
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_login_success_signals(self, mock_signal, mock_requests_session, mock_oauth):
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_success_signals(self, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
@@ -313,26 +315,64 @@ class TestIcelandValidate(TestCase):
 
         self.agent.login(credentials)
 
-        expected_calls = [
+        expected_base_calls = [
+            call("send-audit-request"),
+            call().send(
+                self.agent,
+                payload={
+                    "card_number": ANY,
+                    "last_name": "Smith",
+                    "postcode": "XX0 0XX",
+                    "message_uid": ANY,
+                    "record_uid": ANY,
+                    "callback_url": None,
+                    "merchant_scheme_id1": ANY,
+                    "merchant_scheme_id2": None,
+                },
+                scheme_slug="iceland-bonus-card",
+                handler_type=Configuration.VALIDATE_HANDLER,
+                integration_service="ASYNC",
+                message_uid=ANY,
+                record_uid=ANY,
+                channel="",
+            ),
+            call("send-audit-response"),
+            call().send(
+                self.agent,
+                response=ANY,
+                scheme_slug="iceland-bonus-card",
+                handler_type=Configuration.VALIDATE_HANDLER,
+                integration_service="ASYNC",
+                status_code=HTTPStatus.OK,
+                message_uid=ANY,
+                record_uid=ANY,
+                channel="",
+            ),
             call("record-http-request"),
             call().send(
                 self.agent,
-                slug=self.agent.scheme_slug,
+                slug="iceland-bonus-card",
                 endpoint="/api/v1/bink/link",
                 latency=ANY,
                 response_code=HTTPStatus.OK,
             ),
+        ]
+        expected_iceland_calls = [
             call("log-in-success"),
             call().send(self.agent, slug=self.agent.scheme_slug),
         ]
 
-        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(expected_base_calls, mock_base_signal.mock_calls)
+        self.assertEqual(3, mock_base_signal.call_count)
+        self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls)
+        self.assertEqual(1, mock_iceland_signal.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_login_error_signals(self, mock_signal, mock_requests_session, mock_oauth):
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_error_signals(self, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             httpretty.POST,
             self.merchant_url,
@@ -346,28 +386,67 @@ class TestIcelandValidate(TestCase):
             ],
         )
 
-        expected_calls = [
-            call("log-in-fail"),
-            call().send(self.agent, slug=self.agent.scheme_slug),
-            call("request-fail"),
+        expected_base_calls = [
+            call("send-audit-request"),
             call().send(
                 self.agent,
-                slug=self.agent.scheme_slug,
+                payload={
+                    "card_number": ANY,
+                    "last_name": "Smith",
+                    "postcode": "XX0 0XX",
+                    "message_uid": ANY,
+                    "record_uid": ANY,
+                    "callback_url": None,
+                    "merchant_scheme_id1": ANY,
+                    "merchant_scheme_id2": None,
+                },
+                scheme_slug="iceland-bonus-card",
+                handler_type=Configuration.VALIDATE_HANDLER,
+                integration_service="ASYNC",
+                message_uid=ANY,
+                record_uid=ANY,
                 channel="",
-                error="VALIDATION",
             ),
+            call("send-audit-response"),
+            call().send(
+                self.agent,
+                response=ANY,
+                scheme_slug="iceland-bonus-card",
+                handler_type=Configuration.VALIDATE_HANDLER,
+                integration_service="ASYNC",
+                status_code=HTTPStatus.OK,
+                message_uid=ANY,
+                record_uid=ANY,
+                channel="",
+            ),
+            call("record-http-request"),
+            call().send(
+                self.agent,
+                slug="iceland-bonus-card",
+                endpoint="/api/v1/bink/link",
+                latency=ANY,
+                response_code=HTTPStatus.OK,
+            ),
+        ]
+        expected_iceland_calls = [
+            call("log-in-fail"),
+            call().send(self.agent, slug=self.agent.scheme_slug),
         ]
 
         with self.assertRaises(LoginError):
             self.agent.login(credentials)
 
-        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:6])
+        self.assertEqual(9, mock_base_signal.call_count)
+        self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls[:2])
+        self.assertEqual(3, mock_iceland_signal.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_login_401_failure_signals(self, mock_signal, mock_requests_session, mock_oauth):
+    def test_login_401_failure_signals(self, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oauth):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -376,17 +455,59 @@ class TestIcelandValidate(TestCase):
             ],
         )
 
-        expected_calls = [
+        expected_base_calls = [
+            call("send-audit-request"),
+            call().send(
+                self.agent,
+                payload={
+                    "card_number": ANY,
+                    "last_name": "Smith",
+                    "postcode": "XX0 0XX",
+                    "message_uid": ANY,
+                    "record_uid": ANY,
+                    "callback_url": None,
+                    "merchant_scheme_id1": ANY,
+                    "merchant_scheme_id2": None,
+                },
+                scheme_slug="iceland-bonus-card",
+                handler_type=2,
+                integration_service="ASYNC",
+                message_uid=ANY,
+                record_uid=ANY,
+                channel="",
+            ),
+            call("send-audit-response"),
+            call().send(
+                self.agent,
+                response=ANY,
+                scheme_slug="iceland-bonus-card",
+                handler_type=2,
+                integration_service="ASYNC",
+                status_code=401,
+                message_uid=ANY,
+                record_uid=ANY,
+                channel="",
+            ),
+            call("record-http-request"),
+            call().send(
+                self.agent, slug="iceland-bonus-card", endpoint="/api/v1/bink/link", latency=ANY, response_code=401
+            ),
             call("request-fail"),
+            call().send(self.agent, slug="iceland-bonus-card", channel="", error="STATUS_LOGIN_FAILED"),
+        ]
+        expected_iceland_calls = [
+            call("log-in-fail"),
             call().send(
                 self.agent,
                 slug=self.agent.scheme_slug,
-                channel="",
-                error="STATUS_LOGIN_FAILED",
             ),
         ]
 
-        with self.assertRaises(LoginError):
-            self.agent.login(credentials)
+        with self.assertRaises(AgentError):
+            with self.assertRaises(LoginError):
+                self.agent.login(credentials)
 
-        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:8])
+        self.assertEqual(12, mock_base_signal.call_count)
+        self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls[:2])
+        self.assertEqual(3, mock_iceland_signal.call_count)

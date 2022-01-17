@@ -22,6 +22,7 @@ from app.agents.exceptions import (
     SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
     AgentError,
+    LoginError,
 )
 from app.encryption import hash_ids
 from app.reporting import get_logger
@@ -128,7 +129,21 @@ class Iceland(ApiMiner):
         reraise=True,
     )
     def _login(self, payload: dict):
-        return self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
+        try:
+            response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
+        except (LoginError, AgentError) as ex:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(ex.name)
+
+        response_json = response.json()
+        error = response_json.get("error_codes")
+        if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(error[0]["code"])
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug)
+
+        return response_json
 
     def login(self, credentials) -> None:
         if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
@@ -144,15 +159,7 @@ class Iceland(ApiMiner):
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
 
-        response = self._login(payload)
-        response_json = response.json()
-
-        error = response_json.get("error_codes")
-        if error:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
+        response_json = self._login(payload)
 
         self.identifier = {
             "barcode": response_json.get("barcode"),
