@@ -2,14 +2,10 @@ import json
 import unittest
 from unittest import mock
 from unittest.mock import MagicMock
-from uuid import uuid4
-
-from soteria.configuration import Configuration
 
 import settings
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
-from app.encryption import hash_ids
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
