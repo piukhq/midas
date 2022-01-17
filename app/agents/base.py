@@ -43,7 +43,6 @@ from app.agents.exceptions import (
     errors,
 )
 from app.agents.schemas import Balance, Transaction
-from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
@@ -212,7 +211,6 @@ class ApiMiner(BaseMiner):
         self.errors = {}
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=self.channel)
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
@@ -232,6 +230,7 @@ class ApiMiner(BaseMiner):
             integration_service=self.integration_service,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
 
     def send_audit_response(self, resp, record_uid, message_uid, handler_type):
@@ -244,6 +243,7 @@ class ApiMiner(BaseMiner):
             status_code=resp.status_code,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
 
     @staticmethod
@@ -355,8 +355,7 @@ class MerchantApi(BaseMiner):
         self.record_uid = None
         self.request = None
         self.result = None
-        channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=channel)
+        self.channel = user_info.get("channel", "")
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {

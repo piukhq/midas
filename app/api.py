@@ -3,12 +3,14 @@ from celery import Celery
 from flask import Flask, jsonify
 
 import settings
+from app.audit import AuditLogger
 from app.exceptions import AgentException, UnknownException
 from app.prometheus import PrometheusManager
 from app.reporting import get_logger
 
 celery = Celery(broker=settings.broker_url, config_source=settings)
 prometheus_manager = PrometheusManager()
+audit_logger = AuditLogger()
 
 log = get_logger("api")
 

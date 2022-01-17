@@ -67,8 +67,7 @@ class AuditLogger:
             These should be handler_type values defined in the Configuration class e.g Configuration.JOIN_HANDLER
     """
 
-    def __init__(self, channel: str = "", journeys: Iterable[Union[str, int]] = "__all__") -> None:
-        self.channel = channel
+    def __init__(self, journeys: Iterable[Union[str, int]] = "__all__") -> None:
         self.session = self.retry_session()
         self.journeys = journeys
 
@@ -84,12 +83,13 @@ class AuditLogger:
         integration_service: str,
         message_uid: str,
         record_uid: str,
+        channel: str,
     ) -> None:
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
         request_audit_log = RequestAuditLog(
             audit_log_type=AuditLogType.REQUEST,
-            channel=self.channel,
+            channel=channel,
             membership_plan_slug=scheme_slug,
             handler_type=handler_type_str,
             message_uid=message_uid,
@@ -110,6 +110,7 @@ class AuditLogger:
         status_code: int,
         message_uid: str,
         record_uid: str,
+        channel: str,
     ):
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
@@ -122,7 +123,7 @@ class AuditLogger:
 
         response_audit_log = ResponseAuditLog(
             audit_log_type=AuditLogType.RESPONSE,
-            channel=self.channel,
+            channel=channel,
             membership_plan_slug=scheme_slug,
             handler_type=handler_type_str,
             message_uid=message_uid,
