@@ -27,7 +27,6 @@ from app.agents.exceptions import (
     LoginError,
 )
 from app.agents.schemas import Balance, Transaction, Voucher
-from app.audit import AuditLogger
 from app.encryption import HashSHA1
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
@@ -61,9 +60,6 @@ class Acteol(ApiMiner):
         self.token_store = UserTokenStore(settings.REDIS_URL)
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-
-        # Empty iterable for journeys to turn audit logging off by default. Add journeys per merchant to turn on.
-        self.audit_logger = AuditLogger(channel=self.channel, journeys=())
 
     # Public methods
     def authenticate(self) -> dict:
@@ -970,8 +966,4 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.audit_logger.journeys = (
-            Configuration.JOIN_HANDLER,
-            Configuration.VALIDATE_HANDLER,
-        )
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
