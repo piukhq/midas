@@ -235,7 +235,7 @@ class Squaremeal(ApiMiner):
 
         return Balance(
             points=Decimal(points_data["TotalPoints"]),
-            value=0,
+            value=Decimal("0"),
             value_label="",
             reward_tier=points_data["LoyaltyTier"],
         )
