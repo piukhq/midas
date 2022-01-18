@@ -474,7 +474,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload="{}",
                 message_uid=None,
@@ -482,6 +482,7 @@ class TestMerchantApi(FlaskTestCase):
                 scheme_slug="id",
                 handler_type=0,
                 integration_service="SYNC",
+                channel="com.bink.wallet",
             ),
             call("record-http-request"),
             call().send(
@@ -491,7 +492,7 @@ class TestMerchantApi(FlaskTestCase):
                 response_code=HTTPStatus.UNAUTHORIZED,
                 slug=self.m.scheme_slug,
             ),
-            call("add-audit-response"),
+            call("send-audit-response"),
             call().send(
                 response=ANY,
                 message_uid=None,
@@ -500,6 +501,7 @@ class TestMerchantApi(FlaskTestCase):
                 handler_type=0,
                 integration_service="SYNC",
                 status_code=HTTPStatus.UNAUTHORIZED,
+                channel="com.bink.wallet",
             ),
             call("request-fail"),
             call().send(self.m, channel=self.m.user_info["channel"], error=mock_reason, slug=self.m.scheme_slug),
@@ -533,7 +535,7 @@ class TestMerchantApi(FlaskTestCase):
 
         self.m.request = {"json": "{}"}
         expected_calls = [  # The expected call stack for signal, in order
-            call("add-audit-request"),
+            call("send-audit-request"),
             call().send(
                 payload="{}",
                 message_uid=None,
@@ -541,12 +543,13 @@ class TestMerchantApi(FlaskTestCase):
                 scheme_slug="id",
                 handler_type=0,
                 integration_service="SYNC",
+                channel="com.bink.wallet",
             ),
             call("record-http-request"),
             call().send(
                 self.m, endpoint=path_url, latency=latency, response_code=HTTPStatus.OK, slug=self.m.scheme_slug
             ),
-            call("add-audit-response"),
+            call("send-audit-response"),
             call().send(
                 response=mock_request.return_value,
                 message_uid=None,
@@ -555,6 +558,7 @@ class TestMerchantApi(FlaskTestCase):
                 handler_type=0,
                 integration_service="SYNC",
                 status_code=HTTPStatus.OK,
+                channel="com.bink.wallet",
             ),
             call("request-success"),
             call().send(self.m, channel=self.m.user_info["channel"], slug=self.m.scheme_slug),

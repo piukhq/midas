@@ -67,12 +67,13 @@ class Iceland(ApiMiner):
     def _authenticate(self) -> str:
         have_valid_token = False
         current_timestamp = (arrow.utcnow().int_timestamp,)
-        token_dict = {}
+        token = ""
         try:
             token_dict = json.loads(self.token_store.get(self.scheme_id))
             try:
                 if self._token_is_valid(token_dict, current_timestamp):
                     have_valid_token = True
+                    token = token_dict["iceland_access_token"]
             except (KeyError, TypeError) as e:
                 log.exception(e)
         except (KeyError, self.token_store.NoSuchToken):

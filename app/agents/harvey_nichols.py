@@ -49,7 +49,6 @@ class HarveyNichols(ApiMiner):
         self.base_url = configurations[0].merchant_url
         self.hn_sso_url = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
-        self.audit_logger.filter_fields = self.encrypt_sensitive_fields
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     @staticmethod

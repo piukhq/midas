@@ -43,7 +43,6 @@ from app.agents.exceptions import (
     errors,
 )
 from app.agents.schemas import Balance, Transaction
-from app.audit import AuditLogger
 from app.back_off_service import BackOffService
 from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
@@ -212,21 +211,18 @@ class ApiMiner(BaseMiner):
         self.errors = {}
         self.user_info = user_info
         self.channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=self.channel)
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+            JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
             JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
 
-    def send_audit_logs(self, payload, resp):
+    def send_audit_request(self, payload, record_uid, message_uid, handler_type):
         if payload.get("password"):
             payload["password"] = "REDACTED"
 
-        record_uid = hash_ids.encode(self.scheme_id)
-        handler_type = self.audit_handlers[self.journey_type]
-        message_uid = str(uuid4())
-        signal("add-audit-request").send(
+        signal("send-audit-request").send(
             self,
             payload=payload,
             scheme_slug=self.scheme_slug,
@@ -234,8 +230,11 @@ class ApiMiner(BaseMiner):
             integration_service=self.integration_service,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
-        signal("add-audit-response").send(
+
+    def send_audit_response(self, resp, record_uid, message_uid, handler_type):
+        signal("send-audit-response").send(
             self,
             response=resp,
             scheme_slug=self.scheme_slug,
@@ -244,8 +243,8 @@ class ApiMiner(BaseMiner):
             status_code=resp.status_code,
             message_uid=message_uid,
             record_uid=record_uid,
+            channel=self.channel,
         )
-        signal("send-to-atlas").send(self)
 
     @staticmethod
     def _get_audit_payload(kwargs, url):
@@ -265,21 +264,29 @@ class ApiMiner(BaseMiner):
         args.update(kwargs)
 
         try:
-            resp = requests.request(method, url=url, **args)
-            signal("record-http-request").send(
-                self,
-                slug=self.scheme_slug,
-                endpoint=path,
-                latency=resp.elapsed.total_seconds(),
-                response_code=resp.status_code,
-            )
             if audit:
+                record_uid = hash_ids.encode(self.scheme_id)
+                handler_type = self.audit_handlers[self.journey_type]
+                message_uid = str(uuid4())
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_logs(audit_payload, resp)
+                self.send_audit_request(audit_payload, record_uid, message_uid, handler_type)
+
+            resp = requests.request(method, url=url, **args)
+
+            if audit:
+                self.send_audit_response(resp, record_uid, message_uid, handler_type)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             raise AgentError(END_SITE_DOWN) from exception
+
+        signal("record-http-request").send(
+            self,
+            slug=self.scheme_slug,
+            endpoint=path,
+            latency=resp.elapsed.total_seconds(),
+            response_code=resp.status_code,
+        )
 
         try:
             resp.raise_for_status()
@@ -348,8 +355,7 @@ class MerchantApi(BaseMiner):
         self.record_uid = None
         self.request = None
         self.result = None
-        channel = user_info.get("channel", "")
-        self.audit_logger = AuditLogger(channel=channel)
+        self.channel = user_info.get("channel", "")
 
         # { error we raise: error we receive in merchant payload }
         self.errors = {
@@ -559,7 +565,6 @@ class MerchantApi(BaseMiner):
             else:
                 log.info(json.dumps(logging_info))
 
-        signal("send-to-atlas").send()
         return response_data
 
     def _inbound_handler(self, data, scheme_slug):
@@ -582,7 +587,7 @@ class MerchantApi(BaseMiner):
             "INBOUND",
         )
 
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             response=json.dumps(data),
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -590,8 +595,8 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
+            channel=self.channel,
         )
-        signal("send-to-atlas").send()
 
         if self._check_for_error_response(self.result):
             logging_info["contains_errors"] = True
@@ -678,13 +683,14 @@ class MerchantApi(BaseMiner):
         return response_json
 
     def _send_request(self):
-        signal("add-audit-request").send(
+        signal("send-audit-request").send(
             payload=self.request["json"],
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.config.scheme_slug,
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
+            channel=self.channel,
         )
 
         response = requests.post(f"{self.config.merchant_url}", **self.request)
@@ -700,7 +706,7 @@ class MerchantApi(BaseMiner):
 
         log.debug(f"Raw response: {response.text}, HTTP status: {status}, scheme_account: {self.scheme_id}")
 
-        signal("add-audit-response").send(
+        signal("send-audit-response").send(
             response=response,
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -708,6 +714,7 @@ class MerchantApi(BaseMiner):
             handler_type=self.config.handler_type[0],
             integration_service=self.config.integration_service,
             status_code=status,
+            channel=self.channel,
         )
 
         # Send signal for fail if not 2XX response

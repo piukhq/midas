@@ -2,14 +2,10 @@ import json
 import unittest
 from unittest import mock
 from unittest.mock import MagicMock
-from uuid import uuid4
-
-from soteria.configuration import Configuration
 
 import settings
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
-from app.encryption import hash_ids
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
@@ -151,43 +147,6 @@ class TestUserConsents(unittest.TestCase):
 
         with self.assertRaises(LoginError):
             hn.check_loyalty_account_valid(credentials)
-
-    @staticmethod
-    def add_audit_logs(hn: HarveyNichols) -> None:
-        integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-        handler_type = Configuration.JOIN_HANDLER
-        message_uid = str(uuid4())
-        data = {
-            "CustomerSignUpRequest": {
-                "username": "test@user.email",
-                "email": "test@user.email",
-                "password": "testPassword",
-                "title": "Dr",
-                "forename": "test",
-                "surname": "user",
-                "applicationId": "BINK_APP",
-            }
-        }
-
-        record_uid = hash_ids.encode(123)
-        hn.audit_logger.add_request(
-            payload=data,
-            scheme_slug=hn.scheme_slug,
-            message_uid=message_uid,
-            record_uid=record_uid,
-            handler_type=handler_type,
-            integration_service=integration_service,
-        )
-
-        hn.audit_logger.add_response(
-            response=mock_harvey_nick_join(),
-            message_uid=message_uid,
-            record_uid=record_uid,
-            scheme_slug=hn.scheme_slug,
-            handler_type=handler_type,
-            integration_service=integration_service,
-            status_code=mock_harvey_nick_join().status_code,
-        )
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
