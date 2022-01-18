@@ -4,11 +4,11 @@ from http import HTTPStatus
 from unittest import TestCase, mock
 from unittest.mock import ANY, MagicMock, call
 
+import app.agents.iceland
 import arrow
 import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
-from user_auth_token import UserTokenStore
 
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
@@ -54,6 +54,7 @@ class TestIcelandValidate(TestCase):
         mock_configuration_object.callback_url = None
 
         with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
+            # mock_user_token_store.get.return
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -116,9 +117,9 @@ class TestIcelandValidate(TestCase):
             '{"iceland_access_token": "abcde12345fghij", "timestamp": [1641020400]}',
         )
 
-    @mock.patch.object(UserTokenStore, "get")
-    def test_authenticate_stored_token_valid(self, mock_token_store_get):
-        mock_token_store_get.return_value = (
+    def test_authenticate_stored_token_valid(self):
+        self.agent.token_store = MagicMock()
+        self.agent.token_store.get.return_value = (
             f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp}]}}'
         )
         token = self.agent._authenticate()
@@ -126,9 +127,9 @@ class TestIcelandValidate(TestCase):
         self.assertEqual(token, "abcde12345fghij")
 
     @mock.patch("app.agents.iceland.Iceland._refresh_token", return_value="")
-    @mock.patch.object(UserTokenStore, "get")
-    def test_authenticate_stored_token_expired(self, mock_token_store_get, mock_refresh_token):
-        mock_token_store_get.return_value = (
+    def test_authenticate_stored_token_expired(self, mock_refresh_token):
+        self.agent.token_store = MagicMock()
+        self.agent.token_store.get.return_value = (
             f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
         )
         self.agent._authenticate()
