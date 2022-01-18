@@ -4,6 +4,7 @@ from http import HTTPStatus
 from unittest import TestCase, mock
 from unittest.mock import ANY, MagicMock, call
 
+import app.agents.iceland
 import arrow
 import httpretty
 from soteria.configuration import Configuration
