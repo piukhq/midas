@@ -87,13 +87,13 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
-            "vouchers": [
+            "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
                     "type": VoucherType.STAMPS.value,
                     "issued_date": 1629385871,
                     "expiry_date": 1629385871,
-                    "voucher_code": "somecode",
+                    "code": "somecode",
                     "value": 0.1,
                     "target_value": 0.1,
                 }
@@ -123,13 +123,13 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
-            "vouchers": [
+            "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
                     "type": VoucherType.STAMPS.value,
                     "issued_date": 1629385871,
                     "expiry_date": 1629385871,
-                    "voucher_code": "somecode",
+                    "code": "somecode",
                 },
             ],
         }
