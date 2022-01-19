@@ -943,9 +943,9 @@ class TestResources(TestCase):
                                     "value": 123.45,
                                 }
                             ],
-                            "vouchers": [
+                            "rewards": [
                                 {
-                                    "voucher_code": "1qv7lgUyUVMBkxK",
+                                    "code": "1qv7lgUyUVMBkxK",
                                     "issued_date": "1629385871",
                                     "redeemed_date": None,
                                     "expiry_date": "1893456000",
