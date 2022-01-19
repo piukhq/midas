@@ -54,7 +54,8 @@ class TestAudit(unittest.TestCase):
         }
 
         result = sanitise(payload)
-        assert result == expected
+        assert result == expected, "new payload should be sanitised"
+        assert payload != result, "original payload should not be changed"
 
     @httpretty.activate
     def test_sending_to_atlas_excludes_sensitive_fields(self):
@@ -65,7 +66,7 @@ class TestAudit(unittest.TestCase):
         record_uid = uuid4().hex
 
         logger = AuditLogger()
-        logger.add_request(
+        logger.send_request_audit_log(
             sender="test",
             payload={"type": "user", "details": {"username": "testuser", "password": "testpass"}},
             scheme_slug="test-scheme",
@@ -73,26 +74,15 @@ class TestAudit(unittest.TestCase):
             integration_service=0,
             message_uid=req_message_uid,
             record_uid=record_uid,
+            channel="unit tests",
         )
-        logger.add_response(
-            sender="test",
-            response="200 ok",
-            scheme_slug="test-scheme",
-            handler_type=0,
-            integration_service=0,
-            status_code=200,
-            message_uid=resp_message_uid,
-            record_uid=record_uid,
-        )
-
         timestamp = arrow.utcnow().int_timestamp
-        logger.send_to_atlas("test")
 
         expected = {
             "audit_logs": [
                 {
                     "audit_log_type": "REQUEST",
-                    "channel": "",
+                    "channel": "unit tests",
                     "handler_type": "UPDATE",
                     "integration_service": 0,
                     "membership_plan_slug": "test-scheme",
@@ -101,9 +91,29 @@ class TestAudit(unittest.TestCase):
                     "record_uid": record_uid,
                     "timestamp": timestamp,
                 },
+            ]
+        }
+        data = json.loads(httpretty.last_request().body.decode("utf-8"))
+        assert expected == data
+
+        logger.send_response_audit_log(
+            sender="test",
+            response="200 ok",
+            scheme_slug="test-scheme",
+            handler_type=0,
+            integration_service=0,
+            status_code=200,
+            message_uid=resp_message_uid,
+            record_uid=record_uid,
+            channel="unit tests",
+        )
+        timestamp = arrow.utcnow().int_timestamp
+
+        expected = {
+            "audit_logs": [
                 {
                     "audit_log_type": "RESPONSE",
-                    "channel": "",
+                    "channel": "unit tests",
                     "handler_type": "UPDATE",
                     "integration_service": 0,
                     "membership_plan_slug": "test-scheme",

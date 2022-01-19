@@ -1,6 +1,7 @@
 import json
+from copy import deepcopy
 from enum import Enum
-from typing import Any, Iterable, MutableMapping, NamedTuple, Optional, Union
+from typing import Any, Iterable, MutableMapping, NamedTuple, Union
 from uuid import uuid4
 
 import arrow
@@ -50,6 +51,7 @@ AuditLog = Union[RequestAuditLog, ResponseAuditLog]
 
 
 def sanitise(data: MutableMapping):
+    data = deepcopy(data)
     for k, v in data.items():
         # if `k` is a sensitive key, redact the whole thing (even if it's a mapping itself.)
         if k in AUDIT_SENSITIVE_KEYS:
@@ -172,7 +174,7 @@ class AuditLogger:
     def retry_session(self, backoff_factor: float = 0.3) -> requests.Session:
         session = requests.Session()
         retry = Retry(
-            total=3, backoff_factor=backoff_factor, allowed_methods=False, status_forcelist=[500, 502, 503, 504]
+            total=3, backoff_factor=backoff_factor, method_whitelist=False, status_forcelist=[500, 502, 503, 504]
         )
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
