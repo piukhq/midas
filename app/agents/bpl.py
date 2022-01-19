@@ -132,7 +132,7 @@ class Trenette(BplBase):
                 issue_date=voucher["issued_date"],
                 redeem_date=voucher.get("redeemed_date"),
                 expiry_date=voucher["expiry_date"],
-                code=voucher["voucher_code"],
+                code=voucher["code"],
                 target_value=None,
                 value=None,
                 type=VoucherType.ACCUMULATOR.value,
@@ -150,7 +150,7 @@ class Trenette(BplBase):
         bpl_data = resp.json()
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
-        vouchers = bpl_data["vouchers"]
+        vouchers = bpl_data["rewards"]
         if len(bpl_data["current_balances"]) == 0:
             return None
 
