@@ -2,6 +2,7 @@ import hashlib
 import json
 import time
 from collections import defaultdict
+from copy import deepcopy
 from decimal import Decimal
 from typing import Optional
 from urllib.parse import parse_qs, urlsplit
@@ -219,12 +220,13 @@ class ApiMiner(BaseMiner):
         }
 
     def send_audit_request(self, payload, record_uid, message_uid, handler_type):
-        if payload.get("password"):
-            payload["password"] = "REDACTED"
+        audit_payload = deepcopy(payload)
+        if audit_payload.get("password"):
+            audit_payload["password"] = "REDACTED"
 
         signal("send-audit-request").send(
             self,
-            payload=payload,
+            payload=audit_payload,
             scheme_slug=self.scheme_slug,
             handler_type=handler_type,
             integration_service=self.integration_service,
