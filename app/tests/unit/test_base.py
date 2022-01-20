@@ -262,7 +262,11 @@ class TestBase(TestCase):
         with self.assertRaises(AgentError) as e:
             check_correct_authentication(allowed_config_auth_types, actual_config_auth_type)
         self.assertEqual("Configuration error", e.exception.name)
-        self.assertEqual("Incorrect authorisation type specified", e.exception.message)
+        self.assertEqual(
+            "Agent expecting Security Type(s) ['OAuth', 'Open Auth (No Authentication)'] "
+            "but got Security Type 'RSA' instead",
+            e.exception.message,
+        )
 
     @httpretty.activate
     @mock.patch.object(ApiMiner, "parse_transaction")
