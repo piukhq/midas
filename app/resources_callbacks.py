@@ -19,7 +19,7 @@ from settings import HERMES_URL, SERVICE_API_KEY
 
 class JoinCallback(Resource):
     @authorise(Configuration.JOIN_HANDLER)
-    def post(self, scheme_slug, data, config):
+    def post(self, scheme_slug, inbound_payload, config):
         def update_failed_scheme_account(exception):
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
@@ -34,8 +34,8 @@ class JoinCallback(Resource):
             sentry_sdk.capture_exception()
 
         try:
-            message_uid = data["message_uid"]
-            scheme_account_id = hash_ids.decode(data["record_uid"])
+            message_uid = inbound_payload["message_uid"]
+            scheme_account_id = hash_ids.decode(inbound_payload["record_uid"])
             if not scheme_account_id:
                 raise ValueError("The record_uid provided is not valid")
 
@@ -44,6 +44,7 @@ class JoinCallback(Resource):
                 "status": SchemeAccountStatus.PENDING,
                 "scheme_account_id": scheme_account_id[0],
                 "journey_type": JourneyTypes.JOIN.value,
+                "inbound_payload": inbound_payload,
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
@@ -59,7 +60,7 @@ class JoinCallback(Resource):
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
-            agent_instance.join(data, inbound=True)
+            agent_instance.join(user_info["credentials"], inbound=True)
         except AgentError as e:
             update_failed_scheme_account(e)
             raise AgentException(e)
