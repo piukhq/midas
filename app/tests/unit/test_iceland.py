@@ -167,7 +167,11 @@ class TestIcelandValidate(TestCase):
         with self.assertRaises(AgentError) as e:
             self.agent.login(credentials)
         self.assertEqual("Configuration error", e.exception.name)
-        self.assertEqual("Incorrect authorisation type specified", e.exception.message)
+        self.assertEqual(
+            "Agent expecting Security Type(s) ['Open Auth (No Authentication)', 'OAuth'] "
+            "but got Security Type 'RSA' instead",
+            e.exception.message,
+        )
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")

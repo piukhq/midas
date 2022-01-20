@@ -323,7 +323,12 @@ class ApiMiner(BaseMiner):
 
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
-        raise AgentError(CONFIGURATION_ERROR, message="Incorrect authorisation type specified")
+        raise AgentError(
+            CONFIGURATION_ERROR,
+            message=f"Agent expecting Security Type(s) "
+            f"{[Configuration.SECURITY_TYPE_CHOICES[i][1] for i in allowed_config_auth_types]} but got "
+            f"Security Type '{Configuration.SECURITY_TYPE_CHOICES[actual_config_auth_type][1]}' instead",
+        )
 
 
 def create_error_response(error_code, error_description):

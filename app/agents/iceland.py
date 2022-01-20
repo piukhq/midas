@@ -70,11 +70,11 @@ class Iceland(ApiMiner):
         current_timestamp = (arrow.utcnow().int_timestamp,)
         token = ""
         try:
-            token_dict = json.loads(self.token_store.get(self.scheme_id))
+            cached_token = json.loads(self.token_store.get(self.scheme_id))
             try:
-                if self._token_is_valid(token_dict, current_timestamp):
+                if self._token_is_valid(cached_token, current_timestamp):
                     have_valid_token = True
-                    token = token_dict["iceland_access_token"]
+                    token = cached_token["iceland_access_token"]
             except (KeyError, TypeError) as e:
                 log.exception(e)
         except (KeyError, self.token_store.NoSuchToken):
