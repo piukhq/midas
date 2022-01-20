@@ -30,6 +30,10 @@ def boolconv(s: str) -> bool:
     return s.lower() in ["true", "t", "yes"]
 
 
+def listconv(s: str) -> list[str]:
+    return s.split(",")
+
+
 DEV_HOST = getenv("DEV_HOST", default="0.0.0.0")
 DEV_PORT = getenv("DEV_PORT", default="8000", conv=int)
 
@@ -110,6 +114,25 @@ API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
 # olympus-messaging interface
 LOYALTY_REQUEST_QUEUE = getenv("LOYALTY_REQUEST_QUEUE", default="loyalty-request")
 LOYALTY_RESPONSE_QUEUE = getenv("LOYALTY_RESPONSE_QUEUE", default="loyalty-response")
+
+# Whether to include Midas' default sensitive keys in the audit sanitisation process.
+AUDIT_USE_DEFAULT_SENSITIVE_KEYS = getenv("AUDIT_USE_DEFAULT_SENSITIVE_KEYS", default="true", conv=boolconv)
+
+# Additional keys to include in the audit sanitisation process.
+AUDIT_ADDITIONAL_SENSITIVE_KEYS = getenv("AUDIT_ADDITIONAL_SENSITIVE_KEYS", required=False, conv=listconv)
+
+# String to replace sanitised keys in audit logs with.
+AUDIT_SANITISATION_STANDIN = getenv("AUDIT_SANITISATION_STANDIN", default="********")
+
+# Combined set of keys to redact from audit logs.
+AUDIT_DEFAULT_SENSITIVE_KEYS = ["password", "passwd", "pwd", "pw", "key", "secret", "token"]
+
+AUDIT_SENSITIVE_KEYS = []
+if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
+    AUDIT_SENSITIVE_KEYS += AUDIT_DEFAULT_SENSITIVE_KEYS
+
+if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
+    AUDIT_SENSITIVE_KEYS += AUDIT_ADDITIONAL_SENSITIVE_KEYS
 
 # Environment using new iceland agent, i.e.:
 # true: iceland.py
