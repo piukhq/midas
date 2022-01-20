@@ -10,7 +10,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner
+from app.agents.base import ApiMiner, check_correct_authentication
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
@@ -27,6 +27,7 @@ class Squaremeal(ApiMiner):
     AUTH_TOKEN_TIMEOUT = 3599
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,
@@ -36,7 +37,7 @@ class Squaremeal(ApiMiner):
         )
         self.base_url = self.config.merchant_url
         self.auth_url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
-        self.secondary_key = str(
+        self.headers["Secondary-Key"] = str(
             self.config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"]
         )
 
@@ -48,7 +49,6 @@ class Squaremeal(ApiMiner):
 
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.journey_type = self.user_info["journey_type"]
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
@@ -130,9 +130,6 @@ class Squaremeal(ApiMiner):
     )
     def _create_account(self, credentials):
         url = f"{self.base_url}register"
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
-            self.authenticate()
-        self.headers["Secondary-Key"] = self.secondary_key
         payload = {
             "email": credentials["email"],
             "password": credentials["password"],
@@ -171,9 +168,6 @@ class Squaremeal(ApiMiner):
     )
     def _login(self, credentials):
         url = f"{self.base_url}login"
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
-            self.authenticate()
-        self.headers["Secondary-Key"] = self.secondary_key
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
@@ -191,7 +185,6 @@ class Squaremeal(ApiMiner):
     def _get_balance(self):
         merchant_id = self.user_info["credentials"]["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
-        self.headers = {"Authorization": f"Bearer {self.authenticate()}", "Secondary-Key": self.secondary_key}
         try:
             resp = self.make_request(url, method="get")
         except (JoinError, AgentError) as ex:
@@ -199,6 +192,13 @@ class Squaremeal(ApiMiner):
         return resp.json()
 
     def join(self, credentials):
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY]
+        )
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self.authenticate()
         consents = credentials.get("consents", [])
         resp_json = self._create_account(credentials)
         self.identifier = {
@@ -212,7 +212,13 @@ class Squaremeal(ApiMiner):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN.value:
             return
-
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY]
+        )
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self.authenticate()
         self.errors = {
             "STATUS_LOGIN_FAILED": [422],
             "SERVICE_CONNECTION_ERROR": [401],
@@ -235,6 +241,13 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY]
+        )
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self.authenticate()
         self.errors = {
             "NO_SUCH_RECORD": [422],
             "SERVICE_CONNECTION_ERROR": [401],

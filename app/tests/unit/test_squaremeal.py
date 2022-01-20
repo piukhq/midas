@@ -306,7 +306,7 @@ class TestSquaremealJoin(TestCase):
     def test_get_security_credentials(self, mock_config):
         mock_config.return_value = self.security_credentials
         self.assertEqual(self.squaremeal.auth_url, "http://fake.com")
-        self.assertEqual(self.squaremeal.secondary_key, "12345678")
+        self.assertEqual(self.squaremeal.headers, {'Secondary-Key': '12345678'})
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
     @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
@@ -321,6 +321,13 @@ class TestSquaremealJoin(TestCase):
         self.squaremeal.authenticate()
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
+
+    def test_no_authentication_selected(self):
+        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
+        with self.assertRaises(AgentError) as e:
+            self.squaremeal.join(self.credentials)
+        self.assertEqual("Configuration error", e.exception.name)
+        self.assertEqual("Incorrect authorisation type specified", e.exception.message)
 
 
 class TestSquaremealLogin(TestCase):
@@ -375,6 +382,7 @@ class TestSquaremealLogin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.squaremeal.Squaremeal._login")
     def test_login_200(self, mock_login, mock_requests_session, mock_authenticate):
+        self.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         mock_login.return_value = RESPONSE_JSON_200
         self.squaremeal.login(self.credentials)
 
@@ -401,6 +409,13 @@ class TestSquaremealLogin(TestCase):
 
         self.squaremeal.login(self.credentials)
         self.assertEqual(0, mock_oath.call_count)
+
+    def test_wrong_authentication_selected(self):
+        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
+        with self.assertRaises(AgentError) as e:
+            self.squaremeal.login(self.credentials)
+        self.assertEqual("Configuration error", e.exception.name)
+        self.assertEqual("Incorrect authorisation type specified", e.exception.message)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -467,3 +482,38 @@ class TestSquaremealLogin(TestCase):
             self.squaremeal.login(self.credentials)
 
         self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))
+
+
+class TestSquaremealBalance(TestCase):
+    def create_app(self):
+        return create_app(self)
+
+    def setUp(self):
+        self.security_credentials = SECURITY_CREDENTIALS
+        self.credentials = CREDENTIALS
+
+        with mock.patch("app.agents.squaremeal.Configuration") as mock_configuration:
+            mock_config_object = MagicMock()
+            mock_config_object.security_credentials = self.security_credentials
+            mock_configuration.return_value = mock_config_object
+            self.squaremeal = Squaremeal(
+                retry_count=1,
+                user_info={
+                    "user_set": "27558",
+                    "credentials": self.credentials,
+                    "status": 442,
+                    "journey_type": JourneyTypes.UPDATE,
+                    "scheme_account_id": 94532,
+                },
+                scheme_slug="squaremeal",
+            )
+            self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
+            self.squaremeal._get_balance.retry.wait = wait_none()
+            self.squaremeal.integration_service = "SYNC"
+
+    def test_wrong_authentication_selected(self):
+        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
+        with self.assertRaises(AgentError) as e:
+            self.squaremeal.balance()
+        self.assertEqual("Configuration error", e.exception.name)
+        self.assertEqual("Incorrect authorisation type specified", e.exception.message)

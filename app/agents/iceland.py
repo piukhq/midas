@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner, Balance
+from app.agents.base import ApiMiner, Balance, check_correct_authentication
 from app.agents.exceptions import (
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
@@ -146,7 +146,12 @@ class Iceland(ApiMiner):
         return response_json
 
     def login(self, credentials) -> None:
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY]
+        )
+        if authentication_service == Configuration.OAUTH_SECURITY:
             self._authenticate()
         payload = {
             "card_number": credentials["card_number"],

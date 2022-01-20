@@ -9,6 +9,7 @@ import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
+import app.agents.iceland
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
@@ -161,6 +162,13 @@ class TestIcelandValidate(TestCase):
 
         self.agent.login(credentials)
         self.assertEqual(0, mock_oath.call_count)
+
+    def test_no_authentication_selected(self):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
+        with self.assertRaises(AgentError) as e:
+            self.agent.login(credentials)
+        self.assertEqual("Configuration error", e.exception.name)
+        self.assertEqual("Incorrect authorisation type specified", e.exception.message)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
