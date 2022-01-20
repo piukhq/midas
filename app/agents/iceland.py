@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner, Balance
+from app.agents.base import ApiMiner, Balance, check_correct_authentication
 from app.agents.exceptions import (
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
@@ -22,6 +22,7 @@ from app.agents.exceptions import (
     SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
     AgentError,
+    LoginError,
 )
 from app.encryption import hash_ids
 from app.reporting import get_logger
@@ -69,11 +70,11 @@ class Iceland(ApiMiner):
         current_timestamp = (arrow.utcnow().int_timestamp,)
         token = ""
         try:
-            token_dict = json.loads(self.token_store.get(self.scheme_id))
+            cached_token = json.loads(self.token_store.get(self.scheme_id))
             try:
-                if self._token_is_valid(token_dict, current_timestamp):
+                if self._token_is_valid(cached_token, current_timestamp):
                     have_valid_token = True
-                    token = token_dict["iceland_access_token"]
+                    token = cached_token["iceland_access_token"]
             except (KeyError, TypeError) as e:
                 log.exception(e)
         except (KeyError, self.token_store.NoSuchToken):
@@ -82,6 +83,8 @@ class Iceland(ApiMiner):
         if not have_valid_token:
             token = self._refresh_token()
             self._store_token(token, current_timestamp)
+
+        self.headers["Authorization"] = f"Bearer {token}"
 
         return token
 
@@ -126,10 +129,30 @@ class Iceland(ApiMiner):
         reraise=True,
     )
     def _login(self, payload: dict):
-        return self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
+        try:
+            response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
+        except (LoginError, AgentError) as ex:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(ex.name)
+
+        response_json = response.json()
+        error = response_json.get("error_codes")
+        if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(error[0]["code"])
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug)
+
+        return response_json
 
     def login(self, credentials) -> None:
-        token = self._authenticate()
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
+        )
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self._authenticate()
         payload = {
             "card_number": credentials["card_number"],
             "last_name": credentials["last_name"],
@@ -140,17 +163,8 @@ class Iceland(ApiMiner):
             "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
-        self.headers = {"Authorization": f"Bearer {token}"}
 
-        response = self._login(payload)
-        response_json = response.json()
-
-        error = response_json.get("error_codes")
-        if error:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
+        response_json = self._login(payload)
 
         self.identifier = {
             "barcode": response_json.get("barcode"),

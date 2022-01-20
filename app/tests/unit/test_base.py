@@ -5,8 +5,9 @@ from urllib.parse import urljoin
 
 import arrow
 import httpretty
+from soteria.configuration import Configuration
 
-from app.agents.base import ApiMiner, create_error_response
+from app.agents.base import ApiMiner, check_correct_authentication, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
 from app.agents.schemas import Transaction
 
@@ -247,6 +248,25 @@ class TestBase(TestCase):
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
+
+    def test_check_correct_authentication(self):
+        actual_config_auth_type = Configuration.OAUTH_SECURITY
+        allowed_config_auth_types = [Configuration.OAUTH_SECURITY, Configuration.OPEN_AUTH_SECURITY]
+
+        self.assertEqual(None, check_correct_authentication(allowed_config_auth_types, actual_config_auth_type))
+
+    def test_check_incorrect_authentication_raises_error(self):
+        actual_config_auth_type = Configuration.RSA_SECURITY
+        allowed_config_auth_types = [Configuration.OAUTH_SECURITY, Configuration.OPEN_AUTH_SECURITY]
+
+        with self.assertRaises(AgentError) as e:
+            check_correct_authentication(allowed_config_auth_types, actual_config_auth_type)
+        self.assertEqual("Configuration error", e.exception.name)
+        self.assertEqual(
+            "Agent expecting Security Type(s) ['OAuth', 'Open Auth (No Authentication)'] "
+            "but got Security Type 'RSA' instead",
+            e.exception.message,
+        )
 
     @httpretty.activate
     @mock.patch.object(ApiMiner, "parse_transaction")

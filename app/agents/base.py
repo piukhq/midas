@@ -23,6 +23,7 @@ from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
+    CONFIGURATION_ERROR,
     END_SITE_DOWN,
     GENERAL_ERROR,
     IP_BLOCKED,
@@ -318,6 +319,16 @@ class ApiMiner(BaseMiner):
             if error_code in values:
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
+
+
+def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
+    if actual_config_auth_type not in allowed_config_auth_types:
+        raise AgentError(
+            CONFIGURATION_ERROR,
+            message=f"Agent expecting Security Type(s) "
+            f"{[Configuration.SECURITY_TYPE_CHOICES[i][1] for i in allowed_config_auth_types]} but got "
+            f"Security Type '{Configuration.SECURITY_TYPE_CHOICES[actual_config_auth_type][1]}' instead",
+        )
 
 
 def create_error_response(error_code, error_description):
