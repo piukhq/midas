@@ -7,7 +7,7 @@ import arrow
 import httpretty
 from soteria.configuration import Configuration
 
-from app.agents.base import ApiMiner, create_error_response, check_correct_authentication
+from app.agents.base import ApiMiner, check_correct_authentication, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
 from app.agents.schemas import Transaction
 

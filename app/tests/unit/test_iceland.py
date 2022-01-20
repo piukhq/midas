@@ -9,7 +9,6 @@ import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
-import app.agents.iceland
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland

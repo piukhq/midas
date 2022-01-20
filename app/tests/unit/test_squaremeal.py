@@ -306,7 +306,7 @@ class TestSquaremealJoin(TestCase):
     def test_get_security_credentials(self, mock_config):
         mock_config.return_value = self.security_credentials
         self.assertEqual(self.squaremeal.auth_url, "http://fake.com")
-        self.assertEqual(self.squaremeal.headers, {'Secondary-Key': '12345678'})
+        self.assertEqual(self.squaremeal.headers, {"Secondary-Key": "12345678"})
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
     @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
