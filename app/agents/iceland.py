@@ -20,8 +20,6 @@ from app.agents.exceptions import (
     LINK_LIMIT_EXCEEDED,
     SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
-    AgentError,
-    LoginError,
     UNKNOWN,
     AgentError,
     JoinError,
@@ -30,8 +28,9 @@ from app.agents.exceptions import (
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
 from app.exceptions import AgentException
+from app.publish import thread_pool_executor
 from app.reporting import get_logger
-from app.scheme_account import TWO_PLACES, JourneyTypes
+from app.scheme_account import TWO_PLACES, JourneyTypes, update_pending_join_account, SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
 
 RETRY_LIMIT = 3
@@ -50,10 +49,10 @@ class Iceland(ApiMiner):
     token_store = UserTokenStore(settings.REDIS_URL)
     AUTH_TOKEN_TIMEOUT = 3599
 
-    def __init__(self, retry_count, user_info, scheme_slug=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
-        self.config = Configuration(
+        self.config = config or Configuration(
             scheme_slug,
             handler_type,
             settings.VAULT_URL,
@@ -189,17 +188,46 @@ class Iceland(ApiMiner):
                 break
         return error
 
+    def balance(self) -> Optional[Balance]:
+        amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
+        return Balance(
+            points=amount,
+            value=amount,
+            value_label="£{}".format(amount),
+        )
+
+    def transactions(self) -> list[Transaction]:
+        if self._transactions is None:
+            return []
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception:
+            return []
+
+    def transaction_history(self) -> list[Transaction]:
+        return [self.parse_transaction(tx) for tx in self._transactions]
+
+    def parse_transaction(self, row: dict) -> Transaction:
+        return Transaction(
+            date=arrow.get(row["timestamp"]),
+            description=row["reference"],
+            points=Decimal(row["value"]),
+        )
+
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
     def _join(self, payload: dict) -> dict:
-        response = self.make_request(self.config.merchant_url, method="post", json=payload)
-        return response.json()
+        self.make_request(self.config.merchant_url, method="post", json=payload)
 
-    def join(self, credentials: dict) -> None:
-        consents = credentials.get("consents", [])
+    def join(self, credentials: dict, inbound=False) -> None:
+        # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
+        consents = self.user_info["credentials"].get("consents", []).copy()
+        if inbound:
+            self.record_uid = hash_ids.encode(self.scheme_id)
+            thread_pool_executor.submit(self._inbound_handler, credentials, self.scheme_slug)
         if consents:
             if len(consents) < 2:
                 journey_type = consents[0]["journey_type"]
@@ -235,39 +263,110 @@ class Iceland(ApiMiner):
             "dob": credentials["date_of_birth"],
             "phone1": credentials["phone"],
         }
-        self.headers = {"Authorization": f"Bearer {self._authenticate()}"}
 
         async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
         if self.config.integration_service == async_service_identifier:
             self.expecting_callback = True
 
-        response_json = self._join(payload)
+        self._join(payload)
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)
 
-    def balance(self) -> Optional[Balance]:
-        amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
-        return Balance(
-            points=amount,
-            value=amount,
-            value_label="£{}".format(amount),
-        )
+    def _create_log_message(
+        self,
+        json_msg,
+        msg_uid,
+        scheme_slug,
+        handler_type,
+        integration_service,
+        direction,
+        contains_errors=False,
+    ):
+        return {
+            "json": json_msg,
+            "message_uid": msg_uid,
+            "record_uid": self.record_uid,
+            "merchant_id": scheme_slug,
+            "handler_type": handler_type,
+            "integration_service": integration_service,
+            "direction": direction,
+            "expiry_date": arrow.utcnow().shift(days=+90).format("YYYY-MM-DD HH:mm:ss"),
+            "contains_errors": contains_errors,
+        }
 
-    def transactions(self) -> list[Transaction]:
-        if self._transactions is None:
-            return []
+    # Should be overridden in the agent if there is agent specific processing required for their response.
+    def process_join_response(self):
+        """
+        Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
+        identifiers/scheme credential answers to database.
+        :return: None
+        """
+        consent_status = ConsentStatus.PENDING
         try:
-            return self.hash_transactions(self.transaction_history())
-        except Exception:
-            return []
+            error = self._check_for_error_response(self.result)
+            if error:
+                self.handle_errors(error[0]["code"], exception_type=JoinError)
 
-    def transaction_history(self) -> list[Transaction]:
-        return [self.parse_transaction(tx) for tx in self._transactions]
+            identifier = self._get_identifiers(self.result)
+            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
+            consent_status = ConsentStatus.SUCCESS
 
-    def parse_transaction(self, row: dict) -> Transaction:
-        return Transaction(
-            date=arrow.get(row["timestamp"]),
-            description=row["reference"],
-            points=Decimal(row["value"]),
+        except (AgentException, LoginError, AgentError):
+            consent_status = ConsentStatus.FAILED
+            raise
+        finally:
+            self.consent_confirmation(self.consents_data, consent_status)
+
+        status = SchemeAccountStatus.ACTIVE
+        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
+
+    def _inbound_handler(self, data, scheme_slug):
+        """
+        Handler service for inbound response i.e. response from async join. The response json is logged,
+        converted to a python object and passed to the relevant method for processing.
+        :param data: dict of payload
+        :param scheme_slug: Bink's unique identifier for a merchant (slug)
+        :return: dict of response data
+        """
+        self.result = data
+        self.message_uid = self.result.get("message_uid")
+
+        logging_info = self._create_log_message(
+            data,
+            self.message_uid,
+            scheme_slug,
+            self.config.handler_type,
+            "ASYNC",
+            "INBOUND",
         )
+
+        signal("send-audit-response").send(
+            response=json.dumps(data),
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=self.config.handler_type[0],
+            integration_service=self.config.integration_service,
+            status_code=0,  # Doesn't have a status code since this is an async response
+            channel=self.channel,
+        )
+
+        if self._check_for_error_response(self.result):
+            logging_info["contains_errors"] = True
+            log.warning(json.dumps(logging_info))
+        else:
+            log.info(json.dumps(logging_info))
+
+        try:
+            response = self.process_join_response()
+            signal("callback-success").send(self, slug=self.scheme_slug)
+        except AgentError as e:
+            signal("callback-fail").send(self, slug=self.scheme_slug)
+            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
+            raise
+        except (AgentException, LoginError):
+            signal("callback-fail").send(self, slug=self.scheme_slug)
+            raise
+
+        return response
