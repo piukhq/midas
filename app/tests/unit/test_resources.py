@@ -909,9 +909,9 @@ class TestResources(TestCase):
                             "account_number": "TRNT0000000100",
                             "current_balances": [{"value": 0.0, "campaign_slug": "trenette-campaign"}],
                             "transaction_history": [],
-                            "vouchers": [
+                            "rewards": [
                                 {
-                                    "voucher_code": "1qv7lgUyUVMBkxK",
+                                    "code": "1qv7lgUyUVMBkxK",
                                     "issued_date": "1629385871",
                                     "redeemed_date": None,
                                     "expiry_date": "1893456000",
@@ -943,9 +943,9 @@ class TestResources(TestCase):
                                     "value": 123.45,
                                 }
                             ],
-                            "vouchers": [
+                            "rewards": [
                                 {
-                                    "voucher_code": "1qv7lgUyUVMBkxK",
+                                    "code": "1qv7lgUyUVMBkxK",
                                     "issued_date": "1629385871",
                                     "redeemed_date": None,
                                     "expiry_date": "1893456000",
