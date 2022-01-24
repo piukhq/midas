@@ -11,6 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
+from app import publish
 from app.agents.base import ApiMiner, Balance, check_correct_authentication
 from app.agents.exceptions import (
     CARD_NOT_REGISTERED,
@@ -223,55 +224,56 @@ class Iceland(ApiMiner):
         self.make_request(self.config.merchant_url, method="post", json=payload)
 
     def join(self, credentials: dict, inbound=False) -> None:
-        # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
-        consents = self.user_info["credentials"].get("consents", []).copy()
         if inbound:
             self.record_uid = hash_ids.encode(self.scheme_id)
             thread_pool_executor.submit(self._inbound_handler, credentials, self.scheme_slug)
-        if consents:
-            if len(consents) < 2:
-                journey_type = consents[0]["journey_type"]
-                consent = {
-                    "id": 99999999999,
-                    "slug": "marketing_opt_in_thirdparty",
-                    "value": False,
-                    "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
-                    "journey_type": journey_type,
-                }
-                credentials["consents"].append(consent)
-            else:
-                log.debug("Too many consents for Iceland scheme.")
-        marketing_mapping = {i["slug"]: i["value"] for i in credentials["consents"]}
+        else:
+            # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
+            consents = self.user_info["credentials"].get("consents", []).copy()
+            if consents:
+                if len(consents) < 2:
+                    journey_type = consents[0]["journey_type"]
+                    consent = {
+                        "id": 99999999999,
+                        "slug": "marketing_opt_in_thirdparty",
+                        "value": False,
+                        "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
+                        "journey_type": journey_type,
+                    }
+                    credentials["consents"].append(consent)
+                else:
+                    log.debug("Too many consents for Iceland scheme.")
+            marketing_mapping = {i["slug"]: i["value"] for i in credentials["consents"]}
 
-        payload = {
-            "town_city": credentials["town_city"],
-            "county": credentials["county"],
-            "title": credentials["title"],
-            "address_1": credentials["address_1"],
-            "first_name": credentials["first_name"],
-            "last_name": credentials["last_name"],
-            "email": credentials["email"],
-            "postcode": credentials["postcode"],
-            "address_2": credentials["address_2"],
-            "record_uid": hash_ids.encode(self.scheme_id),
-            "country": self.config.country,
-            "message_uid": str(uuid4()),
-            "callback_url": self.config.callback_url,
-            "marketing_opt_in": marketing_mapping["marketing_opt_in"],
-            "marketing_opt_in_thirdparty": marketing_mapping["marketing_opt_in_thirdparty"],
-            "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
-            "dob": credentials["date_of_birth"],
-            "phone1": credentials["phone"],
-        }
+            payload = {
+                "town_city": credentials["town_city"],
+                "county": credentials["county"],
+                "title": credentials["title"],
+                "address_1": credentials["address_1"],
+                "first_name": credentials["first_name"],
+                "last_name": credentials["last_name"],
+                "email": credentials["email"],
+                "postcode": credentials["postcode"],
+                "address_2": credentials["address_2"],
+                "record_uid": hash_ids.encode(self.scheme_id),
+                "country": self.config.country,
+                "message_uid": str(uuid4()),
+                "callback_url": self.config.callback_url,
+                "marketing_opt_in": marketing_mapping["marketing_opt_in"],
+                "marketing_opt_in_thirdparty": marketing_mapping["marketing_opt_in_thirdparty"],
+                "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
+                "dob": credentials["date_of_birth"],
+                "phone1": credentials["phone"],
+            }
 
-        async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
-        if self.config.integration_service == async_service_identifier:
-            self.expecting_callback = True
+            async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+            if self.config.integration_service == async_service_identifier:
+                self.expecting_callback = True
 
-        self._join(payload)
+            self._join(payload)
 
-        consent_status = ConsentStatus.PENDING
-        self.consent_confirmation(consents, consent_status)
+            consent_status = ConsentStatus.PENDING
+            self.consent_confirmation(consents, consent_status)
 
     def _create_log_message(
         self,
@@ -295,8 +297,18 @@ class Iceland(ApiMiner):
             "contains_errors": contains_errors,
         }
 
+    def _get_identifiers(self, data):
+        """Checks if data contains any identifiers (i.e barcode, card_number) and returns a dict with their values."""
+        _identifier = {}
+        for identifier in self.identifier_type:
+            value = data.get(identifier)
+            if value:
+                converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
+                _identifier[converted_credential_type] = value
+        return _identifier
+
     # Should be overridden in the agent if there is agent specific processing required for their response.
-    def process_join_response(self):
+    def process_join_response(self, consents):
         """
         Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
         identifiers/scheme credential answers to database.
@@ -316,12 +328,12 @@ class Iceland(ApiMiner):
             consent_status = ConsentStatus.FAILED
             raise
         finally:
-            self.consent_confirmation(self.consents_data, consent_status)
+            self.consent_confirmation(consents, consent_status)
 
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
 
-    def _inbound_handler(self, data, scheme_slug):
+    def _inbound_handler(self, data, scheme_slug, consents):
         """
         Handler service for inbound response i.e. response from async join. The response json is logged,
         converted to a python object and passed to the relevant method for processing.
@@ -359,7 +371,7 @@ class Iceland(ApiMiner):
             log.info(json.dumps(logging_info))
 
         try:
-            response = self.process_join_response()
+            response = self.process_join_response(consents)
             signal("callback-success").send(self, slug=self.scheme_slug)
         except AgentError as e:
             signal("callback-fail").send(self, slug=self.scheme_slug)
