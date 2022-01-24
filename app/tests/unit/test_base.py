@@ -1,4 +1,3 @@
-
 from http import HTTPStatus
 from unittest import TestCase, mock
 from urllib.parse import urljoin

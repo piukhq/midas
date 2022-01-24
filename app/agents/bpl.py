@@ -16,7 +16,7 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
 )
-from app.agents.schemas import Balance, Voucher, Transaction
+from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
@@ -183,4 +183,3 @@ class Trenette(BplBase):
 
     def transaction_history(self) -> list[Transaction]:
         raise NotImplementedError()
-

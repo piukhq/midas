@@ -1,10 +1,11 @@
-import arrow
-from decimal import Decimal
-import httpretty
 import json
 import unittest
+from decimal import Decimal
 from unittest import mock
 from unittest.mock import MagicMock
+
+import arrow
+import httpretty
 
 import settings
 from app.agents.exceptions import LoginError

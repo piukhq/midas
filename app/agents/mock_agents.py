@@ -96,7 +96,7 @@ class MockAgentHN(MockedMiner):
     def transactions(self) -> list[Transaction]:
         try:
             return self.hash_transactions(self.transaction_history())
-        except Exception as ex:
+        except Exception:
             return []
 
     def parse_transaction(self, row: dict) -> Transaction:
@@ -220,7 +220,7 @@ class MockAgentIce(MockedMiner):
     def transactions(self) -> list[Transaction]:
         try:
             return self.hash_transactions(self.transaction_history())
-        except Exception as ex:
+        except Exception:
             return []
 
     def parse_transaction(self, row: dict) -> Transaction:

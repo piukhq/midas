@@ -15,7 +15,7 @@ from tenacity import Retrying, stop_after_attempt
 
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
-from app.agents.schemas import Balance, Voucher, Transaction
+from app.agents.schemas import Balance, Transaction, Voucher
 from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -1513,11 +1513,11 @@ class TestWasabi(unittest.TestCase):
             ),
         ]
         httpretty.register_uri(
-                httpretty.GET,
-                api_url,
-                responses=[httpretty.Response(body=json.dumps(mock_transactions))],
-                status=HTTPStatus.OK,
-            )
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(mock_transactions))],
+            status=HTTPStatus.OK,
+        )
         self.wasabi.credentials = {
             "first_name": "Sarah",
             "last_name": "TestPerson",
@@ -1945,7 +1945,6 @@ class TestWasabi(unittest.TestCase):
         "app.agents.acteol.Acteol._create_account",
         side_effect=AgentError(END_SITE_DOWN),
     )
-
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
