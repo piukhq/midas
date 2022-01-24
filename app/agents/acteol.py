@@ -260,7 +260,7 @@ class Acteol(ApiMiner):
             api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT
         )
 
-    def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
+    def parse_transaction(self, transaction: dict) -> Transaction:
         """
         Convert an individual transaction record from Acteol's system to the format expected by Bink
 

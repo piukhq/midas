@@ -19,7 +19,7 @@ class MerchantAPIGeneric(MerchantApi):
     def scrape_transactions(self) -> list[dict]:
         return self.result["transactions"]
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def parse_transaction(self, row: dict) -> Transaction:
         return Transaction(
             date=arrow.get(row["timestamp"]),
             description=row["reference"],

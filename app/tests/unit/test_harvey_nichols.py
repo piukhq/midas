@@ -490,8 +490,8 @@ class TestLoyaltyOutputs(unittest.TestCase):
             ),
         ]
 
-        def transaction_history() -> list[dict]:
-            return [tx for tx in expected_transactions]
+        def transaction_history() -> list[Transaction]:
+            return expected_transactions
 
         mock_transaction_history.side_effect = transaction_history
         agent = self.hn

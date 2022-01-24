@@ -42,7 +42,7 @@ class MockPerformance(MockedMiner):
         except Exception as ex:
             return []
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def parse_transaction(self, row: dict) -> Transaction:
         return Transaction(
             date=row["date"],
             description=row["description"],
@@ -59,9 +59,7 @@ class MockPerformance(MockedMiner):
                     "points": Decimal(random.randint(1, 50)),
                 }
             )
-            transactions_list = [
-                parsed_tx for raw_tx in transactions if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions]
 
         return transactions_list
 

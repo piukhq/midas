@@ -171,7 +171,7 @@ class HarveyNichols(ApiMiner):
 
         return transaction_response.json()["CustomerListTransactionsResponse"]
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def parse_transaction(self, row: dict) -> Transaction:
         if type(row["value"]) == int:
             money_value = abs(row["value"])
             formatted_money_value = " £{:.2f}".format(Decimal(money_value / 100))

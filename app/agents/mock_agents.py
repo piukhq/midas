@@ -99,7 +99,7 @@ class MockAgentHN(MockedMiner):
         except Exception as ex:
             return []
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def parse_transaction(self, row: dict) -> Transaction:
         return Transaction(
             date=row["date"],
             description=row["description"],
@@ -115,11 +115,7 @@ class MockAgentHN(MockedMiner):
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
 
-            transactions_list = [
-                parsed_tx for raw_tx in transactions_copy if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
-
-            return transactions_list[:max_transactions]
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions_copy]
         elif self.user_info["credentials"]["email"] == "onetransaction@testbink.com":
             # MER-939: if the user is "onetransaction@testbink.com", we will need a single
             # transaction with a value of 0 and timestamp of 1612876767
@@ -130,16 +126,11 @@ class MockAgentHN(MockedMiner):
                     "points": Decimal("0"),
                 },
             ]
-            transactions_list = [
-                parsed_tx for raw_tx in transactions_single if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
-            return transactions_single
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions_single]
         else:
-            transactions_list = [
-                parsed_tx for raw_tx in transactions if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions]
 
-        return transactions[:max_transactions]
+        return transactions_list[:max_transactions]
 
     def join(self, credentials):
         self._validate_join_credentials(credentials)
@@ -232,7 +223,7 @@ class MockAgentIce(MockedMiner):
         except Exception as ex:
             return []
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def parse_transaction(self, row: dict) -> Transaction:
         return Transaction(
             date=row["date"],
             description=row["description"],
@@ -251,15 +242,9 @@ class MockAgentIce(MockedMiner):
             transactions_copy = deepcopy(transactions)
             for transaction_copy in transactions_copy:
                 transaction_copy["date"] = arrow.get("26/10/2020 14:24:15", "DD/MM/YYYY HH:mm:ss")
-            transactions_list = [
-                parsed_tx for raw_tx in transactions_copy if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
-
-            return transactions_list[:max_transactions]
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions_copy]
         else:
-            transactions_list = [
-                parsed_tx for raw_tx in transactions if (parsed_tx := self.parse_transaction(raw_tx))
-            ]
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions]
 
         return transactions_list[:max_transactions]
 
