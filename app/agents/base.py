@@ -84,23 +84,11 @@ class BaseMiner(object):
     def balance(self) -> Optional[Balance]:
         raise NotImplementedError()
 
-    def scrape_transactions(self) -> list[dict]:
-        raise NotImplementedError()
-
-    def parse_transaction(self, transaction: dict) -> Optional[Transaction]:
+    def transactions(self) -> list[Transaction]:
         raise NotImplementedError()
 
     def calculate_label(self, points: Decimal) -> str:
         raise NotImplementedError()
-
-    def transactions(self) -> list[Transaction]:
-        try:
-            return self.hash_transactions(
-                [parsed_tx for raw_tx in self.scrape_transactions() if (parsed_tx := self.parse_transaction(raw_tx))]
-            )
-        except Exception as ex:
-            log.warning(f"{self} failed to get transactions: {repr(ex)}")
-            return []
 
     def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:
         count: defaultdict[str, int] = defaultdict(int)

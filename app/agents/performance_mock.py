@@ -36,14 +36,20 @@ class MockPerformance(MockedMiner):
             value_label=f"£{points}",
         )
 
-    def parse_transaction(self, row: dict) -> Optional[Transaction]:
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception:
+            return []
+
+    def parse_transaction(self, row: dict) -> Transaction:
         return Transaction(
             date=row["date"],
             description=row["description"],
             points=row["points"],
         )
 
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         transactions = []
         for count in range(5):
             transactions.append(
@@ -53,8 +59,9 @@ class MockPerformance(MockedMiner):
                     "points": Decimal(random.randint(1, 50)),
                 }
             )
+            transactions_list = [self.parse_transaction(raw_tx) for raw_tx in transactions]
 
-        return transactions
+        return transactions_list
 
     def join(self, credentials):
         return {"message": "success"}
@@ -95,10 +102,16 @@ class MockPerformanceVoucher(MockedMiner):
             vouchers=vouchers,
         )
 
+    def transactions(self) -> list[Transaction]:
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception:
+            return []
+
     def parse_transaction(self, row: dict) -> Optional[Transaction]:
         return None
 
-    def scrape_transactions(self) -> list[dict]:
+    def transaction_history(self) -> list[Transaction]:
         return []
 
     def join(self, credentials):

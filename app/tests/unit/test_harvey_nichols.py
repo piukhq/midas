@@ -1,11 +1,16 @@
 import json
 import unittest
+from decimal import Decimal
 from unittest import mock
 from unittest.mock import MagicMock
+
+import arrow
+import httpretty
 
 import settings
 from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
+from app.agents.schemas import Transaction
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
@@ -452,3 +457,59 @@ class TestLoginJourneyTypes(unittest.TestCase):
             "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
         )
+
+
+class TestLoyaltyOutputs(unittest.TestCase):
+    """
+    Testing balances and transaction data processes
+    Initially for testing transaction history process
+    """
+
+    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    def setUp(self, mock_config):
+        self.credentials = {
+            "email": "mytest@localhost.com",
+            "password": "12345",
+        }
+        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        self.hn = HarveyNichols(retry_count=1, user_info=user_info)
+        self.hn.token_store = MockStore()
+
+    @httpretty.activate
+    @mock.patch.object(HarveyNichols, "transaction_history")
+    def test_transactions_success(self, mock_transaction_history):
+        expected_transactions = [
+            Transaction(
+                date=arrow.now(),
+                description="test transaction #1",
+                points=Decimal("12.34"),
+            ),
+            Transaction(
+                date=arrow.now(),
+                description="test transaction #2",
+                points=Decimal("34.56"),
+            ),
+        ]
+
+        def transaction_history() -> list[Transaction]:
+            return expected_transactions
+
+        mock_transaction_history.side_effect = transaction_history
+        agent = self.hn
+
+        transactions = agent.transactions()
+        self.assertGreater(len(transactions), 0)
+        for transaction in transactions:
+            self.assertIsNotNone(transaction.hash)
+
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
+    def test_transaction_fail(self, mock_make_request):
+        mock_make_request.side_effect = [
+            MockResponse(
+                {"CustomerSignOnResult": {"outcome": "Failed"}},
+                401,
+            )
+        ]
+        agent = self.hn
+        transactions = agent.transactions()
+        self.assertEqual(len(transactions), 0)

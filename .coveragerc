@@ -7,6 +7,7 @@ omit = *migrations*
        wsgi.py
        manage.py
        local_credentials.py
+       app/mocks*
 
 branch = True
 

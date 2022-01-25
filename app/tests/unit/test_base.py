@@ -1,15 +1,12 @@
-from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
 from urllib.parse import urljoin
 
-import arrow
 import httpretty
 from soteria.configuration import Configuration
 
 from app.agents.base import ApiMiner, check_correct_authentication, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
-from app.agents.schemas import Transaction
 
 
 class TestBase(TestCase):
@@ -267,37 +264,3 @@ class TestBase(TestCase):
             "but got Security Type 'RSA' instead",
             e.exception.message,
         )
-
-    @httpretty.activate
-    @mock.patch.object(ApiMiner, "parse_transaction")
-    @mock.patch.object(ApiMiner, "scrape_transactions")
-    def test_hash_transactions(self, mock_scrape_transactions, mock_parse_transaction):
-        expected_transactions = [
-            Transaction(
-                date=arrow.now(),
-                description="test transaction #1",
-                points=Decimal("12.34"),
-            ),
-            Transaction(
-                date=arrow.now(),
-                description="test transaction #2",
-                points=Decimal("34.56"),
-            ),
-        ]
-
-        def scrape_transactions() -> list[dict]:
-            return [tx._asdict() for tx in expected_transactions]
-
-        def parse_transaction(data: dict) -> Transaction:
-            return Transaction(**data)
-
-        mock_scrape_transactions.side_effect = scrape_transactions
-        mock_parse_transaction.side_effect = parse_transaction
-
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        agent = ApiMiner(0, user_info)
-
-        transactions = agent.transactions()
-        self.assertGreater(len(transactions), 0)
-        for transaction in transactions:
-            self.assertIsNotNone(transaction.hash)
