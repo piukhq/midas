@@ -223,9 +223,7 @@ class Squaremeal(ApiMiner):
             return []
 
     def transaction_history(self) -> list[Transaction]:
-        transactions = [
-            parsed_tx for raw_tx in self.point_transactions if (parsed_tx := self.parse_transaction(raw_tx))
-        ]
+        transactions = [self.parse_transaction(tx) for tx in self.point_transactions]
         return transactions
 
     def parse_transaction(self, transaction: dict):

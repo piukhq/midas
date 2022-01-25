@@ -200,7 +200,7 @@ class HarveyNichols(ApiMiner):
             transaction for transaction in customer_transactions if transaction["type"] in transaction_types
         ]
 
-        transactions = [parsed_tx for raw_tx in sorted_transactions if (parsed_tx := self.parse_transaction(raw_tx))]
+        transactions = [self.parse_transaction(tx) for tx in sorted_transactions]
         return transactions
 
     def join(self, credentials):

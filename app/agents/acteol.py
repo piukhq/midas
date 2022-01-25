@@ -312,7 +312,7 @@ class Acteol(ApiMiner):
                 )
                 return []
 
-        transactions = [parsed_tx for raw_tx in resp_json if (parsed_tx := self.parse_transaction(raw_tx))]
+        transactions = [self.parse_transaction(tx) for tx in resp_json]
 
         return transactions
 
