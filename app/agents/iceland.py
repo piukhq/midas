@@ -1,7 +1,6 @@
 import json
 from decimal import Decimal
 from typing import Optional
-from uuid import uuid4
 
 import arrow
 import requests
@@ -63,7 +62,7 @@ class Iceland(ApiMiner):
             CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
             GENERAL_ERROR: "GENERAL_ERROR",
         }
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+        self.integration_service = self.config.integration_service
 
     def _authenticate(self) -> str:
         have_valid_token = False
@@ -131,19 +130,10 @@ class Iceland(ApiMiner):
     def _login(self, payload: dict):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
-        except (LoginError, AgentError) as ex:
+            return response.json()
+        except (LoginError, AgentError) as e:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(ex.name)
-
-        response_json = response.json()
-        error = response_json.get("error_codes")
-        if error:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
-
-        return response_json
+            self.handle_errors(e.name)
 
     def login(self, credentials) -> None:
         authentication_service = self.config.security_credentials["outbound"]["service"]
@@ -157,14 +147,21 @@ class Iceland(ApiMiner):
             "card_number": credentials["card_number"],
             "last_name": credentials["last_name"],
             "postcode": credentials["postcode"],
-            "message_uid": str(uuid4()),
-            "record_uid": hash_ids.encode(self.scheme_id),
+            "message_uid": self.message_uid,
+            "record_uid": self.record_uid,
             "callback_url": self.config.callback_url,
             "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
             "merchant_scheme_id2": credentials.get("merchant_identifier"),
         }
 
         response_json = self._login(payload)
+
+        error = response_json.get("error_codes")
+        if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(error[0]["code"])
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug)
 
         self.identifier = {
             "barcode": response_json.get("barcode"),

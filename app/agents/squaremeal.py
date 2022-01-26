@@ -27,6 +27,7 @@ class Squaremeal(ApiMiner):
     AUTH_TOKEN_TIMEOUT = 3599
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,
@@ -46,13 +47,11 @@ class Squaremeal(ApiMiner):
 
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.journey_type = self.user_info["journey_type"]
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
         }
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        self.integration_service = config.integration_service
 
     @staticmethod
     def hide_sensitive_fields(req_audit_logs):
