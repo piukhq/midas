@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import ANY
 from uuid import uuid4
 
 import arrow
@@ -107,7 +108,6 @@ class TestAudit(unittest.TestCase):
             record_uid=record_uid,
             channel="unit tests",
         )
-        timestamp = arrow.utcnow().int_timestamp
 
         expected = {
             "audit_logs": [
@@ -121,7 +121,7 @@ class TestAudit(unittest.TestCase):
                     "payload": "200 ok",
                     "record_uid": record_uid,
                     "status_code": 200,
-                    "timestamp": timestamp,
+                    "timestamp": ANY,
                 },
             ]
         }

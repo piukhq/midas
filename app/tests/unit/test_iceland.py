@@ -51,9 +51,9 @@ class TestIcelandValidate(TestCase):
         }
         mock_configuration_object.merchant_url = self.merchant_url
         mock_configuration_object.callback_url = None
+        mock_configuration_object.integration_service = "SYNC"
 
         with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
-            # mock_user_token_store.get.return
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -65,7 +65,6 @@ class TestIcelandValidate(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-            self.agent.integration_service = "ASYNC"
             self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @httpretty.activate
@@ -342,7 +341,7 @@ class TestIcelandValidate(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
                 handler_type=Configuration.VALIDATE_HANDLER,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
@@ -353,7 +352,7 @@ class TestIcelandValidate(TestCase):
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=Configuration.VALIDATE_HANDLER,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
                 record_uid=ANY,
@@ -413,7 +412,7 @@ class TestIcelandValidate(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
                 handler_type=Configuration.VALIDATE_HANDLER,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
@@ -424,7 +423,7 @@ class TestIcelandValidate(TestCase):
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=Configuration.VALIDATE_HANDLER,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
                 record_uid=ANY,
@@ -482,7 +481,7 @@ class TestIcelandValidate(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
                 handler_type=2,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
@@ -493,7 +492,7 @@ class TestIcelandValidate(TestCase):
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=2,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 status_code=401,
                 message_uid=ANY,
                 record_uid=ANY,

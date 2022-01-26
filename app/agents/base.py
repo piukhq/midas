@@ -219,8 +219,11 @@ class ApiMiner(BaseMiner):
             JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
             JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
+        self.record_uid = hash_ids.encode(self.scheme_id)
+        self.message_uid = str(uuid4())
+        self.integration_service = None
 
-    def send_audit_request(self, payload, record_uid, message_uid, handler_type):
+    def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
         if audit_payload.get("password"):
             audit_payload["password"] = "REDACTED"
@@ -231,21 +234,21 @@ class ApiMiner(BaseMiner):
             scheme_slug=self.scheme_slug,
             handler_type=handler_type,
             integration_service=self.integration_service,
-            message_uid=message_uid,
-            record_uid=record_uid,
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
             channel=self.channel,
         )
 
-    def send_audit_response(self, resp, record_uid, message_uid, handler_type):
+    def send_audit_response(self, response, handler_type):
         signal("send-audit-response").send(
             self,
-            response=resp,
+            response=response,
             scheme_slug=self.scheme_slug,
             handler_type=handler_type,
             integration_service=self.integration_service,
-            status_code=resp.status_code,
-            message_uid=message_uid,
-            record_uid=record_uid,
+            status_code=response.status_code,
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
             channel=self.channel,
         )
 
@@ -268,16 +271,14 @@ class ApiMiner(BaseMiner):
 
         try:
             if audit:
-                record_uid = hash_ids.encode(self.scheme_id)
-                handler_type = self.audit_handlers[self.journey_type]
-                message_uid = str(uuid4())
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_request(audit_payload, record_uid, message_uid, handler_type)
+                handler_type = self.audit_handlers[self.journey_type]
+                self.send_audit_request(audit_payload, handler_type)
 
             resp = requests.request(method, url=url, **args)
 
             if audit:
-                self.send_audit_response(resp, record_uid, message_uid, handler_type)
+                self.send_audit_response(resp, handler_type)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")

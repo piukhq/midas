@@ -67,6 +67,7 @@ class TestSquaremealJoin(TestCase):
         with mock.patch("app.agents.squaremeal.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = self.security_credentials
+            mock_config_object.integration_service = "SYNC"
             mock_configuration.return_value = mock_config_object
             self.squaremeal = Squaremeal(
                 retry_count=1,
