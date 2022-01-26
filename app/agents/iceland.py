@@ -130,19 +130,10 @@ class Iceland(ApiMiner):
     def _login(self, payload: dict):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
+            return response.json()
         except (LoginError, AgentError) as e:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(e.name)
-
-        response_json = response.json()
-        error = response_json.get("error_codes")
-        if error:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
-
-        return response_json
 
     def login(self, credentials) -> None:
         authentication_service = self.config.security_credentials["outbound"]["service"]
@@ -164,6 +155,13 @@ class Iceland(ApiMiner):
         }
 
         response_json = self._login(payload)
+
+        error = response_json.get("error_codes")
+        if error:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            self.handle_errors(error[0]["code"])
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug)
 
         self.identifier = {
             "barcode": response_json.get("barcode"),

@@ -447,9 +447,9 @@ class TestIcelandValidate(TestCase):
             self.agent.login(credentials)
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:6])
-        self.assertEqual(9, mock_base_signal.call_count)
+        self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls[:2])
-        self.assertEqual(3, mock_iceland_signal.call_count)
+        self.assertEqual(1, mock_iceland_signal.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
