@@ -12,6 +12,7 @@ from tenacity import wait_none
 from app.agents.base import Balance
 from app.agents.exceptions import AgentError, LoginError
 from app.agents.iceland import Iceland
+from app.agents.schemas import Transaction
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 
 credentials = {
@@ -146,6 +147,7 @@ class TestIcelandValidate(TestCase):
         self.agent.login(credentials)
         self.assertIn("barcode", str(self.agent.user_info))
         self.assertEqual(self.agent._balance_amount, 10.0)
+        self.assertEqual(self.agent._transactions, None)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate")
@@ -299,9 +301,7 @@ class TestIcelandValidate(TestCase):
             self.agent.login(credentials)
         self.assertEqual(e.exception.code, 439)
 
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    def test_balance(self, mock_oauth):
+    def test_balance(self):
         self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
@@ -310,6 +310,38 @@ class TestIcelandValidate(TestCase):
         )
 
         self.assertEqual(self.agent.balance(), expected_result)
+
+    def test_transactions_if_existing(self):
+        self.agent._transactions = [
+            {"timestamp": "2021-03-24T03:29:20", "reference": "DEBIT", "value": -2.0, "unit": "GBP"},
+            {"timestamp": "2021-02-15T23:02:47", "reference": "CREDIT", "value": 2.0, "unit": "GBP"},
+        ]
+        expected_result = [
+            Transaction(
+                date=arrow.get("2021-03-24T03:29:20"),
+                description="DEBIT",
+                points=Decimal("-2"),
+                location=None,
+                value=None,
+                hash="18daf676b636277c3a8f9b856d3e882f",
+            ),
+            Transaction(
+                date=arrow.get("2021-02-15T23:02:47"),
+                description="CREDIT",
+                points=Decimal("2"),
+                location=None,
+                value=None,
+                hash="6cc797e6ccaa035bc131eb703cd0f136",
+            ),
+        ]
+
+        self.assertEqual(self.agent.transactions(), expected_result)
+
+    def test_transactions_if_None(self):
+        self.agent._transactions = None
+        expected_result = []
+
+        self.assertEqual(self.agent.transactions(), expected_result)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
