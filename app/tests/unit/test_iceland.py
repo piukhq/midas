@@ -339,9 +339,7 @@ class TestIcelandValidate(TestCase):
 
     def test_transactions_if_None(self):
         self.agent._transactions = None
-        expected_result = []
-
-        self.assertEqual(self.agent.transactions(), expected_result)
+        self.assertEqual([], self.agent.transactions())
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
