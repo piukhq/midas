@@ -23,6 +23,7 @@ from app.agents.exceptions import (
     AgentError,
     LoginError,
 )
+from app.agents.schemas import Transaction
 from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes
@@ -54,7 +55,8 @@ class Iceland(ApiMiner):
             settings.CONFIG_SERVICE_URL,
         )
         self.security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        self._balance_amount = 0.0
+        self._balance_amount = None
+        self._transactions = None
         self.errors = {
             STATUS_LOGIN_FAILED: "VALIDATION",
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
@@ -171,6 +173,7 @@ class Iceland(ApiMiner):
         self.user_info["credentials"].update(self.identifier)
 
         self._balance_amount = response_json["balance"]
+        self._transactions = response_json.get("transactions")
 
     def balance(self) -> Optional[Balance]:
         amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
@@ -178,4 +181,22 @@ class Iceland(ApiMiner):
             points=amount,
             value=amount,
             value_label="£{}".format(amount),
+        )
+
+    def transactions(self) -> list[Transaction]:
+        if self._transactions is None:
+            return []
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception:
+            return []
+
+    def transaction_history(self) -> list[Transaction]:
+        return [self.parse_transaction(tx) for tx in self._transactions]
+
+    def parse_transaction(self, row: dict) -> Transaction:
+        return Transaction(
+            date=arrow.get(row["timestamp"]),
+            description=row["reference"],
+            points=Decimal(row["value"]),
         )
