@@ -184,9 +184,11 @@ class Iceland(ApiMiner):
         )
 
     def transactions(self) -> list[Transaction]:
+        if self._transactions is None:
+            return []
         try:
             return self.hash_transactions(self.transaction_history())
-        except TypeError:
+        except Exception:
             return []
 
     def transaction_history(self) -> list[Transaction]:
