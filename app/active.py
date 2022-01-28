@@ -12,6 +12,6 @@ AGENTS = {
     "performance-mock": "performance_mock.MockPerformance",
     "performance-voucher-mock": "performance_mock.MockPerformanceVoucher",
     "wasabi-club": "acteol.Wasabi",
-    "bpl-trenette": "bpl.Trenette",
+    "bpl-trenette": "bpl.Bpl",
     "squaremeal": "squaremeal.Squaremeal",
 }

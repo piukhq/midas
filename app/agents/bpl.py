@@ -26,7 +26,7 @@ from app.vouchers import VoucherState, VoucherType, voucher_state_names
 log = get_logger("bpl-agent")
 
 
-class BplBase(ApiMiner):
+class Bpl(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(
             scheme_slug,
@@ -48,43 +48,6 @@ class BplBase(ApiMiner):
         }
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
 
-    def update_async_join(self, data):
-        decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
-        scheme_account_id = decoded_scheme_account[0]
-        self.update_hermes_credentials(data, scheme_account_id)
-        status = SchemeAccountStatus.ACTIVE
-        publish.status(scheme_account_id, status, uuid4(), self.user_info, journey="join")
-
-    def update_hermes_credentials(self, customer_details, scheme_account_id):
-
-        self.identifier = {
-            "card_number": customer_details["account_number"],
-            "merchant_identifier": customer_details["UUID"],
-        }
-        self.user_info["credentials"].update(self.identifier)
-
-        # for updating user ID credential you get for joining (e.g. getting issued a card number)
-        api_url = urljoin(
-            settings.HERMES_URL,
-            f"schemes/accounts/{scheme_account_id}/credentials",
-        )
-        headers = {
-            "Content-type": "application/json",
-            "Authorization": "token " + settings.SERVICE_API_KEY,
-        }
-        super().make_request(  # Don't want to call any signals for internal calls
-            api_url,
-            method="put",
-            timeout=10,
-            json=self.identifier,
-            headers=headers,
-        )
-
-
-class Trenette(BplBase):
-    def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-
     def join(self, credentials):
         consents = credentials.get("consents", [])
         url = f"{self.base_url}enrolment"
@@ -105,6 +68,7 @@ class Trenette(BplBase):
                 self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     def login(self, credentials):
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         # If merchant_identifier already exists do not get by credentials
         if "merchant_identifier" in credentials.keys():
             return
@@ -183,3 +147,35 @@ class Trenette(BplBase):
 
     def transaction_history(self) -> list[Transaction]:
         raise NotImplementedError()
+
+    def update_async_join(self, data):
+        decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
+        scheme_account_id = decoded_scheme_account[0]
+        self.update_hermes_credentials(data, scheme_account_id)
+        status = SchemeAccountStatus.ACTIVE
+        publish.status(scheme_account_id, status, uuid4(), self.user_info, journey="join")
+
+    def update_hermes_credentials(self, customer_details, scheme_account_id):
+
+        self.identifier = {
+            "card_number": customer_details["account_number"],
+            "merchant_identifier": customer_details["UUID"],
+        }
+        self.user_info["credentials"].update(self.identifier)
+
+        # for updating user ID credential you get for joining (e.g. getting issued a card number)
+        api_url = urljoin(
+            settings.HERMES_URL,
+            f"schemes/accounts/{scheme_account_id}/credentials",
+        )
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + settings.SERVICE_API_KEY,
+        }
+        super().make_request(  # Don't want to call any signals for internal calls
+            api_url,
+            method="put",
+            timeout=10,
+            json=self.identifier,
+            headers=headers,
+        )

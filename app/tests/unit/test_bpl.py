@@ -9,7 +9,7 @@ import httpretty
 from flask_testing import TestCase
 
 import settings
-from app.agents.bpl import Trenette
+from app.agents.bpl import Bpl
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 settings.API_AUTH_ENABLED = False
@@ -46,7 +46,7 @@ class TestBplCallback(TestCase):
             }
             mock_configuration.return_value = mock_config_object
 
-            self.trenette = Trenette(
+            self.bpl = Bpl(
                 retry_count=1,
                 user_info={
                     "scheme_account_id": 1,
@@ -66,7 +66,7 @@ class TestBplCallback(TestCase):
                 },
                 scheme_slug="bpl-trenette",
             )
-            self.trenette.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
+            self.bpl.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
 
     @mock.patch.object(JoinCallbackBpl, "process_join_callback")
     def test_post(self, mock_process_join_callback):
@@ -78,7 +78,7 @@ class TestBplCallback(TestCase):
 
     @httpretty.activate
     def test_balance(self):
-        url = f"{self.trenette.base_url}54a259f2-3602-4cc8-8f57-1239de7e5700"
+        url = f"{self.bpl.base_url}54a259f2-3602-4cc8-8f57-1239de7e5700"
         response_data = {
             "UUID": "54a259f2-3602-4cc8-8f57-7839de7e5700",
             "email": "johnb@bink.com",
@@ -108,13 +108,13 @@ class TestBplCallback(TestCase):
             api_url,
             status=HTTPStatus.OK,
         )
-        balance = self.trenette.balance()
+        balance = self.bpl.balance()
         self.assertEqual(balance.value, Decimal("0.1"))
         self.assertEqual(balance.vouchers[0].value, Decimal("0.1"))
 
     @httpretty.activate
     def test_vouchers(self):
-        url = f"{self.trenette.base_url}54a259f2-3602-4cc8-8f57-1239de7e5700"
+        url = f"{self.bpl.base_url}54a259f2-3602-4cc8-8f57-1239de7e5700"
         response_data = {
             "UUID": "54a259f2-3602-4cc8-8f57-7839de7e5700",
             "email": "johnb@bink.com",
@@ -142,7 +142,7 @@ class TestBplCallback(TestCase):
             api_url,
             status=HTTPStatus.OK,
         )
-        balance = self.trenette.balance()
+        balance = self.bpl.balance()
 
         self.assertEqual(balance.vouchers[1].value, None)
         self.assertEqual(len(balance.vouchers), 2)
