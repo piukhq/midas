@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import httpretty
 
-from app.agents.bpl import Trenette
+from app.agents.bpl import Bpl
 from app.agents.exceptions import AgentError, LoginError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
@@ -12,7 +12,7 @@ from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 class TestBPL(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.agent = Trenette(*AGENT_CLASS_ARGUMENTS, scheme_slug="bpl-trenette")
+        cls.agent = Bpl(*AGENT_CLASS_ARGUMENTS, scheme_slug="bpl-trenette")
 
     def test_join_happy_path(self):
         credentials = {"email": "bpluserf@binktest.com", "first_name": "BPL", "last_name": "Smith"}
