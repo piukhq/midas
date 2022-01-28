@@ -68,6 +68,7 @@ class Bpl(ApiMiner):
                 self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
     def login(self, credentials):
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         # If merchant_identifier already exists do not get by credentials
         if "merchant_identifier" in credentials.keys():
             return
