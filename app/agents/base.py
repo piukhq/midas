@@ -303,7 +303,7 @@ class ApiMiner(BaseMiner):
 
         return resp
 
-    def _handle_errors(self, error_code, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
+    def handle_errors(self, error_code, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
         for key, values in self.errors.items():
             if error_code in values:
                 raise exception_type(key)
@@ -315,7 +315,7 @@ class ApiMiner(BaseMiner):
         try:
             error = data.get("error_codes")
             if error:
-                self._handle_errors(error_code=error[0]["code"], exception_type=JoinError)
+                self.handle_errors(error_code=error[0]["code"], exception_type=JoinError)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
 

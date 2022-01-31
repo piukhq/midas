@@ -143,7 +143,7 @@ class Iceland(ApiMiner):
             return response.json()
         except (LoginError, AgentError) as e:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._handle_errors(e.name)
+            self.handle_errors(e.name)
 
     def login(self, credentials) -> None:
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
@@ -170,7 +170,7 @@ class Iceland(ApiMiner):
         error = response_json.get("error_codes")
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._handle_errors(error[0]["code"])
+            self.handle_errors(error[0]["code"])
         else:
             signal("log-in-success").send(self, slug=self.scheme_slug)
 
@@ -222,7 +222,7 @@ class Iceland(ApiMiner):
             return response.json()
         except (JoinError, AgentError) as e:
             signal("join-fail").send(self, slug=self.scheme_slug)
-            self._handle_errors(e.name)
+            self.handle_errors(e.name)
 
     def join(self, data: dict, inbound=False) -> None:
         # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
@@ -279,7 +279,7 @@ class Iceland(ApiMiner):
             error = response_json.get("error_codes")
             if error:
                 signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-                self._handle_errors(error[0]["code"], exception_type=JoinError)
+                self.handle_errors(error[0]["code"], exception_type=JoinError)
             else:
                 signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 

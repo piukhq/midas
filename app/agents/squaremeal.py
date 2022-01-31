@@ -144,7 +144,7 @@ class Squaremeal(ApiMiner):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self._handle_errors(ex.response.status_code)
+            self.handle_errors(ex.response.status_code)
         return resp.json()
 
     @retry(
@@ -179,7 +179,7 @@ class Squaremeal(ApiMiner):
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self._handle_errors(ex.response.status_code)
+            self.handle_errors(ex.response.status_code)
         return resp.json()
 
     @retry(
@@ -194,7 +194,7 @@ class Squaremeal(ApiMiner):
         try:
             resp = self.make_request(url, method="get")
         except (JoinError, AgentError) as ex:
-            self._handle_errors(ex.response.status_code)
+            self.handle_errors(ex.response.status_code)
         return resp.json()
 
     def join(self, credentials):

@@ -266,7 +266,7 @@ class TestBase(TestCase):
             GENERAL_ERROR: "GENERAL_ERROR",
         }
         with self.assertRaises(LoginError) as e:
-            agent._handle_errors(error_code="GENERAL_ERROR")
+            agent.handle_errors(error_code="GENERAL_ERROR")
         self.assertEqual("General Error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
@@ -278,7 +278,7 @@ class TestBase(TestCase):
             GENERAL_ERROR: "GENERAL_ERROR",
         }
         with self.assertRaises(AgentError) as e:
-            agent._handle_errors(error_code="VALIDATION")
+            agent.handle_errors(error_code="VALIDATION")
         self.assertEqual("An unknown error has occurred", e.exception.name)
         self.assertEqual(520, e.exception.code)
 
