@@ -47,7 +47,7 @@ class TestWasabi:
             "postcode": "BN77UU",
         }
 
-        wasabi.join(credentials=credentials)
+        wasabi.join(data=credentials)
         clean_up_user(wasabi=wasabi, email=email)
 
     def test_balance(self, wasabi, clean_up_user):
@@ -63,7 +63,7 @@ class TestWasabi:
             "postcode": "BN77UU",
         }
         expected_points = 0
-        wasabi.join(credentials=credentials)
+        wasabi.join(data=credentials)
 
         # WHEN
         wasabi.attempt_login(credentials=credentials)

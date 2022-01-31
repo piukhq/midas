@@ -11,27 +11,27 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
-from app import publish
 from app.agents.base import ApiMiner, Balance, check_correct_authentication
 from app.agents.exceptions import (
+    ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
     CONFIGURATION_ERROR,
     GENERAL_ERROR,
+    JOIN_ERROR,
+    JOIN_IN_PROGRESS,
     LINK_LIMIT_EXCEEDED,
     SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
-    UNKNOWN,
     AgentError,
     JoinError,
     LoginError,
 )
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
-from app.exceptions import AgentException
 from app.publish import thread_pool_executor
 from app.reporting import get_logger
-from app.scheme_account import TWO_PLACES, JourneyTypes, update_pending_join_account, SchemeAccountStatus
+from app.scheme_account import TWO_PLACES, JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
 
 RETRY_LIMIT = 3
@@ -64,13 +64,15 @@ class Iceland(ApiMiner):
         self._balance_amount = None
         self._transactions = None
         self.errors = {
-            STATUS_LOGIN_FAILED: "VALIDATION",
-            CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
-            LINK_LIMIT_EXCEEDED: "LINK_LIMIT_EXCEEDED",
+            ACCOUNT_ALREADY_EXISTS: "ACCOUNT_ALREADY_EXISTS",
             CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
+            CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
             GENERAL_ERROR: "GENERAL_ERROR",
+            JOIN_ERROR: "JOIN_ERROR",
+            JOIN_IN_PROGRESS: "JOIN_IN_PROGRESS",
+            LINK_LIMIT_EXCEEDED: "LINK_LIMIT_EXCEEDED",
+            STATUS_LOGIN_FAILED: "VALIDATION",
         }
-        self.integration_service = self.config.integration_service
 
     def _authenticate(self) -> str:
         have_valid_token = False
@@ -141,9 +143,10 @@ class Iceland(ApiMiner):
             return response.json()
         except (LoginError, AgentError) as e:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(e.name)
+            self._handle_errors(e.name)
 
     def login(self, credentials) -> None:
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         authentication_service = self.config.security_credentials["outbound"]["service"]
         check_correct_authentication(
             actual_config_auth_type=authentication_service,
@@ -167,27 +170,20 @@ class Iceland(ApiMiner):
         error = response_json.get("error_codes")
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
+            self._handle_errors(error[0]["code"])
         else:
             signal("log-in-success").send(self, slug=self.scheme_slug)
 
-        self.identifier = {
-            "barcode": response_json.get("barcode"),
-            "card_number": response_json.get("card_number"),
-            "merchant_identifier": response_json.get("merchant_scheme_id2"),
-        }
+        if not self.identifier:
+            self.identifier = {
+                "barcode": response_json.get("barcode"),
+                "card_number": response_json.get("card_number"),
+                "merchant_identifier": response_json.get("merchant_scheme_id2"),
+            }
         self.user_info["credentials"].update(self.identifier)
 
         self._balance_amount = response_json["balance"]
         self._transactions = response_json.get("transactions")
-
-    def _check_for_error_response(self, response):
-        error = None
-        for key in self.ERRORS_KEYS:
-            error = response.get(key)
-            if error:
-                break
-        return error
 
     def balance(self) -> Optional[Balance]:
         amount = Decimal(self._balance_amount).quantize(TWO_PLACES)
@@ -220,16 +216,28 @@ class Iceland(ApiMiner):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _join(self, payload: dict) -> dict:
-        self.make_request(self.config.merchant_url, method="post", json=payload)
+    def _join(self, payload: dict):
+        try:
+            response = self.make_request(self.config.merchant_url, method="post", audit=True, json=payload)
+            return response.json()
+        except (JoinError, AgentError) as e:
+            signal("join-fail").send(self, slug=self.scheme_slug)
+            self._handle_errors(e.name)
 
-    def join(self, credentials: dict, inbound=False) -> None:
+    def join(self, data: dict, inbound=False) -> None:
+        # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
+        consents = self.user_info["credentials"].get("consents", []).copy()
         if inbound:
-            self.record_uid = hash_ids.encode(self.scheme_id)
-            thread_pool_executor.submit(self._inbound_handler, credentials, self.scheme_slug)
+            self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+            self.identifier = {
+                "barcode": data.get("barcode"),
+                "card_number": data.get("card_number"),
+                "merchant_identifier": data.get("merchant_scheme_id2"),
+            }
+            thread_pool_executor.submit(self._inbound_handler, data, consents, self.config)
         else:
-            # marketing_opt_in_thirdparty not to be included in consent_confirmation function called below
-            consents = self.user_info["credentials"].get("consents", []).copy()
+            self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+            self.expecting_callback = True
             if consents:
                 if len(consents) < 2:
                     journey_type = consents[0]["journey_type"]
@@ -240,145 +248,40 @@ class Iceland(ApiMiner):
                         "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
                         "journey_type": journey_type,
                     }
-                    credentials["consents"].append(consent)
+                    data["consents"].append(consent)
                 else:
                     log.debug("Too many consents for Iceland scheme.")
-            marketing_mapping = {i["slug"]: i["value"] for i in credentials["consents"]}
+            marketing_mapping = {i["slug"]: i["value"] for i in data["consents"]}
 
             payload = {
-                "town_city": credentials["town_city"],
-                "county": credentials["county"],
-                "title": credentials["title"],
-                "address_1": credentials["address_1"],
-                "first_name": credentials["first_name"],
-                "last_name": credentials["last_name"],
-                "email": credentials["email"],
-                "postcode": credentials["postcode"],
-                "address_2": credentials["address_2"],
-                "record_uid": hash_ids.encode(self.scheme_id),
+                "town_city": data["town_city"],
+                "county": data["county"],
+                "title": data["title"],
+                "address_1": data["address_1"],
+                "first_name": data["first_name"],
+                "last_name": data["last_name"],
+                "email": data["email"],
+                "postcode": data["postcode"],
+                "address_2": data["address_2"],
+                "record_uid": self.record_uid,
                 "country": self.config.country,
-                "message_uid": str(uuid4()),
+                "message_uid": self.message_uid,
                 "callback_url": self.config.callback_url,
                 "marketing_opt_in": marketing_mapping["marketing_opt_in"],
                 "marketing_opt_in_thirdparty": marketing_mapping["marketing_opt_in_thirdparty"],
                 "merchant_scheme_id1": hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0]),
-                "dob": credentials["date_of_birth"],
-                "phone1": credentials["phone"],
+                "dob": data["date_of_birth"],
+                "phone1": data["phone"],
             }
 
-            async_service_identifier = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
-            if self.config.integration_service == async_service_identifier:
-                self.expecting_callback = True
+            response_json = self._join(payload)
 
-            self._join(payload)
+            error = response_json.get("error_codes")
+            if error:
+                signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+                self._handle_errors(error[0]["code"], exception_type=JoinError)
+            else:
+                signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
             consent_status = ConsentStatus.PENDING
             self.consent_confirmation(consents, consent_status)
-
-    def _create_log_message(
-        self,
-        json_msg,
-        msg_uid,
-        scheme_slug,
-        handler_type,
-        integration_service,
-        direction,
-        contains_errors=False,
-    ):
-        return {
-            "json": json_msg,
-            "message_uid": msg_uid,
-            "record_uid": self.record_uid,
-            "merchant_id": scheme_slug,
-            "handler_type": handler_type,
-            "integration_service": integration_service,
-            "direction": direction,
-            "expiry_date": arrow.utcnow().shift(days=+90).format("YYYY-MM-DD HH:mm:ss"),
-            "contains_errors": contains_errors,
-        }
-
-    def _get_identifiers(self, data):
-        """Checks if data contains any identifiers (i.e barcode, card_number) and returns a dict with their values."""
-        _identifier = {}
-        for identifier in self.identifier_type:
-            value = data.get(identifier)
-            if value:
-                converted_credential_type = self.merchant_identifier_mapping.get(identifier) or identifier
-                _identifier[converted_credential_type] = value
-        return _identifier
-
-    # Should be overridden in the agent if there is agent specific processing required for their response.
-    def process_join_response(self, consents):
-        """
-        Processes a merchant's response to a join request. On success, sets scheme account as ACTIVE and adds
-        identifiers/scheme credential answers to database.
-        :return: None
-        """
-        consent_status = ConsentStatus.PENDING
-        try:
-            error = self._check_for_error_response(self.result)
-            if error:
-                self.handle_errors(error[0]["code"], exception_type=JoinError)
-
-            identifier = self._get_identifiers(self.result)
-            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=identifier)
-            consent_status = ConsentStatus.SUCCESS
-
-        except (AgentException, LoginError, AgentError):
-            consent_status = ConsentStatus.FAILED
-            raise
-        finally:
-            self.consent_confirmation(consents, consent_status)
-
-        status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
-
-    def _inbound_handler(self, data, scheme_slug, consents):
-        """
-        Handler service for inbound response i.e. response from async join. The response json is logged,
-        converted to a python object and passed to the relevant method for processing.
-        :param data: dict of payload
-        :param scheme_slug: Bink's unique identifier for a merchant (slug)
-        :return: dict of response data
-        """
-        self.result = data
-        self.message_uid = self.result.get("message_uid")
-
-        logging_info = self._create_log_message(
-            data,
-            self.message_uid,
-            scheme_slug,
-            self.config.handler_type,
-            "ASYNC",
-            "INBOUND",
-        )
-
-        signal("send-audit-response").send(
-            response=json.dumps(data),
-            message_uid=self.message_uid,
-            record_uid=self.record_uid,
-            scheme_slug=self.scheme_slug,
-            handler_type=self.config.handler_type[0],
-            integration_service=self.config.integration_service,
-            status_code=0,  # Doesn't have a status code since this is an async response
-            channel=self.channel,
-        )
-
-        if self._check_for_error_response(self.result):
-            logging_info["contains_errors"] = True
-            log.warning(json.dumps(logging_info))
-        else:
-            log.info(json.dumps(logging_info))
-
-        try:
-            response = self.process_join_response(consents)
-            signal("callback-success").send(self, slug=self.scheme_slug)
-        except AgentError as e:
-            signal("callback-fail").send(self, slug=self.scheme_slug)
-            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
-            raise
-        except (AgentException, LoginError):
-            signal("callback-fail").send(self, slug=self.scheme_slug)
-            raise
-
-        return response

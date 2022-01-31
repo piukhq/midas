@@ -44,7 +44,6 @@ class JoinCallback(Resource):
                 "status": SchemeAccountStatus.PENDING,
                 "scheme_account_id": scheme_account_id[0],
                 "journey_type": JourneyTypes.JOIN.value,
-                "inbound_payload": data,
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
@@ -60,7 +59,7 @@ class JoinCallback(Resource):
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
-            agent_instance.join(user_info["credentials"], inbound=True)
+            agent_instance.join(data, inbound=True)
         except AgentError as e:
             update_failed_scheme_account(e)
             raise AgentException(e)

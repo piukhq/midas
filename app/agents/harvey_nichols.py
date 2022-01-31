@@ -132,7 +132,7 @@ class HarveyNichols(ApiMiner):
             result = self.call_balance_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self._handle_errors(result["outcome"])
 
         tiers_list = {"SILVER": 1, "GOLD": 2, "PLATINUM": 3, "BLACK": 4}
         tier = tiers_list[result["loyaltyTierId"]]
@@ -192,7 +192,7 @@ class HarveyNichols(ApiMiner):
             result = self.call_transaction_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self._handle_errors(result["outcome"])
 
         customer_transactions = [transaction["CustomerTransaction"] for transaction in result["transactions"]]
         transaction_types = ["Sale", "Refund"]
@@ -232,7 +232,7 @@ class HarveyNichols(ApiMiner):
             return {"message": "success"}
 
         signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
-        self.handle_errors(message, exception_type=JoinError)
+        self._handle_errors(message, exception_type=JoinError)
 
     def _login(self, credentials):
         """
@@ -303,7 +303,7 @@ class HarveyNichols(ApiMiner):
 
         else:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(json_result["outcome"])
+            self._handle_errors(json_result["outcome"])
 
 
 def agent_consent_response(resp):
