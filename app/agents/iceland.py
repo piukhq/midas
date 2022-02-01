@@ -230,9 +230,9 @@ class Iceland(ApiMiner):
         if inbound:
             self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
             self.identifier = {
-                "barcode": data.get("barcode"),
-                "card_number": data.get("card_number"),
-                "merchant_identifier": data.get("merchant_scheme_id2"),
+                "barcode": data.get("barcode"),  # type:ignore
+                "card_number": data.get("card_number"),  # type:ignore
+                "merchant_identifier": data.get("merchant_scheme_id2"),  # type:ignore
             }
             thread_pool_executor.submit(self._inbound_handler, data, consents, self.config)
         else:
