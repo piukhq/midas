@@ -309,50 +309,6 @@ class ApiMiner(BaseMiner):
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
 
-    # Should be overridden in the agent if there is agent specific processing required for their response.
-    def _process_join_response(self, data, consents):
-        consent_status = ConsentStatus.PENDING
-        try:
-            error = data.get("error_codes")
-            if error:
-                self.handle_errors(error_code=error[0]["code"], exception_type=JoinError)
-            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=self.identifier)
-            consent_status = ConsentStatus.SUCCESS
-
-        except (AgentException, LoginError, JoinError, AgentError):
-            consent_status = ConsentStatus.FAILED
-            raise
-        finally:
-            self.consent_confirmation(consents, consent_status)
-
-        status = SchemeAccountStatus.ACTIVE
-        publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
-
-    def _inbound_handler(self, data, consents, config):
-        self.message_uid = data["message_uid"]
-        try:
-            response = self._process_join_response(data, consents)
-            signal("send-audit-response").send(
-                response=json.dumps(data),
-                message_uid=self.message_uid,
-                record_uid=self.record_uid,
-                scheme_slug=self.scheme_slug,
-                handler_type=config.handler_type[0],
-                integration_service=config.integration_service,
-                status_code=0,  # Doesn't have a status code since this is an async response
-                channel=self.channel,
-            )
-            signal("callback-success").send(self, slug=self.scheme_slug)
-        except AgentError as e:
-            signal("callback-fail").send(self, slug=self.scheme_slug)
-            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
-            raise
-        except (AgentException, LoginError):
-            signal("callback-fail").send(self, slug=self.scheme_slug)
-            raise
-
-        return response
-
 
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:

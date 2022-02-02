@@ -9,10 +9,11 @@ import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
-from app.agents.base import ApiMiner, Balance, BaseMiner
-from app.agents.exceptions import AgentError, JoinError, LoginError
+from app.agents.base import Balance, BaseMiner
+from app.agents.exceptions import CARD_NUMBER_ERROR, AgentError, JoinError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
+from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
@@ -879,6 +880,40 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.code, 445)
         self.assertEqual(e.exception.name, "Account already exists")
 
+    @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.publish.status")
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_process_join_response(
+        self, mock_consent_confirmation, mock_publish_status, mock_update_pending_join_account
+    ):
+        data = {
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+            "merchant_scheme_id2": "a_merchant_scheme_id2",
+            "wallet_uid": "",
+            "error_codes": [],
+            "card_number": "a_card_number",
+            "barcode": "a_barcode",
+        }
+        expected_publish_status_calls = [call(1, SchemeAccountStatus.ACTIVE, ANY, self.agent.user_info, journey="join")]
+        self.agent._process_join_response(data=data, consents=[])
+        self.assertEqual([call([], ConsentStatus.SUCCESS)], mock_consent_confirmation.mock_calls)
+        self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
+
+    def test_process_join_response_with_errors(self):
+        self.agent.errors = {
+            CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
+        }
+        data = {
+            "error_codes": [{"code": "CARD_NUMBER_ERROR", "description": "Card number not found"}],
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+        }
+        with self.assertRaises(JoinError):
+            self.agent._process_join_response(data=data, consents=[])
+
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
@@ -913,8 +948,8 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.name, "General Error")
 
     @mock.patch("requests.Session.post")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(ApiMiner, "_process_join_response", autospec=True)
+    @mock.patch("app.agents.iceland.signal", autospec=True)
+    @mock.patch.object(Iceland, "_process_join_response", autospec=True)
     def test_join_inbound_200(self, mock_process_join, mock_signal, mock_session_post):
         mock_process_join.return_value = None
         data = {
@@ -957,9 +992,9 @@ class TestIcelandJoin(TestCase):
         )
 
     @mock.patch("requests.Session.post")
-    @mock.patch("app.agents.base.update_pending_join_account")
+    @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch("app.agents.iceland.signal", autospec=True)
     def test_join_inbound_error(
         self, mock_signal, mock_consent_confirmation, mock_update_pending_join_account, mock_session_post
     ):
@@ -1003,6 +1038,77 @@ class TestIcelandJoin(TestCase):
             ],
             mock_update_pending_join_account.mock_calls,
         )
+
+    def test_add_additional_consent(self):
+        expected_consents = [
+            {"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0},
+            {
+                "id": 99999999999,
+                "slug": "marketing_opt_in_thirdparty",
+                "value": False,
+                "created_on": ANY,
+                "journey_type": 0,
+            },
+        ]
+        self.agent.add_additional_consent()
+
+        self.assertEqual(expected_consents, self.agent.user_info["credentials"]["consents"])
+
+    def test_add_additional_consent_more_than_one_consent(self):
+        self.agent.user_info["credentials"]["consents"].append(
+            {
+                "id": 99999999999,
+                "slug": "marketing_opt_in_thirdparty",
+                "value": False,
+                "created_on": "2020-05-26T15:30:16.096802+00:00",
+                "journey_type": 0,
+            }
+        )
+        logger = get_logger("iceland")
+        with mock.patch.object(logger, "debug") as mock_logger:
+            self.agent.add_additional_consent()
+
+        self.assertEqual(2, len(self.agent.user_info["credentials"]["consents"]))
+        self.assertEqual(call("Too many consents for Iceland scheme."), mock_logger.call_args)
+
+    def test_create_join_request_payload(self):
+        self.agent.user_info["credentials"]["consents"].append(
+            {
+                "id": 99999999999,
+                "slug": "marketing_opt_in_thirdparty",
+                "value": False,
+                "created_on": "2020-05-26T15:30:16.096802+00:00",
+                "journey_type": 0,
+            }
+        )
+        expected_payload = {
+            "town_city": "a_town",
+            "county": "a_county",
+            "title": "a_title",
+            "address_1": "an_address_1",
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "ba_test_01@testbink.com",
+            "postcode": "XX0 0XX",
+            "address_2": "an_address_2",
+            "record_uid": "7gl82g4y5pvzx1wj5noqrj3dke7m9092",
+            "country": "GB",
+            "message_uid": ANY,
+            "callback_url": None,
+            "marketing_opt_in": True,
+            "marketing_opt_in_thirdparty": False,
+            "merchant_scheme_id1": "7gl82g4y5pvzx1wj5noqrj3dke7m9092",
+            "dob": "1987-08-08",
+            "phone1": "0790000000",
+        }
+        payload = self.agent.create_join_request_payload()
+        self.assertEqual(expected_payload, payload)
+
+    def test_create_join_request_payload_no_consents(self):
+        self.agent.user_info["credentials"]["consents"] = {}
+        payload = self.agent.create_join_request_payload()
+        self.assertEqual(None, payload["marketing_opt_in"])
+        self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
 
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
