@@ -14,7 +14,7 @@ from app.exceptions import AgentException, UnknownException
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import authorise
-from settings import HERMES_URL, SERVICE_API_KEY
+from settings import HERMES_URL, NEW_ICELAND_AGENT_ACTIVE, SERVICE_API_KEY
 
 
 class JoinCallback(Resource):
@@ -59,7 +59,10 @@ class JoinCallback(Resource):
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
-            agent_instance.join_callback(data)
+            if NEW_ICELAND_AGENT_ACTIVE:
+                agent_instance.join_callback(data)
+            else:
+                agent_instance.join(data, inbound=True)
         except AgentError as e:
             update_failed_scheme_account(e)
             raise AgentException(e)
