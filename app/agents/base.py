@@ -424,7 +424,7 @@ class MerchantApi(BaseMiner):
             self.identifier = identifiers
 
     def join_callback(self, data):
-            self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
+        self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
 
     def join(self, data):
         """
