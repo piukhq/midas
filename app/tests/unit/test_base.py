@@ -3,10 +3,9 @@ from unittest import TestCase, mock
 from urllib.parse import urljoin
 
 import httpretty
-from soteria.configuration import Configuration
 
-from app.agents.base import ApiMiner, check_correct_authentication, create_error_response
-from app.agents.exceptions import END_SITE_DOWN, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.agents.base import ApiMiner, create_error_response
+from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
 
 
 class TestBase(TestCase):
@@ -246,21 +245,26 @@ class TestBase(TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    def test_check_correct_authentication(self):
-        actual_config_auth_type = Configuration.OAUTH_SECURITY
-        allowed_config_auth_types = [Configuration.OAUTH_SECURITY, Configuration.OPEN_AUTH_SECURITY]
-
-        self.assertEqual(None, check_correct_authentication(allowed_config_auth_types, actual_config_auth_type))
-
-    def test_check_incorrect_authentication_raises_error(self):
-        actual_config_auth_type = Configuration.RSA_SECURITY
-        allowed_config_auth_types = [Configuration.OAUTH_SECURITY, Configuration.OPEN_AUTH_SECURITY]
-
-        with self.assertRaises(AgentError) as e:
-            check_correct_authentication(allowed_config_auth_types, actual_config_auth_type)
-        self.assertEqual("Configuration error", e.exception.name)
-        self.assertEqual(
-            "Agent expecting Security Type(s) ['OAuth', 'Open Auth (No Authentication)'] "
-            "but got Security Type 'RSA' instead",
-            e.exception.message,
+    def test_handle_errors_raises_exception(self):
+        agent = ApiMiner(
+            retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         )
+        agent.errors = {
+            GENERAL_ERROR: "GENERAL_ERROR",
+        }
+        with self.assertRaises(LoginError) as e:
+            agent.handle_errors(error_code="GENERAL_ERROR")
+        self.assertEqual("General Error", e.exception.name)
+        self.assertEqual(439, e.exception.code)
+
+    def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self):
+        agent = ApiMiner(
+            retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        )
+        agent.errors = {
+            GENERAL_ERROR: "GENERAL_ERROR",
+        }
+        with self.assertRaises(AgentError) as e:
+            agent.handle_errors(error_code="VALIDATION")
+        self.assertEqual("An unknown error has occurred", e.exception.name)
+        self.assertEqual(520, e.exception.code)
