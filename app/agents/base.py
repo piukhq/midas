@@ -423,7 +423,10 @@ class MerchantApi(BaseMiner):
         except KeyError:
             self.identifier = identifiers
 
-    def join(self, data, inbound=False):
+    def join_callback(self, data):
+            self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
+
+    def join(self, data):
         """
         Calls handler, passing in 'join' as the handler_type.
         :param data: user account credentials to join for merchant scheme or validated merchant response data
@@ -435,46 +438,43 @@ class MerchantApi(BaseMiner):
         self.consents_data = consents_data.copy() if consents_data else []
         log.debug(f"Joining with consents: {consents_data} and scheme slug: {self.scheme_slug}")
 
-        if inbound:
-            self._async_inbound(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
-        else:
-            "TODO: REMOVE THE FOLLOWING ASAP, when we have a ticket!"
-            "TEMPORARY FOR ICELAND CONSENTS"
-            if self.scheme_slug == "iceland-bonus-card" and self.consents_data:
-                if len(self.consents_data) < 2:
-                    journey_type = self.consents_data[0]["journey_type"]
-                    consent = {
-                        "id": 99999999999,
-                        "slug": "marketing_opt_in_thirdparty",
-                        "value": False,
-                        "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
-                        "journey_type": journey_type,
-                    }
-                    data["consents"].append(consent)
-                else:
-                    log.debug("Too many consents for Iceland scheme.")
-
-            self.record_uid = data["record_uid"] = hash_ids.encode(self.scheme_id)
-
-            self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
-
-            # Async joins will return empty 200 responses so there is nothing to process.
-            if self.config.integration_service == "SYNC":
-                self.process_join_response()
-
-            # Processing immediate response from async requests
+        "TODO: REMOVE THE FOLLOWING ASAP, when we have a ticket!"
+        "TEMPORARY FOR ICELAND CONSENTS"
+        if self.scheme_slug == "iceland-bonus-card" and self.consents_data:
+            if len(self.consents_data) < 2:
+                journey_type = self.consents_data[0]["journey_type"]
+                consent = {
+                    "id": 99999999999,
+                    "slug": "marketing_opt_in_thirdparty",
+                    "value": False,
+                    "created_on": arrow.now().isoformat(),  # '2020-05-26T15:30:16.096802+00:00',
+                    "journey_type": journey_type,
+                }
+                data["consents"].append(consent)
             else:
-                consent_status = ConsentStatus.PENDING
-                try:
-                    error = self._check_for_error_response(self.result)
-                    if error:
-                        self._handle_errors(error[0]["code"], exception_type=JoinError)
+                log.debug("Too many consents for Iceland scheme.")
 
-                except (AgentException, LoginError, AgentError):
-                    consent_status = ConsentStatus.FAILED
-                    raise
-                finally:
-                    self.consent_confirmation(self.consents_data, consent_status)
+        self.record_uid = data["record_uid"] = hash_ids.encode(self.scheme_id)
+
+        self.result = self._outbound_handler(data, self.scheme_slug, handler_type=Configuration.JOIN_HANDLER)
+
+        # Async joins will return empty 200 responses so there is nothing to process.
+        if self.config.integration_service == "SYNC":
+            self.process_join_response()
+
+        # Processing immediate response from async requests
+        else:
+            consent_status = ConsentStatus.PENDING
+            try:
+                error = self._check_for_error_response(self.result)
+                if error:
+                    self._handle_errors(error[0]["code"], exception_type=JoinError)
+
+            except (AgentException, LoginError, AgentError):
+                consent_status = ConsentStatus.FAILED
+                raise
+            finally:
+                self.consent_confirmation(self.consents_data, consent_status)
 
     # Should be overridden in the agent if there is agent specific processing required for their response.
     def process_join_response(self):

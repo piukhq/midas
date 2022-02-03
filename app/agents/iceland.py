@@ -121,7 +121,6 @@ class Iceland(ApiMiner):
                 self.handle_errors(error_code=error[0]["code"], exception_type=JoinError)
             update_pending_join_account(self.user_info, "success", self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
-
         except (AgentException, LoginError, JoinError, AgentError):
             consent_status = ConsentStatus.FAILED
             raise
