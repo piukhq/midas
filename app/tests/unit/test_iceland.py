@@ -883,7 +883,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.publish.status")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_process_join_response(
+    def test_process_join_callback_response(
         self, mock_consent_confirmation, mock_publish_status, mock_update_pending_join_account
     ):
         data = {
@@ -897,11 +897,15 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
         expected_publish_status_calls = [call(1, SchemeAccountStatus.ACTIVE, ANY, self.agent.user_info, journey="join")]
-        self.agent._process_join_response(data=data, consents=[])
-        self.assertEqual([call([], ConsentStatus.SUCCESS)], mock_consent_confirmation.mock_calls)
+        self.agent._process_join_callback_response(data=data)
+        self.assertEqual(
+            [call([{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}], ConsentStatus.SUCCESS)],
+            mock_consent_confirmation.mock_calls,
+        )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
-    def test_process_join_response_with_errors(self):
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_process_join_callback_response_with_errors(self, mock_consent_confirmation):
         self.agent.errors = {
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
         }
@@ -912,7 +916,7 @@ class TestIcelandJoin(TestCase):
             "merchant_scheme_id1": "a_merchant_scheme_id1",
         }
         with self.assertRaises(JoinError):
-            self.agent._process_join_response(data=data, consents=[])
+            self.agent._process_join_callback_response(data=data)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -949,8 +953,8 @@ class TestIcelandJoin(TestCase):
 
     @mock.patch("requests.Session.post")
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch.object(Iceland, "_process_join_response", autospec=True)
-    def test_join_inbound_200(self, mock_process_join, mock_signal, mock_session_post):
+    @mock.patch.object(Iceland, "_process_join_callback_response", autospec=True)
+    def test_join_callback(self, mock_process_join, mock_signal, mock_session_post):
         mock_process_join.return_value = None
         data = {
             "message_uid": "a_message_uid",
@@ -971,7 +975,7 @@ class TestIcelandJoin(TestCase):
                 record_uid=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=Configuration.JOIN_HANDLER,
-                integration_service="ASYNC",
+                integration_service="SYNC",
                 status_code=0,
                 channel="",
             ),
@@ -982,7 +986,7 @@ class TestIcelandJoin(TestCase):
             ),
         ]
 
-        self.agent.join(data=data, inbound=True)
+        self.agent.join_callback(data=data)
 
         self.assertEqual(data["message_uid"], mock_process_join.call_args[0][1]["message_uid"])
         self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
@@ -995,7 +999,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch.object(BaseMiner, "consent_confirmation")
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_join_inbound_error(
+    def test_join_callback_error(
         self, mock_signal, mock_consent_confirmation, mock_update_pending_join_account, mock_session_post
     ):
         data = {
@@ -1017,10 +1021,13 @@ class TestIcelandJoin(TestCase):
         ]
 
         with self.assertRaises(JoinError) as e:
-            self.agent._inbound_handler(data=data, consents=[], config=self.agent.config)
+            self.agent.join_callback(data=data)
         self.assertEqual("Invalid credentials", e.exception.name)
         self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
-        self.assertEqual([call([], ConsentStatus.FAILED)], mock_consent_confirmation.mock_calls)
+        self.assertEqual(
+            [call([{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}], ConsentStatus.FAILED)],
+            mock_consent_confirmation.mock_calls,
+        )
         self.assertEqual(
             [
                 call(

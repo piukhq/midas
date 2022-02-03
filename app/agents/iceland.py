@@ -31,7 +31,6 @@ from app.agents.exceptions import (
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
 from app.exceptions import AgentException
-from app.publish import thread_pool_executor
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.tasks.resend_consents import ConsentStatus
@@ -114,8 +113,7 @@ class Iceland(ApiMiner):
             "phone1": credentials["phone"],
         }
 
-    # Should be overridden in the agent if there is agent specific processing required for their response.
-    def _process_join_response(self, data, consents):
+    def _process_join_callback_response(self, data):
         consent_status = ConsentStatus.PENDING
         try:
             error = data.get("error_codes")
@@ -128,22 +126,28 @@ class Iceland(ApiMiner):
             consent_status = ConsentStatus.FAILED
             raise
         finally:
-            self.consent_confirmation(consents, consent_status)
+            self.consent_confirmation(self.user_info["credentials"].get("consents", []), consent_status)
 
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
 
-    def _inbound_handler(self, data, consents, config):
+    def join_callback(self, data: dict) -> None:
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        self.identifier = {
+            "barcode": data.get("barcode"),  # type:ignore
+            "card_number": data.get("card_number"),  # type:ignore
+            "merchant_identifier": data.get("merchant_scheme_id2"),  # type:ignore
+        }
         self.message_uid = data["message_uid"]
         try:
-            response = self._process_join_response(data, consents)
+            response = self._process_join_callback_response(data)
             signal("send-audit-response").send(
                 response=json.dumps(data),
                 message_uid=self.message_uid,
                 record_uid=self.record_uid,
                 scheme_slug=self.scheme_slug,
-                handler_type=config.handler_type[0],
-                integration_service=config.integration_service,
+                handler_type=self.config.handler_type[0],
+                integration_service=self.integration_service,
                 status_code=0,  # Doesn't have a status code since this is an async response
                 channel=self.channel,
             )
@@ -171,36 +175,27 @@ class Iceland(ApiMiner):
             signal("join-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(e.name)
 
-    def join(self, data: dict, inbound=False) -> None:
+    def join(self, data: dict) -> None:
         # Barclays expects only 1 consent for an Iceland join, whereas Iceland expects 2
         # Save the current consent to a variable for use in self.consent_confirmation below
         consents = self.user_info["credentials"].get("consents", []).copy()
-        if inbound:
-            self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
-            self.identifier = {
-                "barcode": data.get("barcode"),  # type:ignore
-                "card_number": data.get("card_number"),  # type:ignore
-                "merchant_identifier": data.get("merchant_scheme_id2"),  # type:ignore
-            }
-            thread_pool_executor.submit(self._inbound_handler, data, consents, self.config)
+        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
+        self.expecting_callback = True
+        # Add the additional consent for Iceland
+        if consents:
+            self.add_additional_consent()
+
+        response_json = self._join(self.create_join_request_payload())
+
+        error = response_json.get("error_codes")
+        if error:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+            self.handle_errors(error[0]["code"], exception_type=JoinError)
         else:
-            self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
-            self.expecting_callback = True
-            # Add the additional consent for Iceland
-            if consents:
-                self.add_additional_consent()
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
-            response_json = self._join(self.create_join_request_payload())
-
-            error = response_json.get("error_codes")
-            if error:
-                signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-                self.handle_errors(error[0]["code"], exception_type=JoinError)
-            else:
-                signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
-
-            consent_status = ConsentStatus.PENDING
-            self.consent_confirmation(consents, consent_status)
+        consent_status = ConsentStatus.PENDING
+        self.consent_confirmation(consents, consent_status)
 
     def _authenticate(self) -> str:
         have_valid_token = False
