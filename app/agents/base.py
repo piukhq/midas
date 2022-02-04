@@ -205,7 +205,6 @@ class ApiMiner(BaseMiner):
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
             JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
-            JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
         }
         self.record_uid = hash_ids.encode(self.scheme_id)
         self.message_uid = str(uuid4())
@@ -256,6 +255,10 @@ class ApiMiner(BaseMiner):
             "timeout": timeout,
         }
         args.update(kwargs)
+
+        # Prevent audit logging when agent login method is called for update
+        if self.journey_type not in self.audit_handlers.keys():
+            audit = False
 
         try:
             if audit:
