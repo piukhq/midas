@@ -4,7 +4,7 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 from urllib.parse import urljoin
 
 import arrow
@@ -24,28 +24,48 @@ from settings import HERMES_URL
 class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with unittest.mock.patch("app.agents.acteol.Configuration") as mock_config:
-            mock_config.SYNC_INTEGRATION = Configuration.SYNC_INTEGRATION
-            mock_config.INTEGRATION_CHOICES = Configuration.INTEGRATION_CHOICES
+        mock_config = MagicMock()
+        mock_config.merchant_url = "https://wasabiuat.test.wasabiworld.co.uk/"
+        mock_config.security_credentials = {
+            "outbound": {
+                "service": Configuration.OAUTH_SECURITY,
+                "credentials": [
+                    {
+                        "credential_type": "compound_key",
+                        "storage_key": "a_storage_key",
+                        "value": {
+                            "payload": {
+                                "client_id": "a_client_id",
+                                "client_secret": "a_client_secret",
+                                "grant_type": "client_credentials",
+                                "resource": "a_resource",
+                            },
+                            "prefix": "Bearer",
+                        },
+                    }
+                ],
+            },
+        }
+        cls.mock_token = {
+            "acteol_access_token": "abcde12345fghij",
+            "timestamp": 123456789,
+        }
 
-            cls.mock_token = {
-                "acteol_access_token": "abcde12345fghij",
-                "timestamp": 123456789,
-            }
+        MOCK_AGENT_CLASS_ARGUMENTS = [
+            1,
+            {
+                "scheme_account_id": 1,
+                "status": 1,
+                "user_set": "1,2",
+                "journey_type": None,
+                "credentials": {},
+                "channel": "com.bink.wallet",
+            },
+        ]
 
-            MOCK_AGENT_CLASS_ARGUMENTS = [
-                1,
-                {
-                    "scheme_account_id": 1,
-                    "status": 1,
-                    "user_set": "1,2",
-                    "journey_type": None,
-                    "credentials": {},
-                    "channel": "com.bink.wallet",
-                },
-            ]
+        with patch("app.agents.acteol.Configuration", return_value=mock_config):
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
-            cls.wasabi.base_url = "https://wasabiuat.wasabiworld.co.uk/"
+            cls.wasabi.integration_service = "SYNC"
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_access_token")
@@ -185,6 +205,21 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         assert header == expected_header
+
+    @patch("app.agents.acteol.Acteol._make_headers")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_oauth(self, mock_authenticate, mock_make_headers):
+        self.wasabi._get_valid_api_token_and_make_headers()
+        self.assertEqual(1, mock_authenticate.call_count)
+        self.assertEqual(1, mock_make_headers.call_count)
+
+    @patch("app.agents.acteol.Acteol._make_headers")
+    @patch("app.agents.acteol.Acteol.authenticate")
+    def test_open_auth(self, mock_authenticate, mock_make_headers):
+        self.wasabi.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
+        self.wasabi._get_valid_api_token_and_make_headers()
+        self.assertEqual(0, mock_authenticate.call_count)
+        self.assertEqual(0, mock_make_headers.call_count)
 
     def test_create_origin_id(self):
         """

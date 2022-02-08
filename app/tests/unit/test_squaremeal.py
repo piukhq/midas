@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import arrow
 import httpretty
 from flask_testing import TestCase
+from soteria.configuration import Configuration
 from tenacity import wait_none
 
 import settings
@@ -20,6 +21,7 @@ settings.API_AUTH_ENABLED = False
 
 SECURITY_CREDENTIALS = {
     "outbound": {
+        "service": Configuration.OAUTH_SECURITY,
         "credentials": [
             {
                 "value": {
@@ -30,8 +32,8 @@ SECURITY_CREDENTIALS = {
                     "scope": "dunno",
                 },
             }
-        ]
-    }
+        ],
+    },
 }
 
 CREDENTIALS = {
@@ -278,25 +280,36 @@ class TestSquaremealJoin(TestCase):
             balance, Balance(points=Decimal("100"), value=0, value_label="", reward_tier=0, balance=None, vouchers=None)
         )
 
-    @mock.patch("app.agents.squaremeal.Configuration")
-    def test_get_security_credentials(self, mock_config):
-        mock_config.return_value = self.security_credentials
+    def test_get_security_credentials(self):
         self.assertEqual(self.squaremeal.auth_url, "http://fake.com")
-        self.assertEqual(self.squaremeal.secondary_key, "12345678")
+        self.assertEqual(self.squaremeal.headers, {"Secondary-Key": "12345678"})
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
     @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
     @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
     def test_authenticate(self, mock_refresh_token, mock_token_store, mock_store_token):
         current_timestamp = (arrow.utcnow().int_timestamp,)
-        mock_token_store.return_value = json.dumps({"timestamp": current_timestamp, "sm_access_token": "fake-123"})
-        self.assertEqual(self.squaremeal.authenticate(), "fake-123")
+        token = {"timestamp": current_timestamp, "sm_access_token": "fake-123"}
+        mock_token_store.return_value = json.dumps(token)
+        mock_store_token.return_value = token
 
         # Ensure all the necessary methods called when token expired
         self.squaremeal.AUTH_TOKEN_TIMEOUT = 0
         self.squaremeal.authenticate()
+        self.assertEqual({"Authorization": "fake-123", "Secondary-Key": "12345678"}, self.squaremeal.headers)
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
+
+    @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
+    @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
+    @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
+    def test_open_auth(self, mock_refresh_token, mock_token_store, mock_store_token):
+        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
+
+        self.squaremeal.authenticate()
+        self.assertEqual(0, mock_refresh_token.call_count)
+        self.assertEqual(0, mock_token_store.call_count)
+        self.assertEqual(0, mock_store_token.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal._get_balance")
