@@ -10,7 +10,6 @@ from flask_testing import TestCase
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
-import app.agents.squaremeal
 import settings
 from app.agents.exceptions import AgentError
 from app.agents.schemas import Balance
