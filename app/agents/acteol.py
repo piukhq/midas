@@ -47,7 +47,7 @@ class Acteol(ApiMiner):
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config = Configuration(
+        self.config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,
             settings.VAULT_URL,
@@ -55,8 +55,8 @@ class Acteol(ApiMiner):
             settings.CONFIG_SERVICE_URL,
         )
         self.credentials = user_info["credentials"]
-        self.base_url = config.merchant_url
-        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.base_url = self.config.merchant_url
+        self.auth = self.config.security_credentials["outbound"]["credentials"][0]["value"]
         self.token_store = UserTokenStore(settings.REDIS_URL)
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
@@ -905,10 +905,11 @@ class Acteol(ApiMiner):
         """
         Ensure our Acteol API token is valid and use to create headers for requests
         """
-        # Get a valid API token
-        token = self.authenticate()
-        # Add auth for subsequent API calls
-        self.headers = self._make_headers(token=token["acteol_access_token"])
+        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
+            # Get a valid API token
+            token = self.authenticate()
+            # Add auth for subsequent API calls
+            self.headers = self._make_headers(token=token["acteol_access_token"])
 
     def _check_response_for_error(self, resp_json: dict):
         """
