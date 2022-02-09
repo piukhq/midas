@@ -87,10 +87,9 @@ class Squaremeal(ApiMiner):
             pass
 
         if not have_valid_token:
-            sm_access_token = self._refresh_token()
-            token = self._store_token(sm_access_token, current_timestamp)
+            token = self._store_token(self._refresh_token(), current_timestamp)
 
-        self.headers["Authorization"] = token["sm_access_token"]
+        self.headers["Authorization"] = f'Bearer {token["sm_access_token"]}'
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),
