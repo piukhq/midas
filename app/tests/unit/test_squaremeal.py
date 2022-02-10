@@ -296,7 +296,7 @@ class TestSquaremealJoin(TestCase):
         # Ensure all the necessary methods called when token expired
         self.squaremeal.AUTH_TOKEN_TIMEOUT = 0
         self.squaremeal.authenticate()
-        self.assertEqual({"Authorization": "fake-123", "Secondary-Key": "12345678"}, self.squaremeal.headers)
+        self.assertEqual({"Authorization": "Bearer fake-123", "Secondary-Key": "12345678"}, self.squaremeal.headers)
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
 
