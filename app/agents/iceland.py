@@ -169,6 +169,8 @@ class Iceland(ApiMiner):
     def _join(self, payload: dict):
         try:
             response = self.make_request(self.config.merchant_url, method="post", audit=True, json=payload)
+            if response.text == "":
+                return {}
             return response.json()
         except (JoinError, AgentError) as e:
             signal("join-fail").send(self, slug=self.scheme_slug)
