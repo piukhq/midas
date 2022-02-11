@@ -880,6 +880,30 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.code, 445)
         self.assertEqual(e.exception.name, "Account already exists")
 
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_empty_response(
+        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+    ):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(
+                    body="",
+                )
+            ],
+        )
+
+        self.agent.join(self.credentials)
+        self.assertTrue(mock_consent_confirmation.called)
+        self.assertEqual(3, mock_base_signal.call_count)
+        self.assertEqual(1, mock_iceland_signal.call_count)
+
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.publish.status")
     @mock.patch.object(BaseMiner, "consent_confirmation")
