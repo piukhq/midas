@@ -64,7 +64,7 @@ class MockPerformance(MockedMiner):
         return transactions_list
 
     def join(self, credentials):
-        if "password" in credentials and "failure" in credentials["password"].lower():
+        if "failure" in credentials["password"].lower():
             raise JoinError(GENERAL_ERROR)
 
         return {"message": "success"}
