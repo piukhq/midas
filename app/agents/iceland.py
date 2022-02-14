@@ -114,6 +114,16 @@ class Iceland(ApiMiner):
         }
 
     def _process_join_callback_response(self, data):
+        signal("send-audit-response").send(
+            response=json.dumps(data),
+            message_uid=self.message_uid,
+            record_uid=self.record_uid,
+            scheme_slug=self.scheme_slug,
+            handler_type=self.config.handler_type[0],
+            integration_service=self.integration_service,
+            status_code=0,  # Doesn't have a status code since this is an async response
+            channel=self.channel,
+        )
         consent_status = ConsentStatus.PENDING
         try:
             error = data.get("error_codes")
@@ -139,17 +149,7 @@ class Iceland(ApiMiner):
         }
         self.message_uid = data["message_uid"]
         try:
-            response = self._process_join_callback_response(data)
-            signal("send-audit-response").send(
-                response=json.dumps(data),
-                message_uid=self.message_uid,
-                record_uid=self.record_uid,
-                scheme_slug=self.scheme_slug,
-                handler_type=self.config.handler_type[0],
-                integration_service=self.integration_service,
-                status_code=0,  # Doesn't have a status code since this is an async response
-                channel=self.channel,
-            )
+            self._process_join_callback_response(data)
             signal("callback-success").send(self, slug=self.scheme_slug)
         except AgentError as e:
             signal("callback-fail").send(self, slug=self.scheme_slug)
@@ -158,8 +158,6 @@ class Iceland(ApiMiner):
         except (AgentException, LoginError):
             signal("callback-fail").send(self, slug=self.scheme_slug)
             raise
-
-        return response
 
     @retry(
         stop=stop_after_attempt(RETRY_LIMIT),

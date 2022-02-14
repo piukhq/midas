@@ -976,10 +976,12 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.name, "General Error")
 
     @mock.patch("requests.Session.post")
+    @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch.object(Iceland, "_process_join_callback_response", autospec=True)
-    def test_join_callback(self, mock_process_join, mock_signal, mock_session_post):
-        mock_process_join.return_value = None
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback(
+        self, mock_consent_confirmation, mock_signal, mock_update_pending_join_account, mock_session_post
+    ):
         data = {
             "message_uid": "a_message_uid",
             "record_uid": "a_record_uid",
@@ -1009,14 +1011,49 @@ class TestIcelandJoin(TestCase):
                 slug="iceland-bonus-card",
             ),
         ]
+        expected_update_pending_join_account_calls = [
+            call(
+                {
+                    "scheme_account_id": 1,
+                    "status": 442,
+                    "journey_type": 0,
+                    "user_set": "1,2",
+                    "credentials": {
+                        "town_city": "a_town",
+                        "county": "a_county",
+                        "title": "a_title",
+                        "address_1": "an_address_1",
+                        "first_name": "John",
+                        "last_name": "Smith",
+                        "date_of_birth": "1987-08-08",
+                        "email": "ba_test_01@testbink.com",
+                        "phone": "0790000000",
+                        "postcode": "XX0 0XX",
+                        "address_2": "an_address_2",
+                        "consents": [{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}],
+                    },
+                },
+                "success",
+                "a_message_uid",
+                identifier={
+                    "barcode": "a_barcode",
+                    "card_number": "a_card_number",
+                    "merchant_identifier": "a_merchant_scheme_id2",
+                },
+            )
+        ]
 
         self.agent.join_callback(data=data)
 
-        self.assertEqual(data["message_uid"], mock_process_join.call_args[0][1]["message_uid"])
+        self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
         self.assertEqual(
             {"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"},
             self.agent.identifier,
+        )
+        self.assertEqual(
+            expected_update_pending_join_account_calls,
+            mock_update_pending_join_account.mock_calls,
         )
 
     @mock.patch("requests.Session.post")
@@ -1037,11 +1074,36 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
         expected_signal_calls = [
+            call("send-audit-response"),
+            call().send(
+                response=json.dumps(data),
+                message_uid="a_message_uid",
+                record_uid=ANY,
+                scheme_slug="iceland-bonus-card",
+                handler_type=Configuration.JOIN_HANDLER,
+                integration_service="SYNC",
+                status_code=0,
+                channel="",
+            ),
             call("callback-fail"),
             call().send(
                 self.agent,
                 slug="iceland-bonus-card",
             ),
+        ]
+        expected_update_pending_join_account_calls = [
+            call(
+                {
+                    "scheme_account_id": 1,
+                    "status": 442,
+                    "journey_type": 0,
+                    "user_set": "1,2",
+                    "credentials": self.credentials,
+                },
+                "STATUS_LOGIN_FAILED",
+                "a_message_uid",
+                raise_exception=False,
+            )
         ]
 
         with self.assertRaises(JoinError) as e:
@@ -1053,20 +1115,7 @@ class TestIcelandJoin(TestCase):
             mock_consent_confirmation.mock_calls,
         )
         self.assertEqual(
-            [
-                call(
-                    {
-                        "scheme_account_id": 1,
-                        "status": 442,
-                        "journey_type": 0,
-                        "user_set": "1,2",
-                        "credentials": self.credentials,
-                    },
-                    "STATUS_LOGIN_FAILED",
-                    "a_message_uid",
-                    raise_exception=False,
-                )
-            ],
+            expected_update_pending_join_account_calls,
             mock_update_pending_join_account.mock_calls,
         )
 
