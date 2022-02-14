@@ -11,7 +11,6 @@ from app.agents.schemas import Balance, Transaction, Voucher
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"
-FAIL_JOIN_PASSWORDS = ["failure", "failure0", "Failure0"]
 
 
 class MockPerformance(MockedMiner):
@@ -65,7 +64,7 @@ class MockPerformance(MockedMiner):
         return transactions_list
 
     def join(self, credentials):
-        if "failure" in credentials["password"].lower():
+        if "password" in credentials and "failure" in credentials["password"].lower():
             raise JoinError(GENERAL_ERROR)
 
         return {"message": "success"}
