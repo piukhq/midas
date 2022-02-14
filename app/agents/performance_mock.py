@@ -6,11 +6,12 @@ from uuid import uuid4
 import arrow
 
 from app.agents.base import MockedMiner
-from app.agents.exceptions import PRE_REGISTERED_CARD, LoginError
+from app.agents.exceptions import GENERAL_ERROR, PRE_REGISTERED_CARD, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"
+FAIL_JOIN_PASSWORDS = ["failure", "failure0", "Failure0"]
 
 
 class MockPerformance(MockedMiner):
@@ -64,6 +65,9 @@ class MockPerformance(MockedMiner):
         return transactions_list
 
     def join(self, credentials):
+        if credentials["password"] in FAIL_JOIN_PASSWORDS:
+            raise JoinError(GENERAL_ERROR)
+
         return {"message": "success"}
 
 
@@ -115,4 +119,7 @@ class MockPerformanceVoucher(MockedMiner):
         return []
 
     def join(self, credentials):
+        if credentials["password"] in FAIL_JOIN_PASSWORDS:
+            raise JoinError(GENERAL_ERROR)
+
         return {"message": "success"}
