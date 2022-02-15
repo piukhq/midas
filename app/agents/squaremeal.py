@@ -17,7 +17,6 @@ from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
 
-HANDLED_STATUS_CODES = [200, 201, 422, 401]
 RETRY_LIMIT = 3
 log = get_logger("squaremeal")
 
@@ -52,6 +51,7 @@ class Squaremeal(ApiMiner):
         self.errors = {
             "ACCOUNT_ALREADY_EXISTS": [422],
             "SERVICE_CONNECTION_ERROR": [401],
+            "END_SITE_DOWN": [530],
         }
         self.integration_service = self.config.integration_service
 
@@ -140,7 +140,8 @@ class Squaremeal(ApiMiner):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self.handle_errors(ex.response.status_code)
+            error_code = ex.response.status_code if ex.response is not None else ex.code
+            self.handle_errors(error_code)
         return resp.json()
 
     @retry(
@@ -173,7 +174,8 @@ class Squaremeal(ApiMiner):
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(ex.response.status_code)
+            error_code = ex.response.status_code if ex.response is not None else ex.code
+            self.handle_errors(error_code)
         return resp.json()
 
     @retry(
@@ -188,7 +190,8 @@ class Squaremeal(ApiMiner):
         try:
             resp = self.make_request(url, method="get")
         except (JoinError, AgentError) as ex:
-            self.handle_errors(ex.response.status_code)
+            error_code = ex.response.status_code if ex.response is not None else ex.code
+            self.handle_errors(error_code)
         return resp.json()
 
     def join(self, credentials):
@@ -206,10 +209,7 @@ class Squaremeal(ApiMiner):
         if self.journey_type == JourneyTypes.JOIN.value:
             return
 
-        self.errors = {
-            "STATUS_LOGIN_FAILED": [422],
-            "SERVICE_CONNECTION_ERROR": [401],
-        }
+        self.errors = {"STATUS_LOGIN_FAILED": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
         resp = self._login(credentials)
         self.identifier = {
             "merchant_identifier": resp["UserId"],
@@ -236,10 +236,7 @@ class Squaremeal(ApiMiner):
         )
 
     def balance(self):
-        self.errors = {
-            "NO_SUCH_RECORD": [422],
-            "SERVICE_CONNECTION_ERROR": [401],
-        }
+        self.errors = {"NO_SUCH_RECORD": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
         points_data = self._get_balance()
         self.point_transactions = points_data["PointsActivity"]
 
