@@ -8,18 +8,21 @@ import arrow
 import httpretty
 from soteria.configuration import Configuration
 from tenacity import wait_none
+from requests import Response
 
-from app.agents.base import Balance, BaseMiner
+from app.agents.base import Balance, BaseMiner, ApiMiner
 from app.agents.exceptions import CARD_NUMBER_ERROR, AgentError, JoinError, LoginError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
+from app.journeys.common import agent_login
+from app.journeys.join import agent_join
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 
 
-class TestIcelandValidate(TestCase):
+class TestIceland(TestCase):
     def setUp(self) -> None:
         self.credentials = {
             "card_number": "0000000000000000000",
@@ -136,25 +139,9 @@ class TestIcelandValidate(TestCase):
         mock_refresh_token.assert_called()
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    def test_login_success(self, mock_requests_session, mock_oath):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
-        )
-
-        self.agent.login(self.credentials)
-        self.assertEqual("SYNC", self.agent.integration_service)
-        self.assertIn("barcode", str(self.agent.user_info))
-        self.assertEqual(self.agent._balance_amount, 10.0)
-        self.assertEqual(self.agent._transactions, None)
-
-    @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate")
     @mock.patch("requests.Session.post", autospec=True)
-    def test_login_bypasses_authentication_if_open_auth(self, mock_requests_session, mock_oath):
+    def test_journey_bypasses_authentication_if_open_auth(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -165,7 +152,186 @@ class TestIcelandValidate(TestCase):
         self.agent.login(self.credentials)
         self.assertEqual(0, mock_oath.call_count)
 
-    def test_no_authentication_selected(self):
+    def test_balance(self):
+        self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
+        expected_result = Balance(
+            points=amount,
+            value=amount,
+            value_label="£{}".format(amount),
+        )
+
+        self.assertEqual(self.agent.balance(), expected_result)
+
+    def test_transactions_if_existing(self):
+        self.agent._transactions = [
+            {"timestamp": "2021-03-24T03:29:20", "reference": "DEBIT", "value": -2.0, "unit": "GBP"},
+            {"timestamp": "2021-02-15T23:02:47", "reference": "CREDIT", "value": 2.0, "unit": "GBP"},
+        ]
+        expected_result = [
+            Transaction(
+                date=arrow.get("2021-03-24T03:29:20"),
+                description="DEBIT",
+                points=Decimal("-2"),
+                location=None,
+                value=None,
+                hash="18daf676b636277c3a8f9b856d3e882f",
+            ),
+            Transaction(
+                date=arrow.get("2021-02-15T23:02:47"),
+                description="CREDIT",
+                points=Decimal("2"),
+                location=None,
+                value=None,
+                hash="6cc797e6ccaa035bc131eb703cd0f136",
+            ),
+        ]
+
+        self.assertEqual(self.agent.transactions(), expected_result)
+
+    def test_transactions_if_None(self):
+        self.agent._transactions = None
+        self.assertEqual([], self.agent.transactions())
+
+
+class TestIcelandAdd(TestCase):
+    def setUp(self) -> None:
+        self.credentials = {
+            "card_number": "0000000000000000000",
+            "last_name": "Smith",
+            "postcode": "XX0 0XX",
+        }
+        self.merchant_url = "https://reflector.dev.gb.bink.com/api/v1/bink/link"
+        self.token_url = "https://reflector.dev.gb.bink.com/mock/oauth2/token"
+
+        self.mock_configuration_object = MagicMock()
+        self.mock_configuration_object.security_credentials = {
+            "inbound": {"service": Configuration.OPEN_AUTH_SECURITY, "credentials": []},
+            "outbound": {
+                "service": Configuration.OAUTH_SECURITY,
+                "credentials": [
+                    {
+                        "credential_type": "compound_key",
+                        "storage_key": "a_storage_key",
+                        "value": {
+                            "payload": {
+                                "client_id": "a_client_id",
+                                "client_secret": "a_client_secret",
+                                "grant_type": "client_credentials",
+                                "resource": "a_resource",
+                            },
+                            "prefix": "Bearer",
+                            "url": self.token_url,
+                        },
+                    }
+                ],
+            },
+        }
+        self.mock_configuration_object.merchant_url = self.merchant_url
+        self.mock_configuration_object.callback_url = None
+
+        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+            self.agent = Iceland(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": SchemeAccountStatus.WALLET_ONLY,
+                    "journey_type": JourneyTypes.LINK.value,
+                    "user_set": "1,2",
+                    "credentials": self.credentials,
+                },
+                scheme_slug="iceland-bonus-card",
+            )
+            self.agent._login.retry.wait = wait_none()  # type:ignore
+
+    @mock.patch.object(Iceland, "login")
+    def test_agent_login_returns_agent_instance(self, mock_login):
+        mock_login.return_value = {"message": "success"}
+        user_info = {
+            "metadata": {},
+            "scheme_slug": "iceland-bonus-card",
+            "user_id": "test user id",
+            "credentials": {},
+            "scheme_account_id": 2,
+            "channel": "com.bink.wallet",
+            "status": 442,
+            "journey_type": 1,
+        }
+
+        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+            agent_instance = agent_login(Iceland, user_info, {}, 1)
+
+        self.assertTrue(isinstance(agent_instance, Iceland))
+        self.assertTrue(mock_login.called)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_success(self, mock_requests_session, mock_oath):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "balance": 10.0,
+                            "barcode": "a_barcode",
+                            "card_number": "a_card_number",
+                            "merchant_scheme_id1": "a_merchant_scheme_id1",
+                            "merchant_scheme_id2": "a_merchant_scheme_id2",
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        self.agent.login(self.credentials)
+
+        self.assertEqual("SYNC", self.agent.integration_service)
+        self.assertIn("barcode", str(self.agent.user_info))
+        self.assertEqual(10.0, self.agent._balance_amount)
+        self.assertEqual(
+            None,
+            self.agent._transactions,
+        )
+        self.assertEqual(
+            {"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"},
+            self.agent.identifier,
+        )
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_does_not_expect_callback(
+        self, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+    ):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "balance": 10.0,
+                            "barcode": "a_barcode",
+                            "card_number": "a_card_number",
+                            "merchant_scheme_id1": "a_merchant_scheme_id1",
+                            "merchant_scheme_id2": "a_merchant_scheme_id2",
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        self.agent.login(self.credentials)
+
+        self.assertFalse(self.agent.expecting_callback)
+
+    def test_login_wrong_authentication_selected(self):
         self.agent.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
         with self.assertRaises(AgentError) as e:
             self.agent.login(self.credentials)
@@ -179,7 +345,25 @@ class TestIcelandValidate(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
-    def test_login_401(self, mock_requests_session, mock_oath):
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(ApiMiner, "make_request")
+    def test_login_does_not_retry_on_202(
+        self, mock_make_request, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+    ):
+        response = Response()
+        response.status_code = 202
+        response._content = b'{"balance": 10.0}'
+        mock_make_request.return_value = response
+
+        self.agent.login(self.credentials)
+
+        self.assertEqual(1, mock_make_request.call_count)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_login_401_unauthorised(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -300,46 +484,6 @@ class TestIcelandValidate(TestCase):
         with self.assertRaises(LoginError) as e:
             self.agent.login(self.credentials)
         self.assertEqual(e.exception.code, 439)
-
-    def test_balance(self):
-        self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
-        expected_result = Balance(
-            points=amount,
-            value=amount,
-            value_label="£{}".format(amount),
-        )
-
-        self.assertEqual(self.agent.balance(), expected_result)
-
-    def test_transactions_if_existing(self):
-        self.agent._transactions = [
-            {"timestamp": "2021-03-24T03:29:20", "reference": "DEBIT", "value": -2.0, "unit": "GBP"},
-            {"timestamp": "2021-02-15T23:02:47", "reference": "CREDIT", "value": 2.0, "unit": "GBP"},
-        ]
-        expected_result = [
-            Transaction(
-                date=arrow.get("2021-03-24T03:29:20"),
-                description="DEBIT",
-                points=Decimal("-2"),
-                location=None,
-                value=None,
-                hash="18daf676b636277c3a8f9b856d3e882f",
-            ),
-            Transaction(
-                date=arrow.get("2021-02-15T23:02:47"),
-                description="CREDIT",
-                points=Decimal("2"),
-                location=None,
-                value=None,
-                hash="6cc797e6ccaa035bc131eb703cd0f136",
-            ),
-        ]
-
-        self.assertEqual(self.agent.transactions(), expected_result)
-
-    def test_transactions_if_None(self):
-        self.agent._transactions = None
-        self.assertEqual([], self.agent.transactions())
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -574,8 +718,8 @@ class TestIcelandJoin(TestCase):
         self.merchant_url = "https://reflector.dev.gb.bink.com/mock/api/v1/bink/join/"
         self.token_url = "https://reflector.dev.gb.bink.com/mock/"
 
-        mock_configuration_object = MagicMock()
-        mock_configuration_object.security_credentials = {
+        self.mock_configuration_object = MagicMock()
+        self.mock_configuration_object.security_credentials = {
             "outbound": {
                 "service": 0,
                 "credentials": [{"storage_key": "", "value": PRIVATE_KEY, "credential_type": "bink_private_key"}],
@@ -588,13 +732,13 @@ class TestIcelandJoin(TestCase):
                 ],
             },
         }
-        mock_configuration_object.merchant_url = self.merchant_url
-        mock_configuration_object.callback_url = None
-        mock_configuration_object.country = "GB"
-        mock_configuration_object.integration_service = "ASYNC"
-        mock_configuration_object.handler_type = Configuration.HANDLER_TYPE_CHOICES[Configuration.JOIN_HANDLER]
+        self.mock_configuration_object.merchant_url = self.merchant_url
+        self.mock_configuration_object.callback_url = None
+        self.mock_configuration_object.country = "GB"
+        self.mock_configuration_object.integration_service = "ASYNC"
+        self.mock_configuration_object.handler_type = Configuration.HANDLER_TYPE_CHOICES[Configuration.JOIN_HANDLER]
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
+        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -607,6 +751,29 @@ class TestIcelandJoin(TestCase):
                 scheme_slug="iceland-bonus-card",
             )
         self.agent._join.retry.wait = wait_none()  # type:ignore
+
+    @mock.patch.object(Iceland, "join")
+    @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
+    def test_attempt_join_returns_agent_instance(self, mock_update_pending_join_account, mock_join):
+        mock_join.return_value = {"message": "success"}
+        user_info = {
+            "metadata": {},
+            "scheme_slug": "iceland-bonus-card",
+            "user_id": "test user id",
+            "credentials": {},
+            "scheme_account_id": 2,
+            "channel": "com.bink.wallet",
+            "status": 442,
+            "journey_type": 0,
+        }
+
+        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+            join_data = agent_join(Iceland, user_info, {}, 1)
+        agent_instance = join_data["agent"]
+
+        self.assertTrue(isinstance(agent_instance, Iceland))
+        self.assertTrue(mock_join.called)
+        self.assertFalse(mock_update_pending_join_account.called)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -683,6 +850,27 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls)
         self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(0, mock_iceland_signal.call_count)
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_outbound_expects_callback(
+        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+    ):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(body=json.dumps({"result": "OK", "message": "Callback requested with delay"}))
+            ],
+        )
+
+        self.agent.join(self.credentials)
+
+        self.assertTrue(self.agent.expecting_callback)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -876,7 +1064,40 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_join_empty_response(
+    def test_join_general_error(
+        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+    ):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.merchant_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "error_codes": [
+                                {
+                                    "code": "GENERAL_ERROR",
+                                    "description": "Unspecified exception",
+                                }
+                            ]
+                        }
+                    ),
+                )
+            ],
+        )
+
+        with self.assertRaises(JoinError) as e:
+            self.agent.join(self.credentials)
+        self.assertEqual(e.exception.code, 439)
+        self.assertEqual(e.exception.name, "General Error")
+
+    @httpretty.activate
+    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch("app.agents.base.signal", autospec=True)
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
         httpretty.register_uri(
@@ -932,45 +1153,13 @@ class TestIcelandJoin(TestCase):
         with self.assertRaises(JoinError):
             self.agent._process_join_callback_response(data=data)
 
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.iceland.signal")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_general_error(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
-    ):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[
-                httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "error_codes": [
-                                {
-                                    "code": "GENERAL_ERROR",
-                                    "description": "Unspecified exception",
-                                }
-                            ]
-                        }
-                    ),
-                )
-            ],
-        )
-
-        with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
-        self.assertEqual(e.exception.code, 439)
-        self.assertEqual(e.exception.name, "General Error")
-
     @mock.patch("requests.Session.post")
+    @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_join_callback(
-        self, mock_consent_confirmation, mock_signal, mock_update_pending_join_account, mock_session_post
+        self, mock_consent_confirmation, mock_signal, mock_update_pending_join_account, mock_scheme_account_requests, mock_session_post
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1124,7 +1313,7 @@ class TestIcelandJoin(TestCase):
 
         self.assertEqual(expected_consents, self.agent.user_info["credentials"]["consents"])
 
-    def test_add_additional_consent_more_than_one_consent(self):
+    def test_add_additional_consent_when_there_is_more_than_one_consent(self):
         self.agent.user_info["credentials"]["consents"].append(
             {
                 "id": 99999999999,
@@ -1174,7 +1363,7 @@ class TestIcelandJoin(TestCase):
         payload = self.agent.create_join_request_payload()
         self.assertEqual(expected_payload, payload)
 
-    def test_create_join_request_payload_no_consents(self):
+    def test_create_join_request_payload_when_no_consents(self):
         self.agent.user_info["credentials"]["consents"] = {}
         payload = self.agent.create_join_request_payload()
         self.assertEqual(None, payload["marketing_opt_in"])
