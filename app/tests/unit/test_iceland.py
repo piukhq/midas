@@ -878,192 +878,6 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_join_validation_error(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
-    ):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[
-                httpretty.Response(
-                    body=json.dumps(
-                        {"error_codes": [{"code": "VALIDATION", "description": "Card owner details do not match"}]}
-                    ),
-                )
-            ],
-        )
-
-        expected_base_signal_calls = [
-            call("send-audit-request"),
-            call().send(
-                self.agent,
-                payload={
-                    "town_city": "a_town",
-                    "county": "a_county",
-                    "title": "a_title",
-                    "address_1": "an_address_1",
-                    "first_name": "John",
-                    "last_name": "Smith",
-                    "email": "ba_test_01@testbink.com",
-                    "postcode": "XX0 0XX",
-                    "address_2": "an_address_2",
-                    "record_uid": ANY,
-                    "country": "GB",
-                    "message_uid": ANY,
-                    "callback_url": None,
-                    "marketing_opt_in": True,
-                    "marketing_opt_in_thirdparty": False,
-                    "merchant_scheme_id1": ANY,
-                    "dob": "1987-08-08",
-                    "phone1": "0790000000",
-                },
-                scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
-                integration_service="ASYNC",
-                message_uid=ANY,
-                record_uid=ANY,
-                channel="",
-            ),
-            call("send-audit-response"),
-            call().send(
-                self.agent,
-                response=ANY,
-                scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
-                integration_service="ASYNC",
-                status_code=HTTPStatus.OK,
-                message_uid=ANY,
-                record_uid=ANY,
-                channel="",
-            ),
-            call("record-http-request"),
-            call().send(
-                self.agent,
-                slug="iceland-bonus-card",
-                endpoint="/mock/api/v1/bink/join/",
-                latency=ANY,
-                response_code=HTTPStatus.OK,
-            ),
-        ]
-
-        with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
-        self.assertFalse(mock_consent_confirmation.called)
-        self.assertEqual(e.exception.code, 403)
-        self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls[:8])
-        self.assertEqual(3, mock_base_signal.call_count)
-        self.assertEqual(0, mock_iceland_signal.call_count)
-
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.iceland.signal")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_join_in_progress_error(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
-    ):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[
-                httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "error_codes": [
-                                {
-                                    "code": "JOIN_IN_PROGRESS",
-                                    "description": "Card join request could not be handled - card or URN already "
-                                    "joined or join is in-flight",
-                                }
-                            ]
-                        }
-                    ),
-                )
-            ],
-        )
-
-        with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
-        self.assertEqual(e.exception.code, 441)
-        self.assertEqual(e.exception.name, "Join in progress")
-
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.iceland.signal")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_join_error(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
-    ):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[
-                httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "error_codes": [
-                                {
-                                    "code": "JOIN_ERROR",
-                                    "description": "Card join response could not be handled - open join request "
-                                    "not found !, @WS_Message = Timeout expired. The timeout period "
-                                    "elapsed prior to completion of the operation or the server is "
-                                    "not responding",
-                                }
-                            ]
-                        }
-                    ),
-                )
-            ],
-        )
-
-        with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
-        self.assertEqual(e.exception.code, 538)
-        self.assertEqual(e.exception.name, "General Error preventing join")
-
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.iceland.signal")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_account_already_exists_error(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
-    ):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[
-                httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "error_codes": [
-                                {
-                                    "code": "ACCOUNT_ALREADY_EXISTS",
-                                    "description": "Card join response could not be handled - open "
-                                    "join request not found",
-                                }
-                            ]
-                        }
-                    ),
-                )
-            ],
-        )
-
-        with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
-        self.assertEqual(e.exception.code, 445)
-        self.assertEqual(e.exception.name, "Account already exists")
-
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.iceland.signal")
-    @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_join_general_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -1235,12 +1049,12 @@ class TestIcelandJoin(TestCase):
             mock_update_pending_join_account.mock_calls,
         )
 
-    @mock.patch("requests.Session.post")
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal")
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    @mock.patch("app.agents.iceland.signal", autospec=True)
-    def test_join_callback_error(
-        self, mock_signal, mock_consent_confirmation, mock_update_pending_join_account, mock_session_post
+    def test_join_callback_validation_error(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_update_pending_join_account, mock_requests_session
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1252,7 +1066,7 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
-        expected_signal_calls = [
+        expected_iceland_signal_calls = [
             call("send-audit-response"),
             call().send(
                 response=json.dumps(data),
@@ -1288,7 +1102,8 @@ class TestIcelandJoin(TestCase):
         with self.assertRaises(JoinError) as e:
             self.agent.join_callback(data=data)
         self.assertEqual("Invalid credentials", e.exception.name)
-        self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
+        self.assertEqual(403, e.exception.code)
+        self.assertEqual(expected_iceland_signal_calls, mock_iceland_signal.mock_calls)
         self.assertEqual(
             [call([{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}], ConsentStatus.FAILED)],
             mock_consent_confirmation.mock_calls,
@@ -1297,6 +1112,146 @@ class TestIcelandJoin(TestCase):
             expected_update_pending_join_account_calls,
             mock_update_pending_join_account.mock_calls,
         )
+
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback_join_in_progress_error(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_update_pending_join_account, mock_requests_session
+    ):
+        data = {
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+            "merchant_scheme_id2": "a_merchant_scheme_id2",
+            "wallet_uid": "",
+            "error_codes": [
+                {
+                    "code": "JOIN_IN_PROGRESS",
+                    "description": "Card join request could not be handled - card or URN already "
+                    "joined or join is in-flight",
+                }
+            ],
+            "card_number": "a_card_number",
+            "barcode": "a_barcode",
+        }
+
+        with self.assertRaises(JoinError) as e:
+            self.agent.join_callback(data=data)
+        self.assertEqual("Join in progress", e.exception.name)
+        self.assertEqual(441, e.exception.code)
+        self.assertEqual(
+            ConsentStatus.FAILED,
+            mock_consent_confirmation.call_args_list[0][0][1],
+        )
+        self.assertEqual([call("send-audit-response"), call("callback-fail")], mock_iceland_signal.call_args_list)
+        self.assertIn("JOIN_IN_PROGRESS", str(mock_update_pending_join_account.call_args_list))
+
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback_join_error(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_update_pending_join_account, mock_requests_session
+    ):
+        data = {
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+            "merchant_scheme_id2": "a_merchant_scheme_id2",
+            "wallet_uid": "",
+            "error_codes": [
+                {
+                    "code": "JOIN_ERROR",
+                    "description": "Card join response could not be handled - open join request "
+                    "not found !, @WS_Message = Timeout expired. The timeout period "
+                    "elapsed prior to completion of the operation or the server is "
+                    "not responding",
+                }
+            ],
+            "card_number": "a_card_number",
+            "barcode": "a_barcode",
+        }
+
+        with self.assertRaises(JoinError) as e:
+            self.agent.join_callback(data=data)
+        self.assertEqual("General Error preventing join", e.exception.name)
+        self.assertEqual(538, e.exception.code)
+        self.assertEqual(
+            ConsentStatus.FAILED,
+            mock_consent_confirmation.call_args_list[0][0][1],
+        )
+        self.assertEqual([call("send-audit-response"), call("callback-fail")], mock_iceland_signal.call_args_list)
+        self.assertIn("JOIN_ERROR", str(mock_update_pending_join_account.call_args_list))
+
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback_account_already_exists_error(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_update_pending_join_account, mock_requests_session
+    ):
+        data = {
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+            "merchant_scheme_id2": "a_merchant_scheme_id2",
+            "wallet_uid": "",
+            "error_codes": [
+                {
+                    "code": "ACCOUNT_ALREADY_EXISTS",
+                    "description": "Card join response could not be handled - open " "join request not found",
+                }
+            ],
+            "card_number": "a_card_number",
+            "barcode": "a_barcode",
+        }
+
+        with self.assertRaises(JoinError) as e:
+            self.agent.join_callback(data=data)
+        self.assertEqual("Account already exists", e.exception.name)
+        self.assertEqual(445, e.exception.code)
+        self.assertEqual(
+            ConsentStatus.FAILED,
+            mock_consent_confirmation.call_args_list[0][0][1],
+        )
+        self.assertEqual([call("send-audit-response"), call("callback-fail")], mock_iceland_signal.call_args_list)
+        self.assertIn("ACCOUNT_ALREADY_EXISTS", str(mock_update_pending_join_account.call_args_list))
+
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal")
+    @mock.patch.object(BaseMiner, "consent_confirmation")
+    def test_join_callback_general_error(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_update_pending_join_account, mock_requests_session
+    ):
+        data = {
+            "message_uid": "a_message_uid",
+            "record_uid": "a_record_uid",
+            "merchant_scheme_id1": "a_merchant_scheme_id1",
+            "merchant_scheme_id2": "a_merchant_scheme_id2",
+            "wallet_uid": "",
+            "error_codes": [
+                {
+                    "code": "GENERAL_ERROR",
+                    "description": "Unspecified exception",
+                }
+            ],
+            "card_number": "a_card_number",
+            "barcode": "a_barcode",
+        }
+
+        with self.assertRaises(JoinError) as e:
+            self.agent.join_callback(data=data)
+        self.assertEqual("General Error", e.exception.name)
+        self.assertEqual(439, e.exception.code)
+        self.assertEqual(
+            ConsentStatus.FAILED,
+            mock_consent_confirmation.call_args_list[0][0][1],
+        )
+        self.assertEqual([call("send-audit-response"), call("callback-fail")], mock_iceland_signal.call_args_list)
+        self.assertIn("GENERAL_ERROR", str(mock_update_pending_join_account.call_args_list))
 
     def test_add_additional_consent(self):
         expected_consents = [
