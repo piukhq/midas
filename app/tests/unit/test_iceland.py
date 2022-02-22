@@ -677,17 +677,12 @@ class TestIcelandJoin(TestCase):
                 response_code=HTTPStatus.OK,
             ),
         ]
-        expected_iceland_signal_calls = [
-            call("join-success"),
-            call().send(self.agent, slug=self.agent.scheme_slug, channel=""),
-        ]
 
         self.agent.join(self.credentials)
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls)
         self.assertEqual(3, mock_base_signal.call_count)
-        self.assertEqual(expected_iceland_signal_calls, mock_iceland_signal.mock_calls)
-        self.assertEqual(1, mock_iceland_signal.call_count)
+        self.assertEqual(0, mock_iceland_signal.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -762,10 +757,6 @@ class TestIcelandJoin(TestCase):
                 response_code=HTTPStatus.OK,
             ),
         ]
-        expected_iceland_signal_calls = [
-            call("join-fail"),
-            call().send(self.agent, slug="iceland-bonus-card", channel=""),
-        ]
 
         with self.assertRaises(JoinError) as e:
             self.agent.join(self.credentials)
@@ -773,8 +764,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls[:8])
         self.assertEqual(3, mock_base_signal.call_count)
-        self.assertEqual(expected_iceland_signal_calls, mock_iceland_signal.mock_calls[:2])
-        self.assertEqual(1, mock_iceland_signal.call_count)
+        self.assertEqual(0, mock_iceland_signal.call_count)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
@@ -902,7 +892,7 @@ class TestIcelandJoin(TestCase):
         self.agent.join(self.credentials)
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(3, mock_base_signal.call_count)
-        self.assertEqual(1, mock_iceland_signal.call_count)
+        self.assertEqual(0, mock_iceland_signal.call_count)
 
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.publish.status")

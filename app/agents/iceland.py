@@ -188,10 +188,7 @@ class Iceland(ApiMiner):
 
         error = response_json.get("error_codes")
         if error:
-            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             self.handle_errors(error[0]["code"], exception_type=JoinError)
-        else:
-            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)
