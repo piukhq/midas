@@ -12,7 +12,7 @@ settings.ATLAS_URL = "http://binktest.com/atlas"
 
 from app.audit import AuditLogger, sanitise  # noqa
 
-standin = settings.AUDIT_SANITISATION_STANDIN
+standin = settings.SANITISATION_STANDIN
 
 
 class TestAudit(unittest.TestCase):
