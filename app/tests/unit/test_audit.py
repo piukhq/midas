@@ -11,6 +11,7 @@ import settings
 settings.ATLAS_URL = "http://binktest.com/atlas"
 
 from app.audit import AuditLogger, sanitise  # noqa
+from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
 
 standin = settings.SANITISATION_STANDIN
 
@@ -54,7 +55,7 @@ class TestAudit(unittest.TestCase):
             ],
         }
 
-        result = sanitise(payload)
+        result = sanitise(payload, AUDIT_DEFAULT_SENSITIVE_KEYS)
         assert result == expected, "new payload should be sanitised"
         assert payload != result, "original payload should not be changed"
 

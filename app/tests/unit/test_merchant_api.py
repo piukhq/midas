@@ -320,7 +320,9 @@ class TestMerchantApi(FlaskTestCase):
         self.m.record_uid = "123"
 
         # WHEN
-        resp = self.m._sync_outbound(self.json_data)
+        data = json.loads(self.json_data)
+        print(type(data), "THIS IS TYPE OF DATA")
+        resp = self.m._sync_outbound(data)
 
         # THEN
         self.assertEqual(resp, self.json_data)

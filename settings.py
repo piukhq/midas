@@ -71,8 +71,8 @@ beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedu
 imports = ["app.tasks.resend"]
 
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
-HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
-CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
+HERMES_URL = getenv("HERMES_URL", default="http://localhost:8000")
+CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="http://localhost:9000/config_service")
 ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
@@ -91,7 +91,7 @@ PROPAGATE_EXCEPTIONS = True
 
 MAX_VALUE_LABEL_LENGTH = 11
 
-VAULT_URL = getenv("VAULT_URL", default="http://localhost:8200")
+VAULT_URL = getenv("VAULT_URL", default="https://bink-uksouth-dev-com.vault.azure.net/")
 # Vault settings for merchant api security credential storage
 VAULT_TOKEN = getenv("VAULT_TOKEN", default="myroot")
 
@@ -122,7 +122,7 @@ AUDIT_USE_DEFAULT_SENSITIVE_KEYS = getenv("AUDIT_USE_DEFAULT_SENSITIVE_KEYS", de
 AUDIT_ADDITIONAL_SENSITIVE_KEYS = getenv("AUDIT_ADDITIONAL_SENSITIVE_KEYS", required=False, conv=listconv)
 
 # String to replace sanitised keys in audit logs with.
-SANITISATION_STANDIN = getenv("SANITISATION_STANDIN", default="********")
+SANITISATION_STANDIN = getenv("AUDIT_SANITISATION_STANDIN", default="********")
 
 # Combined set of keys to redact from audit logs.
 AUDIT_DEFAULT_SENSITIVE_KEYS = ["password", "passwd", "pwd", "pw", "key", "secret", "token"]
