@@ -51,10 +51,11 @@ from app.encryption import hash_ids
 from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
-from app.reporting import get_logger
+from app.reporting import get_logger, sanitise
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
+from settings import KIBANA_SENSITIVE_KEYS
 
 log = get_logger("agent-base")
 
@@ -805,7 +806,7 @@ class MerchantApi(BaseMiner):
         contains_errors=False,
     ):
         return {
-            "json": json_msg,
+            "json": sanitise(json_msg, KIBANA_SENSITIVE_KEYS),
             "message_uid": msg_uid,
             "record_uid": self.record_uid,
             "merchant_id": scheme_slug,

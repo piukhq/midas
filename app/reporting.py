@@ -1,5 +1,7 @@
 import json
 import logging
+from copy import deepcopy
+from typing import MutableMapping
 
 import settings
 
@@ -23,6 +25,21 @@ class JSONFormatter(logging.Formatter):
                 "message": record.msg,
             }
         )
+
+
+def sanitise(data: MutableMapping, sensitive_keys: list):
+    data = deepcopy(data)
+    for k, v in data.items():
+        # if `k` is a sensitive key, redact the whole thing (even if it's a mapping itself.)
+        if k.lower() in sensitive_keys:
+            data[k] = settings.SANITISATION_STANDIN
+        # if `k` isn't sensitive but it is a mapping, sanitise that mapping.
+        elif isinstance(v, MutableMapping):
+            data[k] = sanitise(v, sensitive_keys)
+        # if `k` isn't sensitive but it is a list, sanitise all mappings in that list.
+        elif isinstance(v, list):
+            data[k] = [sanitise(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
+    return data
 
 
 def get_logger(name: str) -> logging.Logger:
