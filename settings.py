@@ -71,7 +71,7 @@ beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedu
 imports = ["app.tasks.resend"]
 
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
-HERMES_URL = getenv("HERMES_URL", default="local.hermes.chingrewards.com:8000")
+HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
 CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
 ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
