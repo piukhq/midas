@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import arrow
 import requests
+import sentry_sdk
 from blinker import signal
 from redis import RedisError
 from requests import HTTPError
@@ -273,6 +274,7 @@ class ApiMiner(BaseMiner):
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
+            sentry_sdk.capture_exception(exception)
             raise AgentError(END_SITE_DOWN) from exception
 
         signal("record-http-request").send(
