@@ -1,3 +1,5 @@
+from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
+
 import json
 import unittest
 from unittest.mock import ANY
@@ -11,7 +13,6 @@ import settings
 settings.ATLAS_URL = "http://binktest.com/atlas"
 
 from app.audit import AuditLogger, sanitise  # noqa
-from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
 
 standin = settings.SANITISATION_STANDIN
 
