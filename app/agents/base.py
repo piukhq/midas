@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Optional
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
+import sentry_sdk
 
 import arrow
 import requests
@@ -273,6 +274,7 @@ class ApiMiner(BaseMiner):
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
+            sentry_sdk.capture_exception(exception)
             raise AgentError(END_SITE_DOWN) from exception
 
         signal("record-http-request").send(
