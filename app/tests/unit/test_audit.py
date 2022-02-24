@@ -1,5 +1,3 @@
-from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
-
 import json
 import unittest
 from unittest.mock import ANY
@@ -9,6 +7,7 @@ import arrow
 import httpretty
 
 import settings
+from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
 
 settings.ATLAS_URL = "http://binktest.com/atlas"
 
