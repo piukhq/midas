@@ -12,8 +12,8 @@ from requests.packages.urllib3.util.retry import Retry
 from soteria.configuration import Configuration
 
 from app.http_request import get_headers
-from app.reporting import get_logger, sanitise
-from settings import ATLAS_URL, AUDIT_SENSITIVE_KEYS, KIBANA_SENSITIVE_KEYS
+from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
+from settings import ATLAS_URL, AUDIT_SENSITIVE_KEYS
 
 
 class AuditLogType(str, Enum):
@@ -143,7 +143,7 @@ class AuditLogger:
 
         headers = get_headers(tid=str(uuid4()))
         payload = {"audit_logs": [serialize(audit_log)]}
-        log.info(f"Sending payload to atlas: {sanitise(payload, KIBANA_SENSITIVE_KEYS)}")
+        log.info(f"Sending payload to atlas: {sanitise(payload, LOGGING_SENSITIVE_KEYS)}")
 
         try:
             resp = self.session.post(f"{ATLAS_URL}/audit/membership/", headers=headers, json=payload)

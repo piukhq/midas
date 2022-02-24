@@ -138,19 +138,3 @@ if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
 # true: iceland.py
 # false: iceland_merchant_integration.py
 NEW_ICELAND_AGENT_ACTIVE = getenv("NEW_ICELAND_AGENT_ACTIVE", default="false", conv=boolconv)
-
-KIBANA_SENSITIVE_KEYS = [
-    "address_1",
-    "address_2",
-    "country",
-    "county",
-    "dob",
-    "email",
-    "town_city",
-    "phone1",
-    "birthdate",
-    "phone",
-    "mobilphone",
-]
-
-KIBANA_SENSITIVE_KEYS += AUDIT_DEFAULT_SENSITIVE_KEYS
