@@ -255,8 +255,9 @@ class TestIcelandAdd(TestCase):
             )
             self.agent._login.retry.wait = wait_none()  # type:ignore
 
+    @mock.patch("app.retry.redis")
     @mock.patch.object(Iceland, "login")
-    def test_agent_login_returns_agent_instance(self, mock_login):
+    def test_agent_login_returns_agent_instance(self, mock_login, mock_retry_redis):
         mock_login.return_value = {"message": "success"}
         user_info = {
             "metadata": {},
