@@ -22,8 +22,12 @@ from app.agents.exceptions import (
     JOIN_ERROR,
     JOIN_IN_PROGRESS,
     LINK_LIMIT_EXCEEDED,
+    NO_SUCH_RECORD,
+    NOT_SENT,
+    PRE_REGISTERED_CARD,
     SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
+    UNKNOWN,
     AgentError,
     JoinError,
     LoginError,
@@ -65,14 +69,18 @@ class Iceland(ApiMiner):
         self._balance_amount = None
         self._transactions = None
         self.errors = {
-            ACCOUNT_ALREADY_EXISTS: "ACCOUNT_ALREADY_EXISTS",
+            ACCOUNT_ALREADY_EXISTS: ["ALREADY_PROCESSED", "ACCOUNT_ALREADY_EXISTS"],
             CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
             GENERAL_ERROR: "GENERAL_ERROR",
             JOIN_ERROR: "JOIN_ERROR",
             JOIN_IN_PROGRESS: "JOIN_IN_PROGRESS",
             LINK_LIMIT_EXCEEDED: "LINK_LIMIT_EXCEEDED",
+            NO_SUCH_RECORD: "NO_SUCH_RECORD",
+            NOT_SENT: "NOT_SENT",
+            PRE_REGISTERED_CARD: "PRE_REGISTERED_ERROR",
             STATUS_LOGIN_FAILED: "VALIDATION",
+            UNKNOWN: "UNKNOWN",
         }
 
     def add_additional_consent(self) -> None:
@@ -188,6 +196,8 @@ class Iceland(ApiMiner):
 
         error = response_json.get("error_codes")
         if error:
+            consent_status = ConsentStatus.FAILED
+            self.consent_confirmation(consents, consent_status)
             self.handle_errors(error[0]["code"], exception_type=JoinError)
 
         consent_status = ConsentStatus.PENDING
