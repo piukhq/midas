@@ -40,6 +40,7 @@ from app.security.open_auth import OpenAuth
 from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
+from settings import SANITISATION_STANDIN
 
 mock_configuration = MagicMock()
 mock_configuration.scheme_slug = "id"
@@ -302,7 +303,7 @@ class TestMerchantApi(FlaskTestCase):
     def test_sync_outbound_logs_for_redirects(self, mock_request, mock_back_off, mock_encode, mock_decode, mock_signal):
         # GIVEN
         mock_encode.return_value = {"json": self.json_data}
-        mock_decode.return_value = self.json_data
+        mock_decode.return_value = json.loads(self.json_data)
 
         mock_total_seconds = MagicMock()
         mock_total_seconds.return_value = 2.3
@@ -323,7 +324,7 @@ class TestMerchantApi(FlaskTestCase):
         resp = self.m._sync_outbound(self.json_data)
 
         # THEN
-        self.assertEqual(resp, self.json_data)
+        self.assertEqual(resp, json.loads(self.json_data))
 
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(RSA, "encode", autospec=True)
@@ -1279,6 +1280,44 @@ class TestMerchantApi(FlaskTestCase):
                 "name": "Service connection error",
             },
         )
+
+    def test_create_log_message_hides_fields(self):
+        data = {
+            "json": {
+                "card_number": "6332040030579026592",
+                "barcode": "633204003057902659200088",
+                "active": False,
+                "balance": 0.0,
+                "address_1": "13 Example Street",
+                "phone1": "075467889937",
+                "county": "hampshire",
+                "password": "password",
+                "unit": "GBP",
+                "alt_balance": 0.0,
+                "message_uid": "fbd5cc62-413c-4587-b12f-71b7f375d620",
+                "merchant_scheme_id1": "o219ly03jorvmnxjqy368z7qxpgkd5e4",
+                "merchant_scheme_id2": "48749752",
+            }
+        }
+        message = {
+            "json": {
+                "card_number": "6332040030579026592",
+                "barcode": "633204003057902659200088",
+                "active": False,
+                "balance": 0.0,
+                "address_1": SANITISATION_STANDIN,
+                "phone1": SANITISATION_STANDIN,
+                "county": SANITISATION_STANDIN,
+                "password": SANITISATION_STANDIN,
+                "unit": "GBP",
+                "alt_balance": 0.0,
+                "message_uid": "fbd5cc62-413c-4587-b12f-71b7f375d620",
+                "merchant_scheme_id1": "o219ly03jorvmnxjqy368z7qxpgkd5e4",
+                "merchant_scheme_id2": "48749752",
+            }
+        }
+        log_message = self.m._create_log_message(data["json"], "111", "scheme", "ASYNC", "JOIN", "outbound")
+        self.assertEqual(log_message["json"], message["json"])
 
     def test_merchant_scheme_id_conversion(self):
         self.m.identifier_type = ["merchant_scheme_id2", "barcode"]

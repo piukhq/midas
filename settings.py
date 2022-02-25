@@ -122,7 +122,7 @@ AUDIT_USE_DEFAULT_SENSITIVE_KEYS = getenv("AUDIT_USE_DEFAULT_SENSITIVE_KEYS", de
 AUDIT_ADDITIONAL_SENSITIVE_KEYS = getenv("AUDIT_ADDITIONAL_SENSITIVE_KEYS", required=False, conv=listconv)
 
 # String to replace sanitised keys in audit logs with.
-AUDIT_SANITISATION_STANDIN = getenv("AUDIT_SANITISATION_STANDIN", default="********")
+SANITISATION_STANDIN = getenv("AUDIT_SANITISATION_STANDIN", default="********")
 
 # Combined set of keys to redact from audit logs.
 AUDIT_DEFAULT_SENSITIVE_KEYS = ["password", "passwd", "pwd", "pw", "key", "secret", "token"]
