@@ -59,6 +59,7 @@ class JoinCallback(Resource):
             retry_count = retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
 
+            # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove reference
             if NEW_ICELAND_AGENT_ACTIVE:
                 agent_instance.join_callback(data)
             else:
