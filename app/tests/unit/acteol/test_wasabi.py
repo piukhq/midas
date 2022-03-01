@@ -4,14 +4,14 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
+from unittest import mock
 from unittest.mock import MagicMock, call, patch
 from urllib.parse import urljoin
 
 import arrow
 import httpretty
-import pytest
 from soteria.configuration import Configuration
-from tenacity import Retrying, stop_after_attempt
+from tenacity import Retrying, stop_after_attempt, wait_none
 
 from app.agents.acteol import Wasabi
 from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
@@ -25,7 +25,7 @@ class TestWasabi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         mock_config = MagicMock()
-        mock_config.merchant_url = "https://wasabiuat.test.wasabiworld.co.uk/"
+        mock_config.merchant_url = "https://test.co.uk/"
         mock_config.security_credentials = {
             "outbound": {
                 "service": Configuration.OAUTH_SECURITY,
@@ -275,7 +275,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._account_already_exists.retry.sleep = unittest.mock.Mock()
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._account_already_exists(origin_id=origin_id)
 
     @httpretty.activate
@@ -360,7 +360,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
     @httpretty.activate
@@ -385,11 +385,12 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         assert not mock_send_to_atlas.called
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
     @httpretty.activate
-    def test_add_member_number(self):
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_add_member_number(self, mock_base_signal):
         """
         Test adding member number to Acteol
         """
@@ -417,6 +418,7 @@ class TestWasabi(unittest.TestCase):
         assert member_number == expected_member_number
 
     @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
     def test_add_member_number_error(self):
         """
         Test _check_response_for_error
@@ -439,10 +441,10 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.journey_type = JourneyTypes.ADD
 
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._add_member_number.retry.sleep = unittest.mock.Mock()
+        self.wasabi._add_member_number.retry.wait = wait_none()
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._add_member_number(ctcid=ctcid)
 
     @httpretty.activate
@@ -558,7 +560,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._get_customer_details(origin_id=origin_id)
 
     def test_customer_fields_are_present(self):
@@ -839,7 +841,7 @@ class TestWasabi(unittest.TestCase):
         try:
             self.wasabi.login(credentials=credentials)
         except Exception as e:
-            pytest.fail(f"test_login_happy_path failed: {str(e)}")
+            assert False, f"test_login_happy_path failed: {str(e)}"
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
@@ -861,7 +863,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(LoginError):
+        with self.assertRaises(LoginError):
             self.wasabi.login(credentials=credentials)
 
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -1594,7 +1596,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.get_contact_ids_by_email.retry.sleep = unittest.mock.Mock()
 
         # THEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi.get_contact_ids_by_email(email=email)
 
     @httpretty.activate
@@ -1623,11 +1625,11 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
 
         # THEN
-        with pytest.raises(Exception) as e:
+        with self.assertRaises(Exception) as e:
             self.wasabi._get_vouchers(ctcid=ctcid)
             raise Exception("CustomerID is mandatory")
 
-        assert str(e.value) == response_data["errors"][0]
+        assert str(e.exception) == response_data["errors"][0]
 
     def test_format_money_value(self):
         # GIVEN
@@ -1740,7 +1742,7 @@ class TestWasabi(unittest.TestCase):
         resp_json = {"Response": False, "Error": "Internal Exception"}
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._check_response_for_error(resp_json)
 
     def test_check_deleted_user(self):
@@ -1751,7 +1753,7 @@ class TestWasabi(unittest.TestCase):
         resp_json = {"CustomerID": "0", "CurrentMemberNumber": "ABC123"}
 
         # WHEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._check_deleted_user(resp_json)
 
     @httpretty.activate
@@ -1780,7 +1782,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
@@ -1810,7 +1812,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
@@ -1840,7 +1842,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
@@ -1878,7 +1880,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(LoginError):
+        with self.assertRaises(LoginError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
@@ -1915,7 +1917,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(AgentError):
+        with self.assertRaises(AgentError):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
