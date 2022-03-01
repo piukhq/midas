@@ -167,5 +167,5 @@ class TestBplCallback(TestCase):
         }
         self.bpl.join(consents)
         mock_make_request.assert_called_with(
-            "{}enrolment".format(self.bpl.base_url), method="post", audit=True, json=bpl_payload
+            f"{self.bpl.base_url}enrolment", method="post", audit=True, json=bpl_payload
         )
