@@ -50,7 +50,7 @@ class Bpl(ApiMiner):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        marketing_optin = consents[0]["value"]
+        marketing_optin = consents[0]["value"] if consents else False
         url = f"{self.base_url}enrolment"
         payload = {
             "credentials": credentials,
