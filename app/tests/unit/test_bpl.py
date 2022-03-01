@@ -159,7 +159,6 @@ class TestBplCallback(TestCase):
     @mock.patch("app.agents.base.BaseMiner.consent_confirmation")
     def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request):
         consents = {"consents": [{"key": "Consent 1", "value": "true"}]}
-
         bpl_payload = {
             "credentials": consents,
             "marketing_preferences": [{"key": "marketing_pref", "value": "true"}],
