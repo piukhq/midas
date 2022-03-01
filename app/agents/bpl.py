@@ -50,10 +50,16 @@ class Bpl(ApiMiner):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
+        marketing_optin = consents[0]["value"]
         url = f"{self.base_url}enrolment"
         payload = {
             "credentials": credentials,
-            "marketing_preferences": [],
+            "marketing_preferences": [
+                {
+                    "key": "marketing_pref",
+                    "value": marketing_optin
+                }
+            ],
             "callback_url": self.callback_url,
             "third_party_identifier": hash_ids.encode(self.user_info["scheme_account_id"]),
         }
