@@ -300,7 +300,8 @@ class TestWasabi(unittest.TestCase):
         assert not account_already_exists
 
     @httpretty.activate
-    def test_create_account(self):
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_create_account(self, mock_base_signal):
         """
         Test creating an account
         """
@@ -419,7 +420,7 @@ class TestWasabi(unittest.TestCase):
 
     @httpretty.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_add_member_number_error(self):
+    def test_add_member_number_error(self, mock_base_signal):
         """
         Test _check_response_for_error
         """
@@ -1921,9 +1922,10 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
-    def test_validate_member_number_succeeds(self, mock_authenticate, mock_retrying):
+    def test_validate_member_number_succeeds(self, mock_authenticate, mock_retrying, mock_base_signal):
         # GIVEN
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
