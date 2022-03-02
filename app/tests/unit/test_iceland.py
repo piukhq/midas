@@ -4,7 +4,6 @@ from http import HTTPStatus
 from unittest import TestCase, mock
 from unittest.mock import ANY, MagicMock, call
 
-import app.agents.iceland
 import arrow
 import httpretty
 import requests
@@ -1020,7 +1019,6 @@ class TestIcelandJoin(TestCase):
         )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
-
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
@@ -1526,7 +1524,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
             },
         }
         self.config = mock_configuration
-
 
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
