@@ -154,3 +154,18 @@ class TestBplCallback(TestCase):
         self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_collect_credentials.called)
         self.assertTrue(mock_update_hermes.called)
+
+    @mock.patch("app.agents.base.ApiMiner.make_request")
+    @mock.patch("app.agents.base.BaseMiner.consent_confirmation")
+    def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request):
+        consents = {"consents": [{"key": "Consent 1", "value": "true"}]}
+        bpl_payload = {
+            "credentials": consents,
+            "marketing_preferences": [{"key": "marketing_pref", "value": "true"}],
+            "callback_url": self.bpl.callback_url,
+            "third_party_identifier": "7gl82g4y5pvzx1wj5noqrj3dke7m9092",
+        }
+        self.bpl.join(consents)
+        mock_make_request.assert_called_with(
+            f"{self.bpl.base_url}enrolment", method="post", audit=True, json=bpl_payload
+        )
