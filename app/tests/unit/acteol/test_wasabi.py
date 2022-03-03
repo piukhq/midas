@@ -4,8 +4,7 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
-from unittest import mock
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urljoin
 
 import arrow
@@ -84,7 +83,7 @@ class TestWasabi(unittest.TestCase):
         mock_token_is_valid.return_value = False
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
+        with patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
             self.wasabi.authenticate()
 
             # THEN
@@ -102,7 +101,7 @@ class TestWasabi(unittest.TestCase):
         mock_token_is_valid.return_value = True
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
+        with patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
             token = self.wasabi.authenticate()
 
             # THEN
@@ -183,7 +182,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        with unittest.mock.patch.object(self.wasabi.token_store, "set", return_value=True):
+        with patch.object(self.wasabi.token_store, "set", return_value=True):
             token = self.wasabi._store_token(
                 acteol_access_token=mock_acteol_access_token,
                 current_timestamp=mock_current_timestamp,
@@ -273,7 +272,7 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._account_already_exists.retry.sleep = unittest.mock.Mock()
+        self.wasabi._account_already_exists.retry.sleep = Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -301,7 +300,7 @@ class TestWasabi(unittest.TestCase):
         assert not account_already_exists
 
     @httpretty.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_create_account(self, mock_base_signal):
         """
         Test creating an account
@@ -359,7 +358,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
+        self.wasabi._create_account.retry.sleep = Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -383,7 +382,7 @@ class TestWasabi(unittest.TestCase):
             "date_of_birth": "1999-01-01",
         }
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._create_account.retry.sleep = unittest.mock.Mock()
+        self.wasabi._create_account.retry.sleep = Mock()
 
         # WHEN
         assert not mock_send_to_atlas.called
@@ -391,7 +390,7 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_add_member_number(self, mock_base_signal):
         """
         Test adding member number to Acteol
@@ -420,7 +419,7 @@ class TestWasabi(unittest.TestCase):
         assert member_number == expected_member_number
 
     @httpretty.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     def test_add_member_number_error(self, mock_base_signal):
         """
         Test _check_response_for_error
@@ -559,7 +558,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._get_customer_details.retry.sleep = unittest.mock.Mock()
+        self.wasabi._get_customer_details.retry.sleep = Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -1595,7 +1594,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi.get_contact_ids_by_email.retry.sleep = unittest.mock.Mock()
+        self.wasabi.get_contact_ids_by_email.retry.sleep = Mock()
 
         # THEN
         with pytest.raises(AgentError):
@@ -1624,7 +1623,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._get_vouchers.retry.sleep = unittest.mock.Mock()
+        self.wasabi._get_vouchers.retry.sleep = Mock()
 
         # THEN
         with pytest.raises(Exception) as e:
@@ -1923,7 +1922,7 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._validate_member_number(credentials)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
+    @patch("app.agents.base.signal", autospec=True)
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_succeeds(self, mock_authenticate, mock_retrying, mock_base_signal):
