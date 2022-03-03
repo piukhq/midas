@@ -995,10 +995,11 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.name, "An unknown error has occurred")
 
     @mock.patch("app.agents.iceland.update_pending_join_account")
+    @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.publish.status")
     @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_process_join_callback_response(
-        self, mock_consent_confirmation, mock_publish_status, mock_update_pending_join_account
+        self, mock_consent_confirmation, mock_publish_status, mock_iceland_signal, mock_update_pending_join_account
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1018,8 +1019,9 @@ class TestIcelandJoin(TestCase):
         )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
+    @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
-    def test_process_join_callback_response_with_errors(self, mock_consent_confirmation):
+    def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
         self.agent.errors = {
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
         }
@@ -1523,6 +1525,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
         self.config = mock_configuration
 
+    @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch.object(BaseMiner, "consent_confirmation")
     @mock.patch("app.publish.status")
@@ -1539,6 +1542,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_publish_status,
         mock_consent_confirmation,
         mock_scheme_account_requests,
+        mock_iceland_signal,
     ):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
