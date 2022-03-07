@@ -1,8 +1,8 @@
-import pendulum
+import arrow
 
 
 def generate_pending_voucher_code(timestamp):
-    dt = pendulum.from_timestamp(timestamp)
+    dt = arrow.Arrow.fromtimestamp(timestamp)
     formatted = dt.format("DoMMM YYYY")
     if dt.day < 10:
         return f"Due {formatted}"
