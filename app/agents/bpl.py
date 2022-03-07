@@ -3,7 +3,6 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
-import pendulum
 from soteria.configuration import Configuration
 
 import settings
@@ -22,7 +21,7 @@ from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, VoucherType, generate_pending_voucher_code, voucher_state_names
 
 log = get_logger("bpl-agent")
 
@@ -96,19 +95,12 @@ class Bpl(ApiMiner):
 
     @staticmethod
     def _make_pending_vouchers(vouchers):
-        def _generate_pending_code(timestamp):
-            dt = pendulum.from_timestamp(timestamp)
-            formatted = dt.format("DoMMM YYYY")
-            if dt.day < 10:
-                return f"Due {formatted}"
-            return f"Due{formatted}"
-
         return [
             Voucher(
                 issue_date=voucher["created_date"],
                 redeem_date=voucher.get("redeemed_date"),
                 expiry_date=voucher["conversion_date"],
-                code=_generate_pending_code(voucher["conversion_date"]),
+                code=generate_pending_voucher_code(voucher["conversion_date"]),
                 target_value=None,
                 value=None,
                 type=VoucherType.ACCUMULATOR.value,

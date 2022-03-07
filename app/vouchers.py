@@ -1,6 +1,7 @@
 import enum
 
 import arrow
+import pendulum
 
 
 @enum.unique
@@ -40,3 +41,11 @@ def get_voucher_state(issue_date, redeem_date, expiry_date):
         state = VoucherState.IN_PROGRESS
 
     return state
+
+
+def generate_pending_voucher_code(timestamp):
+    dt = pendulum.from_timestamp(timestamp)
+    formatted = dt.format("DoMMM YYYY")
+    if dt.day < 10:
+        return f"Due {formatted}"
+    return f"Due{formatted}"
