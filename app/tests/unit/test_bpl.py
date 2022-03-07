@@ -149,7 +149,7 @@ class TestBplCallback(TestCase):
         )
         balance = self.bpl.balance()
         self.assertEqual(balance.vouchers[1].value, None)
-        self.assertEqual(len(balance.vouchers), 4)
+        self.assertEqual(4, len(balance.vouchers))
         # Test voucher code format for pending vouchers
         self.assertEqual("Due:16thMar 2021", balance.vouchers[2].code)
         self.assertEqual("Due: 7thMar 2022", balance.vouchers[3].code)
