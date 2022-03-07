@@ -123,6 +123,10 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
+            "pending_rewards": [
+                {"created_date": 1615895295, "conversion_date": 1615895295},
+                {"created_date": 1646646772, "conversion_date": 1646646772},
+            ],
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
@@ -143,9 +147,11 @@ class TestBplCallback(TestCase):
             status=HTTPStatus.OK,
         )
         balance = self.bpl.balance()
-
         self.assertEqual(balance.vouchers[1].value, None)
-        self.assertEqual(len(balance.vouchers), 2)
+        self.assertEqual(len(balance.vouchers), 4)
+        # Test voucher code format for pending vouchers
+        self.assertEqual(balance.vouchers[2].code, "Due16thMar 2021")
+        self.assertEqual(balance.vouchers[3].code, "Due 7thMar 2022")
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)

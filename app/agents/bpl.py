@@ -3,6 +3,7 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
+import pendulum
 from soteria.configuration import Configuration
 
 import settings
@@ -94,6 +95,29 @@ class Bpl(ApiMiner):
         self.user_info["credentials"].update(self.identifier)
 
     @staticmethod
+    def _make_pending_vouchers(vouchers):
+        def _generate_pending_code(timestamp):
+            dt = pendulum.from_timestamp(timestamp)
+            formatted = dt.format("DoMMM YYYY")
+            if dt.day < 10:
+                return f"Due {formatted}"
+            return f"Due{formatted}"
+
+        return [
+            Voucher(
+                issue_date=voucher["created_date"],
+                redeem_date=voucher.get("redeemed_date"),
+                expiry_date=voucher["conversion_date"],
+                code=_generate_pending_code(voucher["conversion_date"]),
+                target_value=None,
+                value=None,
+                type=VoucherType.ACCUMULATOR.value,
+                state="issued",
+            )
+            for voucher in vouchers
+        ]
+
+    @staticmethod
     def _make_issued_vouchers(vouchers):
         return [
             Voucher(
@@ -119,6 +143,7 @@ class Bpl(ApiMiner):
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
         vouchers = bpl_data["rewards"]
+        pending_vouchers = bpl_data["pending_rewards"]
         if len(bpl_data["current_balances"]) == 0:
             return None
 
@@ -136,6 +161,7 @@ class Bpl(ApiMiner):
                     value=balance,
                 ),
                 *self._make_issued_vouchers(vouchers),
+                *self._make_pending_vouchers(pending_vouchers),
             ],
         )
 
