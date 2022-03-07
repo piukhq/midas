@@ -1,3 +1,4 @@
+import datetime
 import json
 from decimal import Decimal
 from http import HTTPStatus
@@ -5,6 +6,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 from urllib.parse import urljoin
 
+import arrow
 import httpretty
 from flask_testing import TestCase
 
@@ -125,8 +127,14 @@ class TestBplCallback(TestCase):
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
             "pending_rewards": [
-                {"created_date": 1615895295, "conversion_date": 1615895295},
-                {"created_date": 1646646772, "conversion_date": 1646646772},
+                {
+                    "created_date": arrow.get(datetime.date(2013, 5, 5)).int_timestamp,
+                    "conversion_date": arrow.get(datetime.date(2021, 3, 16)).int_timestamp,
+                },
+                {
+                    "created_date": arrow.get(datetime.date(2013, 5, 5)).int_timestamp,
+                    "conversion_date": arrow.get(datetime.date(2022, 3, 7)).int_timestamp,
+                },
             ],
             "rewards": [
                 {
