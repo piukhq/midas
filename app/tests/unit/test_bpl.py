@@ -87,6 +87,7 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
+            "pending_rewards": [],
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
