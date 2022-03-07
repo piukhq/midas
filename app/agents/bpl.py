@@ -21,7 +21,7 @@ from app.encryption import hash_ids
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, VoucherType, generate_pending_voucher_code, voucher_state_names
 
 log = get_logger("bpl-agent")
 
@@ -94,6 +94,22 @@ class Bpl(ApiMiner):
         self.user_info["credentials"].update(self.identifier)
 
     @staticmethod
+    def _make_pending_vouchers(vouchers):
+        return [
+            Voucher(
+                issue_date=voucher["created_date"],
+                redeem_date=voucher.get("redeemed_date"),
+                expiry_date=voucher["conversion_date"],
+                code=generate_pending_voucher_code(voucher["conversion_date"]),
+                target_value=None,
+                value=None,
+                type=VoucherType.ACCUMULATOR.value,
+                state="issued",
+            )
+            for voucher in vouchers
+        ]
+
+    @staticmethod
     def _make_issued_vouchers(vouchers):
         return [
             Voucher(
@@ -119,6 +135,7 @@ class Bpl(ApiMiner):
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
         vouchers = bpl_data["rewards"]
+        pending_vouchers = bpl_data["pending_rewards"]
         if len(bpl_data["current_balances"]) == 0:
             return None
 
@@ -136,6 +153,7 @@ class Bpl(ApiMiner):
                     value=balance,
                 ),
                 *self._make_issued_vouchers(vouchers),
+                *self._make_pending_vouchers(pending_vouchers),
             ],
         )
 

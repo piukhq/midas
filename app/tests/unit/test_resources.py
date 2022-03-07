@@ -909,6 +909,7 @@ class TestResources(TestCase):
                             "account_number": "TRNT0000000100",
                             "current_balances": [{"value": 0.0, "campaign_slug": "trenette-campaign"}],
                             "transaction_history": [],
+                            "pending_rewards": [],
                             "rewards": [
                                 {
                                     "code": "1qv7lgUyUVMBkxK",
@@ -943,6 +944,7 @@ class TestResources(TestCase):
                                     "value": 123.45,
                                 }
                             ],
+                            "pending_rewards": [],
                             "rewards": [
                                 {
                                     "code": "1qv7lgUyUVMBkxK",

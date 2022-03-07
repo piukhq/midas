@@ -1,3 +1,4 @@
+import datetime
 import json
 from decimal import Decimal
 from http import HTTPStatus
@@ -5,6 +6,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 from urllib.parse import urljoin
 
+import arrow
 import httpretty
 from flask_testing import TestCase
 
@@ -87,6 +89,7 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
+            "pending_rewards": [],
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
@@ -123,6 +126,16 @@ class TestBplCallback(TestCase):
             "account_number": "TRNT9288336436",
             "current_balances": [{"value": 0.1, "campaign_slug": "mocked-trenette-active-campaign"}],
             "transaction_history": [],
+            "pending_rewards": [
+                {
+                    "created_date": arrow.get(datetime.date(2013, 5, 5)).int_timestamp,
+                    "conversion_date": arrow.get(datetime.date(2021, 3, 16)).int_timestamp,
+                },
+                {
+                    "created_date": arrow.get(datetime.date(2013, 5, 5)).int_timestamp,
+                    "conversion_date": arrow.get(datetime.date(2022, 3, 7)).int_timestamp,
+                },
+            ],
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
@@ -143,9 +156,11 @@ class TestBplCallback(TestCase):
             status=HTTPStatus.OK,
         )
         balance = self.bpl.balance()
-
         self.assertEqual(balance.vouchers[1].value, None)
-        self.assertEqual(len(balance.vouchers), 2)
+        self.assertEqual(4, len(balance.vouchers))
+        # Test voucher code format for pending vouchers
+        self.assertEqual("Due:16thMar 2021", balance.vouchers[2].code)
+        self.assertEqual("Due: 7thMar 2022", balance.vouchers[3].code)
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
