@@ -151,8 +151,8 @@ class TestBplCallback(TestCase):
         self.assertEqual(balance.vouchers[1].value, None)
         self.assertEqual(len(balance.vouchers), 4)
         # Test voucher code format for pending vouchers
-        self.assertEqual(balance.vouchers[2].code, "Due16thMar 2021")
-        self.assertEqual(balance.vouchers[3].code, "Due 7thMar 2022")
+        self.assertEqual("Due:16thMar 2021", balance.vouchers[2].code)
+        self.assertEqual("Due: 7thMar 2022", balance.vouchers[3].code)
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
