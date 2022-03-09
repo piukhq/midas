@@ -14,10 +14,6 @@ def retry_tasks():
     for i in range(0, task.length):
         task.call_next_task()
 
-@celery.task
-def debug_task():
-    print("word")
-
 
 class ReTryTaskStore:
     def __init__(self, task_list="retrytasks", retry_name="retries", retry_results="errors"):
