@@ -9,6 +9,11 @@ import arrow
 from app.agents.base import MockedMiner
 from app.agents.exceptions import (
     END_SITE_DOWN,
+    GENERAL_ERROR,
+    INVALID_MFA_INFO,
+    NO_SUCH_RECORD,
+    PASSWORD_EXPIRED,
+    STATUS_ACCOUNT_LOCKED,
     STATUS_LOGIN_FAILED,
     STATUS_REGISTRATION_FAILED,
     UNKNOWN,
@@ -26,6 +31,11 @@ class MockAgentHN(MockedMiner):
     add_error_credentials = {
         "email": {
             "endsitedown@testbink.com": END_SITE_DOWN,
+            "external_unhandled_error@testbink.com": GENERAL_ERROR,
+            "account_blocked@testbink.com": STATUS_ACCOUNT_LOCKED,
+            "authorisation_expired@testbink.com": PASSWORD_EXPIRED,
+            "user_doesnt_exist@testbink.com": NO_SUCH_RECORD,
+            "non_recoverable_error@testbink.com": INVALID_MFA_INFO,
         },
     }
     existing_card_numbers = card_numbers.HARVEY_NICHOLS
@@ -161,6 +171,15 @@ class MockAgentIce(MockedMiner):
     }
     point_conversion_rate = Decimal("1")
     retry_limit = None
+    add_error_credentials = {
+        "last_name": {
+            "external_unhandled_error": GENERAL_ERROR,
+            "account_blocked": STATUS_ACCOUNT_LOCKED,
+            "authorisation_expired": PASSWORD_EXPIRED,
+            "user_doesnt_exist": NO_SUCH_RECORD,
+            "non_recoverable_error": INVALID_MFA_INFO,
+        },
+    }
 
     def login(self, credentials):
         card_number = credentials.get("card_number") or credentials.get("barcode")
@@ -188,7 +207,7 @@ class MockAgentIce(MockedMiner):
         except (KeyError, TypeError):
             raise LoginError(STATUS_LOGIN_FAILED)
 
-        if user_id == "999000":
+        if user_id in ["999000", "999001", "999002", "999003", "999004"]:
             sleep(20)
 
         self.user_info = USER_STORE[user_id]
