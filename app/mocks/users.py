@@ -402,6 +402,50 @@ USER_STORE = {
         },
         "points": Decimal("300"),
     },
+    "999001": {
+        "len_transactions": 2,
+        "credentials": {
+            "email": "slow1@testbink.com",
+            "password": "Slowpass01",
+            "last_name": "slow",
+            "postcode": "sl1 1ow",
+            "date_of_birth": "2000-01-01",
+        },
+        "points": Decimal("300"),
+    },
+    "999002": {
+        "len_transactions": 2,
+        "credentials": {
+            "email": "slow2@testbink.com",
+            "password": "Slowpass01",
+            "last_name": "slow",
+            "postcode": "sl1 1ow",
+            "date_of_birth": "2000-01-01",
+        },
+        "points": Decimal("300"),
+    },
+    "999003": {
+        "len_transactions": 2,
+        "credentials": {
+            "email": "slow3@testbink.com",
+            "password": "Slowpass01",
+            "last_name": "slow",
+            "postcode": "sl1 1ow",
+            "date_of_birth": "2000-01-01",
+        },
+        "points": Decimal("300"),
+    },
+    "999004": {
+        "len_transactions": 2,
+        "credentials": {
+            "email": "slow4@testbink.com",
+            "password": "Slowpass01",
+            "last_name": "slow",
+            "postcode": "sl1 1ow",
+            "date_of_birth": "2000-01-01",
+        },
+        "points": Decimal("300"),
+    },
     "911111": {
         "len_transactions": 5,
         "credentials": {
