@@ -2,7 +2,7 @@ import time
 
 from redis import Redis
 
-from app.retry import redis_connection
+from app.redis_retry import redis_connection
 from settings import REDIS_URL
 
 

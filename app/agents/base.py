@@ -17,7 +17,7 @@ from requests import HTTPError
 from requests.exceptions import Timeout
 from soteria.configuration import Configuration
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
-
+from app.requests_retry import requests_retry_session
 import settings
 from app import publish
 from app.agents.exceptions import (
@@ -210,6 +210,7 @@ class ApiMiner(BaseMiner):
         self.record_uid = hash_ids.encode(self.scheme_id)
         self.message_uid = str(uuid4())
         self.integration_service = None
+        self.session = requests_retry_session()
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -267,7 +268,8 @@ class ApiMiner(BaseMiner):
                 handler_type = self.audit_handlers[self.journey_type]
                 self.send_audit_request(audit_payload, handler_type)
 
-            resp = requests.request(method, url=url, **args)
+            resp = self.session.request(method, url=url, **args)
+            # resp = requests.request(method, url=url, **args)
 
             if audit:
                 self.send_audit_response(resp, handler_type)

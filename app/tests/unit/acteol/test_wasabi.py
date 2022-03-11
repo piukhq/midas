@@ -5,6 +5,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
 from unittest.mock import MagicMock, Mock, call, patch
+from unittest import mock
 from urllib.parse import urljoin
 
 import arrow
@@ -259,7 +260,8 @@ class TestWasabi(unittest.TestCase):
         assert querystring["OriginID"][0] == origin_id
 
     @httpretty.activate
-    def test_account_already_exists_timeout(self):
+    @mock.patch("app.requests_retry.Retry")
+    def test_account_already_exists_timeout(self, mock_retry):
         """
         Check if account already exists in Acteol, API request times out
         """
@@ -272,7 +274,6 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
         # Force fast-as-possible retries so we don't have slow running tests
-        self.wasabi._account_already_exists.retry.sleep = Mock()
 
         # WHEN
         with pytest.raises(AgentError):
@@ -1758,6 +1759,7 @@ class TestWasabi(unittest.TestCase):
             self.wasabi._check_deleted_user(resp_json)
 
     @httpretty.activate
+    @patch("app.requests_retry.Retry")
     @patch("app.audit.AuditLogger.send_to_atlas")
     @patch("app.agents.acteol.Retrying")
     @patch("app.agents.acteol.Acteol.authenticate")

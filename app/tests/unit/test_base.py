@@ -6,7 +6,7 @@ import httpretty
 
 from app.agents.base import ApiMiner, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
-
+import json
 
 class TestBase(TestCase):
     def test_create_error_response(self):
@@ -23,8 +23,9 @@ class TestBase(TestCase):
         self.assertTrue(mocked_join.called)
 
     @httpretty.activate
+    @mock.patch("app.requests_retry.Retry")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """
@@ -39,7 +40,7 @@ class TestBase(TestCase):
         httpretty.register_uri(
             httpretty.GET,
             api_url,
-            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            responses=[httpretty.Response(body=json.dumps({}), status=HTTPStatus.INTERNAL_SERVER_ERROR)],
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("record-http-request"),

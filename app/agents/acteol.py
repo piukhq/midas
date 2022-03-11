@@ -279,11 +279,6 @@ class Acteol(ApiMiner):
             location=transaction["LocationName"],
         )
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def transaction_history(self) -> list[Transaction]:
         """
         Call the Acteol API to retrieve transaction history
@@ -316,11 +311,6 @@ class Acteol(ApiMiner):
 
         return transactions
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def get_contact_ids_by_email(self, email: str) -> dict:
         """
         Get dict of contact ids from Acteol by email
@@ -384,13 +374,6 @@ class Acteol(ApiMiner):
 
         return
 
-    # Private methods
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _get_customer_details(self, origin_id: str) -> dict:
         """
         Get the customer details from Acteol
@@ -414,12 +397,6 @@ class Acteol(ApiMiner):
 
         return resp_json
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _account_already_exists(self, origin_id: str) -> bool:
         """
         Check if account already exists in Acteol
@@ -447,12 +424,6 @@ class Acteol(ApiMiner):
 
         return False
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _create_account(self, origin_id: str, credentials: dict) -> str:
         """
         Create an account in Acteol
@@ -482,12 +453,6 @@ class Acteol(ApiMiner):
 
         return ctcid
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _add_member_number(self, ctcid: str) -> str:
         """
         Add member number to Acteol
@@ -533,12 +498,6 @@ class Acteol(ApiMiner):
         """
         return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
 
-    # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT. Reraise the exception from make_request()
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _refresh_access_token(self) -> str:
         """
         Returns an Acteol API auth token to use in subsequent requests.
@@ -659,16 +618,7 @@ class Acteol(ApiMiner):
             "Email": credentials["email"],
         }
 
-        # Retry on any Exception at 3, 3, 6, 12 seconds, stopping at RETRY_LIMIT.
-        # Reraise the exception from make_request() and only do this for AgentError (usually HTTPError) types
-        for attempt in Retrying(
-            stop=stop_after_attempt(RETRY_LIMIT),
-            wait=wait_exponential(multiplier=1, min=3, max=12),
-            reraise=True,
-            retry=retry_if_exception_type(AgentError),
-        ):
-            with attempt:
-                resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)
 
         # It's possible for a 200 OK response to be returned, but validation has failed. Get the cause for logging.
         resp_json = resp.json()
@@ -690,11 +640,6 @@ class Acteol(ApiMiner):
 
         return ctcid
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _get_vouchers(self, ctcid: str) -> list[dict]:
         """
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
