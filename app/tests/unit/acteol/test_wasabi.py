@@ -261,8 +261,7 @@ class TestWasabi(unittest.TestCase):
         assert querystring["OriginID"][0] == origin_id
 
     @httpretty.activate
-    @mock.patch("app.requests_retry.Retry")
-    def test_account_already_exists_timeout(self, mock_retry):
+    def test_account_already_exists_timeout(self):
         """
         Check if account already exists in Acteol, API request times out
         """
