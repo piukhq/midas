@@ -4,7 +4,6 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
-from unittest import mock
 from unittest.mock import MagicMock, call, patch
 from urllib.parse import urljoin
 
