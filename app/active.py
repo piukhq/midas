@@ -14,4 +14,5 @@ AGENTS = {
     "wasabi-club": "acteol.Wasabi",
     "bpl-trenette": "bpl.Bpl",
     "squaremeal": "squaremeal.Squaremeal",
+    "bpl-asos": "bpl.Bpl",
 }
