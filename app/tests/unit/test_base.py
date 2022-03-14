@@ -6,7 +6,7 @@ import httpretty
 
 from app.agents.base import ApiMiner, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
-import json
+
 
 class TestBase(TestCase):
     def test_create_error_response(self):
@@ -40,7 +40,7 @@ class TestBase(TestCase):
         httpretty.register_uri(
             httpretty.GET,
             api_url,
-            responses=[httpretty.Response(body=json.dumps({}), status=HTTPStatus.INTERNAL_SERVER_ERROR)],
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
         expected_calls = [  # The expected call stack for signal, in order
             mock.call("record-http-request"),

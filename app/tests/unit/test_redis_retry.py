@@ -7,7 +7,7 @@ from app.agents.exceptions import AgentError
 from app.redis_retry import get_count, get_key, inc_count, redis_connection
 
 
-class TestRetry(unittest.TestCase):
+class TestRedisRetry(unittest.TestCase):
     def test_get_key(self):
         self.assertEqual(get_key("tesco", "bob"), "retry-tesco-bob")
 

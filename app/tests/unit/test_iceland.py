@@ -10,7 +10,6 @@ import requests
 from flask_testing import TestCase as FlaskTestCase
 from requests import Response
 from soteria.configuration import Configuration
-from tenacity import wait_none
 
 from app.agents.base import ApiMiner, Balance, BaseMiner
 from app.agents.exceptions import (
@@ -82,7 +81,6 @@ class TestIceland(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-            # self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @httpretty.activate
     def test_refresh_token(self):
@@ -253,7 +251,6 @@ class TestIcelandAdd(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-            # self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @mock.patch("app.redis_retry.redis")
     @mock.patch.object(Iceland, "login")
@@ -828,7 +825,6 @@ class TestIcelandJoin(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-        # self.agent._join.retry.wait = wait_none()  # type:ignore
 
     @mock.patch.object(Iceland, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)

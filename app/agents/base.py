@@ -14,10 +14,10 @@ import sentry_sdk
 from blinker import signal
 from redis import RedisError
 from requests import HTTPError
-from requests.exceptions import Timeout
+from requests.exceptions import RetryError, Timeout
 from soteria.configuration import Configuration
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
-from app.requests_retry import requests_retry_session
+
 import settings
 from app import publish
 from app.agents.exceptions import (
@@ -53,6 +53,7 @@ from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
 from app.publish import thread_pool_executor
 from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
+from app.requests_retry import requests_retry_session
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import get_security_agent
 from app.tasks.resend_consents import ConsentStatus, send_consent_status
@@ -210,7 +211,8 @@ class ApiMiner(BaseMiner):
         self.record_uid = hash_ids.encode(self.scheme_id)
         self.message_uid = str(uuid4())
         self.integration_service = None
-        self.session = requests_retry_session()
+        self.max_retries = 3
+        self.session = requests_retry_session(retries=self.max_retries)
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -269,7 +271,6 @@ class ApiMiner(BaseMiner):
                 self.send_audit_request(audit_payload, handler_type)
 
             resp = self.session.request(method, url=url, **args)
-            # resp = requests.request(method, url=url, **args)
 
             if audit:
                 self.send_audit_response(resp, handler_type)
@@ -278,6 +279,11 @@ class ApiMiner(BaseMiner):
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             sentry_sdk.capture_exception(exception)
             raise AgentError(END_SITE_DOWN) from exception
+
+        except RetryError as exception:
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RETRY_LIMIT_REACHED)
+            sentry_sdk.capture_exception(exception)
+            raise AgentError(RETRY_LIMIT_REACHED) from exception
 
         signal("record-http-request").send(
             self,

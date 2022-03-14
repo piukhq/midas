@@ -7,11 +7,11 @@ from app import redis_retry
 from app.agents.exceptions import SERVICE_CONNECTION_ERROR, UNKNOWN, AgentError, JoinError
 from app.encryption import hash_ids
 from app.exceptions import AgentException, UnknownException
+from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import authorise
 from settings import HERMES_URL, NEW_ICELAND_AGENT_ACTIVE, SERVICE_API_KEY
-from app.requests_retry import requests_retry_session
 
 
 class JoinCallback(Resource):

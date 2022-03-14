@@ -1,12 +1,11 @@
 import json
-import typing as t
 
 import requests
 from azure_oidc import OIDCConfig
 from azure_oidc.integrations.flask_decorator import FlaskOIDCAuthDecorator
 from flask import request
 from flask_restful import Resource
-from app.requests_retry import requests_retry_session
+
 import settings
 from app import redis_retry
 from app.agents.exceptions import UNKNOWN, AgentError
@@ -14,6 +13,7 @@ from app.encoding import JsonEncoder
 from app.encryption import hash_ids
 from app.exceptions import UnknownException
 from app.http_request import get_headers
+from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 

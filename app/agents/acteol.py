@@ -10,7 +10,6 @@ import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
-from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings

@@ -83,6 +83,7 @@ class TestSquaremealJoin(TestCase):
                 scheme_slug="squaremeal",
             )
             self.squaremeal.base_url = "https://sm-uk.azure-api.net/bink-dev/api/v1/account/"
+            self.squaremeal.max_retries = 0
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -427,9 +428,7 @@ class TestSquaremealLogin(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.squaremeal.Squaremeal.session")
-    def test_login_error_500(self, mock_retry, mock_requests_session, mock_authenticate):
-        # mock_retry.Retry(allowed_methods=())
+    def test_login_error_500(self, mock_authenticate, mock_requests_session):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.squaremeal.base_url + "login",
@@ -445,4 +444,4 @@ class TestSquaremealLogin(TestCase):
         with self.assertRaises(AgentError):
             self.squaremeal.login(self.credentials)
 
-        # self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))
+        self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))
