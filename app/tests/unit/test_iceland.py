@@ -1551,10 +1551,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove these mocks
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            with mock.patch("app.resources_callbacks.NEW_ICELAND_AGENT_ACTIVE", return_value=True):
-                response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1620,10 +1618,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove these mocks
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            with mock.patch("app.resources_callbacks.NEW_ICELAND_AGENT_ACTIVE", return_value=True):
-                response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1648,10 +1644,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove these mocks
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            with mock.patch("app.resources_callbacks.NEW_ICELAND_AGENT_ACTIVE", return_value=True):
-                response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1678,10 +1672,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_session_get.return_value = mock_response
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove these mocks
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            with mock.patch("app.resources_callbacks.NEW_ICELAND_AGENT_ACTIVE", return_value=True):
-                response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1698,10 +1690,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
         # Connection error test
         mock_session_get.side_effect = requests.ConnectionError
 
-        # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove these mocks
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            with mock.patch("app.resources_callbacks.NEW_ICELAND_AGENT_ACTIVE", return_value=True):
-                response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]["code"])
         self.assertEqual(

@@ -133,8 +133,3 @@ if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
 
 if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
     AUDIT_SENSITIVE_KEYS += AUDIT_ADDITIONAL_SENSITIVE_KEYS
-
-# Environment using new iceland agent, i.e.:
-# true: iceland.py
-# false: iceland_merchant_integration.py
-NEW_ICELAND_AGENT_ACTIVE = getenv("NEW_ICELAND_AGENT_ACTIVE", default="false", conv=boolconv)
