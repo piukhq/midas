@@ -8,53 +8,36 @@ from typing import Optional
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
-import arrow
 import requests
 import sentry_sdk
 from blinker import signal
-from redis import RedisError
 from requests import HTTPError
 from requests.exceptions import Timeout
 from soteria.configuration import Configuration
-from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 import settings
-from app import publish
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
-    CARD_NOT_REGISTERED,
-    CARD_NUMBER_ERROR,
     CONFIGURATION_ERROR,
     END_SITE_DOWN,
-    GENERAL_ERROR,
     IP_BLOCKED,
     JOIN_ERROR,
-    JOIN_IN_PROGRESS,
-    LINK_LIMIT_EXCEEDED,
-    NO_SUCH_RECORD,
     NOT_SENT,
     PRE_REGISTERED_CARD,
     RETRY_LIMIT_REACHED,
     STATUS_LOGIN_FAILED,
     UNKNOWN,
-    VALIDATION,
     AgentError,
     JoinError,
     LoginError,
     RetryLimitError,
-    UnauthorisedError,
-    errors,
 )
 from app.agents.schemas import Balance, Transaction
-from app.constants import ENCRYPTED_CREDENTIALS
 from app.encryption import hash_ids
-from app.exceptions import AgentException
 from app.mocks.users import USER_STORE
-from app.publish import thread_pool_executor
-from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
-from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
-from app.security.utils import get_security_agent
-from app.tasks.resend_consents import ConsentStatus, send_consent_status
+from app.reporting import get_logger
+from app.scheme_account import TWO_PLACES, JourneyTypes
+from app.tasks.resend_consents import send_consent_status
 
 log = get_logger("agent-base")
 

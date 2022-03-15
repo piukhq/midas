@@ -32,7 +32,7 @@ from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
-from app.scheme_account import JourneyTypes, SchemeAccountStatus
+from app.scheme_account import SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HADES_URL, HERMES_URL
 
