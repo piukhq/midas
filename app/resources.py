@@ -56,7 +56,29 @@ class Healthz(Resource):
         return ""
 
 
-class Balance(Resource):
+class Login(Resource):
+    """
+    Request takes form:
+        <Request
+            'https://<midas_api_endpoint>/<scheme_slug>/balance
+            ?scheme_account_id=<scheme_account_id_int>
+            &credentials=<encrypted_credentials>
+            &user_set=<user_set_int>
+            &status=0
+            &journey_type=1'
+        [GET]>
+
+    Headers:
+        EnvironHeaders([
+            ('Host', '<midas_api_endpoint>'),
+            ('User-Agent', 'Hermes on C02DK4ZLMD6M'),
+            ('Accept-Encoding', 'gzip, deflate'),
+            ('Accept', '*/*'),
+            ('Connection', 'keep-alive'),
+            ('Transaction', '<transaction_id>')
+        ])
+    """
+    # TODO This class handles both update and add journeys - rename? Hermes?
     def get(self, scheme_slug):
         status = request.args.get("status")
         journey_type = request.args.get("journey_type")
