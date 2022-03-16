@@ -1551,8 +1551,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
             "Authorization": "Signature {}".format(self.signature),
         }
 
-        with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1618,8 +1617,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1644,8 +1642,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
@@ -1672,8 +1669,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_session_get.return_value = mock_response
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
-        with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
+        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
