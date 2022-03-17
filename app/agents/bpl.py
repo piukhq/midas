@@ -7,7 +7,7 @@ from soteria.configuration import Configuration
 
 import settings
 from app import publish
-from app.agents.base import ApiMiner
+from app.agents.base import BaseAgent
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     GENERAL_ERROR,
@@ -26,7 +26,7 @@ from app.vouchers import VoucherState, VoucherType, generate_pending_voucher_cod
 log = get_logger("bpl-agent")
 
 
-class Bpl(ApiMiner):
+class Bpl(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = Configuration(
             scheme_slug,

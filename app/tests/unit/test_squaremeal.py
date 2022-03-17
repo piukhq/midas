@@ -109,7 +109,7 @@ class TestSquaremealJoin(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
-    @mock.patch("app.agents.base.BaseMiner.consent_confirmation")
+    @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
     @mock.patch("app.agents.squaremeal.Squaremeal._create_account")
     def test_join_200(self, mock_create_account, mock_consent_confirmation, mock_requests_session, mock_authenticate):
         mock_create_account.return_value = RESPONSE_JSON_200

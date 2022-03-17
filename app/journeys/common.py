@@ -33,7 +33,7 @@ def get_agent_class(scheme_slug):
 def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
     """
     Instantiates an agent class and attempts to login.
-    :param agent_class: Class object inheriting BaseMiner class.
+    :param agent_class: Class object inheriting BaseAgent class.
     :param user_info: Dictionary of user information.
     {
         'user_id': int,

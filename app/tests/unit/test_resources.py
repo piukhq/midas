@@ -10,7 +10,7 @@ import httpretty
 from flask_testing import TestCase
 
 from app import publish
-from app.agents.base import BaseMiner
+from app.agents.base import BaseAgent
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     NO_SUCH_RECORD,
@@ -135,7 +135,7 @@ class TestResources(TestCase):
 
         self.assertEqual(transaction_dict, expected)
 
-    class Agent(BaseMiner):
+    class Agent(BaseAgent):
         def __init__(self, identifier):
             self.identifier = identifier
 

@@ -12,7 +12,7 @@ from requests import Response
 from soteria.configuration import Configuration
 from tenacity import wait_none
 
-from app.agents.base import ApiMiner, Balance, BaseMiner
+from app.agents.base import Balance, BaseAgent
 from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
     NO_SUCH_RECORD,
@@ -360,7 +360,7 @@ class TestIcelandAdd(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(ApiMiner, "make_request")
+    @mock.patch.object(BaseAgent, "make_request")
     def test_login_does_not_retry_on_202(
         self, mock_make_request, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -858,7 +858,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -934,7 +934,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -955,7 +955,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -979,7 +979,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -997,7 +997,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.publish.status")
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response(
         self, mock_consent_confirmation, mock_publish_status, mock_iceland_signal, mock_update_pending_join_account
     ):
@@ -1020,7 +1020,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
         self.agent.errors = {
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
@@ -1037,7 +1037,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post")
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback(
         self,
         mock_consent_confirmation,
@@ -1094,7 +1094,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
@@ -1177,7 +1177,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_join_in_progress_error(
         self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
     ):
@@ -1216,7 +1216,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_join_error(
         self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
     ):
@@ -1257,7 +1257,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_account_already_exists_error(
         self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
     ):
@@ -1295,7 +1295,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_general_error(
         self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
     ):
@@ -1364,7 +1364,7 @@ class TestIcelandJoin(TestCase):
 
     @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
         self.agent.join(self.credentials)
 
@@ -1380,7 +1380,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch(
         "app.agents.iceland.Iceland._join", return_value={"error_codes": [{"code": "GENERAL_ERROR"}], "message_uid": ""}
     )
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
         with self.assertRaises(JoinError):
             self.agent.join(self.credentials)
@@ -1527,7 +1527,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
-    @mock.patch.object(BaseMiner, "consent_confirmation")
+    @mock.patch.object(BaseAgent, "consent_confirmation")
     @mock.patch("app.publish.status")
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.retry", autospec=True)

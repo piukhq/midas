@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner, Balance, Transaction
+from app.agents.base import Balance, BaseAgent, Transaction
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     NO_SUCH_RECORD,
@@ -28,7 +28,7 @@ from app.tasks.resend_consents import send_consents
 log = get_logger("harvey-nichols-agent")
 
 
-class HarveyNichols(ApiMiner):
+class HarveyNichols(BaseAgent):
     CONSENTS_AUTH_KEY = "4y-tfKViQ&-u4#QkxCr29@-JR?FNcj"  # Authorisation key for Harvey Nichols consents
     AGENT_TRIES = 10  # Number of attempts to send to Agent must be > 0  (0 = no send , 1 send once, 2 = 1 retry)
     HERMES_CONFIRMATION_TRIES = 10  # no of attempts to confirm to hermes Agent has received consents

@@ -42,138 +42,15 @@ from app.tasks.resend_consents import send_consent_status
 log = get_logger("agent-base")
 
 
-class BaseMiner(object):
+class BaseAgent(object):
     retry_limit: Optional[int] = 2
     point_conversion_rate = Decimal("0")
-    connect_timeout = 3
-    known_captcha_signatures = [
-        "recaptcha",
-        "captcha",
-        "Incapsula",
-    ]
     identifier_type: Optional[list[str]] = None
     identifier: Optional[dict[str, str]] = None
     expecting_callback = False
     is_async = False
     create_journey: Optional[str] = None
-    scheme_id = -1  # this is replaced by the derived classes. remove this when bases are merged into one.
 
-    def join(self, credentials):
-        raise NotImplementedError()
-
-    def login(self, credentials):
-        raise NotImplementedError()
-
-    def balance(self) -> Optional[Balance]:
-        raise NotImplementedError()
-
-    def transactions(self) -> list[Transaction]:
-        raise NotImplementedError()
-
-    def calculate_label(self, points: Decimal) -> str:
-        raise NotImplementedError()
-
-    def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:
-        count: defaultdict[str, int] = defaultdict(int)
-
-        hashed_transactions: list[Transaction] = []
-
-        for transaction in transactions:
-            s = "{0}{1}{2}{3}{4}".format(
-                transaction.date,
-                transaction.description,
-                transaction.points,
-                self.scheme_id,
-                transaction.location if transaction.location is not None else "",
-            )
-
-            # identical hashes get sequentially indexed to make them unique.
-            index = count[s]
-            count[s] += 1
-            s = "{0}{1}".format(s, index)
-
-            data = transaction._asdict()
-            data["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
-            hashed_transactions.append(Transaction(**data))
-
-        return hashed_transactions
-
-    def calculate_point_value(self, points: Decimal) -> Decimal:
-        return (points * self.point_conversion_rate).quantize(TWO_PLACES)
-
-    def account_overview(self) -> dict:
-        return {"balance": self.balance(), "transactions": self.transactions()}
-
-    @staticmethod
-    def format_label(count, noun, plural_suffix="s", include_zero_items=False):
-        if count == 0 and not include_zero_items:
-            return ""
-        return "{} {}".format(count, noun + pluralise(count, plural_suffix))
-
-    # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
-    @staticmethod
-    def calculate_tiered_reward(points, reward_tiers):
-        for threshold, reward in reward_tiers:
-            if points >= threshold:
-                return reward
-        return ""
-
-    @staticmethod
-    def update_questions(questions):
-        return questions
-
-    def attempt_login(self, credentials):
-        if self.retry_limit and self.retry_count >= self.retry_limit:
-            raise RetryLimitError(RETRY_LIMIT_REACHED)
-
-        try:
-            self.login(credentials)
-        except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
-
-    def attempt_join(self, credentials):
-        try:
-            self.join(credentials)
-        except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
-
-    @staticmethod
-    def consent_confirmation(consents_data: list[dict], status: int) -> None:
-        """
-        Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
-
-        :param consents_data: list of dicts.
-        [{
-            'id': int. UserConsent id. (Required)
-            'slug': string. Consent slug.
-            'value': bool. User's consent decision. (Required)
-            'created_on': string. Datetime string of when the UserConsent instance was created.
-            'journey_type': int. Usually of JourneyTypes IntEnum.
-        }]
-        :param status: int. Should be of type ConsentStatus.
-        :return: None
-        """
-        confirm_tries = {}
-        for consent in consents_data:
-            confirm_tries[consent["id"]] = settings.HERMES_CONFIRMATION_TRIES
-
-        retry_data = {"confirm_tries": confirm_tries, "status": status}
-
-        send_consent_status(retry_data)
-
-
-def pluralise(count, plural_suffix):
-    if "," not in plural_suffix:
-        plural_suffix = "," + plural_suffix
-    parts = plural_suffix.split(",")
-    if len(parts) > 2:
-        return ""
-    singular, plural = parts[:2]
-    return singular if count == 1 else plural
-
-
-# Based on requests library
-class ApiMiner(BaseMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
@@ -296,6 +173,119 @@ class ApiMiner(BaseMiner):
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
 
+    def join(self, credentials):
+        raise NotImplementedError()
+
+    def login(self, credentials):
+        raise NotImplementedError()
+
+    def balance(self) -> Optional[Balance]:
+        raise NotImplementedError()
+
+    def transactions(self) -> list[Transaction]:
+        raise NotImplementedError()
+
+    def calculate_label(self, points: Decimal) -> str:
+        raise NotImplementedError()
+
+    def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:
+        count: defaultdict[str, int] = defaultdict(int)
+
+        hashed_transactions: list[Transaction] = []
+
+        for transaction in transactions:
+            s = "{0}{1}{2}{3}{4}".format(
+                transaction.date,
+                transaction.description,
+                transaction.points,
+                self.scheme_id,
+                transaction.location if transaction.location is not None else "",
+            )
+
+            # identical hashes get sequentially indexed to make them unique.
+            index = count[s]
+            count[s] += 1
+            s = "{0}{1}".format(s, index)
+
+            data = transaction._asdict()
+            data["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
+            hashed_transactions.append(Transaction(**data))
+
+        return hashed_transactions
+
+    def calculate_point_value(self, points: Decimal) -> Decimal:
+        return (points * self.point_conversion_rate).quantize(TWO_PLACES)
+
+    def account_overview(self) -> dict:
+        return {"balance": self.balance(), "transactions": self.transactions()}
+
+    @staticmethod
+    def format_label(count, noun, plural_suffix="s", include_zero_items=False):
+        if count == 0 and not include_zero_items:
+            return ""
+        return "{} {}".format(count, noun + pluralise(count, plural_suffix))
+
+    # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
+    @staticmethod
+    def calculate_tiered_reward(points, reward_tiers):
+        for threshold, reward in reward_tiers:
+            if points >= threshold:
+                return reward
+        return ""
+
+    @staticmethod
+    def update_questions(questions):
+        return questions
+
+    def attempt_login(self, credentials):
+        if self.retry_limit and self.retry_count >= self.retry_limit:
+            raise RetryLimitError(RETRY_LIMIT_REACHED)
+
+        try:
+            self.login(credentials)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    def attempt_join(self, credentials):
+        try:
+            self.join(credentials)
+        except KeyError as e:
+            raise Exception("missing the credential '{0}'".format(e.args[0]))
+
+    @staticmethod
+    def consent_confirmation(consents_data: list[dict], status: int) -> None:
+        """
+        Packages the consent data into another dictionary, with retry information and status, and sends to hermes.
+
+        :param consents_data: list of dicts.
+        [{
+            'id': int. UserConsent id. (Required)
+            'slug': string. Consent slug.
+            'value': bool. User's consent decision. (Required)
+            'created_on': string. Datetime string of when the UserConsent instance was created.
+            'journey_type': int. Usually of JourneyTypes IntEnum.
+        }]
+        :param status: int. Should be of type ConsentStatus.
+        :return: None
+        """
+        confirm_tries = {}
+        for consent in consents_data:
+            confirm_tries[consent["id"]] = settings.HERMES_CONFIRMATION_TRIES
+
+        retry_data = {"confirm_tries": confirm_tries, "status": status}
+
+        send_consent_status(retry_data)
+
+
+def pluralise(count, plural_suffix):
+    if "," not in plural_suffix:
+        plural_suffix = "," + plural_suffix
+    parts = plural_suffix.split(",")
+    if len(parts) > 2:
+        return ""
+    singular, plural = parts[:2]
+    return singular if count == 1 else plural
+
 
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
@@ -313,7 +303,7 @@ def create_error_response(error_code, error_description):
     return response_json
 
 
-class MockedMiner(BaseMiner):
+class MockedMiner(BaseAgent):
     add_error_credentials: dict[str, dict[str, str]] = {}
     existing_card_numbers: dict[str, str] = {}
     ghost_card_prefix: Optional[str] = None

@@ -14,7 +14,7 @@ from tenacity import Retrying, retry, retry_if_exception_type, stop_after_attemp
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner
+from app.agents.base import BaseAgent
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     END_SITE_DOWN,
@@ -38,7 +38,7 @@ RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on 
 log = get_logger("acteol-agent")
 
 
-class Acteol(ApiMiner):
+class Acteol(BaseAgent):
     ORIGIN_ROOT: str
     N_TRANSACTIONS: int
     API_TIMEOUT: int
