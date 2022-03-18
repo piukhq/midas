@@ -514,7 +514,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertEqual(result, True)
 
-    @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
     def test_agent_login_success(self, mock_login, hn_mock, mock_retry):
@@ -532,7 +532,7 @@ class TestResources(TestCase):
         )
         self.assertTrue(mock_login.called)
 
-    @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
     def test_agent_login_system_fail_(self, mock_login, hn_mock, mock_retry):
@@ -542,7 +542,7 @@ class TestResources(TestCase):
             agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_join=True)
         self.assertTrue(mock_login.called)
 
-    @mock.patch("app.journeys.common.retry", autospec=True)
+    @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
     def test_agent_login_user_fail_(self, mock_login, hn_mock, mock_retry):
@@ -877,7 +877,7 @@ class TestResources(TestCase):
     @httpretty.activate
     @mock.patch("app.resources.get_aes_key")
     @mock.patch("app.agents.bpl.Configuration")
-    @mock.patch("app.journeys.common.retry")
+    @mock.patch("app.journeys.common.redis_retry")
     def test_balance_response_format(self, mock_retry, mock_configuration, mock_get_aes_key):
         mock_retry.get_count.return_value = 0
 

@@ -6,7 +6,6 @@ import arrow
 import requests
 from blinker import signal
 from soteria.configuration import Configuration
-from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
@@ -91,11 +90,6 @@ class Squaremeal(ApiMiner):
 
         self.headers["Authorization"] = f'Bearer {token["sm_access_token"]}'
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _refresh_token(self):
         url = self.auth_url
         payload = {
@@ -120,11 +114,6 @@ class Squaremeal(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _create_account(self, credentials):
         url = f"{self.base_url}register"
         self.authenticate()
@@ -144,11 +133,6 @@ class Squaremeal(ApiMiner):
             self.handle_errors(error_code)
         return resp.json()
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _update_newsletters(self, user_id, consents):
         newsletter_optin = consents[0]["value"]
         user_choice = "true" if newsletter_optin else "false"
@@ -160,11 +144,6 @@ class Squaremeal(ApiMiner):
         except (AgentError, JoinError):
             pass
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _login(self, credentials):
         url = f"{self.base_url}login"
         self.authenticate()
@@ -178,11 +157,6 @@ class Squaremeal(ApiMiner):
             self.handle_errors(error_code)
         return resp.json()
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _get_balance(self):
         merchant_id = self.user_info["credentials"]["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"

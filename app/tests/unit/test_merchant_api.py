@@ -1127,7 +1127,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 520)
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
-    @mock.patch("app.resources_callbacks.retry", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch("app.agents.base.thread_pool_executor.submit", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
@@ -1152,7 +1152,7 @@ class TestMerchantApi(FlaskTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {"success": True})
 
-    @mock.patch("app.resources_callbacks.retry", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch("app.agents.base.thread_pool_executor.submit", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
@@ -1185,7 +1185,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
     @mock.patch("app.agents.base.thread_pool_executor.submit", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
@@ -1212,7 +1212,7 @@ class TestMerchantApi(FlaskTestCase):
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
     @mock.patch("app.agents.base.thread_pool_executor.submit", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")

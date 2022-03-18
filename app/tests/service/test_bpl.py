@@ -29,7 +29,6 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=400)],
         )
-
         with self.assertRaises(LoginError) as e:
             self.agent.join(
                 {

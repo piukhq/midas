@@ -23,8 +23,9 @@ class TestBase(TestCase):
         self.assertTrue(mocked_join.called)
 
     @httpretty.activate
+    @mock.patch("app.requests_retry.Retry")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """

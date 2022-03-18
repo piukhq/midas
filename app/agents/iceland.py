@@ -7,7 +7,6 @@ import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
-from tenacity import retry, stop_after_attempt, wait_exponential
 from user_auth_token import UserTokenStore
 
 import settings
@@ -167,11 +166,6 @@ class Iceland(ApiMiner):
             signal("callback-fail").send(self, slug=self.scheme_slug)
             raise
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _join(self, payload: dict):
         try:
             response = self.make_request(self.config.merchant_url, method="post", audit=True, json=payload)
@@ -226,11 +220,6 @@ class Iceland(ApiMiner):
 
         return token
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _refresh_token(self) -> str:
         url = self.security_credentials["url"]
         payload = {
@@ -241,7 +230,7 @@ class Iceland(ApiMiner):
         }
 
         try:
-            response = requests.post(url, data=payload)
+            response = self.session.post(url, json=payload)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
             raise AgentError(SERVICE_CONNECTION_ERROR) from e
@@ -261,11 +250,6 @@ class Iceland(ApiMiner):
         time_diff = current_timestamp[0] - token["timestamp"][0]
         return time_diff < self.AUTH_TOKEN_TIMEOUT
 
-    @retry(
-        stop=stop_after_attempt(RETRY_LIMIT),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _login(self, payload: dict):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
