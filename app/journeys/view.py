@@ -70,53 +70,39 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
-    create_journey = None
-    # Pending scheme account using the merchant api framework expects a callback so should not call balance unless
-    # the call is an async Link.
-    is_merchant_api_agent = issubclass(agent_class, MerchantApi)
-    check_status = user_info["status"]
-    is_pending = check_status in [
-        SchemeAccountStatus.PENDING,
-        SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
-    ]
-    if is_merchant_api_agent and is_pending and user_info["journey_type"] != JourneyTypes.LINK:
-        user_info["pending"] = True
-        status = check_status
-        balance = create_balance_object(PENDING_BALANCE, scheme_account_id, user_info["user_set"])
-    else:
-        if scheme_slug == "iceland-bonus-card" and settings.ENABLE_ICELAND_VALIDATE:
-            if user_info["status"] != SchemeAccountStatus.ACTIVE:
-                user_info["journey_type"] = JourneyTypes.LINK.value
+    if scheme_slug == "iceland-bonus-card" and settings.ENABLE_ICELAND_VALIDATE:
+        if user_info["status"] != SchemeAccountStatus.ACTIVE:
+            user_info["journey_type"] = JourneyTypes.LINK.value
 
-        agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
+    agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
-        # Send identifier (e.g membership id) to hermes if it's not already stored.
-        if agent_instance.identifier:
-            update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
+    # Send identifier (e.g membership id) to hermes if it's not already stored.
+    if agent_instance.identifier:
+        update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
 
-        balance_result = agent_instance.balance()
-        if not balance_result:
-            return None, None, None
+    balance_result = agent_instance.balance()
+    if not balance_result:
+        return None, None, None
 
-        balance = publish.balance(
-            balance_tuple_to_dict(balance_result),
+    balance = publish.balance(
+        balance_tuple_to_dict(balance_result),
+        scheme_account_id,
+        user_info["user_set"],
+        tid,
+    )
+
+    # Asynchronously get the transactions for the a user
+    threads.append(
+        thread_pool_executor.submit(
+            publish_transactions,
+            agent_instance,
             scheme_account_id,
             user_info["user_set"],
             tid,
         )
-
-        # Asynchronously get the transactions for the a user
-        threads.append(
-            thread_pool_executor.submit(
-                publish_transactions,
-                agent_instance,
-                scheme_account_id,
-                user_info["user_set"],
-                tid,
-            )
-        )
-        status = SchemeAccountStatus.ACTIVE
-        create_journey = agent_instance.create_journey
+    )
+    status = SchemeAccountStatus.ACTIVE
+    create_journey = agent_instance.create_journey
 
     return balance, status, create_journey
 

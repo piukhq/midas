@@ -16,6 +16,7 @@ from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
 from app.exceptions import AgentException, UnknownException
 from app.journeys.common import agent_login, get_agent_class
+from app.journeys.journey_manager import login_journey
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.messaging import queue
 from app.publish import thread_pool_executor
@@ -78,7 +79,6 @@ class Login(Resource):
             ('Transaction', '<transaction_id>')
         ])
     """
-    # TODO This class handles both update and add journeys - rename? Hermes?
     def get(self, scheme_slug):
         status = request.args.get("status")
         journey_type = request.args.get("journey_type")
@@ -93,20 +93,22 @@ class Login(Resource):
             "journey_type": int(journey_type) if journey_type else None,
             "scheme_account_id": int(request.args["scheme_account_id"]),
         }
-        tid = request.headers.get("transaction")
+        transaction_id = request.headers.get("transaction")
 
-        try:
-            agent_class = get_agent_class(scheme_slug)
-        except NotFound as e:
-            # Update the scheme status on hermes to WALLET_ONLY (10)
-            thread_pool_executor.submit(publish.status, user_info["scheme_account_id"], 10, tid, user_info)
-            abort(e.code, message=e.data["message"])
+        # try:
+        #     agent_class = get_agent_class(scheme_slug)
+        # except NotFound as e:
+        #     # Update the scheme status on hermes to WALLET_ONLY (10)
+        #     thread_pool_executor.submit(publish.status, user_info["scheme_account_id"], 10, tid, user_info)
+        #     abort(e.code, message=e.data["message"])
+        #
+        # if agent_class.is_async:
+        #     return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
+        #
+        # balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
+        # return create_response(balance)
 
-        if agent_class.is_async:
-            return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
-
-        balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
-        return create_response(balance)
+        return create_response(login_journey(scheme_slug, user_info, transaction_id))
 
     @staticmethod
     def handle_async_balance(agent_class, scheme_slug, user_info, tid):
