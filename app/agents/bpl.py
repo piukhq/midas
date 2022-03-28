@@ -62,7 +62,8 @@ class Bpl(ApiMiner):
         try:
             self.make_request(url, method="post", audit=True, json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
+            error_code = ex.response.status_code if ex.response is not None else ex.code
+            self.handle_errors(error_code, unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
             if consents:
@@ -84,7 +85,8 @@ class Bpl(ApiMiner):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
+            error_code = ex.response.status_code if ex.response is not None else ex.code
+            self.handle_errors(error_code, unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
 
