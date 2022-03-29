@@ -186,6 +186,10 @@ class Iceland(ApiMiner):
         if consents:
             self.add_additional_consent()
 
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self._authenticate()
+
         response_json = self._join(self.create_join_request_payload())
 
         error = response_json.get("error_codes")
