@@ -187,6 +187,10 @@ class Iceland(ApiMiner):
             self.add_additional_consent()
 
         authentication_service = self.config.security_credentials["outbound"]["service"]
+        check_correct_authentication(
+            actual_config_auth_type=authentication_service,
+            allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
+        )
         if authentication_service == Configuration.OAUTH_SECURITY:
             self._authenticate()
 
