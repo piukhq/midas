@@ -7,12 +7,11 @@ import arrow
 import requests
 from blinker import signal
 from requests import Response
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 from soteria.configuration import Configuration
 
 from app.http_request import get_headers
 from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
+from app.requests_retry import requests_retry_session
 from settings import ATLAS_URL, AUDIT_SENSITIVE_KEYS
 
 
@@ -69,7 +68,7 @@ class AuditLogger:
     """
 
     def __init__(self, journeys: Iterable[Union[str, int]] = "__all__") -> None:
-        self.session = self.retry_session()
+        self.session = requests_retry_session(retries=3, status_forcelist=(500, 502, 503, 504))
         self.journeys = journeys
 
         signal("send-audit-request").connect(self.send_request_audit_log)
@@ -154,13 +153,3 @@ class AuditLogger:
                 log.error(f"Error response from Atlas when sending audit logs. Response: {resp_content}")
         except requests.exceptions.RequestException as e:
             log.exception(f"Error sending audit logs to Atlas. Error: {repr(e)}")
-
-    def retry_session(self, backoff_factor: float = 0.3) -> requests.Session:
-        session = requests.Session()
-        retry = Retry(
-            total=3, backoff_factor=backoff_factor, method_whitelist=False, status_forcelist=[500, 502, 503, 504]
-        )
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        return session
