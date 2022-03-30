@@ -238,7 +238,7 @@ class Iceland(ApiMiner):
         }
 
         try:
-            response = self.session.post(url, json=payload)
+            response = self.session.post(url, data=payload)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
             raise AgentError(SERVICE_CONNECTION_ERROR) from e
