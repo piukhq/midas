@@ -858,6 +858,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -934,6 +935,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -955,6 +957,7 @@ class TestIcelandJoin(TestCase):
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -979,6 +982,7 @@ class TestIcelandJoin(TestCase):
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1094,6 +1098,7 @@ class TestIcelandJoin(TestCase):
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1362,6 +1367,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         self.agent.join(self.credentials)
 
         self.assertTrue(mock_join.called)
@@ -1378,6 +1384,7 @@ class TestIcelandJoin(TestCase):
     )
     @mock.patch.object(BaseMiner, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
             self.agent.join(self.credentials)
 
