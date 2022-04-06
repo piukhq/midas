@@ -83,7 +83,7 @@ def login_journey(scheme_slug, user_info, transaction_id):
     status = SchemeAccountStatus.UNKNOWN_ERROR
     threads = []
     try:
-        balance, transactions, create_journey = login(agent_instance, scheme_slug, user_info, transaction_id)
+        balance, transactions = login(agent_instance, scheme_slug, user_info, transaction_id)
         status = SchemeAccountStatus.ACTIVE
     except (LoginError, AgentError) as e:
         status = e.code
@@ -107,7 +107,9 @@ def login_journey(scheme_slug, user_info, transaction_id):
                     status,
                     transaction_id,
                     user_info,
-                    journey=create_journey,
+                    # Harvey Nicols appears to be the only agent that requires create_journey
+                    # WHY is it necessary?
+                    journey=agent_instance.create_journey,
                 )
             )
 
