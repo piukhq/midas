@@ -46,6 +46,7 @@ class Acteol(ApiMiner):
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.source_id = "acteol"
         self.config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,

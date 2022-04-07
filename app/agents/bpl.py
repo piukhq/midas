@@ -28,6 +28,7 @@ log = get_logger("bpl-agent")
 
 class Bpl(ApiMiner):
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.source_id = "bpl"
         config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,

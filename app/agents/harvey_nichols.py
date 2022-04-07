@@ -36,6 +36,7 @@ class HarveyNichols(ApiMiner):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.source_id = "harveynichols"
         slugs = [scheme_slug, "harvey-nichols-sso"]
         configurations = [
             Configuration(

@@ -26,6 +26,7 @@ class Squaremeal(ApiMiner):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.source_id = "squaremeal"
         self.config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,

@@ -56,6 +56,7 @@ class Iceland(ApiMiner):
 
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.source_id = "iceland"
         handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.config = config or Configuration(
             scheme_slug,
