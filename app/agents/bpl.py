@@ -63,7 +63,7 @@ class Bpl(ApiMiner):
         try:
             self.make_request(url, method="post", audit=True, json=payload)
         except (LoginError, AgentError) as ex:
-            error_code = ex.response.status_code if ex.response is not None else ex.code
+            error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
             self.handle_errors(error_code, unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
