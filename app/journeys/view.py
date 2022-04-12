@@ -90,7 +90,7 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
         tid,
     )
 
-    # Asynchronously get the transactions for the a user
+    # Asynchronously get the transactions for the user
     threads.append(
         thread_pool_executor.submit(
             publish_transactions,
