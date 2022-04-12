@@ -34,12 +34,7 @@ from app.agents.exceptions import (
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.mocks.users import USER_STORE
-from app.publish import thread_pool_executor
-from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
 from app.requests_retry import requests_retry_session
-from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
-from app.security.utils import get_security_agent
-from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes
 from app.tasks.resend_consents import send_consent_status
