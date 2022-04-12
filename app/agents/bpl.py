@@ -28,6 +28,7 @@ log = get_logger("bpl-agent")
 
 class Bpl(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.source_id = "bpl"
         config = Configuration(
             scheme_slug,
             Configuration.JOIN_HANDLER,
@@ -62,7 +63,8 @@ class Bpl(BaseAgent):
         try:
             self.make_request(url, method="post", audit=True, json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
+            error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
+            self.handle_errors(error_code, unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
             if consents:
@@ -84,7 +86,8 @@ class Bpl(BaseAgent):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
         except (LoginError, AgentError) as ex:
-            self.handle_errors(ex.response.json()["code"], unhandled_exception_code=GENERAL_ERROR)
+            error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
+            self.handle_errors(error_code, unhandled_exception_code=GENERAL_ERROR)
         else:
             self.expecting_callback = True
 

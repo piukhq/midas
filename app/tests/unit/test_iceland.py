@@ -10,7 +10,6 @@ import requests
 from flask_testing import TestCase as FlaskTestCase
 from requests import Response
 from soteria.configuration import Configuration
-from tenacity import wait_none
 
 from app.agents.base import Balance, BaseAgent
 from app.agents.exceptions import (
@@ -82,7 +81,6 @@ class TestIceland(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-            self.agent._login.retry.wait = wait_none()  # type:ignore
 
     @httpretty.activate
     def test_refresh_token(self):
@@ -253,9 +251,8 @@ class TestIcelandAdd(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-            self.agent._login.retry.wait = wait_none()  # type:ignore
 
-    @mock.patch("app.retry.redis")
+    @mock.patch("app.redis_retry.redis")
     @mock.patch.object(Iceland, "login")
     def test_agent_login_returns_agent_instance(self, mock_login, mock_retry_redis):
         mock_login.return_value = {"message": "success"}
@@ -770,9 +767,9 @@ class TestIcelandAdd(TestCase):
                 self.agent.login(self.credentials)
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:8])
-        self.assertEqual(12, mock_base_signal.call_count)
+        self.assertEqual(4, mock_base_signal.call_count)
         self.assertEqual(expected_iceland_calls, mock_iceland_signal.mock_calls[:2])
-        self.assertEqual(3, mock_iceland_signal.call_count)
+        self.assertEqual(1, mock_iceland_signal.call_count)
 
 
 class TestIcelandJoin(TestCase):
@@ -828,7 +825,6 @@ class TestIcelandJoin(TestCase):
                 },
                 scheme_slug="iceland-bonus-card",
             )
-        self.agent._join.retry.wait = wait_none()  # type:ignore
 
     @mock.patch.object(Iceland, "join")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
@@ -862,6 +858,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -938,6 +935,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -959,6 +957,7 @@ class TestIcelandJoin(TestCase):
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -983,6 +982,7 @@ class TestIcelandJoin(TestCase):
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1098,6 +1098,7 @@ class TestIcelandJoin(TestCase):
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1366,6 +1367,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         self.agent.join(self.credentials)
 
         self.assertTrue(mock_join.called)
@@ -1382,6 +1384,7 @@ class TestIcelandJoin(TestCase):
     )
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
+        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
             self.agent.join(self.credentials)
 
@@ -1530,7 +1533,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
     @mock.patch.object(BaseAgent, "consent_confirmation")
     @mock.patch("app.publish.status")
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
-    @mock.patch("app.resources_callbacks.retry", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_async_join_callback_returns_success(
@@ -1564,7 +1567,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"success": True}, response.json)
 
-    @mock.patch("app.resources_callbacks.retry", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_raises_error_with_bad_record_uid(
@@ -1600,7 +1603,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_specific_error(
@@ -1630,7 +1633,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_unknown_error(

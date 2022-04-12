@@ -33,6 +33,8 @@ soteria = "*"
 gunicorn = "*"
 user-token-store = "*"
 olympus-messaging = "*"
+urllib3 = "*"
+click = "==8.0.4"
 
 [dev-packages]
 black = "==21.6b0"

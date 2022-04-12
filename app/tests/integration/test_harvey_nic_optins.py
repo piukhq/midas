@@ -122,7 +122,6 @@ class TestUserTokenStore(unittest.TestCase):
             mock_post.call_args_list[0][1]["data"],
         )
 
-        print(mock_put.call_args_list)
         self.assertEqual("http://127.0.0.1:8000/schemes/user_consent/1", mock_put.call_args_list[0][0][0])
         self.assertEqual("http://127.0.0.1:8000/schemes/user_consent/2", mock_put.call_args_list[1][0][0])
 

@@ -164,7 +164,8 @@ class TestBplCallback(TestCase):
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
-    def test_requests_retry_session(self, mock_collect_credentials, mock_update_hermes):
+    @mock.patch("app.agents.bpl.Configuration")
+    def test_requests_retry_session(self, mock_config, mock_collect_credentials, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_collect_credentials.called)

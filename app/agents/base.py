@@ -8,11 +8,10 @@ from typing import Optional
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
-import requests
 import sentry_sdk
 from blinker import signal
 from requests import HTTPError
-from requests.exceptions import Timeout
+from requests.exceptions import RetryError, Timeout
 from soteria.configuration import Configuration
 
 import settings
@@ -35,6 +34,12 @@ from app.agents.exceptions import (
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.mocks.users import USER_STORE
+from app.publish import thread_pool_executor
+from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
+from app.requests_retry import requests_retry_session
+from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus, update_pending_join_account
+from app.security.utils import get_security_agent
+from app.tasks.resend_consents import ConsentStatus, send_consent_status
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes
 from app.tasks.resend_consents import send_consent_status
@@ -45,6 +50,12 @@ log = get_logger("agent-base")
 class BaseAgent(object):
     retry_limit: Optional[int] = 2
     point_conversion_rate = Decimal("0")
+    connect_timeout = 3
+    known_captcha_signatures = [
+        "recaptcha",
+        "captcha",
+        "Incapsula",
+    ]
     identifier_type: Optional[list[str]] = None
     identifier: Optional[dict[str, str]] = None
     expecting_callback = False
@@ -69,6 +80,8 @@ class BaseAgent(object):
         self.record_uid = hash_ids.encode(self.scheme_id)
         self.message_uid = str(uuid4())
         self.integration_service = None
+        self.max_retries = 3
+        self.session = requests_retry_session(retries=self.max_retries)
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -126,7 +139,7 @@ class BaseAgent(object):
                 handler_type = self.audit_handlers[self.journey_type]
                 self.send_audit_request(audit_payload, handler_type)
 
-            resp = requests.request(method, url=url, **args)
+            resp = self.session.request(method, url=url, **args)
 
             if audit:
                 self.send_audit_response(resp, handler_type)
@@ -135,6 +148,11 @@ class BaseAgent(object):
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             sentry_sdk.capture_exception(exception)
             raise AgentError(END_SITE_DOWN) from exception
+
+        except RetryError as exception:
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RETRY_LIMIT_REACHED)
+            sentry_sdk.capture_exception(exception)
+            raise AgentError(RETRY_LIMIT_REACHED) from exception
 
         signal("record-http-request").send(
             self,
