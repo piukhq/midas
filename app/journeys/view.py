@@ -69,7 +69,6 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
-    create_journey = None
     if scheme_slug == "iceland-bonus-card" and settings.ENABLE_ICELAND_VALIDATE:
         if user_info["status"] != SchemeAccountStatus.ACTIVE:
             user_info["journey_type"] = JourneyTypes.LINK.value
