@@ -1,9 +1,6 @@
-import json
 from copy import deepcopy
 from decimal import Decimal
 
-import arrow
-import requests
 from blinker import signal
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
@@ -70,28 +67,7 @@ class Squaremeal(BaseAgent):
 
         return req_audit_logs_copy
 
-    def authenticate(self) -> None:
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OPEN_AUTH_SECURITY:
-            return
-        have_valid_token = False
-        current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {}
-        try:
-            token = json.loads(self.token_store.get(self.scheme_id))
-            try:
-                if self._token_is_valid(token, current_timestamp):
-                    have_valid_token = True
-            except (KeyError, TypeError) as ex:
-                log.exception(ex)
-        except (KeyError, self.token_store.NoSuchToken):
-            pass
-
-        if not have_valid_token:
-            token = self._store_token(self._refresh_token(), current_timestamp)
-
-        self.headers["Authorization"] = f'Bearer {token["sm_access_token"]}'
-
-    def _refresh_token(self):
+    def get_auth_url_and_payload(self):
         url = self.auth_url
         payload = {
             "grant_type": "client_credentials",
@@ -99,25 +75,12 @@ class Squaremeal(BaseAgent):
             "client_id": self.azure_sm_client_id,
             "scope": self.azure_sm_scope,
         }
-        resp = requests.post(url, data=payload)
-        token = resp.json()["access_token"]
-        return token
+        return url, payload
 
-    def _store_token(self, token, current_timestamp):
-        token = {
-            "sm_access_token": token,
-            "timestamp": current_timestamp,
-        }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
-        return token
-
-    def _token_is_valid(self, token, current_timestamp):
-        time_diff = current_timestamp[0] - token["timestamp"][0]
-        return time_diff < self.AUTH_TOKEN_TIMEOUT
-
-    def _create_account(self, credentials):
+    def _join(self, credentials):
         url = f"{self.base_url}register"
-        self.authenticate()
+        authentication_service = self.config.security_credentials["outbound"]["service"]
+        self.authenticate(authentication_service)
         payload = {
             "email": credentials["email"],
             "password": credentials["password"],
@@ -171,7 +134,7 @@ class Squaremeal(BaseAgent):
 
     def join(self, credentials):
         consents = credentials.get("consents", [])
-        resp_json = self._create_account(credentials)
+        resp_json = self._join(credentials)
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],

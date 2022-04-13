@@ -1342,7 +1342,7 @@ class TestIcelandJoin(TestCase):
                 "journey_type": 0,
             },
         ]
-        self.agent.add_additional_consent()
+        self.agent._add_additional_consent()
 
         self.assertEqual(expected_consents, self.agent.user_info["credentials"]["consents"])
 
@@ -1358,7 +1358,7 @@ class TestIcelandJoin(TestCase):
         )
         logger = get_logger("iceland")
         with mock.patch.object(logger, "debug") as mock_logger:
-            self.agent.add_additional_consent()
+            self.agent._add_additional_consent()
 
         self.assertEqual(2, len(self.agent.user_info["credentials"]["consents"]))
         self.assertEqual(call("Too many consents for Iceland scheme."), mock_logger.call_args)
@@ -1447,12 +1447,12 @@ class TestIcelandJoin(TestCase):
             "dob": "1987-08-08",
             "phone1": "0790000000",
         }
-        payload = self.agent.create_join_request_payload()
+        payload = self.agent._create_join_request_payload()
         self.assertEqual(expected_payload, payload)
 
     def test_create_join_request_payload_when_no_consents(self):
         self.agent.user_info["credentials"]["consents"] = {}
-        payload = self.agent.create_join_request_payload()
+        payload = self.agent._create_join_request_payload()
         self.assertEqual(None, payload["marketing_opt_in"])
         self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
 

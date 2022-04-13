@@ -57,39 +57,21 @@ class Acteol(BaseAgent):
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url
         self.auth = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.auth_service = self.config.security_credentials["outbound"]["service"]
         self.token_store = UserTokenStore(settings.REDIS_URL)
         self.token = {}
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
 
     # Public methods
-    def authenticate(self) -> dict:
-        """
-        Get an API token from redis if we have one, otherwise login to get one and store in cache.
-        This token is not per-user, it is for our backend to use their API
 
-        :return: valid token dict
-        """
-        have_valid_token = False  # Assume no good token to begin with
-        current_timestamp = arrow.utcnow().int_timestamp
-        token = {}
-        try:
-            token = json.loads(self.token_store.get(self.scheme_id))
-            try:  # Token may be in bad format and needs refreshing
-                if self._token_is_valid(token=token, current_timestamp=current_timestamp):
-                    have_valid_token = True
-            except (KeyError, TypeError) as e:
-                log.exception(e)  # have_valid_token is still False
-        except (KeyError, self.token_store.NoSuchToken):
-            pass  # have_valid_token is still False
-
-        if not have_valid_token:
-            acteol_access_token = self._refresh_access_token()
-            token = self._store_token(
-                acteol_access_token=acteol_access_token,
-                current_timestamp=current_timestamp,
-            )
-
-        return token
+    def get_auth_url_and_payload(self):
+        url = urljoin(self.base_url, "token")
+        payload = {
+            "grant_type": "password",
+            "username": self.auth["username"],
+            "password": self.auth["password"],
+        }
+        return url, payload
 
     def join(self, credentials: dict):
         """
@@ -103,7 +85,7 @@ class Acteol(BaseAgent):
         * Use the customer details in Bink system
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
@@ -168,7 +150,7 @@ class Acteol(BaseAgent):
         :return: balance data including vouchers
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
@@ -286,7 +268,7 @@ class Acteol(BaseAgent):
         :return: list of transactions from Acteol's API
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
 
         ctcid: str = self.credentials["merchant_identifier"]
         api_url = urljoin(
@@ -318,7 +300,7 @@ class Acteol(BaseAgent):
         :param email: user's email address
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
 
         api_url = urljoin(self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -333,7 +315,7 @@ class Acteol(BaseAgent):
         Delete a customer by their CtcID (aka CustomerID)
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
@@ -487,48 +469,6 @@ class Acteol(BaseAgent):
 
         return origin_id
 
-    def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
-        """
-        Determine if our token is still valid, based on whether the difference between the current timestamp
-        and the token's timestamp is less than the configured timeout in seconds
-
-        :param token: dict of token data
-        :param current_timestamp: timestamp of current time from Arrow
-        :return: Boolean
-        """
-        return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
-
-    def _refresh_access_token(self) -> str:
-        """
-        Returns an Acteol API auth token to use in subsequent requests.
-        """
-        payload = {
-            "grant_type": "password",
-            "username": self.auth["username"],
-            "password": self.auth["password"],
-        }
-        token_url = urljoin(self.base_url, "token")
-        resp = self.make_request(token_url, method="post", timeout=self.API_TIMEOUT, data=payload)
-        token = resp.json()["access_token"]
-
-        return token
-
-    def _store_token(self, acteol_access_token: str, current_timestamp: int) -> dict:
-        """
-        Create a full token, with timestamp, from the acteol access token
-
-        :param acteol_access_token: A token given to us by logging into the Acteol API
-        :param current_timestamp: Timestamp (Arrow) of the current UTC time
-        :return: The created token dict
-        """
-        token = {
-            "acteol_access_token": acteol_access_token,
-            "timestamp": current_timestamp,
-        }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
-
-        return token
-
     def _customer_fields_are_present(self, customer_details: dict) -> bool:
         """
         These fields are required and expected, so it's an exception if they're not there
@@ -609,7 +549,7 @@ class Acteol(BaseAgent):
         :return: ctcid (aka CustomerID or merchant_identifier in Bink)
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
@@ -648,7 +588,7 @@ class Acteol(BaseAgent):
         :return: list of vouchers
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate(self.auth_service)
 
         api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -845,16 +785,6 @@ class Acteol(BaseAgent):
         description = f"{location_name} £{formatted_total_cost}"
 
         return description
-
-    def _get_valid_api_token_and_make_headers(self):
-        """
-        Ensure our Acteol API token is valid and use to create headers for requests
-        """
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
-            # Get a valid API token
-            token = self.authenticate()
-            # Add auth for subsequent API calls
-            self.headers = self._make_headers(token=token["acteol_access_token"])
 
     def _check_response_for_error(self, resp_json: dict):
         """

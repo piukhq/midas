@@ -100,7 +100,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        resp_json = self.squaremeal._create_account(credentials=self.credentials)
+        resp_json = self.squaremeal._join(credentials=self.credentials)
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 

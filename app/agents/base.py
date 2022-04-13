@@ -15,6 +15,7 @@ from blinker import signal
 from requests import HTTPError
 from requests.exceptions import RetryError, Timeout
 from soteria.configuration import Configuration
+from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.exceptions import (
@@ -26,6 +27,7 @@ from app.agents.exceptions import (
     NOT_SENT,
     PRE_REGISTERED_CARD,
     RETRY_LIMIT_REACHED,
+    SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
     UNKNOWN,
     AgentError,
@@ -54,6 +56,7 @@ class BaseAgent(object):
     create_journey: Optional[str] = None
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        self.source_id = ""
         self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
         self.account_status = user_info["status"]
@@ -73,6 +76,7 @@ class BaseAgent(object):
         self.integration_service = None
         self.max_retries = 3
         self.session = requests_retry_session(retries=self.max_retries)
+        self.AUTH_TOKEN_TIMEOUT: int = 0
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -110,6 +114,59 @@ class BaseAgent(object):
         else:
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
+
+    def authenticate(self, authentication_service):
+        if authentication_service == Configuration.OPEN_AUTH_SECURITY:
+            return
+        if authentication_service == Configuration.OAUTH_SECURITY:
+            self._set_oauth_token()
+
+    def _set_oauth_token(self):
+        self.token_store = UserTokenStore(settings.REDIS_URL)
+        have_valid_token = False
+        current_timestamp = (arrow.utcnow().int_timestamp,)
+        token = ""
+        try:
+            cached_token = json.loads(self.token_store.get(self.scheme_id))
+            try:
+                if self._token_is_valid(cached_token, current_timestamp):
+                    have_valid_token = True
+                    token = cached_token[f"{self.source_id}_access_token"]
+            except (KeyError, TypeError) as e:
+                log.exception(e)
+        except (KeyError, self.token_store.NoSuchToken):
+            pass
+
+        if not have_valid_token:
+            token = self._refresh_token()
+            self._store_token(token, current_timestamp)
+
+        self.headers["Authorization"] = f"Bearer {token}"
+
+    def _refresh_token(self) -> str:
+        url, payload = self.get_auth_url_and_payload()
+        try:
+            response = self.session.post(url, data=payload)
+        except requests.RequestException as e:
+            sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
+            raise AgentError(SERVICE_CONNECTION_ERROR) from e
+        except (KeyError, IndexError) as e:
+            raise AgentError(CONFIGURATION_ERROR) from e
+
+        return response.json()["access_token"]
+
+    def get_auth_url_and_payload(self):
+        raise NotImplementedError()
+
+    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
+        token_dict = {
+            f"{self.source_id}_access_token": token,
+            "timestamp": current_timestamp,
+        }
+        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
+
+    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
+        return current_timestamp[0] - token["timestamp"][0] < self.AUTH_TOKEN_TIMEOUT
 
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.

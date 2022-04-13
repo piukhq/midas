@@ -3,8 +3,6 @@ from decimal import Decimal
 from typing import Optional
 
 import arrow
-import requests
-import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
@@ -16,7 +14,6 @@ from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
     CARD_NUMBER_ERROR,
-    CONFIGURATION_ERROR,
     GENERAL_ERROR,
     JOIN_ERROR,
     JOIN_IN_PROGRESS,
@@ -24,7 +21,6 @@ from app.agents.exceptions import (
     NO_SUCH_RECORD,
     NOT_SENT,
     PRE_REGISTERED_CARD,
-    SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
     UNKNOWN,
     AgentError,
@@ -83,7 +79,17 @@ class Iceland(BaseAgent):
             UNKNOWN: "UNKNOWN",
         }
 
-    def add_additional_consent(self) -> None:
+    def get_auth_url_and_payload(self):
+        url = self.security_credentials["url"]
+        payload = {
+            "grant_type": "client_credentials",
+            "client_secret": self.security_credentials["payload"]["client_secret"],
+            "client_id": self.security_credentials["payload"]["client_id"],
+            "resource": self.security_credentials["payload"]["resource"],
+        }
+        return url, payload
+
+    def _add_additional_consent(self) -> None:
         if len(self.user_info["credentials"]["consents"]) < 2:
             journey_type = self.user_info["credentials"]["consents"][0]["journey_type"]
             consent = {
@@ -97,7 +103,7 @@ class Iceland(BaseAgent):
         else:
             log.debug("Too many consents for Iceland scheme.")
 
-    def create_join_request_payload(self) -> dict:
+    def _create_join_request_payload(self) -> dict:
         credentials = self.user_info["credentials"]
         marketing_mapping = {i["slug"]: i["value"] for i in credentials["consents"]}
         return {
@@ -185,17 +191,16 @@ class Iceland(BaseAgent):
         self.expecting_callback = True
         # Add the additional consent for Iceland
         if consents:
-            self.add_additional_consent()
+            self._add_additional_consent()
 
         authentication_service = self.config.security_credentials["outbound"]["service"]
         check_correct_authentication(
             actual_config_auth_type=authentication_service,
             allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
         )
-        if authentication_service == Configuration.OAUTH_SECURITY:
-            self._authenticate()
+        self.authenticate(authentication_service)
 
-        response_json = self._join(self.create_join_request_payload())
+        response_json = self._join(self._create_join_request_payload())
 
         error = response_json.get("error_codes")
         if error:
@@ -205,59 +210,6 @@ class Iceland(BaseAgent):
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)
-
-    def _authenticate(self) -> str:
-        have_valid_token = False
-        current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = ""
-        try:
-            cached_token = json.loads(self.token_store.get(self.scheme_id))
-            try:
-                if self._token_is_valid(cached_token, current_timestamp):
-                    have_valid_token = True
-                    token = cached_token["iceland_access_token"]
-            except (KeyError, TypeError) as e:
-                log.exception(e)
-        except (KeyError, self.token_store.NoSuchToken):
-            pass
-
-        if not have_valid_token:
-            token = self._refresh_token()
-            self._store_token(token, current_timestamp)
-
-        self.headers["Authorization"] = f"Bearer {token}"
-
-        return token
-
-    def _refresh_token(self) -> str:
-        url = self.security_credentials["url"]
-        payload = {
-            "grant_type": "client_credentials",
-            "client_secret": self.security_credentials["payload"]["client_secret"],
-            "client_id": self.security_credentials["payload"]["client_id"],
-            "resource": self.security_credentials["payload"]["resource"],
-        }
-
-        try:
-            response = self.session.post(url, data=payload)
-        except requests.RequestException as e:
-            sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
-            raise AgentError(SERVICE_CONNECTION_ERROR) from e
-        except (KeyError, IndexError) as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
-
-        return response.json()["access_token"]
-
-    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
-        token_dict = {
-            "iceland_access_token": token,
-            "timestamp": current_timestamp,
-        }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
-
-    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
-        time_diff = current_timestamp[0] - token["timestamp"][0]
-        return time_diff < self.AUTH_TOKEN_TIMEOUT
 
     def _login(self, payload: dict):
         try:
@@ -269,13 +221,14 @@ class Iceland(BaseAgent):
 
     def login(self, credentials) -> None:
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+
         authentication_service = self.config.security_credentials["outbound"]["service"]
         check_correct_authentication(
             actual_config_auth_type=authentication_service,
             allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
         )
-        if authentication_service == Configuration.OAUTH_SECURITY:
-            self._authenticate()
+        self.authenticate(authentication_service)
+
         payload = {
             "card_number": credentials["card_number"],
             "last_name": credentials["last_name"],
