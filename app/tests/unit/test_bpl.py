@@ -171,8 +171,8 @@ class TestBplCallback(TestCase):
         self.assertTrue(mock_collect_credentials.called)
         self.assertTrue(mock_update_hermes.called)
 
-    @mock.patch("app.agents.base.ApiMiner.make_request")
-    @mock.patch("app.agents.base.BaseMiner.consent_confirmation")
+    @mock.patch("app.agents.base.BaseAgent.make_request")
+    @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
     def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request):
         consents = {"consents": [{"key": "Consent 1", "value": "true"}]}
         bpl_payload = {

@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import httpretty
 
-from app.agents.base import ApiMiner, create_error_response
+from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
 
 
@@ -14,10 +14,10 @@ class TestBase(TestCase):
 
         self.assertIn("NOT_SENT", response_json)
 
-    @mock.patch.object(ApiMiner, "join")
+    @mock.patch.object(BaseAgent, "join")
     def test_attempt_join(self, mocked_join):
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
 
         m.attempt_join(credentials={})
         self.assertTrue(mocked_join.called)
@@ -31,7 +31,7 @@ class TestBase(TestCase):
         """
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -79,7 +79,7 @@ class TestBase(TestCase):
         """
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -118,7 +118,7 @@ class TestBase(TestCase):
         """
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -166,7 +166,7 @@ class TestBase(TestCase):
         """
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -214,7 +214,7 @@ class TestBase(TestCase):
         """
         # GIVEN
         user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
-        m = ApiMiner(0, user_info)
+        m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -247,7 +247,7 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     def test_handle_errors_raises_exception(self):
-        agent = ApiMiner(
+        agent = BaseAgent(
             retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         )
         agent.errors = {
@@ -259,7 +259,7 @@ class TestBase(TestCase):
         self.assertEqual(439, e.exception.code)
 
     def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self):
-        agent = ApiMiner(
+        agent = BaseAgent(
             retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
         )
         agent.errors = {

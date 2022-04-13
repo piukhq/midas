@@ -10,7 +10,7 @@ import httpretty
 from flask_testing import TestCase
 
 from app import publish
-from app.agents.base import BaseMiner
+from app.agents.base import BaseAgent
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     NO_SUCH_RECORD,
@@ -22,7 +22,6 @@ from app.agents.exceptions import (
     errors,
 )
 from app.agents.harvey_nichols import HarveyNichols
-from app.agents.merchant_api_generic import MerchantAPIGeneric
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
 from app.encryption import AESCipher
@@ -33,7 +32,7 @@ from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
-from app.scheme_account import JourneyTypes, SchemeAccountStatus
+from app.scheme_account import SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HADES_URL, HERMES_URL
 
@@ -136,7 +135,7 @@ class TestResources(TestCase):
 
         self.assertEqual(transaction_dict, expected)
 
-    class Agent(BaseMiner):
+    class Agent(BaseAgent):
         def __init__(self, identifier):
             self.identifier = identifier
 
@@ -433,19 +432,6 @@ class TestResources(TestCase):
         self.assertTrue(result["error"])
         self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
-    @mock.patch.object(MerchantAPIGeneric, "join")
-    @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail_merchant_api(self, mock_update_pending_join_account, mock_join):
-        mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
-        mock_update_pending_join_account.side_effect = AgentException(ACCOUNT_ALREADY_EXISTS)
-        user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
-
-        with self.assertRaises(AgentException):
-            agent_join(MerchantAPIGeneric, user_info, {}, "")
-
-        self.assertTrue(mock_join.called)
-        self.assertTrue(mock_update_pending_join_account.called)
-
     @mock.patch("app.publish.balance", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.join.publish_transactions", autospec=True)
@@ -684,63 +670,6 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_pending_join_account.called)
-
-    @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-    @mock.patch("app.journeys.view.agent_login", autospec=True)
-    @mock.patch("app.publish.status", autospec=True)
-    @mock.patch("app.publish.balance", autospec=False)
-    def test_get_balance_and_publish_with_pending_merchant_api_scheme(
-        self, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_join_account
-    ):
-
-        pending_user_info = dict(self.user_info)
-        pending_user_info["status"] = SchemeAccountStatus.PENDING
-        pending_user_info["journey_type"] = JourneyTypes.UPDATE
-        balance = get_balance_and_publish(MerchantAPIGeneric, "scheme_slug", pending_user_info, "tid")
-
-        self.assertFalse(mock_login.called)
-        self.assertFalse(mock_publish_balance.called)
-        self.assertFalse(mock_publish_status.called)
-        self.assertFalse(mock_update_pending_join_account.called)
-
-        expected_balance = {
-            "points": Decimal(0),
-            "points_label": "0",
-            "reward_tier": 0,
-            "scheme_account_id": 123,
-            "user_set": 1,
-            "value": Decimal(0),
-            "value_label": "Pending",
-        }
-        self.assertEqual(balance, expected_balance)
-
-    @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-    @mock.patch("app.journeys.view.agent_login", autospec=True)
-    @mock.patch("app.publish.status", autospec=True)
-    @mock.patch("app.publish.balance", autospec=False)
-    def test_get_balance_and_publish_with_pending_join_merchant_api(
-        self, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_join_account
-    ):
-        pending_user_info = dict(self.user_info)
-        pending_user_info["status"] = SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS
-        pending_user_info["journey_type"] = JourneyTypes.UPDATE
-        balance = get_balance_and_publish(MerchantAPIGeneric, "scheme_slug", pending_user_info, "tid")
-
-        self.assertFalse(mock_login.called)
-        self.assertFalse(mock_publish_balance.called)
-        self.assertFalse(mock_publish_status.called)
-        self.assertFalse(mock_update_pending_join_account.called)
-
-        expected_balance = {
-            "points": Decimal(0),
-            "points_label": "0",
-            "reward_tier": 0,
-            "scheme_account_id": 123,
-            "user_set": 1,
-            "value": Decimal(0),
-            "value_label": "Pending",
-        }
-        self.assertEqual(balance, expected_balance)
 
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=False)
     @mock.patch("app.journeys.view.agent_login", autospec=False)

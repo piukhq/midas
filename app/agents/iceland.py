@@ -11,7 +11,7 @@ from user_auth_token import UserTokenStore
 
 import settings
 from app import publish
-from app.agents.base import ApiMiner, Balance, check_correct_authentication
+from app.agents.base import Balance, BaseAgent, check_correct_authentication
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
@@ -50,7 +50,7 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
 }
 
 
-class Iceland(ApiMiner):
+class Iceland(BaseAgent):
     token_store = UserTokenStore(settings.REDIS_URL)
     AUTH_TOKEN_TIMEOUT = 3599
 

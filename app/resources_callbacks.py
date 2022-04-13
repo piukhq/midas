@@ -11,7 +11,7 @@ from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import authorise
-from settings import HERMES_URL, NEW_ICELAND_AGENT_ACTIVE, SERVICE_API_KEY
+from settings import HERMES_URL, SERVICE_API_KEY
 
 
 class JoinCallback(Resource):
@@ -55,12 +55,7 @@ class JoinCallback(Resource):
             key = redis_retry.get_key(agent_class.__name__, user_info["scheme_account_id"])
             retry_count = redis_retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
-
-            # TODO - NEW_ICELAND_AGENT_ACTIVE - Remove reference
-            if NEW_ICELAND_AGENT_ACTIVE:
-                agent_instance.join_callback(data)
-            else:
-                agent_instance.join(data, inbound=True)
+            agent_instance.join_callback(data)
         except AgentError as e:
             update_failed_scheme_account(e)
             raise AgentException(e)

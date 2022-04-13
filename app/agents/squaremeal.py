@@ -9,7 +9,7 @@ from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.base import ApiMiner
+from app.agents.base import BaseAgent
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
@@ -20,7 +20,7 @@ RETRY_LIMIT = 3
 log = get_logger("squaremeal")
 
 
-class Squaremeal(ApiMiner):
+class Squaremeal(BaseAgent):
     token_store = UserTokenStore(settings.REDIS_URL)
     AUTH_TOKEN_TIMEOUT = 3599
 
