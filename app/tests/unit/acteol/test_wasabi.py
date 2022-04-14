@@ -69,12 +69,12 @@ class TestWasabi(unittest.TestCase):
         cls.wasabi.max_retries = 0
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
+    @patch("app.agents.acteol.Acteol._refresh_token")
     @patch("app.agents.acteol.Acteol._store_token")
     def test_refreshes_token(
         self,
         mock_store_token,
-        mock_refresh_access_token,
+        mock_refresh_token,
         mock_token_is_valid,
     ):
         """
@@ -88,27 +88,28 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.authenticate()
 
             # THEN
-            assert mock_refresh_access_token.called_once()
+            assert mock_refresh_token.called_once()
             assert mock_store_token.called_once_with(self.mock_token)
 
-    @patch("app.agents.acteol.Acteol._token_is_valid")
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
-    @patch("app.agents.acteol.Acteol._store_token")
-    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_access_token, mock_token_is_valid):
+    @patch("app.agents.base.BaseAgent._token_is_valid")
+    @patch("app.agents.base.BaseAgent._refresh_token")
+    @patch("app.agents.base.BaseAgent._store_token")
+    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_token, mock_token_is_valid):
         """
         The token is valid and should not be refreshed.
         """
         # GIVEN
+        self.wasabi.authentication_service = Configuration.OAUTH_SECURITY
         mock_token_is_valid.return_value = True
 
         # WHEN
         with patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
-            token = self.wasabi.authenticate()
+            self.wasabi.authenticate()
 
             # THEN
-            assert not mock_refresh_access_token.called
+            assert not mock_refresh_token.called
             assert not mock_store_token.called
-            assert token == self.mock_token
+            self.assertEqual({"Authorization": "Bearer abcde12345fghij"}, self.wasabi.headers)
 
     def test_token_is_valid_false_for_just_expired(self):
         """
@@ -118,14 +119,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 75700
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.auth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
-            "timestamp": 100,  # an easy number to work with to get 75600
+            "timestamp": [
+                100,
+            ],  # an easy number to work with to get 75600
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is False
@@ -138,14 +146,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 10000
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.auth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
-            "timestamp": 10,  # an easy number to work with to exceed the timout setting
+            "timestamp": [
+                10,
+            ],  # an easy number to work with to exceed the timout setting
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is False
@@ -158,14 +173,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 1000
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.auth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
-            "timestamp": 450,  # an easy number to work with to stay within validity range
+            "timestamp": [
+                450,
+            ],  # an easy number to work with to stay within validity range
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is True
@@ -184,14 +206,15 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         with patch.object(self.wasabi.token_store, "set", return_value=True):
-            token = self.wasabi._store_token(
-                acteol_access_token=mock_acteol_access_token,
-                current_timestamp=mock_current_timestamp,
+            self.wasabi._store_token(
+                token=mock_acteol_access_token,
+                current_timestamp=[
+                    mock_current_timestamp,
+                ],
             )
 
             # THEN
             assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
-            assert token == expected_token
 
     def test_make_headers(self):
         """
@@ -207,20 +230,16 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert header == expected_header
 
-    @patch("app.agents.acteol.Acteol._make_headers")
-    @patch("app.agents.acteol.Acteol.authenticate")
-    def test_oauth(self, mock_authenticate, mock_make_headers):
-        self.wasabi._get_valid_api_token_and_make_headers()
-        self.assertEqual(1, mock_authenticate.call_count)
-        self.assertEqual(1, mock_make_headers.call_count)
+    @patch("app.agents.base.BaseAgent._get_oauth_token")
+    def test_oauth(self, mock_get_oauth_token):
+        self.wasabi.authenticate()
+        self.assertEqual(1, mock_get_oauth_token.call_count)
 
-    @patch("app.agents.acteol.Acteol._make_headers")
-    @patch("app.agents.acteol.Acteol.authenticate")
-    def test_open_auth(self, mock_authenticate, mock_make_headers):
-        self.wasabi.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
-        self.wasabi._get_valid_api_token_and_make_headers()
-        self.assertEqual(0, mock_authenticate.call_count)
-        self.assertEqual(0, mock_make_headers.call_count)
+    @patch("app.agents.base.BaseAgent._get_oauth_token")
+    def test_open_auth(self, mock_get_oauth_token):
+        self.wasabi.authentication_service = Configuration.OPEN_AUTH_SECURITY
+        self.wasabi.authenticate()
+        self.assertEqual(0, mock_get_oauth_token.call_count)
 
     def test_create_origin_id(self):
         """

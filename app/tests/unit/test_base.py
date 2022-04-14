@@ -6,6 +6,7 @@ import httpretty
 
 from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.scheme_account import JourneyTypes
 
 
 class TestBase(TestCase):
@@ -16,7 +17,12 @@ class TestBase(TestCase):
 
     @mock.patch.object(BaseAgent, "join")
     def test_attempt_join(self, mocked_join):
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.JOIN,
+        }
         m = BaseAgent(0, user_info)
 
         m.attempt_join(credentials={})

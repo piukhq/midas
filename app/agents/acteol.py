@@ -10,7 +10,6 @@ import requests
 import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
-from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import BaseAgent
@@ -41,11 +40,11 @@ class Acteol(BaseAgent):
     ORIGIN_ROOT: str
     N_TRANSACTIONS: int
     API_TIMEOUT: int
-    AUTH_TOKEN_TIMEOUT: int
     AGENT_CONSENT_TRIES: int
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "acteol"
         self.config = Configuration(
             scheme_slug,
@@ -57,10 +56,7 @@ class Acteol(BaseAgent):
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url
         self.auth = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        self.auth_service = self.config.security_credentials["outbound"]["service"]
-        self.token_store = UserTokenStore(settings.REDIS_URL)
-        self.token = {}
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.authentication_service = self.config.security_credentials["outbound"]["service"]
 
     # Public methods
 
@@ -85,7 +81,7 @@ class Acteol(BaseAgent):
         * Use the customer details in Bink system
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
         # Create an origin id for subsequent API calls
         user_email = credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
@@ -150,7 +146,7 @@ class Acteol(BaseAgent):
         :return: balance data including vouchers
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
@@ -268,7 +264,7 @@ class Acteol(BaseAgent):
         :return: list of transactions from Acteol's API
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
 
         ctcid: str = self.credentials["merchant_identifier"]
         api_url = urljoin(
@@ -300,7 +296,7 @@ class Acteol(BaseAgent):
         :param email: user's email address
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -315,7 +311,7 @@ class Acteol(BaseAgent):
         Delete a customer by their CtcID (aka CustomerID)
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
@@ -549,7 +545,7 @@ class Acteol(BaseAgent):
         :return: ctcid (aka CustomerID or merchant_identifier in Bink)
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
         member_number = credentials["card_number"]
@@ -588,7 +584,7 @@ class Acteol(BaseAgent):
         :return: list of vouchers
         """
         # Ensure a valid API token
-        self.authenticate(self.auth_service)
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -839,7 +835,6 @@ def agent_consent_response(resp):
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
-    AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API
@@ -851,4 +846,5 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.auth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()

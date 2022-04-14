@@ -108,7 +108,7 @@ class TestSquaremealJoin(TestCase):
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
-    @mock.patch("app.agents.squaremeal.Squaremeal._create_account")
+    @mock.patch("app.agents.squaremeal.Squaremeal._join")
     def test_join_200(self, mock_create_account, mock_consent_confirmation, mock_requests_session, mock_authenticate):
         mock_create_account.return_value = RESPONSE_JSON_200
         self.squaremeal.user_info["credentials"]["consents"][0]["value"] = True
@@ -283,28 +283,26 @@ class TestSquaremealJoin(TestCase):
         self.assertEqual(self.squaremeal.headers, {"Secondary-Key": "12345678"})
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
-    @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
     @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
-    def test_authenticate(self, mock_refresh_token, mock_token_store, mock_store_token):
-        current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {"timestamp": current_timestamp, "sm_access_token": "fake-123"}
-        mock_token_store.return_value = json.dumps(token)
+    def test_authenticate(self, mock_refresh_token, mock_store_token):
+        token = {"timestamp": (arrow.utcnow().int_timestamp,), "squaremeal_access_token": "fake-123"}
         mock_store_token.return_value = token
 
         # Ensure all the necessary methods called when token expired
-        self.squaremeal.AUTH_TOKEN_TIMEOUT = 0
-        self.squaremeal.authenticate()
+        self.squaremeal.auth_token_timeout = 0
+        with mock.patch.object(self.squaremeal.token_store, "get", return_value=json.dumps(token)):
+            self.squaremeal.authenticate()
         self.assertEqual({"Authorization": "Bearer fake-123", "Secondary-Key": "12345678"}, self.squaremeal.headers)
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
-    @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
     @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
-    def test_open_auth(self, mock_refresh_token, mock_token_store, mock_store_token):
-        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
-
-        self.squaremeal.authenticate()
+    def test_open_auth(self, mock_refresh_token, mock_store_token):
+        self.squaremeal.authentication_service = Configuration.OPEN_AUTH_SECURITY
+        token = {"timestamp": (arrow.utcnow().int_timestamp,), "squaremeal_access_token": "fake-123"}
+        with mock.patch.object(self.squaremeal.token_store, "get", return_value=json.dumps(token)) as mock_token_store:
+            self.squaremeal.authenticate()
         self.assertEqual(0, mock_refresh_token.call_count)
         self.assertEqual(0, mock_token_store.call_count)
         self.assertEqual(0, mock_store_token.call_count)
@@ -428,7 +426,7 @@ class TestSquaremealLogin(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
-    def test_login_error_500(self, mock_authenticate, mock_requests_session):
+    def test_login_error_500(self, mock_requests_session, mock_authenticate):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.squaremeal.base_url + "login",

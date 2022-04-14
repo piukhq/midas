@@ -131,36 +131,24 @@ class TestIceland(TestCase):
         )
 
     def test_authenticate_stored_token_valid(self):
-        self.agent.token_store = MagicMock()
-        self.agent.token_store.get.return_value = (
-            f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp}]}}'
-        )
-        token = self.agent._authenticate()
-        self.assertEqual(self.agent.headers, {"Authorization": f"Bearer {'abcde12345fghij'}"})
-        self.assertEqual(token, "abcde12345fghij")
+        with mock.patch.object(
+            self.agent.token_store,
+            "get",
+            return_value=json.dumps(
+                {"iceland_access_token": "abcde12345fghij", "timestamp": [arrow.utcnow().int_timestamp]}
+            ),
+        ):
+            self.agent.authenticate()
+        self.assertEqual({"Authorization": "Bearer abcde12345fghij"}, self.agent.headers)
 
     @mock.patch("app.agents.iceland.Iceland._refresh_token", return_value="")
-    def test_authenticate_stored_token_expired(self, mock_refresh_token):
+    def test_authenticate_with_expired_stored_token(self, mock_refresh_token):
         self.agent.token_store = MagicMock()
         self.agent.token_store.get.return_value = (
             f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
         )
-        self.agent._authenticate()
+        self.agent.authenticate()
         mock_refresh_token.assert_called()
-
-    @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate")
-    @mock.patch("requests.Session.post", autospec=True)
-    def test_journey_bypasses_authentication_if_open_auth(self, mock_requests_session, mock_oath):
-        httpretty.register_uri(
-            method=httpretty.POST,
-            uri=self.merchant_url,
-            responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
-        )
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
-
-        self.agent.login(self.credentials)
-        self.assertEqual(0, mock_oath.call_count)
 
     def test_balance(self):
         self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
@@ -274,7 +262,7 @@ class TestIcelandAdd(TestCase):
         self.assertTrue(mock_login.called)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_success(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -311,7 +299,7 @@ class TestIcelandAdd(TestCase):
         )
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -342,7 +330,7 @@ class TestIcelandAdd(TestCase):
         self.assertFalse(self.agent.expecting_callback)
 
     def test_login_wrong_authentication_selected(self):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.RSA_SECURITY
+        self.agent.authentication_service = Configuration.RSA_SECURITY
         with self.assertRaises(AgentError) as e:
             self.agent.login(self.credentials)
         self.assertEqual("Configuration error", e.exception.name)
@@ -353,8 +341,8 @@ class TestIcelandAdd(TestCase):
         )
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
-    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
+    @mock.patch("requests.Session.request", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseAgent, "make_request")
@@ -371,7 +359,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(1, mock_make_request.call_count)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_401_unauthorised(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -387,7 +375,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual([e.exception.name, e.exception.code], ["An unknown error has occurred", 520])
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_validation_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -408,7 +396,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_card_number_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -429,7 +417,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_link_limit_exceeded(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -450,7 +438,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_card_not_registered(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -475,7 +463,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_general_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -496,7 +484,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(e.exception.code, 439)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_not_sent_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -515,7 +503,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(535, e.exception.code)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_unknown_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -540,7 +528,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(520, e.exception.code)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     def test_login_no_such_record_error(self, mock_requests_session, mock_oath):
         httpretty.register_uri(
@@ -561,7 +549,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(444, e.exception.code)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -627,7 +615,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(1, mock_iceland_signal.call_count)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -701,7 +689,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(1, mock_iceland_signal.call_count)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -850,7 +838,7 @@ class TestIcelandJoin(TestCase):
         self.assertFalse(mock_update_pending_join_account.called)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -858,7 +846,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -927,7 +915,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(0, mock_iceland_signal.call_count)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -935,7 +923,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -949,7 +937,7 @@ class TestIcelandJoin(TestCase):
         self.assertTrue(self.agent.expecting_callback)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -957,7 +945,7 @@ class TestIcelandJoin(TestCase):
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -974,7 +962,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(0, mock_iceland_signal.call_count)
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -982,7 +970,7 @@ class TestIcelandJoin(TestCase):
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1090,7 +1078,7 @@ class TestIcelandJoin(TestCase):
         )
 
     @httpretty.activate
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -1098,7 +1086,7 @@ class TestIcelandJoin(TestCase):
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1363,11 +1351,11 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(2, len(self.agent.user_info["credentials"]["consents"]))
         self.assertEqual(call("Too many consents for Iceland scheme."), mock_logger.call_args)
 
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         self.agent.join(self.credentials)
 
         self.assertTrue(mock_join.called)
@@ -1378,13 +1366,13 @@ class TestIcelandJoin(TestCase):
             ConsentStatus.PENDING,
         )
 
-    @mock.patch("app.agents.iceland.Iceland._authenticate", return_value="a_token")
+    @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch(
         "app.agents.iceland.Iceland._join", return_value={"error_codes": [{"code": "GENERAL_ERROR"}], "message_uid": ""}
     )
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.config.security_credentials["outbound"]["service"] = Configuration.OAUTH_SECURITY
+        self.agent.authentication_service = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
             self.agent.join(self.credentials)
 

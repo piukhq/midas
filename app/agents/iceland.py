@@ -5,7 +5,6 @@ from typing import Optional
 import arrow
 from blinker import signal
 from soteria.configuration import Configuration
-from user_auth_token import UserTokenStore
 
 import settings
 from app import publish
@@ -47,9 +46,6 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
 
 
 class Iceland(BaseAgent):
-    token_store = UserTokenStore(settings.REDIS_URL)
-    AUTH_TOKEN_TIMEOUT = 3599
-
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "iceland"
@@ -61,7 +57,9 @@ class Iceland(BaseAgent):
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
+        self.auth_token_timeout = 3599
         self.security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.authentication_service = self.config.security_credentials["outbound"]["service"]
         self._balance_amount = None
         self._transactions = None
         self.errors = {
@@ -193,12 +191,11 @@ class Iceland(BaseAgent):
         if consents:
             self._add_additional_consent()
 
-        authentication_service = self.config.security_credentials["outbound"]["service"]
         check_correct_authentication(
-            actual_config_auth_type=authentication_service,
+            actual_config_auth_type=self.authentication_service,
             allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
         )
-        self.authenticate(authentication_service)
+        self.authenticate()
 
         response_json = self._join(self._create_join_request_payload())
 
@@ -222,12 +219,11 @@ class Iceland(BaseAgent):
     def login(self, credentials) -> None:
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
-        authentication_service = self.config.security_credentials["outbound"]["service"]
         check_correct_authentication(
-            actual_config_auth_type=authentication_service,
+            actual_config_auth_type=self.authentication_service,
             allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
         )
-        self.authenticate(authentication_service)
+        self.authenticate()
 
         payload = {
             "card_number": credentials["card_number"],

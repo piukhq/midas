@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from blinker import signal
 from soteria.configuration import Configuration
-from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import BaseAgent
@@ -18,9 +17,6 @@ log = get_logger("squaremeal")
 
 
 class Squaremeal(BaseAgent):
-    token_store = UserTokenStore(settings.REDIS_URL)
-    AUTH_TOKEN_TIMEOUT = 3599
-
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "squaremeal"
@@ -33,15 +29,14 @@ class Squaremeal(BaseAgent):
         )
         self.base_url = self.config.merchant_url
         self.auth_url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
+        self.auth_token_timeout = 3599
+        self.authentication_service = self.config.security_credentials["outbound"]["service"]
         self.headers["Secondary-Key"] = str(
             self.config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"]
         )
-
-        self.azure_sm_client_secret = self.config.security_credentials["outbound"]["credentials"][0]["value"][
-            "client-secret"
-        ]
-        self.azure_sm_client_id = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
-        self.azure_sm_scope = self.config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
+        self.client_secret = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-secret"]
+        self.client_id = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
+        self.scope = self.config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
 
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
@@ -71,16 +66,15 @@ class Squaremeal(BaseAgent):
         url = self.auth_url
         payload = {
             "grant_type": "client_credentials",
-            "client_secret": self.azure_sm_client_secret,
-            "client_id": self.azure_sm_client_id,
-            "scope": self.azure_sm_scope,
+            "client_secret": self.client_secret,
+            "client_id": self.client_id,
+            "scope": self.scope,
         }
         return url, payload
 
     def _join(self, credentials):
         url = f"{self.base_url}register"
-        authentication_service = self.config.security_credentials["outbound"]["service"]
-        self.authenticate(authentication_service)
+        self.authenticate()
         payload = {
             "email": credentials["email"],
             "password": credentials["password"],

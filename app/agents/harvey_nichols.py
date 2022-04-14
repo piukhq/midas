@@ -36,6 +36,7 @@ class HarveyNichols(BaseAgent):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug)
         self.source_id = "harveynichols"
         slugs = [scheme_slug, "harvey-nichols-sso"]
         configurations = [
@@ -46,8 +47,7 @@ class HarveyNichols(BaseAgent):
         ]
 
         self.base_url = configurations[0].merchant_url
-        self.hn_sso_url = configurations[1].merchant_url
-        super().__init__(retry_count, user_info, scheme_slug)
+        self.sso_url = configurations[1].merchant_url
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
 
     def check_loyalty_account_valid(self, credentials):
@@ -56,7 +56,7 @@ class HarveyNichols(BaseAgent):
 
         Don't go any further unless the account is valid
         """
-        has_loyalty_account_url = urljoin(self.hn_sso_url, "user/hasloyaltyaccount")
+        has_loyalty_account_url = urljoin(self.sso_url, "user/hasloyaltyaccount")
         data = {"email": credentials["email"], "password": credentials["password"]}
         headers = {"Accept": "application/json"}
         payload = deepcopy(data)
@@ -286,7 +286,7 @@ class HarveyNichols(BaseAgent):
                     "Accept": "application/json",
                     "Auth-key": self.CONSENTS_AUTH_KEY,
                 }
-                consents_url = urljoin(self.hn_sso_url, "preferences/create")
+                consents_url = urljoin(self.sso_url, "preferences/create")
                 send_consents(
                     {
                         "url": consents_url,  # set to scheme url for the agent to accept consents

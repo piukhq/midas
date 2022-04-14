@@ -46,6 +46,14 @@ from app.tasks.resend_consents import send_consent_status
 log = get_logger("agent-base")
 
 
+JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
+    JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
+    JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
+    JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+    JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
+}
+
+
 class BaseAgent(object):
     retry_limit: Optional[int] = 2
     point_conversion_rate = Decimal("0")
@@ -56,27 +64,33 @@ class BaseAgent(object):
     create_journey: Optional[str] = None
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.source_id = ""
-        self.scheme_id = user_info["scheme_account_id"]
-        self.scheme_slug = scheme_slug
-        self.account_status = user_info["status"]
-        self.journey_type = user_info.get("journey_type")
-        self.headers = {}
-        self.retry_count = retry_count
-        self.errors = {}
+        self.retry_count: int = retry_count
         self.user_info = user_info
-        self.channel = user_info.get("channel", "")
+        self.scheme_slug: str = scheme_slug
+        self.source_id: str = ""
+
+        self.scheme_id = self.user_info["scheme_account_id"]
+        self.account_status = self.user_info["status"]
+        self.channel = self.user_info.get("channel", "")
+        self.journey_type = self.user_info.get("journey_type")
+
+        self.record_uid = hash_ids.encode(self.scheme_id)
+        self.message_uid: str = str(uuid4())
+        self.max_retries: int = 3
+        self.token_store = UserTokenStore(settings.REDIS_URL)
+        self.auth_token_timeout: int = 0
+
+        self.session = requests_retry_session(retries=self.max_retries)
+        self.headers = {}
+        self.errors = {}
         self.audit_handlers = {
             JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
             JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
             JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
         }
-        self.record_uid = hash_ids.encode(self.scheme_id)
-        self.message_uid = str(uuid4())
-        self.integration_service = None
-        self.max_retries = 3
-        self.session = requests_retry_session(retries=self.max_retries)
-        self.AUTH_TOKEN_TIMEOUT: int = 0
+        self.config: Configuration = None
+        self.integration_service: str = ""
+        self.authentication_service: int = None
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -115,14 +129,16 @@ class BaseAgent(object):
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
-    def authenticate(self, authentication_service):
-        if authentication_service == Configuration.OPEN_AUTH_SECURITY:
+    def authenticate(self):
+        if self.authentication_service == Configuration.OPEN_AUTH_SECURITY:
             return
-        if authentication_service == Configuration.OAUTH_SECURITY:
-            self._set_oauth_token()
+        if self.authentication_service == Configuration.OAUTH_SECURITY:
+            self._get_oauth_token()
 
-    def _set_oauth_token(self):
-        self.token_store = UserTokenStore(settings.REDIS_URL)
+    def get_auth_url_and_payload(self):
+        raise NotImplementedError()
+
+    def _get_oauth_token(self):
         have_valid_token = False
         current_timestamp = (arrow.utcnow().int_timestamp,)
         token = ""
@@ -155,9 +171,6 @@ class BaseAgent(object):
 
         return response.json()["access_token"]
 
-    def get_auth_url_and_payload(self):
-        raise NotImplementedError()
-
     def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
         token_dict = {
             f"{self.source_id}_access_token": token,
@@ -166,7 +179,7 @@ class BaseAgent(object):
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
     def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
-        return current_timestamp[0] - token["timestamp"][0] < self.AUTH_TOKEN_TIMEOUT
+        return current_timestamp[0] - token["timestamp"][0] < self.auth_token_timeout
 
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
