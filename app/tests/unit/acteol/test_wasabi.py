@@ -230,16 +230,16 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert header == expected_header
 
-    @patch("app.agents.base.BaseAgent._get_oauth_token")
-    def test_oauth(self, mock_get_oauth_token):
+    @patch("app.agents.base.BaseAgent._oauth_authentication")
+    def test_oauth(self, mock_oauth_authentication):
         self.wasabi.authenticate()
-        self.assertEqual(1, mock_get_oauth_token.call_count)
+        self.assertEqual(1, mock_oauth_authentication.call_count)
 
-    @patch("app.agents.base.BaseAgent._get_oauth_token")
-    def test_open_auth(self, mock_get_oauth_token):
+    @patch("app.agents.base.BaseAgent._oauth_authentication")
+    def test_open_auth(self, mock_oauth_authentication):
         self.wasabi.authentication_service = Configuration.OPEN_AUTH_SECURITY
         self.wasabi.authenticate()
-        self.assertEqual(0, mock_get_oauth_token.call_count)
+        self.assertEqual(0, mock_oauth_authentication.call_count)
 
     def test_create_origin_id(self):
         """

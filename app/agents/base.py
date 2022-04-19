@@ -133,12 +133,12 @@ class BaseAgent(object):
         if self.authentication_service == Configuration.OPEN_AUTH_SECURITY:
             return
         if self.authentication_service == Configuration.OAUTH_SECURITY:
-            self._get_oauth_token()
+            self._oauth_authentication()
 
     def get_auth_url_and_payload(self):
         raise NotImplementedError()
 
-    def _get_oauth_token(self):
+    def _oauth_authentication(self):
         have_valid_token = False
         current_timestamp = (arrow.utcnow().int_timestamp,)
         token = ""
