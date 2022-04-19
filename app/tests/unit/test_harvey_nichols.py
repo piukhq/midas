@@ -391,7 +391,6 @@ class TestLoginJourneyTypes(unittest.TestCase):
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def setUp(self, mock_base_config, mock_hn_config):
-
         self.user_info = {
             "scheme_account_id": 123,
             "status": "pending",
