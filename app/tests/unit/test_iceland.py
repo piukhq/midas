@@ -284,7 +284,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        self.agent.login(self.credentials)
+        self.agent.login()
 
         self.assertEqual("SYNC", self.agent.integration_service)
         self.assertIn("barcode", str(self.agent.user_info))
@@ -325,14 +325,14 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        self.agent.login(self.credentials)
+        self.agent.login()
 
         self.assertFalse(self.agent.expecting_callback)
 
     def test_login_wrong_authentication_selected(self):
         self.agent.authentication_service = Configuration.RSA_SECURITY
         with self.assertRaises(AgentError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual("Configuration error", e.exception.name)
         self.assertEqual(
             "Agent expecting Security Type(s) ['Open Auth (No Authentication)', 'OAuth'] "
@@ -354,7 +354,7 @@ class TestIcelandAdd(TestCase):
         response._content = b'{"balance": 10.0}'
         mock_make_request.return_value = response
 
-        self.agent.login(self.credentials)
+        self.agent.login()
 
         self.assertEqual(1, mock_make_request.call_count)
 
@@ -370,7 +370,7 @@ class TestIcelandAdd(TestCase):
 
         with self.assertRaises(AgentError) as e:
             with self.assertRaises(LoginError):
-                self.agent.login(self.credentials)
+                self.agent.login()
 
         self.assertEqual([e.exception.name, e.exception.code], ["An unknown error has occurred", 520])
 
@@ -392,7 +392,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
@@ -413,7 +413,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
@@ -434,7 +434,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
@@ -459,7 +459,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
@@ -480,7 +480,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(e.exception.code, 439)
 
     @httpretty.activate
@@ -499,7 +499,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(535, e.exception.code)
 
     @httpretty.activate
@@ -524,7 +524,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(520, e.exception.code)
 
     @httpretty.activate
@@ -545,7 +545,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login(self.credentials)
+            self.agent.login()
         self.assertEqual(444, e.exception.code)
 
     @httpretty.activate
@@ -560,7 +560,7 @@ class TestIcelandAdd(TestCase):
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        self.agent.login(self.credentials)
+        self.agent.login()
 
         expected_base_calls = [
             call("send-audit-request"),
@@ -681,7 +681,7 @@ class TestIcelandAdd(TestCase):
         ]
 
         with self.assertRaises(LoginError):
-            self.agent.login(self.credentials)
+            self.agent.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:6])
         self.assertEqual(3, mock_base_signal.call_count)
@@ -752,7 +752,7 @@ class TestIcelandAdd(TestCase):
 
         with self.assertRaises(AgentError):
             with self.assertRaises(LoginError):
-                self.agent.login(self.credentials)
+                self.agent.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:8])
         self.assertEqual(4, mock_base_signal.call_count)
@@ -908,7 +908,7 @@ class TestIcelandJoin(TestCase):
             ),
         ]
 
-        self.agent.join(self.credentials)
+        self.agent.join()
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls)
         self.assertEqual(3, mock_base_signal.call_count)
@@ -932,7 +932,7 @@ class TestIcelandJoin(TestCase):
             ],
         )
 
-        self.agent.join(self.credentials)
+        self.agent.join()
 
         self.assertTrue(self.agent.expecting_callback)
 
@@ -956,7 +956,7 @@ class TestIcelandJoin(TestCase):
             ],
         )
 
-        self.agent.join(self.credentials)
+        self.agent.join()
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(0, mock_iceland_signal.call_count)
@@ -978,7 +978,7 @@ class TestIcelandJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.join(self.credentials)
+            self.agent.join()
         self.assertEqual(e.exception.code, 520)
         self.assertEqual(e.exception.name, "An unknown error has occurred")
 
@@ -1156,7 +1156,7 @@ class TestIcelandJoin(TestCase):
         ]
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join(self.credentials)
+            self.agent.join()
         self.assertEqual(expected_consent_confirmation_calls, mock_consent_confirmation.call_args_list)
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls[:8])
@@ -1356,7 +1356,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
         self.agent.authentication_service = Configuration.OAUTH_SECURITY
-        self.agent.join(self.credentials)
+        self.agent.join()
 
         self.assertTrue(mock_join.called)
         mock_consent_confirmation.assert_called_with(
@@ -1374,7 +1374,7 @@ class TestIcelandJoin(TestCase):
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
         self.agent.authentication_service = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
-            self.agent.join(self.credentials)
+            self.agent.join()
 
         self.assertTrue(mock_join.called)
         mock_consent_confirmation.assert_called_with(

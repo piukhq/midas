@@ -252,10 +252,10 @@ class BaseAgent(object):
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
 
-    def join(self, credentials):
+    def join(self):
         raise NotImplementedError()
 
-    def login(self, credentials):
+    def login(self):
         raise NotImplementedError()
 
     def balance(self) -> Optional[Balance]:
@@ -316,18 +316,18 @@ class BaseAgent(object):
     def update_questions(questions):
         return questions
 
-    def attempt_login(self, credentials):
+    def attempt_login(self):
         if self.retry_limit and self.retry_count >= self.retry_limit:
             raise RetryLimitError(RETRY_LIMIT_REACHED)
 
         try:
-            self.login(credentials)
+            self.login()
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
-    def attempt_join(self, credentials):
+    def attempt_join(self):
         try:
-            self.join(credentials)
+            self.join()
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 

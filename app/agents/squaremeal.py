@@ -72,7 +72,8 @@ class Squaremeal(BaseAgent):
         }
         return url, payload
 
-    def _join(self, credentials):
+    def _join(self):
+        credentials = self.user_info["credentials"]
         url = f"{self.base_url}register"
         self.authenticate()
         payload = {
@@ -102,7 +103,8 @@ class Squaremeal(BaseAgent):
         except (AgentError, JoinError):
             pass
 
-    def _login(self, credentials):
+    def _login(self):
+        credentials = self.user_info["credentials"]
         url = f"{self.base_url}login"
         self.authenticate()
         payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
@@ -126,9 +128,9 @@ class Squaremeal(BaseAgent):
             self.handle_errors(error_code)
         return resp.json()
 
-    def join(self, credentials):
-        consents = credentials.get("consents", [])
-        resp_json = self._join(credentials)
+    def join(self):
+        consents = self.user_info["credentials"].get("consents", [])
+        resp_json = self._join()
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
@@ -136,13 +138,13 @@ class Squaremeal(BaseAgent):
         self.user_info["credentials"].update(self.identifier)
         self._update_newsletters(resp_json["UserId"], consents)
 
-    def login(self, credentials):
+    def login(self):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN.value:
             return
 
         self.errors = {"STATUS_LOGIN_FAILED": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
-        resp = self._login(credentials)
+        resp = self._login()
         self.identifier = {
             "merchant_identifier": resp["UserId"],
             "card_number": resp["MembershipNumber"],

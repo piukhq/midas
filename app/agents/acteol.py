@@ -69,7 +69,7 @@ class Acteol(BaseAgent):
         }
         return url, payload
 
-    def join(self, credentials: dict):
+    def join(self):
         """
         Join a new loyalty scheme member with Acteol. The steps are:
         * Get API token
@@ -83,7 +83,7 @@ class Acteol(BaseAgent):
         # Ensure a valid API token
         self.authenticate()
         # Create an origin id for subsequent API calls
-        user_email = credentials["email"]
+        user_email = self.credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         # These calls may result in various exceptions that mean the join has failed. If so,
@@ -95,7 +95,7 @@ class Acteol(BaseAgent):
                 raise JoinError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
 
             # The account does not exist, so we can create one
-            ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
+            ctcid = self._create_account(origin_id=origin_id)
 
             # Add the new member number to Acteol
             member_number = self._add_member_number(ctcid=ctcid)
@@ -117,7 +117,7 @@ class Acteol(BaseAgent):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
-        consents = credentials.get("consents", [{}])
+        consents = self.credentials.get("consents", [{}])
         email_optin = self._get_email_optin_from_consent(consents=consents)
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
@@ -318,7 +318,7 @@ class Acteol(BaseAgent):
 
         return resp
 
-    def login(self, credentials) -> None:
+    def login(self) -> None:
         """
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
@@ -327,28 +327,25 @@ class Acteol(BaseAgent):
         # Being on an add journey is defined as having a card number but no "from_join" field, and we
         # won't have a "merchant_identifier" (which would indicate a balance request instead).
         if (
-            credentials["card_number"]
+            self.credentials["card_number"]
             and not self.user_info.get("from_join")
-            and not credentials.get("merchant_identifier")
+            and not self.credentials.get("merchant_identifier")
         ):
             try:
-                ctcid = self._validate_member_number(credentials)
+                ctcid = self._validate_member_number(self.credentials)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
                 self.identifier_type = [
                     "card_number",  # Not sure this is needed but the base class has one
                 ]
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
-                    "card_number": credentials["card_number"],
+                    "card_number": self.credentials["card_number"],
                     "merchant_identifier": ctcid,
                 }
-                credentials.update({"merchant_identifier": ctcid})
+                self.user_info["credentials"].update({"merchant_identifier": ctcid})
             except (AgentError, LoginError):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
-
-        # Ensure credentials are available via the instance
-        self.credentials = credentials
 
         return
 
@@ -402,7 +399,7 @@ class Acteol(BaseAgent):
 
         return False
 
-    def _create_account(self, origin_id: str, credentials: dict) -> str:
+    def _create_account(self, origin_id: str) -> str:
         """
         Create an account in Acteol
 
@@ -413,10 +410,10 @@ class Acteol(BaseAgent):
         payload = {
             "OriginID": origin_id,
             "SourceID": "BinkPlatform",
-            "FirstName": credentials["first_name"],
-            "LastName": credentials["last_name"],
-            "Email": credentials["email"],
-            "BirthDate": credentials["date_of_birth"],
+            "FirstName": self.credentials["first_name"],
+            "LastName": self.credentials["last_name"],
+            "Email": self.credentials["email"],
+            "BirthDate": self.credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
@@ -527,7 +524,7 @@ class Acteol(BaseAgent):
         else:
             return {}
 
-    def _validate_member_number(self, credentials: dict) -> str:
+    def _validate_member_number(self) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -548,10 +545,10 @@ class Acteol(BaseAgent):
         self.authenticate()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
-        member_number = credentials["card_number"]
+        member_number = self.credentials["card_number"]
         payload = {
             "MemberNumber": member_number,
-            "Email": credentials["email"],
+            "Email": self.credentials["email"],
         }
 
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)

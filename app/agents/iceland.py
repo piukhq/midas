@@ -181,7 +181,7 @@ class Iceland(BaseAgent):
             signal("join-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(e.name)
 
-    def join(self, data: dict) -> None:
+    def join(self) -> None:
         # Barclays expects only 1 consent for an Iceland join, whereas Iceland expects 2
         # Save the current consent to a variable for use in self.consent_confirmation below
         consents = self.user_info["credentials"].get("consents", []).copy()
@@ -216,8 +216,9 @@ class Iceland(BaseAgent):
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             self.handle_errors(e.name)
 
-    def login(self, credentials) -> None:
+    def login(self) -> None:
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        credentials = self.user_info["credentials"]
 
         check_correct_authentication(
             actual_config_auth_type=self.authentication_service,

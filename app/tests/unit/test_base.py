@@ -22,10 +22,11 @@ class TestBase(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.JOIN,
+            "credentials": {}
         }
         m = BaseAgent(0, user_info)
 
-        m.attempt_join(credentials={})
+        m.attempt_join()
         self.assertTrue(mocked_join.called)
 
     @httpretty.activate

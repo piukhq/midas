@@ -119,60 +119,74 @@ class TestUserConsents(unittest.TestCase):
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_join)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def test_harvey_nick_mock_join(self, mock_make_request, mock_config):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "test2@user.email",
+                "password": "testPassword",
+                "title": "Dr",
+                "first_name": "test",
+                "last_name": "user",
+            },
+        }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "test2@user.email",
-            "password": "testPassword",
-            "title": "Dr",
-            "first_name": "test",
-            "last_name": "user",
-        }
-        response = hn.join(credentials)
+
+        response = hn.join()
 
         self.assertEqual(response, {"message": "success"})
 
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_has_loyalty_account)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def test_check_loyalty_account_valid(self, mock_make_request, mock_config):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "Schroeder_35731@gmail.com",
+                "password": "testPassword",
+            },
+        }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "Schroeder_35731@gmail.com",
-            "password": "testPassword",
-        }
 
         with self.assertRaises(LoginError):
-            hn.check_loyalty_account_valid(credentials)
+            hn.check_loyalty_account_valid()
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
     def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_config):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+                "consents": [
+                    {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
+                    {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
+                ],
+            },
+        }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
-            "consents": [
-                {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
-            ],
-        }
-        hn._login(credentials)
+
+        hn._login()
         self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
@@ -190,21 +204,26 @@ class TestUserConsents(unittest.TestCase):
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
     def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_config):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+                "consents": [
+                    {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
+                    {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
+                ],
+            },
+        }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 1
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
-            "consents": [
-                {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
-            ],
-        }
-        hn._login(credentials)
+
+        hn._login()
         self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
@@ -231,25 +250,30 @@ class TestUserConsents(unittest.TestCase):
         mock_config,
     ):
         global saved_consents_data
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+                "consents": [
+                    {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
+                    {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
+                ],
+            },
+        }
         saved_consents_data = {}
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 3
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
-            "consents": [
-                {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
-            ],
-        }
+
         # Disable any attempt to push real prometheus metrics
         settings.PUSH_PROMETHEUS_METRICS = False
 
-        hn._login(credentials)
+        hn._login()
         self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
@@ -290,24 +314,29 @@ class TestUserConsents(unittest.TestCase):
         mock_retry,
         mock_config,
     ):
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+                "consents": [
+                    {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
+                    {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
+                ],
+            },
+        }
         hn = HarveyNichols(retry_count=1, user_info=user_info)
         hn.AGENT_TRIES = 3
         hn.HERMES_CONFIRMATION_TRIES = 1
         hn.scheme_id = 123
         hn.token_store = MockStore()
-        credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
-            "consents": [
-                {"id": 1, "slug": "email_optin", "value": True, "created_on": "2018-05-11 12:42"},
-                {"id": 2, "slug": "push_optin", "value": False, "created_on": "2018-05-11 12:44"},
-            ],
-        }
+
         # Disable any attempt to push real prometheus metrics
         settings.PUSH_PROMETHEUS_METRICS = False
 
-        hn._login(credentials)
+        hn._login()
         self.assertEqual("http://hn.test/preferences/create", mock_post.call_args_list[0][0][0])
 
         self.assertEqual(
@@ -347,12 +376,17 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def setUp(self, mock_config):
-        self.credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
+
+        self.user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+            },
         }
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
-        self.hn = HarveyNichols(retry_count=1, user_info=user_info)
+        self.hn = HarveyNichols(retry_count=1, user_info=self.user_info)
         self.hn.token_store = MockStore()
 
     @mock.patch("app.tasks.resend_consents.send_consents")
@@ -367,7 +401,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
             )
         ]
 
-        self.hn.login(self.credentials)
+        self.hn.login()
         self.assertEqual(
             "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
@@ -376,7 +410,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
     @mock.patch("app.tasks.resend_consents.send_consents")
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request")
     def test_login_update_journey(self, mock_make_request, mock_send_consents):
-        credentials = self.credentials.copy()
+        credentials = self.user_info["credentials"].copy()
         credentials["card_number"] = "card number"
         self.hn.scheme_id = 101
         self.hn.journey_type = JourneyTypes.UPDATE.value
@@ -387,7 +421,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
             )
         ]
 
-        self.hn.login(credentials)
+        self.hn.login()
         self.assertEqual(
             "http://hn.test/SignOn",
             mock_make_request.call_args_list[0][0][0],
@@ -410,11 +444,11 @@ class TestLoginJourneyTypes(unittest.TestCase):
             ),
         ]
 
-        self.hn.login(self.credentials)
+        self.hn.login()
         self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[0][0][0])
         self.assertEqual(mock_make_request.call_args_list[0][1]["headers"], {"Accept": "application/json"})
         submitted_json = mock_make_request.call_args_list[0][1]["json"]
-        self.assertEqual(submitted_json, self.credentials)
+        self.assertEqual(submitted_json, self.user_info["credentials"])
         self.assertEqual(
             "http://hn.test/SignOn",
             mock_make_request.call_args_list[1][0][0],
@@ -427,7 +461,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
         self.hn.scheme_id = 101
         for i, msg in enumerate(["Not found", "User details not authenticated"]):  # Web account only  # Bad credentials
             mock_make_request.side_effect = [MockResponse({"auth_resp": {"message": msg, "status_code": "404"}}, 200)]
-            self.assertRaises(LoginError, self.hn.login, self.credentials)
+            self.assertRaises(LoginError, self.hn.login)
             self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0])
 
     @mock.patch("app.tasks.resend_consents.send_consents")
@@ -449,7 +483,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
         ]
 
         try:
-            self.hn.login(self.credentials)
+            self.hn.login()
         except LoginError:
             self.fail("Unexpected LoginError (JourneyType: LINK)")
 
@@ -467,11 +501,15 @@ class TestLoyaltyOutputs(unittest.TestCase):
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     def setUp(self, mock_config):
-        self.credentials = {
-            "email": "mytest@localhost.com",
-            "password": "12345",
+        user_info = {
+            "scheme_account_id": 123,
+            "status": "pending",
+            "channel": "com.bink.wallet",
+            "credentials": {
+                "email": "mytest@localhost.com",
+                "password": "12345",
+            },
         }
-        user_info = {"scheme_account_id": 123, "status": "pending", "channel": "com.bink.wallet"}
         self.hn = HarveyNichols(retry_count=1, user_info=user_info)
         self.hn.token_store = MockStore()
 

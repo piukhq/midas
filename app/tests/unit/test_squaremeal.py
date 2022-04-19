@@ -100,7 +100,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        resp_json = self.squaremeal._join(credentials=self.credentials)
+        resp_json = self.squaremeal._join()
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
@@ -125,7 +125,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        self.squaremeal.join(self.credentials)
+        self.squaremeal.join()
 
         self.assertEqual(
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
@@ -149,7 +149,7 @@ class TestSquaremealJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.join(self.credentials)
+            self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Service connection error")
         self.assertEqual(e.exception.code, 537)
@@ -176,7 +176,7 @@ class TestSquaremealJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.join(self.credentials)
+            self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Account already exists")
         self.assertEqual(e.exception.code, 445)
@@ -363,7 +363,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        resp_json = self.squaremeal._login(credentials=self.credentials)
+        resp_json = self.squaremeal._login()
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
@@ -373,7 +373,7 @@ class TestSquaremealLogin(TestCase):
     @mock.patch("app.agents.squaremeal.Squaremeal._login")
     def test_login_200(self, mock_login, mock_requests_session, mock_authenticate):
         mock_login.return_value = RESPONSE_JSON_200
-        self.squaremeal.login(self.credentials)
+        self.squaremeal.login()
 
         self.assertEqual(
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
@@ -396,7 +396,7 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Invalid credentials")
         self.assertEqual(e.exception.code, 403)
@@ -418,7 +418,7 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Service connection error")
         self.assertEqual(e.exception.code, 537)
@@ -440,6 +440,6 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError):
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))

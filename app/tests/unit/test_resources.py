@@ -451,7 +451,15 @@ class TestResources(TestCase):
     ):
         scheme_slug = "harvey-nichols"
         mock_agent_join.return_value = {
-            "agent": HarveyNichols(0, {"scheme_account_id": "1", "status": None, "channel": "com.bink.wallet"}),
+            "agent": HarveyNichols(
+                0,
+                {
+                    "scheme_account_id": "1",
+                    "status": None,
+                    "channel": "com.bink.wallet",
+                    "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
+                },
+            ),
             "error": None,
         }
         user_info = {
@@ -481,7 +489,15 @@ class TestResources(TestCase):
         self, hn_mock, mock_agent_login, mock_agent_join, mock_update_pending_join_account
     ):
         mock_agent_join.return_value = {
-            "agent": HarveyNichols(0, {"scheme_account_id": "1", "status": None, "channel": "com.bink.wallet"}),
+            "agent": HarveyNichols(
+                0,
+                {
+                    "scheme_account_id": "1",
+                    "status": None,
+                    "channel": "com.bink.wallet",
+                    "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
+                },
+            ),
             "error": ACCOUNT_ALREADY_EXISTS,
         }
         mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)

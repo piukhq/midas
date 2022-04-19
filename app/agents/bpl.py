@@ -36,6 +36,7 @@ class Bpl(BaseAgent):
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
+        self.credentials = user_info["credentials"]
         self.base_url = config.merchant_url
         self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
         self.callback_url = config.callback_url
@@ -49,12 +50,12 @@ class Bpl(BaseAgent):
         }
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
 
-    def join(self, credentials):
-        consents = credentials.get("consents", [])
+    def join(self):
+        consents = self.credentials.get("consents", [])
         marketing_optin = consents[0]["value"] if consents else False
         url = f"{self.base_url}enrolment"
         payload = {
-            "credentials": credentials,
+            "credentials": self.credentials,
             "marketing_preferences": [{"key": "marketing_pref", "value": marketing_optin}],
             "callback_url": self.callback_url,
             "third_party_identifier": hash_ids.encode(self.user_info["scheme_account_id"]),
@@ -70,17 +71,17 @@ class Bpl(BaseAgent):
             if consents:
                 self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
-    def login(self, credentials):
+    def login(self):
         self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
         # If merchant_identifier already exists do not get by credentials
-        if "merchant_identifier" in credentials.keys():
+        if "merchant_identifier" in self.credentials.keys():
             return
         # Channel not available for ADD journey.
         self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
         url = f"{self.base_url}getbycredentials"
         payload = {
-            "email": credentials["email"],
-            "account_number": credentials["card_number"],
+            "email": self.credentials["email"],
+            "account_number": self.credentials["card_number"],
         }
 
         try:
@@ -92,7 +93,7 @@ class Bpl(BaseAgent):
             self.expecting_callback = True
 
         membership_data = resp.json()
-        credentials["merchant_identifier"] = membership_data["UUID"]
+        self.credentials["merchant_identifier"] = membership_data["UUID"]
         self.identifier = {"merchant_identifier": membership_data["UUID"]}
         self.user_info["credentials"].update(self.identifier)
 
@@ -129,8 +130,7 @@ class Bpl(BaseAgent):
         ]
 
     def balance(self) -> Optional[Balance]:
-        credentials = self.user_info["credentials"]
-        merchant_id = credentials["merchant_identifier"]
+        merchant_id = self.credentials["merchant_identifier"]
         self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
