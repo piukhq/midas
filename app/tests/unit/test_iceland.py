@@ -69,7 +69,7 @@ class TestIceland(TestCase):
         mock_configuration_object.merchant_url = self.merchant_url
         mock_configuration_object.callback_url = None
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=mock_configuration_object):
+        with mock.patch("app.agents.base.Configuration", return_value=mock_configuration_object):
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -227,7 +227,7 @@ class TestIcelandAdd(TestCase):
         self.mock_configuration_object.merchant_url = self.merchant_url
         self.mock_configuration_object.callback_url = None
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -255,7 +255,7 @@ class TestIcelandAdd(TestCase):
             "journey_type": 1,
         }
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
             agent_instance = agent_login(Iceland, user_info, {}, 1)
 
         self.assertTrue(isinstance(agent_instance, Iceland))
@@ -330,7 +330,7 @@ class TestIcelandAdd(TestCase):
         self.assertFalse(self.agent.expecting_callback)
 
     def test_login_wrong_authentication_selected(self):
-        self.agent.authentication_service = Configuration.RSA_SECURITY
+        self.agent.outbound_auth_service = Configuration.RSA_SECURITY
         with self.assertRaises(AgentError) as e:
             self.agent.login()
         self.assertEqual("Configuration error", e.exception.name)
@@ -577,7 +577,7 @@ class TestIcelandAdd(TestCase):
                     "merchant_scheme_id2": None,
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.VALIDATE_HANDLER,
+                handler_type=ANY,
                 integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -588,7 +588,7 @@ class TestIcelandAdd(TestCase):
                 self.agent,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.VALIDATE_HANDLER,
+                handler_type=ANY,
                 integration_service="SYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
@@ -648,7 +648,7 @@ class TestIcelandAdd(TestCase):
                     "merchant_scheme_id2": None,
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.VALIDATE_HANDLER,
+                handler_type=ANY,
                 integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -659,7 +659,7 @@ class TestIcelandAdd(TestCase):
                 self.agent,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.VALIDATE_HANDLER,
+                handler_type=ANY,
                 integration_service="SYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
@@ -717,7 +717,7 @@ class TestIcelandAdd(TestCase):
                     "merchant_scheme_id2": None,
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=2,
+                handler_type=ANY,
                 integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -728,7 +728,7 @@ class TestIcelandAdd(TestCase):
                 self.agent,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=2,
+                handler_type=ANY,
                 integration_service="SYNC",
                 status_code=401,
                 message_uid=ANY,
@@ -801,7 +801,7 @@ class TestIcelandJoin(TestCase):
         self.mock_configuration_object.integration_service = "ASYNC"
         self.mock_configuration_object.handler_type = Configuration.HANDLER_TYPE_CHOICES[Configuration.JOIN_HANDLER]
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
             self.agent = Iceland(
                 retry_count=1,
                 user_info={
@@ -829,7 +829,7 @@ class TestIcelandJoin(TestCase):
             "journey_type": 0,
         }
 
-        with mock.patch("app.agents.iceland.Configuration", return_value=self.mock_configuration_object):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
             join_data = agent_join(Iceland, user_info, {}, 1)
         agent_instance = join_data["agent"]
 
@@ -846,7 +846,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -880,7 +880,7 @@ class TestIcelandJoin(TestCase):
                     "phone1": "0790000000",
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=ANY,
                 integration_service="ASYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -891,7 +891,7 @@ class TestIcelandJoin(TestCase):
                 self.agent,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=ANY,
                 integration_service="ASYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
@@ -923,7 +923,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -945,7 +945,7 @@ class TestIcelandJoin(TestCase):
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -970,7 +970,7 @@ class TestIcelandJoin(TestCase):
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1086,7 +1086,7 @@ class TestIcelandJoin(TestCase):
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1124,7 +1124,7 @@ class TestIcelandJoin(TestCase):
                     "phone1": "0790000000",
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=ANY,
                 integration_service="ASYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -1135,7 +1135,7 @@ class TestIcelandJoin(TestCase):
                 self.agent,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=Configuration.JOIN_HANDLER,
+                handler_type=ANY,
                 integration_service="ASYNC",
                 status_code=HTTPStatus.OK,
                 message_uid=ANY,
@@ -1355,7 +1355,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         self.agent.join()
 
         self.assertTrue(mock_join.called)
@@ -1372,7 +1372,7 @@ class TestIcelandJoin(TestCase):
     )
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.authentication_service = Configuration.OAUTH_SECURITY
+        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
             self.agent.join()
 

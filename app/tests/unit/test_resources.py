@@ -32,7 +32,7 @@ from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
-from app.scheme_account import SchemeAccountStatus
+from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HADES_URL, HERMES_URL
 
@@ -55,6 +55,7 @@ class TestResources(TestCase):
         "user_set": 1,
         "credentials": {"credentials": "test", "email": "test@email.com"},
         "status": SchemeAccountStatus.WALLET_ONLY,
+        "journey_type": JourneyTypes.LINK.value,
         "scheme_account_id": 123,
         "pending": True,
         "channel": "com.bink.wallet",
@@ -375,13 +376,15 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
-    def test_agent_join_success(self, mock_update_pending_join_account, hn_mock, mock_join):
+    def test_agent_join_success(self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join):
         mock_join.return_value = {"message": "success"}
         user_info = {
             "metadata": {},
             "scheme_slug": "test slug",
             "user_id": "test user id",
+            "journey_type": JourneyTypes.JOIN.value,
             "credentials": {},
             "scheme_account_id": 2,
             "status": SchemeAccountStatus.PENDING,
@@ -397,14 +400,16 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail(self, mock_update_pending_join_account, hn_mock, mock_join):
+    def test_agent_join_fail(self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join):
         mock_join.side_effect = JoinError(STATUS_REGISTRATION_FAILED)
         mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
         user_info = {
             "metadata": {},
             "scheme_slug": "test slug",
             "user_id": "test user id",
+            "journey_type": JourneyTypes.JOIN.value,
             "credentials": {"consents": [{"id": 1, "value": True}]},
             "scheme_account_id": 2,
             "status": SchemeAccountStatus.PENDING,
@@ -421,10 +426,19 @@ class TestResources(TestCase):
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail_account_exists(self, mock_update_pending_join_account, hn_mock, mock_join):
+    def test_agent_join_fail_account_exists(
+        self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join
+    ):
         mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
-        user_info = {"credentials": {}, "scheme_account_id": 2, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "credentials": {},
+            "scheme_account_id": 2,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.JOIN.value,
+        }
         result = agent_join(HarveyNichols, user_info, {}, "")
 
         self.assertTrue(mock_join.called)
@@ -439,9 +453,11 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def test_join(
         self,
-        hn_mock,
+        mock_base_config,
+        mock_hn_config,
         mock_update_pending_join_account,
         mock_agent_login,
         mock_agent_join,
@@ -455,6 +471,7 @@ class TestResources(TestCase):
                 0,
                 {
                     "scheme_account_id": "1",
+                    "journey_type": JourneyTypes.JOIN.value,
                     "status": None,
                     "channel": "com.bink.wallet",
                     "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
@@ -466,6 +483,7 @@ class TestResources(TestCase):
             "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
             "user_set": "4",
             "scheme_account_id": 2,
+            "journey_type": JourneyTypes.JOIN.value,
             "status": "",
             "channel": "com.bink.wallet",
         }
@@ -485,14 +503,16 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def test_join_already_exists_fail(
-        self, hn_mock, mock_agent_login, mock_agent_join, mock_update_pending_join_account
+        self, mock_base_config, mock_hn_config, mock_agent_login, mock_agent_join, mock_update_pending_join_account
     ):
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
                 0,
                 {
                     "scheme_account_id": "1",
+                    "journey_type": JourneyTypes.JOIN.value,
                     "status": None,
                     "channel": "com.bink.wallet",
                     "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
@@ -506,6 +526,7 @@ class TestResources(TestCase):
             "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
             "user_set": "4",
             "scheme_account_id": 2,
+            "journey_type": JourneyTypes.JOIN.value,
             "status": "",
             "channel": "com.bink.wallet",
         }
@@ -518,8 +539,9 @@ class TestResources(TestCase):
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_success(self, mock_login, hn_mock, mock_retry):
+    def test_agent_login_success(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
         mock_login.return_value = {"message": "success"}
 
         agent_login(
@@ -527,6 +549,7 @@ class TestResources(TestCase):
             {
                 "scheme_account_id": 2,
                 "status": SchemeAccountStatus.ACTIVE,
+                "journey_type": JourneyTypes.JOIN.value,
                 "credentials": {},
                 "channel": "com.bink.wallet",
             },
@@ -536,8 +559,9 @@ class TestResources(TestCase):
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_system_fail_(self, mock_login, hn_mock, mock_retry):
+    def test_agent_login_system_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
         mock_login.side_effect = AgentError(NO_SUCH_RECORD)
         user_info = {"scheme_account_id": 1, "credentials": {}, "status": "", "channel": "com.bink.wallet"}
         with self.assertRaises(AgentError):
@@ -546,8 +570,9 @@ class TestResources(TestCase):
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_user_fail_(self, mock_login, hn_mock, mock_retry):
+    def test_agent_login_user_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
         mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
 
         with self.assertRaises(AgentException):
@@ -821,7 +846,7 @@ class TestResources(TestCase):
 
     @httpretty.activate
     @mock.patch("app.resources.get_aes_key")
-    @mock.patch("app.agents.bpl.Configuration")
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.journeys.common.redis_retry")
     def test_balance_response_format(self, mock_retry, mock_configuration, mock_get_aes_key):
         mock_retry.get_count.return_value = 0
@@ -870,10 +895,6 @@ class TestResources(TestCase):
                 )
             ],
         )
-
-        credentials = {
-            "merchant_identifier": "test-uuid",
-        }
 
         httpretty.register_uri(
             httpretty.GET,
@@ -943,9 +964,15 @@ class TestResources(TestCase):
             "points_label": "123",
         }
 
+        credentials = {
+            "merchant_identifier": "test-uuid",
+        }
+        journey_type = JourneyTypes.UPDATE.value
+
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
-        url = f"/bpl-trenette/balance?credentials={credentials}&user_set=1&scheme_account_id=2"
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set=1" \
+              f"&scheme_account_id=2&journey_type={journey_type}"
         resp = self.client.get(url)
 
         self.assertEqual(resp.json, expected)

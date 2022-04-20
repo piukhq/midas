@@ -2,9 +2,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 from blinker import signal
-from soteria.configuration import Configuration
 
-import settings
 from app.agents.base import BaseAgent
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
@@ -20,24 +18,13 @@ class Squaremeal(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "squaremeal"
-        self.config = Configuration(
-            scheme_slug,
-            Configuration.JOIN_HANDLER,
-            settings.VAULT_URL,
-            settings.VAULT_TOKEN,
-            settings.CONFIG_SERVICE_URL,
-        )
+        self.oauth_token_timeout = 3599
         self.base_url = self.config.merchant_url
-        self.auth_url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
-        self.auth_token_timeout = 3599
-        self.authentication_service = self.config.security_credentials["outbound"]["service"]
-        self.headers["Secondary-Key"] = str(
-            self.config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"]
-        )
-        self.client_secret = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-secret"]
-        self.client_id = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
-        self.scope = self.config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
-
+        self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
+        self.headers["Secondary-Key"] = str(self.outbound_security_credentials["secondary-key"])
+        self.integration_service = "SYNC"
+        self.credentials = self.user_info["credentials"]
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
         self.errors = {
@@ -45,7 +32,6 @@ class Squaremeal(BaseAgent):
             "SERVICE_CONNECTION_ERROR": [401],
             "END_SITE_DOWN": [530],
         }
-        self.integration_service = self.config.integration_service
 
     @staticmethod
     def hide_sensitive_fields(req_audit_logs):
@@ -63,24 +49,23 @@ class Squaremeal(BaseAgent):
         return req_audit_logs_copy
 
     def get_auth_url_and_payload(self):
-        url = self.auth_url
+        url = self.outbound_security_credentials["url"]
         payload = {
             "grant_type": "client_credentials",
-            "client_secret": self.client_secret,
-            "client_id": self.client_id,
-            "scope": self.scope,
+            "client_secret": self.outbound_security_credentials["client-secret"],
+            "client_id": self.outbound_security_credentials["client-id"],
+            "scope": self.outbound_security_credentials["scope"],
         }
         return url, payload
 
     def _join(self):
-        credentials = self.user_info["credentials"]
         url = f"{self.base_url}register"
         self.authenticate()
         payload = {
-            "email": credentials["email"],
-            "password": credentials["password"],
-            "FirstName": credentials["first_name"],
-            "LastName": credentials["last_name"],
+            "email": self.credentials["email"],
+            "password": self.credentials["password"],
+            "FirstName": self.credentials["first_name"],
+            "LastName": self.credentials["last_name"],
             "Source": self.channel,
         }
         try:
@@ -104,10 +89,13 @@ class Squaremeal(BaseAgent):
             pass
 
     def _login(self):
-        credentials = self.user_info["credentials"]
         url = f"{self.base_url}login"
         self.authenticate()
-        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
+        payload = {
+            "email": self.credentials["email"],
+            "password": self.credentials["password"],
+            "source": "com.barclays.bmb",
+        }
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("log-in-success").send(self, slug=self.scheme_slug)
@@ -118,7 +106,7 @@ class Squaremeal(BaseAgent):
         return resp.json()
 
     def _get_balance(self):
-        merchant_id = self.user_info["credentials"]["merchant_identifier"]
+        merchant_id = self.credentials["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
         self.authenticate()
         try:
@@ -129,13 +117,13 @@ class Squaremeal(BaseAgent):
         return resp.json()
 
     def join(self):
-        consents = self.user_info["credentials"].get("consents", [])
+        consents = self.credentials.get("consents", [])
         resp_json = self._join()
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
         self._update_newsletters(resp_json["UserId"], consents)
 
     def login(self):
@@ -149,7 +137,7 @@ class Squaremeal(BaseAgent):
             "merchant_identifier": resp["UserId"],
             "card_number": resp["MembershipNumber"],
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
     def transactions(self) -> list[Transaction]:
         try:

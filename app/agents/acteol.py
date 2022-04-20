@@ -9,7 +9,6 @@ import arrow
 import requests
 import sentry_sdk
 from blinker import signal
-from soteria.configuration import Configuration
 
 import settings
 from app.agents.base import BaseAgent
@@ -46,17 +45,10 @@ class Acteol(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "acteol"
-        self.config = Configuration(
-            scheme_slug,
-            Configuration.JOIN_HANDLER,
-            settings.VAULT_URL,
-            settings.VAULT_TOKEN,
-            settings.CONFIG_SERVICE_URL,
-        )
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url
-        self.auth = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        self.authentication_service = self.config.security_credentials["outbound"]["service"]
+        self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
 
     # Public methods
 
@@ -64,8 +56,8 @@ class Acteol(BaseAgent):
         url = urljoin(self.base_url, "token")
         payload = {
             "grant_type": "password",
-            "username": self.auth["username"],
-            "password": self.auth["password"],
+            "username": self.outbound_security_credentials["username"],
+            "password": self.outbound_security_credentials["password"],
         }
         return url, payload
 
@@ -129,7 +121,7 @@ class Acteol(BaseAgent):
             "card_number": member_number,
             "merchant_identifier": ctcid,
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
     def balance(self) -> Optional[Balance]:
         """
@@ -222,7 +214,7 @@ class Acteol(BaseAgent):
             "card_number": card_number,
             "merchant_identifier": ctcid,
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
         scheme_account_id = self.user_info["scheme_account_id"]
         # for updating user ID credential you get for joining (e.g. getting issued a card number)
@@ -326,13 +318,14 @@ class Acteol(BaseAgent):
         # If we are on an add journey, then we will need to verify the supplied email against the card number.
         # Being on an add journey is defined as having a card number but no "from_join" field, and we
         # won't have a "merchant_identifier" (which would indicate a balance request instead).
+        print("nothing")
         if (
             self.credentials["card_number"]
             and not self.user_info.get("from_join")
             and not self.credentials.get("merchant_identifier")
         ):
             try:
-                ctcid = self._validate_member_number(self.credentials)
+                ctcid = self._validate_member_number()
                 signal("log-in-success").send(self, slug=self.scheme_slug)
                 self.identifier_type = [
                     "card_number",  # Not sure this is needed but the base class has one
@@ -342,7 +335,7 @@ class Acteol(BaseAgent):
                     "card_number": self.credentials["card_number"],
                     "merchant_identifier": ctcid,
                 }
-                self.user_info["credentials"].update({"merchant_identifier": ctcid})
+                self.credentials.update({"merchant_identifier": ctcid})
             except (AgentError, LoginError):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
@@ -843,5 +836,5 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.auth_token_timeout = 75600  # n_seconds in 21 hours
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        self.oauth_token_timeout = 75600  # n_seconds in 21 hours
+        self.integration_service = "SYNC"

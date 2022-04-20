@@ -56,13 +56,13 @@ class TestWasabi(unittest.TestCase):
                 "scheme_account_id": 1,
                 "status": 1,
                 "user_set": "1,2",
-                "journey_type": None,
+                "journey_type": JourneyTypes.JOIN.value,
                 "credentials": {},
                 "channel": "com.bink.wallet",
             },
         ]
 
-        with patch("app.agents.acteol.Configuration", return_value=mock_config):
+        with patch("app.agents.base.Configuration", return_value=mock_config):
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
             cls.wasabi.integration_service = "SYNC"
 
@@ -99,7 +99,7 @@ class TestWasabi(unittest.TestCase):
         The token is valid and should not be refreshed.
         """
         # GIVEN
-        self.wasabi.authentication_service = Configuration.OAUTH_SECURITY
+        self.wasabi.outbound_auth_service = Configuration.OAUTH_SECURITY
         mock_token_is_valid.return_value = True
 
         # WHEN
@@ -119,7 +119,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 75700
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
-        self.wasabi.auth_token_timeout = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
             "timestamp": [
@@ -146,7 +146,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 10000
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
-        self.wasabi.auth_token_timeout = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
             "timestamp": [
@@ -173,7 +173,7 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 1000
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
-        self.wasabi.auth_token_timeout = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "acteol_access_token": "abcde12345fghij",
             "timestamp": [
@@ -237,7 +237,7 @@ class TestWasabi(unittest.TestCase):
 
     @patch("app.agents.base.BaseAgent._oauth_authentication")
     def test_open_auth(self, mock_oauth_authentication):
-        self.wasabi.authentication_service = Configuration.OPEN_AUTH_SECURITY
+        self.wasabi.outbound_auth_service = Configuration.OPEN_AUTH_SECURITY
         self.wasabi.authenticate()
         self.assertEqual(0, mock_oauth_authentication.call_count)
 
@@ -335,12 +335,6 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps({"CtcID": expected_ctcid}))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
         # WHEN
         ctcid = self.wasabi._create_account(origin_id=origin_id)
 
@@ -369,13 +363,6 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
 
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
-
         # WHEN
         with pytest.raises(AgentError):
             self.wasabi._create_account(origin_id=origin_id)
@@ -391,12 +378,6 @@ class TestWasabi(unittest.TestCase):
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
 
         # WHEN
         assert not mock_send_to_atlas.called
@@ -840,12 +821,6 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
-
         # WHEN
         try:
             self.wasabi.login()
@@ -865,7 +840,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
+        self.wasabi.credentials = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
@@ -909,7 +884,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
+        self.wasabi.credentials = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
@@ -934,11 +909,6 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here deliberately so we have
         # greater transparency
         self.wasabi.user_info["from_join"] = False
@@ -963,11 +933,6 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
         self.wasabi.user_info["from_join"] = False
@@ -1042,7 +1007,7 @@ class TestWasabi(unittest.TestCase):
         # about the fact we're on an ADD journey
         self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
-        self.wasabi.user_info["credentials"] = {
+        self.wasabi.credentials = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
@@ -1773,11 +1738,6 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
@@ -1798,11 +1758,6 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.UNAUTHORIZED,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
@@ -1823,11 +1778,6 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.FORBIDDEN,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
@@ -1856,11 +1806,6 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(LoginError):
@@ -1888,11 +1833,6 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
@@ -1917,11 +1857,6 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # WHEN
         ctcid = self.wasabi._validate_member_number()
@@ -1939,7 +1874,6 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = True
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -1973,7 +1907,6 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -2011,7 +1944,6 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         mock_create_account.return_value = "54321"
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -2063,7 +1995,6 @@ class TestWasabi(unittest.TestCase):
         }
         mock_add_customer_fields_are_present.return_value = True
         mock_get_email_optin_from_consent.return_value = {"EmailOptIn": True}
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-success"),

@@ -116,12 +116,14 @@ class TestUserConsents(unittest.TestCase):
     def tearDown(self):
         settings.CELERY_ALWAYS_EAGER = False
 
-    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_join)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
-    def test_harvey_nick_mock_join(self, mock_make_request, mock_config):
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_join)
+    def test_harvey_nick_mock_join(self, mock_make_request, mock_base_config, mock_hn_config):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.JOIN.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "test2@user.email",
@@ -141,12 +143,14 @@ class TestUserConsents(unittest.TestCase):
 
         self.assertEqual(response, {"message": "success"})
 
-    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_has_loyalty_account)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
-    def test_check_loyalty_account_valid(self, mock_make_request, mock_config):
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_has_loyalty_account)
+    def test_check_loyalty_account_valid(self, mock_make_request, mock_base_config, mock_hn_config):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.LINK.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "Schroeder_35731@gmail.com",
@@ -163,13 +167,15 @@ class TestUserConsents(unittest.TestCase):
             hn.check_loyalty_account_valid()
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_400)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_config):
+    def test_harvey_nick_mock_login_fail(self, mock_login, mock_post, mock_put, mock_base_config, mock_hn_config):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.LINK.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",
@@ -200,13 +206,15 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual('{"status": 2}', mock_put.call_args_list[0][1]["data"])
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_200_ok)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200)
     @mock.patch("app.agents.harvey_nichols.HarveyNichols.make_request", side_effect=mock_harvey_nick_post)
-    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_config):
+    def test_harvey_nick_mock_login_pass(self, mock_login, mock_post, mock_put, mock_base_config, mock_hn_config):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.LINK.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",
@@ -237,6 +245,7 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.ReTryTaskStore", side_effect=MockedReTryTaskStore)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_200_ok)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_200_on_lastretry)
@@ -247,12 +256,14 @@ class TestUserConsents(unittest.TestCase):
         mock_post,
         mock_put,
         mock_retry,
-        mock_config,
+        mock_base_config,
+        mock_hn_config,
     ):
         global saved_consents_data
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.JOIN.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",
@@ -302,6 +313,7 @@ class TestUserConsents(unittest.TestCase):
         self.assertEqual('{"status": 1}', mock_put.call_args_list[0][1]["data"])
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.tasks.resend_consents.ReTryTaskStore", side_effect=MockedReTryTaskStore)
     @mock.patch("app.tasks.resend_consents.requests.put", side_effect=mocked_requests_put_200_ok)
     @mock.patch("app.tasks.resend_consents.requests.post", side_effect=mocked_requests_post_400)
@@ -312,11 +324,13 @@ class TestUserConsents(unittest.TestCase):
         mock_post,
         mock_put,
         mock_retry,
-        mock_config,
+        mock_base_config,
+        mock_hn_config,
     ):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.JOIN.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",
@@ -375,11 +389,13 @@ class TestLoginJourneyTypes(unittest.TestCase):
     """
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
-    def setUp(self, mock_config):
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    def setUp(self, mock_base_config, mock_hn_config):
 
         self.user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.LINK.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",
@@ -500,10 +516,12 @@ class TestLoyaltyOutputs(unittest.TestCase):
     """
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
-    def setUp(self, mock_config):
+    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    def setUp(self, mock_base_config, mock_hn_config):
         user_info = {
             "scheme_account_id": 123,
             "status": "pending",
+            "journey_type": JourneyTypes.UPDATE.value,
             "channel": "com.bink.wallet",
             "credentials": {
                 "email": "mytest@localhost.com",

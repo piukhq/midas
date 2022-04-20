@@ -63,7 +63,15 @@ class BaseAgent(object):
     is_async = False
     create_journey: Optional[str] = None
 
-    def __init__(self, retry_count, user_info, scheme_slug=None):
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
+        self.handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+        self.config = config or Configuration(
+            scheme_slug,
+            self.handler_type,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
         self.retry_count: int = retry_count
         self.user_info = user_info
         self.scheme_slug: str = scheme_slug
@@ -78,19 +86,14 @@ class BaseAgent(object):
         self.message_uid: str = str(uuid4())
         self.max_retries: int = 3
         self.token_store = UserTokenStore(settings.REDIS_URL)
-        self.auth_token_timeout: int = 0
+        self.oauth_token_timeout: int = 0
 
         self.session = requests_retry_session(retries=self.max_retries)
         self.headers = {}
         self.errors = {}
-        self.audit_handlers = {
-            JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
-            JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
-            JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
-        }
-        self.config: Configuration = None
         self.integration_service: str = ""
-        self.authentication_service: int = None
+        self.outbound_security_credentials: dict = {}
+        self.outbound_auth_service: int = None
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -130,9 +133,9 @@ class BaseAgent(object):
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
     def authenticate(self):
-        if self.authentication_service == Configuration.OPEN_AUTH_SECURITY:
+        if self.outbound_auth_service == Configuration.OPEN_AUTH_SECURITY:
             return
-        if self.authentication_service == Configuration.OAUTH_SECURITY:
+        if self.outbound_auth_service == Configuration.OAUTH_SECURITY:
             self._oauth_authentication()
 
     def get_auth_url_and_payload(self):
@@ -179,7 +182,7 @@ class BaseAgent(object):
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
     def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
-        return current_timestamp[0] - token["timestamp"][0] < self.auth_token_timeout
+        return current_timestamp[0] - token["timestamp"][0] < self.oauth_token_timeout
 
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
@@ -191,19 +194,18 @@ class BaseAgent(object):
         args.update(kwargs)
 
         # Prevent audit logging when agent login method is called for update
-        if self.journey_type not in self.audit_handlers.keys():
+        if self.journey_type is JourneyTypes.UPDATE:
             audit = False
 
         try:
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
-                handler_type = self.audit_handlers[self.journey_type]
-                self.send_audit_request(audit_payload, handler_type)
+                self.send_audit_request(audit_payload, self.handler_type)
 
             resp = self.session.request(method, url=url, **args)
 
             if audit:
-                self.send_audit_response(resp, handler_type)
+                self.send_audit_response(resp, self.handler_type)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")

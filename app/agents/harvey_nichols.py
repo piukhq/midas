@@ -38,18 +38,20 @@ class HarveyNichols(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug)
         self.source_id = "harveynichols"
-        slugs = [scheme_slug, "harvey-nichols-sso"]
-        configurations = [
-            Configuration(
-                slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
-            )
-            for slug in slugs
-        ]
         self.credentials = self.user_info["credentials"]
+        self.base_url = self.config.merchant_url
+        self.integration_service = "SYNC"
 
-        self.base_url = configurations[0].merchant_url
-        self.sso_url = configurations[1].merchant_url
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        # sso config
+        sso_scheme_slug = "harvey-nichols-sso"
+        sso_config = Configuration(
+            sso_scheme_slug,
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
+        self.sso_url = sso_config.merchant_url
 
     def check_loyalty_account_valid(self):
         """

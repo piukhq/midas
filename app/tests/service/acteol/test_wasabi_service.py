@@ -22,7 +22,7 @@ class TestWasabi:
         Set the token timeout to a known value to retire it, and expect a new one to have been fetched
         """
         # GIVEN
-        wasabi.auth_token_timeout = 0  # Force retire our token
+        wasabi.oauth_token_timeout = 0  # Force retire our token
 
         # WHEN
         token = wasabi.authenticate()

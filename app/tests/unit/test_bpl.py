@@ -33,7 +33,7 @@ class TestBplCallback(TestCase):
         return create_app(self)
 
     def setUp(self) -> None:
-        with mock.patch("app.agents.bpl.Configuration") as mock_configuration:
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
                 "outbound": {
@@ -164,7 +164,7 @@ class TestBplCallback(TestCase):
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
-    @mock.patch("app.agents.bpl.Configuration")
+    @mock.patch("app.agents.base.Configuration")
     def test_requests_retry_session(self, mock_config, mock_collect_credentials, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
