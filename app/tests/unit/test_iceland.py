@@ -70,7 +70,7 @@ class TestIceland(TestCase):
         mock_configuration_object.callback_url = None
 
         with mock.patch("app.agents.base.Configuration", return_value=mock_configuration_object):
-            self.agent = Iceland(
+            self.iceland = Iceland(
                 retry_count=1,
                 user_info={
                     "scheme_account_id": 1,
@@ -82,6 +82,19 @@ class TestIceland(TestCase):
                 scheme_slug="iceland-bonus-card",
             )
 
+    def test_get_oauth_url_and_payload(self):
+        url, payload = self.iceland.get_auth_url_and_payload()
+        self.assertEqual("https://reflector.dev.gb.bink.com/mock/oauth2/token", url)
+        self.assertEqual(
+            {
+                "client_id": "a_client_id",
+                "client_secret": "a_client_secret",
+                "grant_type": "client_credentials",
+                "resource": "a_resource",
+            },
+            payload,
+        )
+
     @httpretty.activate
     def test_refresh_token(self):
         httpretty.register_uri(
@@ -90,7 +103,7 @@ class TestIceland(TestCase):
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=200)],
         )
 
-        self.assertEqual(self.agent._refresh_token(), "a_token")
+        self.assertEqual(self.iceland._refresh_token(), "a_token")
 
     def test_token_is_valid_true(self):
         token = {
@@ -98,7 +111,7 @@ class TestIceland(TestCase):
             "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
         }
 
-        result = self.agent._token_is_valid(token, (arrow.get(2022, 1, 1, 7, 30).int_timestamp,))
+        result = self.iceland._token_is_valid(token, (arrow.get(2022, 1, 1, 7, 30).int_timestamp,))
 
         self.assertEqual(
             result,
@@ -111,7 +124,7 @@ class TestIceland(TestCase):
             "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
         }
 
-        result = self.agent._token_is_valid(token, (arrow.get(2022, 1, 1, 8, 0).int_timestamp,))
+        result = self.iceland._token_is_valid(token, (arrow.get(2022, 1, 1, 8, 0).int_timestamp,))
 
         self.assertEqual(
             result,
@@ -122,8 +135,8 @@ class TestIceland(TestCase):
         access_token = "abcde12345fghij"
         current_timestamp = arrow.get(2022, 1, 1, 7, 0).int_timestamp
 
-        with mock.patch.object(self.agent.token_store, "set", return_value=True) as mock_token_store:
-            self.agent._store_token(access_token, (current_timestamp,))
+        with mock.patch.object(self.iceland.token_store, "set", return_value=True) as mock_token_store:
+            self.iceland._store_token(access_token, (current_timestamp,))
 
         self.assertEqual(
             mock_token_store.call_args[1]["token"],
@@ -132,36 +145,36 @@ class TestIceland(TestCase):
 
     def test_authenticate_stored_token_valid(self):
         with mock.patch.object(
-            self.agent.token_store,
+            self.iceland.token_store,
             "get",
             return_value=json.dumps(
                 {"iceland_access_token": "abcde12345fghij", "timestamp": [arrow.utcnow().int_timestamp]}
             ),
         ):
-            self.agent.authenticate()
-        self.assertEqual({"Authorization": "Bearer abcde12345fghij"}, self.agent.headers)
+            self.iceland.authenticate()
+        self.assertEqual({"Authorization": "Bearer abcde12345fghij"}, self.iceland.headers)
 
     @mock.patch("app.agents.iceland.Iceland._refresh_token", return_value="")
     def test_authenticate_with_expired_stored_token(self, mock_refresh_token):
-        self.agent.token_store = MagicMock()
-        self.agent.token_store.get.return_value = (
+        self.iceland.token_store = MagicMock()
+        self.iceland.token_store.get.return_value = (
             f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
         )
-        self.agent.authenticate()
+        self.iceland.authenticate()
         mock_refresh_token.assert_called()
 
     def test_balance(self):
-        self.agent._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
+        self.iceland._balance_amount = amount = Decimal(10.0).quantize(TWO_PLACES)
         expected_result = Balance(
             points=amount,
             value=amount,
             value_label="£{}".format(amount),
         )
 
-        self.assertEqual(self.agent.balance(), expected_result)
+        self.assertEqual(self.iceland.balance(), expected_result)
 
     def test_transactions_if_existing(self):
-        self.agent._transactions = [
+        self.iceland._transactions = [
             {"timestamp": "2021-03-24T03:29:20", "reference": "DEBIT", "value": -2.0, "unit": "GBP"},
             {"timestamp": "2021-02-15T23:02:47", "reference": "CREDIT", "value": 2.0, "unit": "GBP"},
         ]
@@ -184,11 +197,11 @@ class TestIceland(TestCase):
             ),
         ]
 
-        self.assertEqual(self.agent.transactions(), expected_result)
+        self.assertEqual(self.iceland.transactions(), expected_result)
 
     def test_transactions_if_None(self):
-        self.agent._transactions = None
-        self.assertEqual([], self.agent.transactions())
+        self.iceland._transactions = None
+        self.assertEqual([], self.iceland.transactions())
 
 
 class TestIcelandAdd(TestCase):
@@ -228,7 +241,7 @@ class TestIcelandAdd(TestCase):
         self.mock_configuration_object.callback_url = None
 
         with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
-            self.agent = Iceland(
+            self.iceland = Iceland(
                 retry_count=1,
                 user_info={
                     "scheme_account_id": 1,
@@ -284,18 +297,18 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        self.agent.login()
+        self.iceland.login()
 
-        self.assertEqual("SYNC", self.agent.integration_service)
-        self.assertIn("barcode", str(self.agent.user_info))
-        self.assertEqual(10.0, self.agent._balance_amount)
+        self.assertEqual("SYNC", self.iceland.integration_service)
+        self.assertIn("barcode", str(self.iceland.user_info))
+        self.assertEqual(10.0, self.iceland._balance_amount)
         self.assertEqual(
             None,
-            self.agent._transactions,
+            self.iceland._transactions,
         )
         self.assertEqual(
             {"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"},
-            self.agent.identifier,
+            self.iceland.identifier,
         )
 
     @httpretty.activate
@@ -325,14 +338,14 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        self.agent.login()
+        self.iceland.login()
 
-        self.assertFalse(self.agent.expecting_callback)
+        self.assertFalse(self.iceland.expecting_callback)
 
     def test_login_wrong_authentication_selected(self):
-        self.agent.outbound_auth_service = Configuration.RSA_SECURITY
+        self.iceland.outbound_auth_service = Configuration.RSA_SECURITY
         with self.assertRaises(AgentError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual("Configuration error", e.exception.name)
         self.assertEqual(
             "Agent expecting Security Type(s) ['Open Auth (No Authentication)', 'OAuth'] "
@@ -354,7 +367,7 @@ class TestIcelandAdd(TestCase):
         response._content = b'{"balance": 10.0}'
         mock_make_request.return_value = response
 
-        self.agent.login()
+        self.iceland.login()
 
         self.assertEqual(1, mock_make_request.call_count)
 
@@ -370,7 +383,7 @@ class TestIcelandAdd(TestCase):
 
         with self.assertRaises(AgentError) as e:
             with self.assertRaises(LoginError):
-                self.agent.login()
+                self.iceland.login()
 
         self.assertEqual([e.exception.name, e.exception.code], ["An unknown error has occurred", 520])
 
@@ -392,7 +405,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(e.exception.code, 403)
 
     @httpretty.activate
@@ -413,7 +426,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(e.exception.code, 436)
 
     @httpretty.activate
@@ -434,7 +447,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(e.exception.code, 437)
 
     @httpretty.activate
@@ -459,7 +472,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(e.exception.code, 438)
 
     @httpretty.activate
@@ -480,7 +493,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(LoginError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(e.exception.code, 439)
 
     @httpretty.activate
@@ -499,7 +512,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(535, e.exception.code)
 
     @httpretty.activate
@@ -524,7 +537,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(520, e.exception.code)
 
     @httpretty.activate
@@ -545,7 +558,7 @@ class TestIcelandAdd(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.login()
+            self.iceland.login()
         self.assertEqual(444, e.exception.code)
 
     @httpretty.activate
@@ -560,12 +573,12 @@ class TestIcelandAdd(TestCase):
             responses=[httpretty.Response(body=json.dumps({"balance": 10.0}), status=200)],
         )
 
-        self.agent.login()
+        self.iceland.login()
 
         expected_base_calls = [
             call("send-audit-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 payload={
                     "card_number": ANY,
                     "last_name": "Smith",
@@ -585,7 +598,7 @@ class TestIcelandAdd(TestCase):
             ),
             call("send-audit-response"),
             call().send(
-                self.agent,
+                self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=ANY,
@@ -597,7 +610,7 @@ class TestIcelandAdd(TestCase):
             ),
             call("record-http-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 slug="iceland-bonus-card",
                 endpoint="/api/v1/bink/link",
                 latency=ANY,
@@ -606,7 +619,7 @@ class TestIcelandAdd(TestCase):
         ]
         expected_iceland_calls = [
             call("log-in-success"),
-            call().send(self.agent, slug=self.agent.scheme_slug),
+            call().send(self.iceland, slug=self.iceland.scheme_slug),
         ]
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls)
@@ -636,7 +649,7 @@ class TestIcelandAdd(TestCase):
         expected_base_calls = [
             call("send-audit-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 payload={
                     "card_number": ANY,
                     "last_name": "Smith",
@@ -656,7 +669,7 @@ class TestIcelandAdd(TestCase):
             ),
             call("send-audit-response"),
             call().send(
-                self.agent,
+                self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=ANY,
@@ -668,7 +681,7 @@ class TestIcelandAdd(TestCase):
             ),
             call("record-http-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 slug="iceland-bonus-card",
                 endpoint="/api/v1/bink/link",
                 latency=ANY,
@@ -677,11 +690,11 @@ class TestIcelandAdd(TestCase):
         ]
         expected_iceland_calls = [
             call("log-in-fail"),
-            call().send(self.agent, slug=self.agent.scheme_slug),
+            call().send(self.iceland, slug=self.iceland.scheme_slug),
         ]
 
         with self.assertRaises(LoginError):
-            self.agent.login()
+            self.iceland.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:6])
         self.assertEqual(3, mock_base_signal.call_count)
@@ -705,7 +718,7 @@ class TestIcelandAdd(TestCase):
         expected_base_calls = [
             call("send-audit-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 payload={
                     "card_number": ANY,
                     "last_name": "Smith",
@@ -725,7 +738,7 @@ class TestIcelandAdd(TestCase):
             ),
             call("send-audit-response"),
             call().send(
-                self.agent,
+                self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=ANY,
@@ -737,22 +750,22 @@ class TestIcelandAdd(TestCase):
             ),
             call("record-http-request"),
             call().send(
-                self.agent, slug="iceland-bonus-card", endpoint="/api/v1/bink/link", latency=ANY, response_code=401
+                self.iceland, slug="iceland-bonus-card", endpoint="/api/v1/bink/link", latency=ANY, response_code=401
             ),
             call("request-fail"),
-            call().send(self.agent, slug="iceland-bonus-card", channel="", error="STATUS_LOGIN_FAILED"),
+            call().send(self.iceland, slug="iceland-bonus-card", channel="", error="STATUS_LOGIN_FAILED"),
         ]
         expected_iceland_calls = [
             call("log-in-fail"),
             call().send(
-                self.agent,
-                slug=self.agent.scheme_slug,
+                self.iceland,
+                slug=self.iceland.scheme_slug,
             ),
         ]
 
         with self.assertRaises(AgentError):
             with self.assertRaises(LoginError):
-                self.agent.login()
+                self.iceland.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:8])
         self.assertEqual(4, mock_base_signal.call_count)
@@ -802,7 +815,7 @@ class TestIcelandJoin(TestCase):
         self.mock_configuration_object.handler_type = Configuration.HANDLER_TYPE_CHOICES[Configuration.JOIN_HANDLER]
 
         with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
-            self.agent = Iceland(
+            self.iceland = Iceland(
                 retry_count=1,
                 user_info={
                     "scheme_account_id": 1,
@@ -846,7 +859,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_success(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -858,7 +871,7 @@ class TestIcelandJoin(TestCase):
         expected_base_signal_calls = [
             call("send-audit-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 payload={
                     "town_city": "a_town",
                     "county": "a_county",
@@ -888,7 +901,7 @@ class TestIcelandJoin(TestCase):
             ),
             call("send-audit-response"),
             call().send(
-                self.agent,
+                self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=ANY,
@@ -900,7 +913,7 @@ class TestIcelandJoin(TestCase):
             ),
             call("record-http-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 slug="iceland-bonus-card",
                 endpoint="/mock/api/v1/bink/join/",
                 latency=ANY,
@@ -908,7 +921,7 @@ class TestIcelandJoin(TestCase):
             ),
         ]
 
-        self.agent.join()
+        self.iceland.join()
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls)
         self.assertEqual(3, mock_base_signal.call_count)
@@ -923,7 +936,7 @@ class TestIcelandJoin(TestCase):
     def test_join_outbound_expects_callback(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -932,9 +945,9 @@ class TestIcelandJoin(TestCase):
             ],
         )
 
-        self.agent.join()
+        self.iceland.join()
 
-        self.assertTrue(self.agent.expecting_callback)
+        self.assertTrue(self.iceland.expecting_callback)
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
@@ -945,7 +958,7 @@ class TestIcelandJoin(TestCase):
     def test_join_callback_empty_response(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -956,7 +969,7 @@ class TestIcelandJoin(TestCase):
             ],
         )
 
-        self.agent.join()
+        self.iceland.join()
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(0, mock_iceland_signal.call_count)
@@ -970,7 +983,7 @@ class TestIcelandJoin(TestCase):
     def test_join_401_unauthorised(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -978,7 +991,7 @@ class TestIcelandJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.agent.join()
+            self.iceland.join()
         self.assertEqual(e.exception.code, 520)
         self.assertEqual(e.exception.name, "An unknown error has occurred")
 
@@ -999,8 +1012,10 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
-        expected_publish_status_calls = [call(1, SchemeAccountStatus.ACTIVE, ANY, self.agent.user_info, journey="join")]
-        self.agent._process_join_callback_response(data=data)
+        expected_publish_status_calls = [
+            call(1, SchemeAccountStatus.ACTIVE, ANY, self.iceland.user_info, journey="join")
+        ]
+        self.iceland._process_join_callback_response(data=data)
         self.assertEqual(
             [call([{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}], ConsentStatus.SUCCESS)],
             mock_consent_confirmation.mock_calls,
@@ -1010,7 +1025,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
-        self.agent.errors = {
+        self.iceland.errors = {
             CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
         }
         data = {
@@ -1020,7 +1035,7 @@ class TestIcelandJoin(TestCase):
             "merchant_scheme_id1": "a_merchant_scheme_id1",
         }
         with self.assertRaises(JoinError):
-            self.agent._process_join_callback_response(data=data)
+            self.iceland._process_join_callback_response(data=data)
 
     @mock.patch("requests.Session.post")
     @mock.patch("app.scheme_account.requests", autospec=True)
@@ -1058,18 +1073,18 @@ class TestIcelandJoin(TestCase):
             ),
             call("callback-success"),
             call().send(
-                self.agent,
+                self.iceland,
                 slug="iceland-bonus-card",
             ),
         ]
 
-        self.agent.join_callback(data=data)
+        self.iceland.join_callback(data=data)
 
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
         self.assertEqual(
             {"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"},
-            self.agent.identifier,
+            self.iceland.identifier,
         )
         self.assertIn("credentials", mock_scheme_account_requests.put.call_args[0][0])
         self.assertEqual(
@@ -1086,7 +1101,7 @@ class TestIcelandJoin(TestCase):
     def test_join_validation_error(
         self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
     ):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.merchant_url,
@@ -1102,7 +1117,7 @@ class TestIcelandJoin(TestCase):
         expected_base_signal_calls = [
             call("send-audit-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 payload={
                     "town_city": "a_town",
                     "county": "a_county",
@@ -1132,7 +1147,7 @@ class TestIcelandJoin(TestCase):
             ),
             call("send-audit-response"),
             call().send(
-                self.agent,
+                self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
                 handler_type=ANY,
@@ -1144,7 +1159,7 @@ class TestIcelandJoin(TestCase):
             ),
             call("record-http-request"),
             call().send(
-                self.agent,
+                self.iceland,
                 slug="iceland-bonus-card",
                 endpoint="/mock/api/v1/bink/join/",
                 latency=ANY,
@@ -1156,7 +1171,7 @@ class TestIcelandJoin(TestCase):
         ]
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join()
+            self.iceland.join()
         self.assertEqual(expected_consent_confirmation_calls, mock_consent_confirmation.call_args_list)
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(expected_base_signal_calls, mock_base_signal.mock_calls[:8])
@@ -1188,7 +1203,7 @@ class TestIcelandJoin(TestCase):
         }
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join_callback(data=data)
+            self.iceland.join_callback(data=data)
         self.assertEqual("Join in progress", e.exception.name)
         self.assertEqual(441, e.exception.code)
         self.assertEqual(
@@ -1229,7 +1244,7 @@ class TestIcelandJoin(TestCase):
         }
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join_callback(data=data)
+            self.iceland.join_callback(data=data)
         self.assertEqual("General Error preventing join", e.exception.name)
         self.assertEqual(538, e.exception.code)
         self.assertEqual(
@@ -1267,7 +1282,7 @@ class TestIcelandJoin(TestCase):
         }
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join_callback(data=data)
+            self.iceland.join_callback(data=data)
         self.assertEqual("Account already exists", e.exception.name)
         self.assertEqual(445, e.exception.code)
         self.assertEqual(
@@ -1305,7 +1320,7 @@ class TestIcelandJoin(TestCase):
         }
 
         with self.assertRaises(JoinError) as e:
-            self.agent.join_callback(data=data)
+            self.iceland.join_callback(data=data)
         self.assertEqual("General Error", e.exception.name)
         self.assertEqual(439, e.exception.code)
         self.assertEqual(
@@ -1330,12 +1345,12 @@ class TestIcelandJoin(TestCase):
                 "journey_type": 0,
             },
         ]
-        self.agent._add_additional_consent()
+        self.iceland._add_additional_consent()
 
-        self.assertEqual(expected_consents, self.agent.user_info["credentials"]["consents"])
+        self.assertEqual(expected_consents, self.iceland.user_info["credentials"]["consents"])
 
     def test_add_additional_consent_when_there_is_more_than_one_consent(self):
-        self.agent.user_info["credentials"]["consents"].append(
+        self.iceland.user_info["credentials"]["consents"].append(
             {
                 "id": 99999999999,
                 "slug": "marketing_opt_in_thirdparty",
@@ -1346,17 +1361,17 @@ class TestIcelandJoin(TestCase):
         )
         logger = get_logger("iceland")
         with mock.patch.object(logger, "debug") as mock_logger:
-            self.agent._add_additional_consent()
+            self.iceland._add_additional_consent()
 
-        self.assertEqual(2, len(self.agent.user_info["credentials"]["consents"]))
+        self.assertEqual(2, len(self.iceland.user_info["credentials"]["consents"]))
         self.assertEqual(call("Too many consents for Iceland scheme."), mock_logger.call_args)
 
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
-        self.agent.join()
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.join()
 
         self.assertTrue(mock_join.called)
         mock_consent_confirmation.assert_called_with(
@@ -1372,9 +1387,9 @@ class TestIcelandJoin(TestCase):
     )
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
-        self.agent.outbound_auth_service = Configuration.OAUTH_SECURITY
+        self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         with self.assertRaises(JoinError):
-            self.agent.join()
+            self.iceland.join()
 
         self.assertTrue(mock_join.called)
         mock_consent_confirmation.assert_called_with(
@@ -1392,7 +1407,7 @@ class TestIcelandJoin(TestCase):
             {"id": 2, "slug": "consent-slug2", "value": False, "created_on": "", "journey_type": 1},
         ]
 
-        self.agent.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
+        self.iceland.consent_confirmation(consents_data, ConsentStatus.SUCCESS)
 
         mock_requests_put.assert_called_with(
             ANY, data=json.dumps({"status": ConsentStatus.SUCCESS}), headers=ANY, timeout=ANY
@@ -1401,12 +1416,12 @@ class TestIcelandJoin(TestCase):
     @mock.patch("app.tasks.resend_consents.requests.put")
     def test_consents_confirmation_works_with_empty_consents(self, mock_requests_put):
         mock_requests_put.return_value.status_code = 200
-        self.agent.consent_confirmation([], ConsentStatus.SUCCESS)
+        self.iceland.consent_confirmation([], ConsentStatus.SUCCESS)
 
         self.assertFalse(mock_requests_put.called)
 
     def test_create_join_request_payload(self):
-        self.agent.user_info["credentials"]["consents"].append(
+        self.iceland.user_info["credentials"]["consents"].append(
             {
                 "id": 99999999999,
                 "slug": "marketing_opt_in_thirdparty",
@@ -1435,12 +1450,12 @@ class TestIcelandJoin(TestCase):
             "dob": "1987-08-08",
             "phone1": "0790000000",
         }
-        payload = self.agent._create_join_request_payload()
+        payload = self.iceland._create_join_request_payload()
         self.assertEqual(expected_payload, payload)
 
     def test_create_join_request_payload_when_no_consents(self):
-        self.agent.user_info["credentials"]["consents"] = {}
-        payload = self.agent._create_join_request_payload()
+        self.iceland.user_info["credentials"]["consents"] = {}
+        payload = self.iceland._create_join_request_payload()
         self.assertEqual(None, payload["marketing_opt_in"])
         self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
 

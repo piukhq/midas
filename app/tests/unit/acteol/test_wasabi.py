@@ -32,15 +32,7 @@ class TestWasabi(unittest.TestCase):
                     {
                         "credential_type": "compound_key",
                         "storage_key": "a_storage_key",
-                        "value": {
-                            "payload": {
-                                "client_id": "a_client_id",
-                                "client_secret": "a_client_secret",
-                                "grant_type": "client_credentials",
-                                "resource": "a_resource",
-                            },
-                            "prefix": "Bearer",
-                        },
+                        "value": {"password": "paSSword", "username": "username@bink.com"},
                     }
                 ],
             },
@@ -67,6 +59,14 @@ class TestWasabi(unittest.TestCase):
             cls.wasabi.integration_service = "SYNC"
 
         cls.wasabi.max_retries = 0
+
+    def test_get_oauth_url_and_payload(self):
+        url, payload = self.wasabi.get_auth_url_and_payload()
+        self.assertEqual("https://wasabiuat.test.wasabiworld.co.uk/token", url)
+        self.assertEqual(
+            {"grant_type": "password", "password": "paSSword", "username": "username@bink.com"},
+            payload,
+        )
 
     @patch("app.agents.acteol.Acteol._token_is_valid")
     @patch("app.agents.acteol.Acteol._refresh_token")

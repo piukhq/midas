@@ -971,8 +971,10 @@ class TestResources(TestCase):
 
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
-        url = f"/bpl-trenette/balance?credentials={credentials}&user_set=1" \
-              f"&scheme_account_id=2&journey_type={journey_type}"
+        url = (
+            f"/bpl-trenette/balance?credentials={credentials}&user_set=1"
+            f"&scheme_account_id=2&journey_type={journey_type}"
+        )
         resp = self.client.get(url)
 
         self.assertEqual(resp.json, expected)
