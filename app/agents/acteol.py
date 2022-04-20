@@ -318,7 +318,6 @@ class Acteol(BaseAgent):
         # If we are on an add journey, then we will need to verify the supplied email against the card number.
         # Being on an add journey is defined as having a card number but no "from_join" field, and we
         # won't have a "merchant_identifier" (which would indicate a balance request instead).
-        print("nothing")
         if (
             self.credentials["card_number"]
             and not self.user_info.get("from_join")
