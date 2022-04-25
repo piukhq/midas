@@ -208,7 +208,7 @@ class MockAgentIce(MockedMiner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
         if user_id in ["999000", "999001", "999002", "999003", "999004"]:
-            sleep(20)
+            sleep(60)
 
         self.user_info = USER_STORE[user_id]
         login_credentials = (

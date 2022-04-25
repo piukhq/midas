@@ -374,7 +374,7 @@ class MockedMiner(BaseAgent):
         if email == "fail@unknown.com":
             raise JoinError(UNKNOWN)
         elif email == "slowjoin@testbink.com":
-            time.sleep(30)
+            time.sleep(60)
 
         title = data.get("title").capitalize()
         if self.titles and title not in self.titles:
