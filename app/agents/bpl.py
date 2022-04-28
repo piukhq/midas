@@ -3,8 +3,6 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
-from soteria.configuration import Configuration
-
 import settings
 from app import publish
 from app.agents.base import BaseAgent
@@ -44,33 +42,27 @@ def voucher_type(scheme_slug: str) -> int:
 
 class Bpl(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.source_id = "bpl"
-        config = Configuration(
-            scheme_slug,
-            Configuration.JOIN_HANDLER,
-            settings.VAULT_URL,
-            settings.VAULT_TOKEN,
-            settings.CONFIG_SERVICE_URL,
-        )
-        self.base_url = config.merchant_url
-        self.auth = config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
-        self.callback_url = config.callback_url
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.headers = {"bpl-user-channel": self.channel, "Authorization": f"Token {self.auth}"}
+        self.source_id = "bpl"
+        self.credentials = user_info["credentials"]
+        self.base_url = self.config.merchant_url
+        self.callback_url = self.config.callback_url
+        self.auth_token = self.config.security_credentials["outbound"]["credentials"][0]["value"]["token"]
+        self.headers = {"bpl-user-channel": self.channel, "Authorization": f"Token {self.auth_token}"}
+        self.integration_service = "ASYNC"
         self.errors = {
             GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
             ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
             STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
             STATUS_LOGIN_FAILED: ["NO_ACCOUNT_FOUND"],
         }
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.ASYNC_INTEGRATION][1].upper()
 
-    def join(self, credentials):
-        consents = credentials.get("consents", [])
+    def join(self):
+        consents = self.credentials.get("consents", [])
         marketing_optin = consents[0]["value"] if consents else False
         url = f"{self.base_url}enrolment"
         payload = {
-            "credentials": credentials,
+            "credentials": self.credentials,
             "marketing_preferences": [{"key": "marketing_pref", "value": marketing_optin}],
             "callback_url": self.callback_url,
             "third_party_identifier": hash_ids.encode(self.user_info["scheme_account_id"]),
@@ -86,17 +78,17 @@ class Bpl(BaseAgent):
             if consents:
                 self.consent_confirmation(consents, ConsentStatus.SUCCESS)
 
-    def login(self, credentials):
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+    def login(self):
+        self.integration_service = "SYNC"
         # If merchant_identifier already exists do not get by credentials
-        if "merchant_identifier" in credentials.keys():
+        if "merchant_identifier" in self.credentials.keys():
             return
         # Channel not available for ADD journey.
-        self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
+        self.headers["bpl-user-channel"] = "com.bink.wallet"
         url = f"{self.base_url}getbycredentials"
         payload = {
-            "email": credentials["email"],
-            "account_number": credentials["card_number"],
+            "email": self.credentials["email"],
+            "account_number": self.credentials["card_number"],
         }
 
         try:
@@ -108,9 +100,9 @@ class Bpl(BaseAgent):
             self.expecting_callback = True
 
         membership_data = resp.json()
-        credentials["merchant_identifier"] = membership_data["UUID"]
+        self.credentials["merchant_identifier"] = membership_data["UUID"]
         self.identifier = {"merchant_identifier": membership_data["UUID"]}
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
     def _make_pending_vouchers(self, vouchers):
         return [
@@ -143,9 +135,8 @@ class Bpl(BaseAgent):
         ]
 
     def balance(self) -> Optional[Balance]:
-        credentials = self.user_info["credentials"]
-        merchant_id = credentials["merchant_identifier"]
-        self.headers = {"bpl-user-channel": "com.bink.wallet", "Authorization": f"Token {self.auth}"}
+        merchant_id = self.credentials["merchant_identifier"]
+        self.headers["bpl-user-channel"] = "com.bink.wallet"
         url = f"{self.base_url}{merchant_id}"
         resp = self.make_request(url, method="get")
         bpl_data = resp.json()
@@ -197,7 +188,7 @@ class Bpl(BaseAgent):
             "card_number": customer_details["account_number"],
             "merchant_identifier": customer_details["UUID"],
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
         # for updating user ID credential you get for joining (e.g. getting issued a card number)
         api_url = urljoin(

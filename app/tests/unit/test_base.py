@@ -6,6 +6,7 @@ import httpretty
 
 from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.scheme_account import JourneyTypes
 
 
 class TestBase(TestCase):
@@ -14,23 +15,36 @@ class TestBase(TestCase):
 
         self.assertIn("NOT_SENT", response_json)
 
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch.object(BaseAgent, "join")
-    def test_attempt_join(self, mocked_join):
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+    def test_attempt_join(self, mocked_join, mock_config):
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.JOIN,
+            "credentials": {},
+        }
         m = BaseAgent(0, user_info)
 
-        m.attempt_join(credentials={})
+        m.attempt_join()
         self.assertTrue(mocked_join.called)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.requests_retry.Retry")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry):
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry, mock_config):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """
         # GIVEN
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.LINK.value,
+        }
         m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
@@ -72,13 +86,19 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal, mock_config):
         """
         Check that correct params are passed to the signals for an unsuccessful (LoginError) request
         """
         # GIVEN
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.LINK.value,
+        }
         m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
@@ -111,13 +131,19 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_timeout_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_timeout_calls_signals(self, mock_signal, mock_config):
         """
         Check that correct params are passed to the signals for an unsuccessful (Timeout) request
         """
         # GIVEN
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.LINK.value,
+        }
         m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
@@ -159,13 +185,19 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal, mock_config):
         """
         Check that correct params are passed to the signals for an unsuccessful (unauthorized) request
         """
         # GIVEN
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.LINK.value,
+        }
         m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
@@ -207,13 +239,19 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal):
+    def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal, mock_config):
         """
         Check that correct params are passed to the signals for an unsuccessful (forbidden) request
         """
         # GIVEN
-        user_info = {"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.LINK.value,
+        }
         m = BaseAgent(0, user_info)
         m.base_url = "http://fake.com"
         ctcid = "54321"
@@ -246,9 +284,16 @@ class TestBase(TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    def test_handle_errors_raises_exception(self):
+    @mock.patch("app.agents.base.Configuration")
+    def test_handle_errors_raises_exception(self, mock_config):
         agent = BaseAgent(
-            retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+            retry_count=0,
+            user_info={
+                "scheme_account_id": 194,
+                "status": "",
+                "channel": "com.bink.wallet",
+                "journey_type": JourneyTypes.LINK.value,
+            },
         )
         agent.errors = {
             GENERAL_ERROR: "GENERAL_ERROR",
@@ -258,9 +303,16 @@ class TestBase(TestCase):
         self.assertEqual("General Error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
-    def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self):
+    @mock.patch("app.agents.base.Configuration")
+    def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self, mock_config):
         agent = BaseAgent(
-            retry_count=0, user_info={"scheme_account_id": 194, "status": "", "channel": "com.bink.wallet"}
+            retry_count=0,
+            user_info={
+                "scheme_account_id": 194,
+                "status": "",
+                "channel": "com.bink.wallet",
+                "journey_type": JourneyTypes.LINK.value,
+            },
         )
         agent.errors = {
             GENERAL_ERROR: "GENERAL_ERROR",

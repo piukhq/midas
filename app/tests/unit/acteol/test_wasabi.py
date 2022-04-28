@@ -32,21 +32,13 @@ class TestWasabi(unittest.TestCase):
                     {
                         "credential_type": "compound_key",
                         "storage_key": "a_storage_key",
-                        "value": {
-                            "payload": {
-                                "client_id": "a_client_id",
-                                "client_secret": "a_client_secret",
-                                "grant_type": "client_credentials",
-                                "resource": "a_resource",
-                            },
-                            "prefix": "Bearer",
-                        },
+                        "value": {"password": "paSSword", "username": "username@bink.com"},
                     }
                 ],
             },
         }
         cls.mock_token = {
-            "acteol_access_token": "abcde12345fghij",
+            "wasabi_club_access_token": "abcde12345fghij",
             "timestamp": 123456789,
         }
 
@@ -56,25 +48,33 @@ class TestWasabi(unittest.TestCase):
                 "scheme_account_id": 1,
                 "status": 1,
                 "user_set": "1,2",
-                "journey_type": None,
+                "journey_type": JourneyTypes.JOIN.value,
                 "credentials": {},
                 "channel": "com.bink.wallet",
             },
         ]
 
-        with patch("app.agents.acteol.Configuration", return_value=mock_config):
+        with patch("app.agents.base.Configuration", return_value=mock_config):
             cls.wasabi = Wasabi(*MOCK_AGENT_CLASS_ARGUMENTS, scheme_slug="wasabi-club")
             cls.wasabi.integration_service = "SYNC"
 
         cls.wasabi.max_retries = 0
 
+    def test_get_oauth_url_and_payload(self):
+        url, payload = self.wasabi.get_auth_url_and_payload()
+        self.assertEqual("https://wasabiuat.test.wasabiworld.co.uk/token", url)
+        self.assertEqual(
+            {"grant_type": "password", "password": "paSSword", "username": "username@bink.com"},
+            payload,
+        )
+
     @patch("app.agents.acteol.Acteol._token_is_valid")
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
+    @patch("app.agents.acteol.Acteol._refresh_token")
     @patch("app.agents.acteol.Acteol._store_token")
     def test_refreshes_token(
         self,
         mock_store_token,
-        mock_refresh_access_token,
+        mock_refresh_token,
         mock_token_is_valid,
     ):
         """
@@ -88,27 +88,28 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.authenticate()
 
             # THEN
-            assert mock_refresh_access_token.called_once()
+            assert mock_refresh_token.called_once()
             assert mock_store_token.called_once_with(self.mock_token)
 
-    @patch("app.agents.acteol.Acteol._token_is_valid")
-    @patch("app.agents.acteol.Acteol._refresh_access_token")
-    @patch("app.agents.acteol.Acteol._store_token")
-    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_access_token, mock_token_is_valid):
+    @patch("app.agents.base.BaseAgent._token_is_valid")
+    @patch("app.agents.base.BaseAgent._refresh_token")
+    @patch("app.agents.base.BaseAgent._store_token")
+    def test_does_not_refresh_token(self, mock_store_token, mock_refresh_token, mock_token_is_valid):
         """
         The token is valid and should not be refreshed.
         """
         # GIVEN
+        self.wasabi.outbound_auth_service = Configuration.OAUTH_SECURITY
         mock_token_is_valid.return_value = True
 
         # WHEN
         with patch.object(self.wasabi.token_store, "get", return_value=json.dumps(self.mock_token)):
-            token = self.wasabi.authenticate()
+            self.wasabi.authenticate()
 
             # THEN
-            assert not mock_refresh_access_token.called
+            assert not mock_refresh_token.called
             assert not mock_store_token.called
-            assert token == self.mock_token
+            self.assertEqual({"Authorization": "Bearer abcde12345fghij"}, self.wasabi.headers)
 
     def test_token_is_valid_false_for_just_expired(self):
         """
@@ -118,14 +119,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 75700
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
-            "timestamp": 100,  # an easy number to work with to get 75600
+            "wasabi_club_access_token": "abcde12345fghij",
+            "timestamp": [
+                100,
+            ],  # an easy number to work with to get 75600
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is False
@@ -138,14 +146,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 10000
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
-            "timestamp": 10,  # an easy number to work with to exceed the timout setting
+            "wasabi_club_access_token": "abcde12345fghij",
+            "timestamp": [
+                10,
+            ],  # an easy number to work with to exceed the timout setting
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is False
@@ -158,14 +173,21 @@ class TestWasabi(unittest.TestCase):
         # GIVEN
         mock_current_timestamp = 1000
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
-        self.wasabi.AUTH_TOKEN_TIMEOUT = mock_auth_token_timeout
+        self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
-            "timestamp": 450,  # an easy number to work with to stay within validity range
+            "wasabi_club_access_token": "abcde12345fghij",
+            "timestamp": [
+                450,
+            ],  # an easy number to work with to stay within validity range
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
+        is_valid = self.wasabi._token_is_valid(
+            token=mock_token,
+            current_timestamp=[
+                mock_current_timestamp,
+            ],
+        )
 
         # THEN
         assert is_valid is True
@@ -175,52 +197,49 @@ class TestWasabi(unittest.TestCase):
         Test that _store_token() calls the token store set method and returns an expected dict
         """
         # GIVEN
-        mock_acteol_access_token = "abcde12345fghij"
+        mock_wasabi_club_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
         expected_token = {
-            "acteol_access_token": mock_acteol_access_token,
+            "wasabi_club_access_token": mock_wasabi_club_access_token,
             "timestamp": mock_current_timestamp,
         }
 
         # WHEN
         with patch.object(self.wasabi.token_store, "set", return_value=True):
-            token = self.wasabi._store_token(
-                acteol_access_token=mock_acteol_access_token,
-                current_timestamp=mock_current_timestamp,
+            self.wasabi._store_token(
+                token=mock_wasabi_club_access_token,
+                current_timestamp=[
+                    mock_current_timestamp,
+                ],
             )
 
             # THEN
             assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
-            assert token == expected_token
 
     def test_make_headers(self):
         """
         Test that _make_headers returns a valid HTTP request authorization header
         """
         # GIVEN
-        mock_acteol_access_token = "abcde12345fghij"
-        expected_header = {"Authorization": f"Bearer {mock_acteol_access_token}"}
+        mock_wasabi_club_access_token = "abcde12345fghij"
+        expected_header = {"Authorization": f"Bearer {mock_wasabi_club_access_token}"}
 
         # WHEN
-        header = self.wasabi._make_headers(token=mock_acteol_access_token)
+        header = self.wasabi._make_headers(token=mock_wasabi_club_access_token)
 
         # THEN
         assert header == expected_header
 
-    @patch("app.agents.acteol.Acteol._make_headers")
-    @patch("app.agents.acteol.Acteol.authenticate")
-    def test_oauth(self, mock_authenticate, mock_make_headers):
-        self.wasabi._get_valid_api_token_and_make_headers()
-        self.assertEqual(1, mock_authenticate.call_count)
-        self.assertEqual(1, mock_make_headers.call_count)
+    @patch("app.agents.base.BaseAgent._oauth_authentication")
+    def test_oauth(self, mock_oauth_authentication):
+        self.wasabi.authenticate()
+        self.assertEqual(1, mock_oauth_authentication.call_count)
 
-    @patch("app.agents.acteol.Acteol._make_headers")
-    @patch("app.agents.acteol.Acteol.authenticate")
-    def test_open_auth(self, mock_authenticate, mock_make_headers):
-        self.wasabi.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
-        self.wasabi._get_valid_api_token_and_make_headers()
-        self.assertEqual(0, mock_authenticate.call_count)
-        self.assertEqual(0, mock_make_headers.call_count)
+    @patch("app.agents.base.BaseAgent._oauth_authentication")
+    def test_open_auth(self, mock_oauth_authentication):
+        self.wasabi.outbound_auth_service = Configuration.OPEN_AUTH_SECURITY
+        self.wasabi.authenticate()
+        self.assertEqual(0, mock_oauth_authentication.call_count)
 
     def test_create_origin_id(self):
         """
@@ -316,14 +335,8 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps({"CtcID": expected_ctcid}))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
         # WHEN
-        ctcid = self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+        ctcid = self.wasabi._create_account(origin_id=origin_id)
 
         # THEN
         assert ctcid == expected_ctcid
@@ -350,16 +363,9 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
 
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
-
         # WHEN
         with pytest.raises(AgentError):
-            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+            self.wasabi._create_account(origin_id=origin_id)
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -372,17 +378,11 @@ class TestWasabi(unittest.TestCase):
         origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
         api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
         httpretty.register_uri(httpretty.POST, api_url, status=HTTPStatus.BAD_REQUEST)
-        credentials = {
-            "first_name": "Sarah",
-            "last_name": "TestPerson",
-            "email": "testperson@bink.com",
-            "date_of_birth": "1999-01-01",
-        }
 
         # WHEN
         assert not mock_send_to_atlas.called
         with self.assertRaises(AgentError):
-            self.wasabi._create_account(origin_id=origin_id, credentials=credentials)
+            self.wasabi._create_account(origin_id=origin_id)
 
     @httpretty.activate
     @patch("app.agents.base.signal", autospec=True)
@@ -821,15 +821,9 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
-
         # WHEN
         try:
-            self.wasabi.login(credentials=credentials)
+            self.wasabi.login()
         except Exception as e:
             pytest.fail(f"test_login_happy_path failed: {str(e)}")
 
@@ -846,7 +840,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
+        self.wasabi.credentials = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
@@ -854,7 +848,7 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         with pytest.raises(LoginError):
-            self.wasabi.login(credentials=credentials)
+            self.wasabi.login()
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._validate_member_number")
@@ -866,15 +860,15 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
+        self.wasabi.user_info["from_join"] = True
+        self.wasabi.user_info["credentials"] = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
         }
-        self.wasabi.user_info["from_join"] = True
 
         # WHEN
-        self.wasabi.login(credentials=credentials)
+        self.wasabi.login()
 
         # THEN
         assert not mock_validate_member_number.called
@@ -890,7 +884,7 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
+        self.wasabi.credentials = {
             "email": "dfelce@testbink.com",
             "card_number": "1048235616",
             "consents": [],
@@ -898,7 +892,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # WHEN
-        self.wasabi.login(credentials=credentials)
+        self.wasabi.login()
 
         # THEN
         assert not mock_validate_member_number.called
@@ -915,18 +909,13 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here deliberately so we have
         # greater transparency
         self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
 
         # WHEN
-        self.wasabi.login(credentials=credentials)
+        self.wasabi.login()
 
         # THEN
         assert mock_validate_member_number.called_once()
@@ -944,11 +933,6 @@ class TestWasabi(unittest.TestCase):
 
         mock_validate_member_number.return_value = "54321"
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
         self.wasabi.user_info["from_join"] = False
@@ -959,7 +943,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.wasabi.login(credentials=credentials)
+        self.wasabi.login()
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -980,15 +964,15 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
         self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
+        self.wasabi.user_info["credentials"] = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
             call().send(self.wasabi, slug=self.wasabi.scheme_slug),
@@ -998,7 +982,6 @@ class TestWasabi(unittest.TestCase):
         self.assertRaises(
             LoginError,
             self.wasabi.login,
-            credentials=credentials,
         )
 
         # THEN
@@ -1020,15 +1003,15 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
 
-        credentials = {
-            "email": "dfelce@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
         # These two fields just won't be present in real requests, but set to false here to be more explicit
         # about the fact we're on an ADD journey
         self.wasabi.user_info["from_join"] = False
         self.wasabi.user_info["merchant_identifier"] = False
+        self.wasabi.credentials = {
+            "email": "dfelce@testbink.com",
+            "card_number": "1048235616",
+            "consents": [],
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
             call().send(self.wasabi, slug=self.wasabi.scheme_slug),
@@ -1038,7 +1021,6 @@ class TestWasabi(unittest.TestCase):
         self.assertRaises(
             AgentError,
             self.wasabi.login,
-            credentials=credentials,
         )
 
         # THEN
@@ -1756,15 +1738,10 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.GATEWAY_TIMEOUT,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
-            self.wasabi._validate_member_number(credentials)
+            self.wasabi._validate_member_number()
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -1781,15 +1758,10 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.UNAUTHORIZED,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
-            self.wasabi._validate_member_number(credentials)
+            self.wasabi._validate_member_number()
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -1806,15 +1778,10 @@ class TestWasabi(unittest.TestCase):
             api_url,
             status=HTTPStatus.FORBIDDEN,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
-            self.wasabi._validate_member_number(credentials)
+            self.wasabi._validate_member_number()
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -1839,15 +1806,10 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(LoginError):
-            self.wasabi._validate_member_number(credentials)
+            self.wasabi._validate_member_number()
 
     @httpretty.activate
     @patch("app.audit.AuditLogger.send_to_atlas")
@@ -1871,15 +1833,10 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # THEN
         with pytest.raises(AgentError):
-            self.wasabi._validate_member_number(credentials)
+            self.wasabi._validate_member_number()
 
     @httpretty.activate
     @patch("app.agents.base.signal", autospec=True)
@@ -1900,14 +1857,9 @@ class TestWasabi(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response_data))],
             status=HTTPStatus.OK,
         )
-        credentials = {
-            "email": "testastic@testbink.com",
-            "card_number": "1048235616",
-            "consents": [],
-        }
 
         # WHEN
-        ctcid = self.wasabi._validate_member_number(credentials)
+        ctcid = self.wasabi._validate_member_number()
 
         # THEN
         assert ctcid == expected_ctcid
@@ -1922,7 +1874,6 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = True
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -1930,7 +1881,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(JoinError, self.wasabi.join, credentials=credentials)
+        self.assertRaises(JoinError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -1956,7 +1907,6 @@ class TestWasabi(unittest.TestCase):
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -1964,7 +1914,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(AgentError, self.wasabi.join, credentials=credentials)
+        self.assertRaises(AgentError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -1994,7 +1944,6 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         mock_create_account.return_value = "54321"
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -2002,7 +1951,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.wasabi.join, credentials=credentials)
+        self.assertRaises(LoginError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -2046,7 +1995,6 @@ class TestWasabi(unittest.TestCase):
         }
         mock_add_customer_fields_are_present.return_value = True
         mock_get_email_optin_from_consent.return_value = {"EmailOptIn": True}
-        credentials = {"email": "testman@thing.com"}
         # GIVEN
         expected_calls = [  # The expected call stack for signal, in order
             call("join-success"),
@@ -2054,7 +2002,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.wasabi.join(credentials=credentials)
+        self.wasabi.join()
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)

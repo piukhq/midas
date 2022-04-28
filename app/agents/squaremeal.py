@@ -1,14 +1,8 @@
-import json
 from copy import deepcopy
 from decimal import Decimal
 
-import arrow
-import requests
 from blinker import signal
-from soteria.configuration import Configuration
-from user_auth_token import UserTokenStore
 
-import settings
 from app.agents.base import BaseAgent
 from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
@@ -21,31 +15,16 @@ log = get_logger("squaremeal")
 
 
 class Squaremeal(BaseAgent):
-    token_store = UserTokenStore(settings.REDIS_URL)
-    AUTH_TOKEN_TIMEOUT = 3599
-
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "squaremeal"
-        self.config = Configuration(
-            scheme_slug,
-            Configuration.JOIN_HANDLER,
-            settings.VAULT_URL,
-            settings.VAULT_TOKEN,
-            settings.CONFIG_SERVICE_URL,
-        )
+        self.oauth_token_timeout = 3599
         self.base_url = self.config.merchant_url
-        self.auth_url = self.config.security_credentials["outbound"]["credentials"][0]["value"]["url"]
-        self.headers["Secondary-Key"] = str(
-            self.config.security_credentials["outbound"]["credentials"][0]["value"]["secondary-key"]
-        )
-
-        self.azure_sm_client_secret = self.config.security_credentials["outbound"]["credentials"][0]["value"][
-            "client-secret"
-        ]
-        self.azure_sm_client_id = self.config.security_credentials["outbound"]["credentials"][0]["value"]["client-id"]
-        self.azure_sm_scope = self.config.security_credentials["outbound"]["credentials"][0]["value"]["scope"]
-
+        self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
+        self.headers["Secondary-Key"] = str(self.outbound_security_credentials["secondary-key"])
+        self.integration_service = "SYNC"
+        self.credentials = self.user_info["credentials"]
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
         self.errors = {
@@ -53,7 +32,6 @@ class Squaremeal(BaseAgent):
             "SERVICE_CONNECTION_ERROR": [401],
             "END_SITE_DOWN": [530],
         }
-        self.integration_service = self.config.integration_service
 
     @staticmethod
     def hide_sensitive_fields(req_audit_logs):
@@ -70,59 +48,24 @@ class Squaremeal(BaseAgent):
 
         return req_audit_logs_copy
 
-    def authenticate(self) -> None:
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OPEN_AUTH_SECURITY:
-            return
-        have_valid_token = False
-        current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {}
-        try:
-            token = json.loads(self.token_store.get(self.scheme_id))
-            try:
-                if self._token_is_valid(token, current_timestamp):
-                    have_valid_token = True
-            except (KeyError, TypeError) as ex:
-                log.exception(ex)
-        except (KeyError, self.token_store.NoSuchToken):
-            pass
-
-        if not have_valid_token:
-            token = self._store_token(self._refresh_token(), current_timestamp)
-
-        self.headers["Authorization"] = f'Bearer {token["sm_access_token"]}'
-
-    def _refresh_token(self):
-        url = self.auth_url
+    def get_auth_url_and_payload(self):
+        url = self.outbound_security_credentials["url"]
         payload = {
             "grant_type": "client_credentials",
-            "client_secret": self.azure_sm_client_secret,
-            "client_id": self.azure_sm_client_id,
-            "scope": self.azure_sm_scope,
+            "client_secret": self.outbound_security_credentials["client-secret"],
+            "client_id": self.outbound_security_credentials["client-id"],
+            "scope": self.outbound_security_credentials["scope"],
         }
-        resp = requests.post(url, data=payload)
-        token = resp.json()["access_token"]
-        return token
+        return url, payload
 
-    def _store_token(self, token, current_timestamp):
-        token = {
-            "sm_access_token": token,
-            "timestamp": current_timestamp,
-        }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
-        return token
-
-    def _token_is_valid(self, token, current_timestamp):
-        time_diff = current_timestamp[0] - token["timestamp"][0]
-        return time_diff < self.AUTH_TOKEN_TIMEOUT
-
-    def _create_account(self, credentials):
+    def _join(self):
         url = f"{self.base_url}register"
         self.authenticate()
         payload = {
-            "email": credentials["email"],
-            "password": credentials["password"],
-            "FirstName": credentials["first_name"],
-            "LastName": credentials["last_name"],
+            "email": self.credentials["email"],
+            "password": self.credentials["password"],
+            "FirstName": self.credentials["first_name"],
+            "LastName": self.credentials["last_name"],
             "Source": self.channel,
         }
         try:
@@ -145,10 +88,14 @@ class Squaremeal(BaseAgent):
         except (AgentError, JoinError):
             pass
 
-    def _login(self, credentials):
+    def _login(self):
         url = f"{self.base_url}login"
         self.authenticate()
-        payload = {"email": credentials["email"], "password": credentials["password"], "source": "com.barclays.bmb"}
+        payload = {
+            "email": self.credentials["email"],
+            "password": self.credentials["password"],
+            "source": "com.barclays.bmb",
+        }
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("log-in-success").send(self, slug=self.scheme_slug)
@@ -159,7 +106,7 @@ class Squaremeal(BaseAgent):
         return resp.json()
 
     def _get_balance(self):
-        merchant_id = self.user_info["credentials"]["merchant_identifier"]
+        merchant_id = self.credentials["merchant_identifier"]
         url = f"{self.base_url}points/{merchant_id}"
         self.authenticate()
         try:
@@ -169,28 +116,28 @@ class Squaremeal(BaseAgent):
             self.handle_errors(error_code)
         return resp.json()
 
-    def join(self, credentials):
-        consents = credentials.get("consents", [])
-        resp_json = self._create_account(credentials)
+    def join(self):
+        consents = self.credentials.get("consents", [])
+        resp_json = self._join()
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
             "card_number": resp_json["MembershipNumber"],
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
         self._update_newsletters(resp_json["UserId"], consents)
 
-    def login(self, credentials):
+    def login(self):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN.value:
             return
 
         self.errors = {"STATUS_LOGIN_FAILED": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
-        resp = self._login(credentials)
+        resp = self._login()
         self.identifier = {
             "merchant_identifier": resp["UserId"],
             "card_number": resp["MembershipNumber"],
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
     def transactions(self) -> list[Transaction]:
         try:

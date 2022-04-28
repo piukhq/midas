@@ -16,7 +16,7 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
     agent_instance = agent_class(0, user_info, scheme_slug=scheme_slug)
     error = None
     try:
-        agent_instance.attempt_join(user_info["credentials"])
+        agent_instance.attempt_join()
     except Exception as e:
         error = e.args[0]
 

@@ -36,28 +36,31 @@ class HarveyNichols(BaseAgent):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.source_id = "harveynichols"
-        slugs = [scheme_slug, "harvey-nichols-sso"]
-        configurations = [
-            Configuration(
-                slug, Configuration.JOIN_HANDLER, settings.VAULT_URL, settings.VAULT_TOKEN, settings.CONFIG_SERVICE_URL
-            )
-            for slug in slugs
-        ]
-
-        self.base_url = configurations[0].merchant_url
-        self.hn_sso_url = configurations[1].merchant_url
         super().__init__(retry_count, user_info, scheme_slug)
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        self.source_id = "harveynichols"
+        self.credentials = self.user_info["credentials"]
+        self.base_url = self.config.merchant_url
+        self.sso_url = self._get_sso_url()
+        self.integration_service = "SYNC"
 
-    def check_loyalty_account_valid(self, credentials):
+    def _get_sso_url(self):
+        sso_config = Configuration(
+            "harvey-nichols-sso",
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
+        return sso_config.merchant_url
+
+    def check_loyalty_account_valid(self):
         """
         Checks with HN to verify whether a valid loyalty account exists
 
         Don't go any further unless the account is valid
         """
-        has_loyalty_account_url = urljoin(self.hn_sso_url, "user/hasloyaltyaccount")
-        data = {"email": credentials["email"], "password": credentials["password"]}
+        has_loyalty_account_url = urljoin(self.sso_url, "user/hasloyaltyaccount")
+        data = {"email": self.credentials["email"], "password": self.credentials["password"]}
         headers = {"Accept": "application/json"}
         payload = deepcopy(data)
         payload["url"] = has_loyalty_account_url
@@ -71,8 +74,7 @@ class HarveyNichols(BaseAgent):
         if message != "OK":
             raise LoginError(STATUS_LOGIN_FAILED)
 
-    def login(self, credentials):
-        self.credentials = credentials
+    def login(self):
         self.identifier_type = "card_number"
 
         if self.journey_type == JourneyTypes.LINK.value:
@@ -99,19 +101,19 @@ class HarveyNichols(BaseAgent):
             sign_on_required = True
             if self.journey_type == JourneyTypes.LINK.value:
                 try:
-                    self.check_loyalty_account_valid(self.credentials)
+                    self.check_loyalty_account_valid()
                 except (LoginError, AgentError):
                     signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
 
         try:
-            self.customer_number = credentials[self.identifier_type]
+            self.customer_number = self.credentials[self.identifier_type]
         except KeyError:
             sign_on_required = True
 
         if sign_on_required:
             log.info(f"SignOn required for Harvey Nichols for scheme account id = {self.scheme_id}")
-            self._login(credentials)
+            self._login()
 
     def call_balance_url(self):
         url = self.base_url + "/GetProfile"
@@ -129,7 +131,7 @@ class HarveyNichols(BaseAgent):
         result = self.call_balance_url()
 
         if result["outcome"] == "InvalidToken":
-            self._login(self.credentials)
+            self._login()
             result = self.call_balance_url()
 
         if result["outcome"] != "Success":
@@ -189,7 +191,7 @@ class HarveyNichols(BaseAgent):
         result = self.call_transaction_url()
 
         if result["outcome"] == "InvalidToken":
-            self._login(self.credentials)
+            self._login()
             result = self.call_transaction_url()
 
         if result["outcome"] != "Success":
@@ -204,22 +206,22 @@ class HarveyNichols(BaseAgent):
         transactions = [self.parse_transaction(tx) for tx in sorted_transactions]
         return transactions
 
-    def join(self, credentials):
+    def join(self):
         self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
         url = self.base_url + "/SignUp"
         data = {
             "CustomerSignUpRequest": {
-                "username": credentials["email"],
-                "email": credentials["email"],
-                "password": credentials["password"],
-                "title": credentials["title"],
-                "forename": credentials["first_name"],
-                "surname": credentials["last_name"],
+                "username": self.credentials["email"],
+                "email": self.credentials["email"],
+                "password": self.credentials["password"],
+                "title": self.credentials["title"],
+                "forename": self.credentials["first_name"],
+                "surname": self.credentials["last_name"],
                 "applicationId": "BINK_APP",
             }
         }
-        if credentials.get("phone"):
-            data["CustomerSignUpRequest"]["phone"] = credentials["phone"]
+        if self.credentials.get("phone"):
+            data["CustomerSignUpRequest"]["phone"] = self.credentials["phone"]
 
         payload = deepcopy(data)
         payload["CustomerSignUpRequest"].update({"url": url})
@@ -235,21 +237,21 @@ class HarveyNichols(BaseAgent):
         signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
         self.handle_errors(message, exception_type=JoinError)
 
-    def _login(self, credentials):
+    def _login(self):
         """
         Retrieves user token and customer number, saving token in user token redis db.
         """
         url = self.base_url + "/SignOn"
         data = {
             "CustomerSignOnRequest": {
-                "username": credentials["email"],
-                "password": credentials["password"],
+                "username": self.credentials["email"],
+                "password": self.credentials["password"],
                 "applicationId": "BINK_APP",
             }
         }
 
         # Add in email, expected by Atlas
-        data["CustomerSignOnRequest"].update({"email": credentials["email"]})
+        data["CustomerSignOnRequest"].update({"email": self.credentials["email"]})
         payload = deepcopy(data)
         payload["CustomerSignOnRequest"].update({"url": url})
         payload["CustomerSignOnRequest"].update({"password": "********"})
@@ -264,11 +266,11 @@ class HarveyNichols(BaseAgent):
             self.token = json_result["token"]
             self.token_store.set(self.scheme_id, self.token)
 
-            if self.identifier_type not in credentials:
+            if self.identifier_type not in self.credentials:
                 # self.identifier should only be set if identifier type is not passed in credentials
                 self.identifier = {self.identifier_type: self.customer_number}
 
-                if not credentials.get("consents"):
+                if not self.credentials.get("consents"):
                     return
 
                 self.create_journey = "join"
@@ -277,7 +279,7 @@ class HarveyNichols(BaseAgent):
                 hn_post_message = {"enactor_id": self.customer_number}
                 confirm_retries = {}  # While hold the retry count down for each consent confirmation retried
 
-                for consent in credentials["consents"]:
+                for consent in self.credentials["consents"]:
                     hn_post_message[consent["slug"]] = consent["value"]
                     confirm_retries[consent["id"]] = self.HERMES_CONFIRMATION_TRIES
 
@@ -286,7 +288,7 @@ class HarveyNichols(BaseAgent):
                     "Accept": "application/json",
                     "Auth-key": self.CONSENTS_AUTH_KEY,
                 }
-                consents_url = urljoin(self.hn_sso_url, "preferences/create")
+                consents_url = urljoin(self.sso_url, "preferences/create")
                 send_consents(
                     {
                         "url": consents_url,  # set to scheme url for the agent to accept consents

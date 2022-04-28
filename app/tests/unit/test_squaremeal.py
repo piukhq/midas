@@ -18,7 +18,7 @@ from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
 
-SECURITY_CREDENTIALS = {
+OUTBOUND_SECURITY_CREDENTIALS = {
     "outbound": {
         "service": Configuration.OAUTH_SECURITY,
         "credentials": [
@@ -62,12 +62,12 @@ class TestSquaremealJoin(TestCase):
         return create_app(self)
 
     def setUp(self):
-        self.security_credentials = SECURITY_CREDENTIALS
+        self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
 
-        with mock.patch("app.agents.squaremeal.Configuration") as mock_configuration:
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
-            mock_config_object.security_credentials = self.security_credentials
+            mock_config_object.security_credentials = self.outbound_security_credentials
             mock_config_object.integration_service = "SYNC"
             mock_configuration.return_value = mock_config_object
             self.squaremeal = Squaremeal(
@@ -100,7 +100,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        resp_json = self.squaremeal._create_account(credentials=self.credentials)
+        resp_json = self.squaremeal._join()
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
@@ -108,7 +108,7 @@ class TestSquaremealJoin(TestCase):
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
-    @mock.patch("app.agents.squaremeal.Squaremeal._create_account")
+    @mock.patch("app.agents.squaremeal.Squaremeal._join")
     def test_join_200(self, mock_create_account, mock_consent_confirmation, mock_requests_session, mock_authenticate):
         mock_create_account.return_value = RESPONSE_JSON_200
         self.squaremeal.user_info["credentials"]["consents"][0]["value"] = True
@@ -119,13 +119,13 @@ class TestSquaremealJoin(TestCase):
             responses=[
                 httpretty.Response(
                     body=json.dumps(
-                        {"Status": True, "Message": "Users mailing prefrences updated successfully", "Errors": None}
+                        {"Status": True, "Message": "Users mailing preferences updated successfully", "Errors": None}
                     ),
                     status=HTTPStatus.OK,
                 )
             ],
         )
-        self.squaremeal.join(self.credentials)
+        self.squaremeal.join()
 
         self.assertEqual(
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
@@ -149,7 +149,7 @@ class TestSquaremealJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.join(self.credentials)
+            self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Service connection error")
         self.assertEqual(e.exception.code, 537)
@@ -176,7 +176,7 @@ class TestSquaremealJoin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.join(self.credentials)
+            self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Account already exists")
         self.assertEqual(e.exception.code, 445)
@@ -278,33 +278,35 @@ class TestSquaremealJoin(TestCase):
             balance, Balance(points=Decimal("100"), value=0, value_label="", reward_tier=0, balance=None, vouchers=None)
         )
 
-    def test_get_security_credentials(self):
-        self.assertEqual(self.squaremeal.auth_url, "http://fake.com")
-        self.assertEqual(self.squaremeal.headers, {"Secondary-Key": "12345678"})
+    def test_get_oauth_url_and_payload(self):
+        url, payload = self.squaremeal.get_auth_url_and_payload()
+        self.assertEqual("http://fake.com", url)
+        self.assertEqual(
+            {"client_id": "123", "client_secret": "123a6ba", "grant_type": "client_credentials", "scope": "dunno"},
+            payload,
+        )
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
-    @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
     @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
-    def test_authenticate(self, mock_refresh_token, mock_token_store, mock_store_token):
-        current_timestamp = (arrow.utcnow().int_timestamp,)
-        token = {"timestamp": current_timestamp, "sm_access_token": "fake-123"}
-        mock_token_store.return_value = json.dumps(token)
+    def test_authenticate(self, mock_refresh_token, mock_store_token):
+        token = {"timestamp": (arrow.utcnow().int_timestamp,), "squaremeal_access_token": "fake-123"}
         mock_store_token.return_value = token
 
         # Ensure all the necessary methods called when token expired
-        self.squaremeal.AUTH_TOKEN_TIMEOUT = 0
-        self.squaremeal.authenticate()
+        self.squaremeal.oauth_token_timeout = 0
+        with mock.patch.object(self.squaremeal.token_store, "get", return_value=json.dumps(token)):
+            self.squaremeal.authenticate()
         self.assertEqual({"Authorization": "Bearer fake-123", "Secondary-Key": "12345678"}, self.squaremeal.headers)
         mock_refresh_token.assert_called()
         mock_store_token.assert_called()
 
     @mock.patch("app.agents.squaremeal.Squaremeal._store_token")
-    @mock.patch("app.agents.squaremeal.Squaremeal.token_store.get", return_value="fake-123")
     @mock.patch("app.agents.squaremeal.Squaremeal._refresh_token", return_value="fake-123")
-    def test_open_auth(self, mock_refresh_token, mock_token_store, mock_store_token):
-        self.squaremeal.config.security_credentials["outbound"]["service"] = Configuration.OPEN_AUTH_SECURITY
-
-        self.squaremeal.authenticate()
+    def test_open_auth(self, mock_refresh_token, mock_store_token):
+        self.squaremeal.outbound_auth_service = Configuration.OPEN_AUTH_SECURITY
+        token = {"timestamp": (arrow.utcnow().int_timestamp,), "squaremeal_access_token": "fake-123"}
+        with mock.patch.object(self.squaremeal.token_store, "get", return_value=json.dumps(token)) as mock_token_store:
+            self.squaremeal.authenticate()
         self.assertEqual(0, mock_refresh_token.call_count)
         self.assertEqual(0, mock_token_store.call_count)
         self.assertEqual(0, mock_store_token.call_count)
@@ -329,12 +331,12 @@ class TestSquaremealLogin(TestCase):
         return create_app(self)
 
     def setUp(self):
-        self.security_credentials = SECURITY_CREDENTIALS
+        self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
 
-        with mock.patch("app.agents.squaremeal.Configuration") as mock_configuration:
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
-            mock_config_object.security_credentials = self.security_credentials
+            mock_config_object.security_credentials = self.outbound_security_credentials
             mock_configuration.return_value = mock_config_object
             self.squaremeal = Squaremeal(
                 retry_count=1,
@@ -365,7 +367,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        resp_json = self.squaremeal._login(credentials=self.credentials)
+        resp_json = self.squaremeal._login()
 
         self.assertEqual(resp_json, RESPONSE_JSON_200)
 
@@ -375,7 +377,7 @@ class TestSquaremealLogin(TestCase):
     @mock.patch("app.agents.squaremeal.Squaremeal._login")
     def test_login_200(self, mock_login, mock_requests_session, mock_authenticate):
         mock_login.return_value = RESPONSE_JSON_200
-        self.squaremeal.login(self.credentials)
+        self.squaremeal.login()
 
         self.assertEqual(
             self.squaremeal.identifier, {"merchant_identifier": "some_user_id", "card_number": "123456789"}
@@ -398,7 +400,7 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Invalid credentials")
         self.assertEqual(e.exception.code, 403)
@@ -420,7 +422,7 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError) as e:
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Service connection error")
         self.assertEqual(e.exception.code, 537)
@@ -428,7 +430,7 @@ class TestSquaremealLogin(TestCase):
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
     @mock.patch("requests.Session.post", autospec=True)
-    def test_login_error_500(self, mock_authenticate, mock_requests_session):
+    def test_login_error_500(self, mock_requests_session, mock_authenticate):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.squaremeal.base_url + "login",
@@ -442,6 +444,6 @@ class TestSquaremealLogin(TestCase):
         )
 
         with self.assertRaises(AgentError):
-            self.squaremeal.login(self.credentials)
+            self.squaremeal.login()
 
         self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))

@@ -33,7 +33,7 @@ class TestBplCallback(TestCase):
         return create_app(self)
 
     def setUp(self) -> None:
-        with mock.patch("app.agents.bpl.Configuration") as mock_configuration:
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = {
                 "outbound": {
@@ -164,7 +164,7 @@ class TestBplCallback(TestCase):
 
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
-    @mock.patch("app.agents.bpl.Configuration")
+    @mock.patch("app.agents.base.Configuration")
     def test_requests_retry_session(self, mock_config, mock_collect_credentials, mock_update_hermes):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
@@ -174,14 +174,23 @@ class TestBplCallback(TestCase):
     @mock.patch("app.agents.base.BaseAgent.make_request")
     @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
     def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request):
-        consents = {"consents": [{"key": "Consent 1", "value": "true"}]}
         bpl_payload = {
-            "credentials": consents,
-            "marketing_preferences": [{"key": "marketing_pref", "value": "true"}],
+            "credentials": {
+                "email": "ncostaE@bink.com",
+                "first_name": "Test",
+                "last_name": "FatFace",
+                "join_date": "2021/02/24",
+                "card_number": "TRNT9276336436",
+                "consents": [{"slug": "email_marketing", "value": True}],
+                "merchant_identifier": "54a259f2-3602-4cc8-8f57-1239de7e5700",
+            },
+            "marketing_preferences": [{"key": "marketing_pref", "value": True}],
             "callback_url": self.bpl.callback_url,
             "third_party_identifier": "7gl82g4y5pvzx1wj5noqrj3dke7m9092",
         }
-        self.bpl.join(consents)
-        mock_make_request.assert_called_with(
-            f"{self.bpl.base_url}enrolment", method="post", audit=True, json=bpl_payload
+        self.bpl.join()
+        self.assertEqual(
+            f"{self.bpl.base_url}enrolment",
+            mock_make_request.call_args.args[0],
         )
+        self.assertEqual({"method": "post", "audit": True, "json": bpl_payload}, mock_make_request.call_args.kwargs)

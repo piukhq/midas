@@ -9,8 +9,6 @@ import arrow
 import requests
 import sentry_sdk
 from blinker import signal
-from soteria.configuration import Configuration
-from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import BaseAgent
@@ -41,57 +39,29 @@ class Acteol(BaseAgent):
     ORIGIN_ROOT: str
     N_TRANSACTIONS: int
     API_TIMEOUT: int
-    AUTH_TOKEN_TIMEOUT: int
     AGENT_CONSENT_TRIES: int
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.source_id = "acteol"
-        self.config = Configuration(
-            scheme_slug,
-            Configuration.JOIN_HANDLER,
-            settings.VAULT_URL,
-            settings.VAULT_TOKEN,
-            settings.CONFIG_SERVICE_URL,
-        )
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url
-        self.auth = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        self.token_store = UserTokenStore(settings.REDIS_URL)
-        self.token = {}
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
 
     # Public methods
-    def authenticate(self) -> dict:
-        """
-        Get an API token from redis if we have one, otherwise login to get one and store in cache.
-        This token is not per-user, it is for our backend to use their API
 
-        :return: valid token dict
-        """
-        have_valid_token = False  # Assume no good token to begin with
-        current_timestamp = arrow.utcnow().int_timestamp
-        token = {}
-        try:
-            token = json.loads(self.token_store.get(self.scheme_id))
-            try:  # Token may be in bad format and needs refreshing
-                if self._token_is_valid(token=token, current_timestamp=current_timestamp):
-                    have_valid_token = True
-            except (KeyError, TypeError) as e:
-                log.exception(e)  # have_valid_token is still False
-        except (KeyError, self.token_store.NoSuchToken):
-            pass  # have_valid_token is still False
+    def get_auth_url_and_payload(self):
+        url = urljoin(self.base_url, "token")
+        payload = {
+            "grant_type": "password",
+            "username": self.outbound_security_credentials["username"],
+            "password": self.outbound_security_credentials["password"],
+        }
+        return url, payload
 
-        if not have_valid_token:
-            acteol_access_token = self._refresh_access_token()
-            token = self._store_token(
-                acteol_access_token=acteol_access_token,
-                current_timestamp=current_timestamp,
-            )
-
-        return token
-
-    def join(self, credentials: dict):
+    def join(self):
         """
         Join a new loyalty scheme member with Acteol. The steps are:
         * Get API token
@@ -103,9 +73,9 @@ class Acteol(BaseAgent):
         * Use the customer details in Bink system
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
         # Create an origin id for subsequent API calls
-        user_email = credentials["email"]
+        user_email = self.credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
 
         # These calls may result in various exceptions that mean the join has failed. If so,
@@ -117,7 +87,7 @@ class Acteol(BaseAgent):
                 raise JoinError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
 
             # The account does not exist, so we can create one
-            ctcid = self._create_account(origin_id=origin_id, credentials=credentials)
+            ctcid = self._create_account(origin_id=origin_id)
 
             # Add the new member number to Acteol
             member_number = self._add_member_number(ctcid=ctcid)
@@ -139,7 +109,7 @@ class Acteol(BaseAgent):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
 
         # Set user's email opt-in preferences in Acteol, if opt-in is True
-        consents = credentials.get("consents", [{}])
+        consents = self.credentials.get("consents", [{}])
         email_optin = self._get_email_optin_from_consent(consents=consents)
         if email_optin:
             self._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
@@ -151,7 +121,7 @@ class Acteol(BaseAgent):
             "card_number": member_number,
             "merchant_identifier": ctcid,
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
     def balance(self) -> Optional[Balance]:
         """
@@ -168,7 +138,7 @@ class Acteol(BaseAgent):
         :return: balance data including vouchers
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
         # Create an origin id for subsequent API calls, using credentials created during instantiation
         user_email = self.credentials["email"]
         origin_id = self._create_origin_id(user_email=user_email, origin_root=self.ORIGIN_ROOT)
@@ -244,7 +214,7 @@ class Acteol(BaseAgent):
             "card_number": card_number,
             "merchant_identifier": ctcid,
         }
-        self.user_info["credentials"].update(self.identifier)
+        self.credentials.update(self.identifier)
 
         scheme_account_id = self.user_info["scheme_account_id"]
         # for updating user ID credential you get for joining (e.g. getting issued a card number)
@@ -286,7 +256,7 @@ class Acteol(BaseAgent):
         :return: list of transactions from Acteol's API
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
 
         ctcid: str = self.credentials["merchant_identifier"]
         api_url = urljoin(
@@ -318,7 +288,7 @@ class Acteol(BaseAgent):
         :param email: user's email address
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Contact/GetContactIDsByEmail?Email={email}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -333,14 +303,14 @@ class Acteol(BaseAgent):
         Delete a customer by their CtcID (aka CustomerID)
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
         resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
 
         return resp
 
-    def login(self, credentials) -> None:
+    def login(self) -> None:
         """
         Acteol works slightly differently to some other agents, as we must authenticate() before each call to
         ensure our API token is still valid / not expired. See authenticate()
@@ -349,28 +319,25 @@ class Acteol(BaseAgent):
         # Being on an add journey is defined as having a card number but no "from_join" field, and we
         # won't have a "merchant_identifier" (which would indicate a balance request instead).
         if (
-            credentials["card_number"]
+            self.credentials["card_number"]
             and not self.user_info.get("from_join")
-            and not credentials.get("merchant_identifier")
+            and not self.credentials.get("merchant_identifier")
         ):
             try:
-                ctcid = self._validate_member_number(credentials)
+                ctcid = self._validate_member_number()
                 signal("log-in-success").send(self, slug=self.scheme_slug)
                 self.identifier_type = [
                     "card_number",  # Not sure this is needed but the base class has one
                 ]
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
-                    "card_number": credentials["card_number"],
+                    "card_number": self.credentials["card_number"],
                     "merchant_identifier": ctcid,
                 }
-                credentials.update({"merchant_identifier": ctcid})
+                self.credentials.update({"merchant_identifier": ctcid})
             except (AgentError, LoginError):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
-
-        # Ensure credentials are available via the instance
-        self.credentials = credentials
 
         return
 
@@ -424,7 +391,7 @@ class Acteol(BaseAgent):
 
         return False
 
-    def _create_account(self, origin_id: str, credentials: dict) -> str:
+    def _create_account(self, origin_id: str) -> str:
         """
         Create an account in Acteol
 
@@ -435,10 +402,10 @@ class Acteol(BaseAgent):
         payload = {
             "OriginID": origin_id,
             "SourceID": "BinkPlatform",
-            "FirstName": credentials["first_name"],
-            "LastName": credentials["last_name"],
-            "Email": credentials["email"],
-            "BirthDate": credentials["date_of_birth"],
+            "FirstName": self.credentials["first_name"],
+            "LastName": self.credentials["last_name"],
+            "Email": self.credentials["email"],
+            "BirthDate": self.credentials["date_of_birth"],
             "SupInfo": [{"FieldName": "BINK", "FieldContent": "True"}],
         }
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
@@ -486,48 +453,6 @@ class Acteol(BaseAgent):
         origin_id = HashSHA1().encrypt(f"{origin_root}-{user_email}")
 
         return origin_id
-
-    def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
-        """
-        Determine if our token is still valid, based on whether the difference between the current timestamp
-        and the token's timestamp is less than the configured timeout in seconds
-
-        :param token: dict of token data
-        :param current_timestamp: timestamp of current time from Arrow
-        :return: Boolean
-        """
-        return (current_timestamp - token["timestamp"]) < self.AUTH_TOKEN_TIMEOUT
-
-    def _refresh_access_token(self) -> str:
-        """
-        Returns an Acteol API auth token to use in subsequent requests.
-        """
-        payload = {
-            "grant_type": "password",
-            "username": self.auth["username"],
-            "password": self.auth["password"],
-        }
-        token_url = urljoin(self.base_url, "token")
-        resp = self.make_request(token_url, method="post", timeout=self.API_TIMEOUT, data=payload)
-        token = resp.json()["access_token"]
-
-        return token
-
-    def _store_token(self, acteol_access_token: str, current_timestamp: int) -> dict:
-        """
-        Create a full token, with timestamp, from the acteol access token
-
-        :param acteol_access_token: A token given to us by logging into the Acteol API
-        :param current_timestamp: Timestamp (Arrow) of the current UTC time
-        :return: The created token dict
-        """
-        token = {
-            "acteol_access_token": acteol_access_token,
-            "timestamp": current_timestamp,
-        }
-        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token))
-
-        return token
 
     def _customer_fields_are_present(self, customer_details: dict) -> bool:
         """
@@ -591,7 +516,7 @@ class Acteol(BaseAgent):
         else:
             return {}
 
-    def _validate_member_number(self, credentials: dict) -> str:
+    def _validate_member_number(self) -> str:
         """
         Checks with Acteol to verify whether a loyalty account exists for this email and card number
 
@@ -609,13 +534,13 @@ class Acteol(BaseAgent):
         :return: ctcid (aka CustomerID or merchant_identifier in Bink)
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
 
         api_url = urljoin(self.base_url, "api/Contact/ValidateContactMemberNumber")
-        member_number = credentials["card_number"]
+        member_number = self.credentials["card_number"]
         payload = {
             "MemberNumber": member_number,
-            "Email": credentials["email"],
+            "Email": self.credentials["email"],
         }
 
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True, json=payload)
@@ -648,7 +573,7 @@ class Acteol(BaseAgent):
         :return: list of vouchers
         """
         # Ensure a valid API token
-        self._get_valid_api_token_and_make_headers()
+        self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
@@ -846,16 +771,6 @@ class Acteol(BaseAgent):
 
         return description
 
-    def _get_valid_api_token_and_make_headers(self):
-        """
-        Ensure our Acteol API token is valid and use to create headers for requests
-        """
-        if self.config.security_credentials["outbound"]["service"] == Configuration.OAUTH_SECURITY:
-            # Get a valid API token
-            token = self.authenticate()
-            # Add auth for subsequent API calls
-            self.headers = self._make_headers(token=token["acteol_access_token"])
-
     def _check_response_for_error(self, resp_json: dict):
         """
         Handle response error
@@ -909,7 +824,6 @@ def agent_consent_response(resp):
 
 class Wasabi(Acteol):
     ORIGIN_ROOT = "Bink-Wasabi"
-    AUTH_TOKEN_TIMEOUT = 75600  # n_seconds in 21 hours
     API_TIMEOUT = 10  # n_seconds until timeout for calls to Acteol's API
     RETAILER_ID = "315"
     N_TRANSACTIONS = 5  # Number of transactions to return from Acteol's API
@@ -921,4 +835,5 @@ class Wasabi(Acteol):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
-        self.integration_service = Configuration.INTEGRATION_CHOICES[Configuration.SYNC_INTEGRATION][1].upper()
+        self.oauth_token_timeout = 75600  # n_seconds in 21 hours
+        self.integration_service = "SYNC"

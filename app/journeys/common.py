@@ -54,7 +54,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
 
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
-        agent_instance.attempt_login(user_info["credentials"])
+        agent_instance.attempt_login()
     except RetryLimitError as e:
         redis_retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)

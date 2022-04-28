@@ -8,11 +8,14 @@ from typing import Optional
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
+import arrow
+import requests
 import sentry_sdk
 from blinker import signal
 from requests import HTTPError
 from requests.exceptions import RetryError, Timeout
 from soteria.configuration import Configuration
+from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.exceptions import (
@@ -24,6 +27,7 @@ from app.agents.exceptions import (
     NOT_SENT,
     PRE_REGISTERED_CARD,
     RETRY_LIMIT_REACHED,
+    SERVICE_CONNECTION_ERROR,
     STATUS_LOGIN_FAILED,
     UNKNOWN,
     AgentError,
@@ -42,41 +46,51 @@ from app.tasks.resend_consents import send_consent_status
 log = get_logger("agent-base")
 
 
+JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
+    JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
+    JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
+    JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
+    JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
+}
+
+
 class BaseAgent(object):
     retry_limit: Optional[int] = 2
     point_conversion_rate = Decimal("0")
-    connect_timeout = 3
-    known_captcha_signatures = [
-        "recaptcha",
-        "captcha",
-        "Incapsula",
-    ]
     identifier_type: Optional[list[str]] = None
     identifier: Optional[dict[str, str]] = None
     expecting_callback = False
     is_async = False
     create_journey: Optional[str] = None
 
-    def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.scheme_id = user_info["scheme_account_id"]
-        self.scheme_slug = scheme_slug
-        self.account_status = user_info["status"]
-        self.journey_type = user_info.get("journey_type")
-        self.headers = {}
-        self.retry_count = retry_count
-        self.errors = {}
+    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
+        self.handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+        self.config = config or Configuration(
+            scheme_slug,
+            self.handler_type,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
+        self.retry_count: int = retry_count
         self.user_info = user_info
-        self.channel = user_info.get("channel", "")
-        self.audit_handlers = {
-            JourneyTypes.JOIN: Configuration.JOIN_HANDLER,
-            JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
-            JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
-        }
+        self.scheme_slug: str = scheme_slug
+
+        self.scheme_id = self.user_info["scheme_account_id"]
+        self.channel = self.user_info.get("channel", "")
+        self.journey_type = self.user_info.get("journey_type")
+
         self.record_uid = hash_ids.encode(self.scheme_id)
-        self.message_uid = str(uuid4())
-        self.integration_service = None
-        self.max_retries = 3
+        self.message_uid: str = str(uuid4())
+        self.max_retries: int = 3
+        self.token_store = UserTokenStore(settings.REDIS_URL)
+        self.oauth_token_timeout: int = 0
+
         self.session = requests_retry_session(retries=self.max_retries)
+        self.headers = {}
+        self.errors = {}
+        self.integration_service: str = ""
+        self.outbound_auth_service: int = None
 
     def send_audit_request(self, payload, handler_type):
         audit_payload = deepcopy(payload)
@@ -115,6 +129,58 @@ class BaseAgent(object):
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
 
+    def authenticate(self):
+        if self.outbound_auth_service == Configuration.OPEN_AUTH_SECURITY:
+            return
+        if self.outbound_auth_service == Configuration.OAUTH_SECURITY:
+            self._oauth_authentication()
+
+    def get_auth_url_and_payload(self):
+        raise NotImplementedError()
+
+    def _oauth_authentication(self):
+        have_valid_token = False
+        current_timestamp = (arrow.utcnow().int_timestamp,)
+        token = ""
+        try:
+            cached_token = json.loads(self.token_store.get(self.scheme_id))
+            try:
+                if self._token_is_valid(cached_token, current_timestamp):
+                    have_valid_token = True
+                    token = cached_token[f"{self.scheme_slug.replace('-', '_')}_access_token"]
+            except (KeyError, TypeError) as e:
+                log.exception(e)
+        except (KeyError, self.token_store.NoSuchToken):
+            pass
+
+        if not have_valid_token:
+            token = self._refresh_token()
+            self._store_token(token, current_timestamp)
+
+        self.headers["Authorization"] = f"Bearer {token}"
+
+    def _refresh_token(self) -> str:
+        url, payload = self.get_auth_url_and_payload()
+        try:
+            response = self.session.post(url, data=payload)
+        except requests.RequestException as e:
+            sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
+            raise AgentError(SERVICE_CONNECTION_ERROR) from e
+        except (KeyError, IndexError) as e:
+            raise AgentError(CONFIGURATION_ERROR) from e
+
+        return response.json()["access_token"]
+
+    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
+        token_dict = {
+            f"{self.scheme_slug.replace('-', '_')}_access_token": token,
+            "timestamp": current_timestamp,
+        }
+        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
+
+    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
+        return current_timestamp[0] - token["timestamp"][0] < self.oauth_token_timeout
+
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
@@ -125,19 +191,18 @@ class BaseAgent(object):
         args.update(kwargs)
 
         # Prevent audit logging when agent login method is called for update
-        if self.journey_type not in self.audit_handlers.keys():
+        if self.journey_type is JourneyTypes.UPDATE:
             audit = False
 
         try:
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
-                handler_type = self.audit_handlers[self.journey_type]
-                self.send_audit_request(audit_payload, handler_type)
+                self.send_audit_request(audit_payload, self.handler_type)
 
             resp = self.session.request(method, url=url, **args)
 
             if audit:
-                self.send_audit_response(resp, handler_type)
+                self.send_audit_response(resp, self.handler_type)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
@@ -186,10 +251,10 @@ class BaseAgent(object):
                 raise exception_type(key)
         raise AgentError(unhandled_exception_code)
 
-    def join(self, credentials):
+    def join(self):
         raise NotImplementedError()
 
-    def login(self, credentials):
+    def login(self):
         raise NotImplementedError()
 
     def balance(self) -> Optional[Balance]:
@@ -250,18 +315,18 @@ class BaseAgent(object):
     def update_questions(questions):
         return questions
 
-    def attempt_login(self, credentials):
+    def attempt_login(self):
         if self.retry_limit and self.retry_count >= self.retry_limit:
             raise RetryLimitError(RETRY_LIMIT_REACHED)
 
         try:
-            self.login(credentials)
+            self.login()
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
-    def attempt_join(self, credentials):
+    def attempt_join(self):
         try:
-            self.join(credentials)
+            self.join()
         except KeyError as e:
             raise Exception("missing the credential '{0}'".format(e.args[0]))
 
@@ -326,7 +391,6 @@ class MockedMiner(BaseAgent):
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.account_status = user_info["status"]
         self.errors = {}
         self.headers = {}
         self.identifier = {}
