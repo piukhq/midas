@@ -158,8 +158,8 @@ class TestIceland(TestCase):
     def test_authenticate_with_expired_stored_token(self, mock_refresh_token):
         self.iceland.token_store = MagicMock()
         self.iceland.token_store.get.return_value = (
-            '"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": ['
-            + f"{{{arrow.utcnow().int_timestamp-3600}]}}"
+            f'{{"iceland_bonus_card_access_token": "abcde12345fghij", '
+            f'"timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
         )
         self.iceland.authenticate()
         mock_refresh_token.assert_called()
