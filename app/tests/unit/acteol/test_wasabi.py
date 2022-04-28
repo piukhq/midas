@@ -38,7 +38,7 @@ class TestWasabi(unittest.TestCase):
             },
         }
         cls.mock_token = {
-            "acteol_access_token": "abcde12345fghij",
+            "wasabi_club_access_token": "abcde12345fghij",
             "timestamp": 123456789,
         }
 
@@ -121,7 +121,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 75600  # 21 hours, our cutoff point, is 75600 seconds
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
+            "wasabi_club_access_token": "abcde12345fghij",
             "timestamp": [
                 100,
             ],  # an easy number to work with to get 75600
@@ -148,7 +148,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 1  # Expire tokens after 1 second
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
+            "wasabi_club_access_token": "abcde12345fghij",
             "timestamp": [
                 10,
             ],  # an easy number to work with to exceed the timout setting
@@ -175,7 +175,7 @@ class TestWasabi(unittest.TestCase):
         mock_auth_token_timeout = 900  # Expire tokens after 15 minutes
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
-            "acteol_access_token": "abcde12345fghij",
+            "wasabi_club_access_token": "abcde12345fghij",
             "timestamp": [
                 450,
             ],  # an easy number to work with to stay within validity range
@@ -197,17 +197,17 @@ class TestWasabi(unittest.TestCase):
         Test that _store_token() calls the token store set method and returns an expected dict
         """
         # GIVEN
-        mock_acteol_access_token = "abcde12345fghij"
+        mock_wasabi_club_access_token = "abcde12345fghij"
         mock_current_timestamp = 123456789
         expected_token = {
-            "acteol_access_token": mock_acteol_access_token,
+            "wasabi_club_access_token": mock_wasabi_club_access_token,
             "timestamp": mock_current_timestamp,
         }
 
         # WHEN
         with patch.object(self.wasabi.token_store, "set", return_value=True):
             self.wasabi._store_token(
-                token=mock_acteol_access_token,
+                token=mock_wasabi_club_access_token,
                 current_timestamp=[
                     mock_current_timestamp,
                 ],
@@ -221,11 +221,11 @@ class TestWasabi(unittest.TestCase):
         Test that _make_headers returns a valid HTTP request authorization header
         """
         # GIVEN
-        mock_acteol_access_token = "abcde12345fghij"
-        expected_header = {"Authorization": f"Bearer {mock_acteol_access_token}"}
+        mock_wasabi_club_access_token = "abcde12345fghij"
+        expected_header = {"Authorization": f"Bearer {mock_wasabi_club_access_token}"}
 
         # WHEN
-        header = self.wasabi._make_headers(token=mock_acteol_access_token)
+        header = self.wasabi._make_headers(token=mock_wasabi_club_access_token)
 
         # THEN
         assert header == expected_header

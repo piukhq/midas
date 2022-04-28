@@ -75,10 +75,8 @@ class BaseAgent(object):
         self.retry_count: int = retry_count
         self.user_info = user_info
         self.scheme_slug: str = scheme_slug
-        self.source_id: str = ""
 
         self.scheme_id = self.user_info["scheme_account_id"]
-        self.account_status = self.user_info["status"]
         self.channel = self.user_info.get("channel", "")
         self.journey_type = self.user_info.get("journey_type")
 
@@ -92,7 +90,6 @@ class BaseAgent(object):
         self.headers = {}
         self.errors = {}
         self.integration_service: str = ""
-        self.outbound_security_credentials: dict = {}
         self.outbound_auth_service: int = None
 
     def send_audit_request(self, payload, handler_type):
@@ -150,7 +147,7 @@ class BaseAgent(object):
             try:
                 if self._token_is_valid(cached_token, current_timestamp):
                     have_valid_token = True
-                    token = cached_token[f"{self.source_id}_access_token"]
+                    token = cached_token[f"{self.scheme_slug.replace('-', '_')}_access_token"]
             except (KeyError, TypeError) as e:
                 log.exception(e)
         except (KeyError, self.token_store.NoSuchToken):
@@ -176,7 +173,7 @@ class BaseAgent(object):
 
     def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
         token_dict = {
-            f"{self.source_id}_access_token": token,
+            f"{self.scheme_slug.replace('-', '_')}_access_token": token,
             "timestamp": current_timestamp,
         }
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
@@ -394,7 +391,6 @@ class MockedMiner(BaseAgent):
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        self.account_status = user_info["status"]
         self.errors = {}
         self.headers = {}
         self.identifier = {}

@@ -40,18 +40,18 @@ class HarveyNichols(BaseAgent):
         self.source_id = "harveynichols"
         self.credentials = self.user_info["credentials"]
         self.base_url = self.config.merchant_url
+        self.sso_url = self._get_sso_url()
         self.integration_service = "SYNC"
 
-        # sso config
-        sso_scheme_slug = "harvey-nichols-sso"
+    def _get_sso_url(self):
         sso_config = Configuration(
-            sso_scheme_slug,
+            "harvey-nichols-sso",
             Configuration.JOIN_HANDLER,
             settings.VAULT_URL,
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
-        self.sso_url = sso_config.merchant_url
+        return sso_config.merchant_url
 
     def check_loyalty_account_valid(self):
         """

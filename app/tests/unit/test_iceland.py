@@ -120,7 +120,7 @@ class TestIceland(TestCase):
 
     def test_token_is_valid_false(self):
         token = {
-            "iceland_access_token": "abcde12345fghij",
+            "iceland_bonus_card_access_token": "abcde12345fghij",
             "timestamp": (arrow.get(2022, 1, 1, 7, 0).int_timestamp,),
         }
 
@@ -140,7 +140,7 @@ class TestIceland(TestCase):
 
         self.assertEqual(
             mock_token_store.call_args[1]["token"],
-            '{"iceland_access_token": "abcde12345fghij", "timestamp": [1641020400]}',
+            '{"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": [1641020400]}',
         )
 
     def test_authenticate_stored_token_valid(self):
@@ -148,7 +148,7 @@ class TestIceland(TestCase):
             self.iceland.token_store,
             "get",
             return_value=json.dumps(
-                {"iceland_access_token": "abcde12345fghij", "timestamp": [arrow.utcnow().int_timestamp]}
+                {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": [arrow.utcnow().int_timestamp]}
             ),
         ):
             self.iceland.authenticate()
@@ -158,7 +158,8 @@ class TestIceland(TestCase):
     def test_authenticate_with_expired_stored_token(self, mock_refresh_token):
         self.iceland.token_store = MagicMock()
         self.iceland.token_store.get.return_value = (
-            f'{{"iceland_access_token": "abcde12345fghij", "timestamp": [{arrow.utcnow().int_timestamp-3600}]}}'
+            '"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": ['
+            + f"{{{arrow.utcnow().int_timestamp-3600}]}}"
         )
         self.iceland.authenticate()
         mock_refresh_token.assert_called()
