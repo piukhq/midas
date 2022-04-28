@@ -47,7 +47,7 @@ make_class() {
 }
 
 # This script re-generates active.py every time it is run.
-# This is very, hacky and should be rewritten in the future.
+# This is very hacky and should be rewritten in the future.
 # Active.py should be a JSON so we can edit the file instead of regenerating it.
 add_to_active() {
   info 'Updating list of active merchants...'
