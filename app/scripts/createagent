@@ -11,6 +11,7 @@ get_variables() {
     then
       filename=$(echo "$slug" | sed "s/-/_/g")
     fi
+    modulename=$filename
 
     if [[ -z $classname ]];
     then
@@ -45,6 +46,29 @@ make_class() {
     sed -i "" "s/template_slug/${slug}/g" $path/agents/"${filename}"
 }
 
+# This script re-generates active.py every time it is run.
+# This is very, hacky and should be rewritten in the future.
+# Active.py should be a JSON so we can edit the file instead of regenerating it.
+add_to_active() {
+  info 'Updating list of active merchants...'
+python - <<EOF
+import os, sys
+import json
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.active import AGENTS
+filecomments = '''# We possibly don't need the class path but we'll see
+
+# These could be strings, if we end up with too many imports
+# Commented entries are agents whose tests are currently not passing.
+'''
+AGENTS["$slug"] = "$modulename.$classname"
+f = open("$path/active.py", "w")
+f.write(filecomments + "\n")
+f.write('AGENTS = ' + json.dumps(AGENTS, indent=4))
+f.close()
+EOF
+}
+
 make_test() {
   info 'Creating a unit test file...'
   test_filename="test_${filename}"
@@ -52,10 +76,11 @@ make_test() {
   sed -i "" "s/TestTemplate/Test${classname}/g" $path/tests/unit/"${test_filename}"
   sed -i "" "s/TemplateAgent/${classname}/g" $path/tests/unit/"${test_filename}"
   sed -i "" "s/template_agent/$(echo "$filename" | sed "s/.py//g")/g" $path/tests/unit/"${test_filename}"
-  info 'Done.'
 }
 
 get_variables
 make_file
 make_class
+add_to_active
 make_test
+info 'Finished.'
