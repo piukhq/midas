@@ -231,10 +231,10 @@ class HarveyNichols(BaseAgent):
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
-            signal("join-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
             return {"message": "success"}
 
-        signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+        signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
         self.handle_errors(message, exception_type=JoinError)
 
     def _login(self):

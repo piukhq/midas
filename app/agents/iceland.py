@@ -167,7 +167,7 @@ class Iceland(BaseAgent):
                 return {}
             return response.json()
         except (JoinError, AgentError) as e:
-            signal("join-fail").send(self, slug=self.scheme_slug)
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             self.handle_errors(e.name)
 
     def join(self) -> None:
