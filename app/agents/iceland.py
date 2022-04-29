@@ -38,8 +38,13 @@ log = get_logger("iceland")
 
 class Iceland(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
-        config_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
-        super().__init__(retry_count, user_info, config_handler_type, scheme_slug=scheme_slug, config=config)
+        super().__init__(
+            retry_count,
+            user_info,
+            config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
+            scheme_slug=scheme_slug,
+            config=config,
+        )
         self.source_id = "iceland"
         self.oauth_token_timeout = 3599
         self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]

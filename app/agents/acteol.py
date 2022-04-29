@@ -44,8 +44,9 @@ class Acteol(BaseAgent):
     HERMES_CONFIRMATION_TRIES: int
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        config_handler_type = Configuration.JOIN_HANDLER
-        super().__init__(retry_count, user_info, config_handler_type, scheme_slug=scheme_slug)
+        super().__init__(
+            retry_count, user_info, config_handler_type=Configuration.JOIN_HANDLER, scheme_slug=scheme_slug
+        )
         self.source_id = "acteol"
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url
