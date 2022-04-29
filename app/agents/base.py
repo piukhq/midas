@@ -407,15 +407,15 @@ class MockedMiner(BaseAgent):
         self.credentials = self.user_info["credentials"]
         self.scheme_id = user_info["scheme_account_id"]
 
-    def check_and_raise_error_credentials(self, credentials):
-        for credential_type, credential in credentials.items():
+    def check_and_raise_error_credentials(self):
+        for credential_type, credential in self.credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
                 raise LoginError(error_to_raise)
             except KeyError:
                 pass
 
-        card_number = credentials.get("card_number") or credentials.get("barcode")
+        card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
             raise LoginError(PRE_REGISTERED_CARD)
 
