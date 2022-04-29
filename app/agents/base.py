@@ -400,11 +400,12 @@ class MockedMiner(BaseAgent):
         self.errors = {}
         self.headers = {}
         self.identifier = {}
-        self.journey_type = user_info.get("journey_type")
         self.retry_count = retry_count
-        self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
         self.user_info = user_info
+        self.journey_type = self.user_info.get("journey_type")
+        self.credentials = self.user_info["credentials"]
+        self.scheme_id = user_info["scheme_account_id"]
 
     def check_and_raise_error_credentials(self, credentials):
         for credential_type, credential in credentials.items():
