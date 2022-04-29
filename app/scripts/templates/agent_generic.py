@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
@@ -20,10 +20,10 @@ class TemplateClassName(BaseAgent):
         self.credentials = self.user_info["credentials"]
         self.errors = {}
 
-    def join(self, credentials: dict) -> None:
+    def join(self) -> Any:
         pass
 
-    def login(self, credentials: dict) -> None:
+    def login(self) -> Any:
         pass
 
     def transactions(self) -> list[Transaction]:
