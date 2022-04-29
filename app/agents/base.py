@@ -401,23 +401,20 @@ class MockedMiner(BaseAgent):
         self.headers = {}
         self.identifier = {}
         self.journey_type = user_info.get("journey_type")
-        self.credentials = self.user_info["credentials"]
-        self.scheme_id = user_info["scheme_account_id"]
         self.retry_count = retry_count
+        self.scheme_id = user_info["scheme_account_id"]
         self.scheme_slug = scheme_slug
         self.user_info = user_info
 
-    def check_and_raise_error_credentials(
-        self,
-    ):
-        for credential_type, credential in self.credentials.items():
+    def check_and_raise_error_credentials(self, credentials):
+        for credential_type, credential in credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
                 raise LoginError(error_to_raise)
             except KeyError:
                 pass
 
-        card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
+        card_number = credentials.get("card_number") or credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
             raise LoginError(PRE_REGISTERED_CARD)
 
