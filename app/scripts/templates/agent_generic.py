@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
