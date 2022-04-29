@@ -7,7 +7,7 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 from app import publish
-from app.agents.base import Balance, BaseAgent, check_correct_authentication
+from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
@@ -38,7 +38,13 @@ log = get_logger("iceland")
 
 class Iceland(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug, config=config)
+        super().__init__(
+            retry_count,
+            user_info,
+            config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
+            scheme_slug=scheme_slug,
+            config=config,
+        )
         self.source_id = "iceland"
         self.oauth_token_timeout = 3599
         self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
@@ -114,7 +120,7 @@ class Iceland(BaseAgent):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=self.handler_type,
+            handler_type=self.audit_handler_type,
             integration_service=self.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
             channel=self.channel,
@@ -161,7 +167,7 @@ class Iceland(BaseAgent):
                 return {}
             return response.json()
         except (JoinError, AgentError) as e:
-            signal("join-fail").send(self, slug=self.scheme_slug)
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             self.handle_errors(e.name)
 
     def join(self) -> None:

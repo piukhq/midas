@@ -2,6 +2,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 from blinker import signal
+from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.exceptions import AgentError, JoinError, LoginError
@@ -16,7 +17,7 @@ log = get_logger("squaremeal")
 
 class Squaremeal(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
         self.source_id = "squaremeal"
         self.oauth_token_timeout = 3599
         self.base_url = self.config.merchant_url

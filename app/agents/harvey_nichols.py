@@ -36,7 +36,7 @@ class HarveyNichols(BaseAgent):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug)
+        super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
         self.source_id = "harveynichols"
         self.credentials = self.user_info["credentials"]
         self.base_url = self.config.merchant_url
@@ -231,10 +231,10 @@ class HarveyNichols(BaseAgent):
         message = self.join_response.json()["CustomerSignUpResult"]["outcome"]
 
         if message == "Success":
-            signal("join-success").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
             return {"message": "success"}
 
-        signal("join-fail").send(self, slug=self.scheme_slug, channel=self.user_info["channel"])
+        signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
         self.handle_errors(message, exception_type=JoinError)
 
     def _login(self):
