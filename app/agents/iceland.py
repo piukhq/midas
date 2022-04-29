@@ -7,7 +7,7 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 from app import publish
-from app.agents.base import Balance, BaseAgent, check_correct_authentication
+from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
 from app.agents.exceptions import (
     ACCOUNT_ALREADY_EXISTS,
     CARD_NOT_REGISTERED,
@@ -38,7 +38,8 @@ log = get_logger("iceland")
 
 class Iceland(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug, config=config)
+        config_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+        super().__init__(retry_count, user_info, config_handler_type, scheme_slug=scheme_slug, config=config)
         self.source_id = "iceland"
         self.oauth_token_timeout = 3599
         self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]

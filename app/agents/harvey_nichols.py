@@ -36,7 +36,8 @@ class HarveyNichols(BaseAgent):
     retry_limit = 9  # tries 10 times overall
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug)
+        config_handler_type = Configuration.JOIN_HANDLER
+        super().__init__(retry_count, user_info, config_handler_type, scheme_slug=scheme_slug)
         self.source_id = "harveynichols"
         self.credentials = self.user_info["credentials"]
         self.base_url = self.config.merchant_url

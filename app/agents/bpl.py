@@ -3,6 +3,8 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
+from soteria.configuration import Configuration
+
 import settings
 from app import publish
 from app.agents.base import BaseAgent
@@ -42,7 +44,8 @@ def voucher_type(scheme_slug: str) -> int:
 
 class Bpl(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
+        config_handler_type = Configuration.JOIN_HANDLER
+        super().__init__(retry_count, user_info, config_handler_type, scheme_slug=scheme_slug)
         self.source_id = "bpl"
         self.credentials = user_info["credentials"]
         self.base_url = self.config.merchant_url

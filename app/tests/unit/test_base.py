@@ -3,6 +3,7 @@ from unittest import TestCase, mock
 from urllib.parse import urljoin
 
 import httpretty
+from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
@@ -25,7 +26,7 @@ class TestBase(TestCase):
             "journey_type": JourneyTypes.JOIN,
             "credentials": {},
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
 
         m.attempt_join()
         self.assertTrue(mocked_join.called)
@@ -45,7 +46,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -99,7 +100,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -144,7 +145,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -198,7 +199,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -252,7 +253,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -294,6 +295,7 @@ class TestBase(TestCase):
                 "channel": "com.bink.wallet",
                 "journey_type": JourneyTypes.LINK.value,
             },
+            config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
             GENERAL_ERROR: "GENERAL_ERROR",
@@ -313,6 +315,7 @@ class TestBase(TestCase):
                 "channel": "com.bink.wallet",
                 "journey_type": JourneyTypes.LINK.value,
             },
+            config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
             GENERAL_ERROR: "GENERAL_ERROR",

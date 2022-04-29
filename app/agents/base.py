@@ -63,15 +63,15 @@ class BaseAgent(object):
     is_async = False
     create_journey: Optional[str] = None
 
-    def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
-        self.handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+    def __init__(self, retry_count, user_info, config_handler_type, scheme_slug=None, config=None):
         self.config = config or Configuration(
             scheme_slug,
-            self.handler_type,
+            config_handler_type,
             settings.VAULT_URL,
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
+        self.handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.retry_count: int = retry_count
         self.user_info = user_info
         self.scheme_slug: str = scheme_slug
@@ -92,7 +92,7 @@ class BaseAgent(object):
         self.integration_service: str = ""
         self.outbound_auth_service: int = None
 
-    def send_audit_request(self, payload, handler_type):
+    def send_audit_request(self, payload):
         audit_payload = deepcopy(payload)
         if audit_payload.get("password"):
             audit_payload["password"] = "REDACTED"
@@ -101,19 +101,19 @@ class BaseAgent(object):
             self,
             payload=audit_payload,
             scheme_slug=self.scheme_slug,
-            handler_type=handler_type,
+            handler_type=self.handler_type,
             integration_service=self.integration_service,
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             channel=self.channel,
         )
 
-    def send_audit_response(self, response, handler_type):
+    def send_audit_response(self, response):
         signal("send-audit-response").send(
             self,
             response=response,
             scheme_slug=self.scheme_slug,
-            handler_type=handler_type,
+            handler_type=self.handler_type,
             integration_service=self.integration_service,
             status_code=response.status_code,
             message_uid=self.message_uid,
@@ -197,12 +197,12 @@ class BaseAgent(object):
         try:
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_request(audit_payload, self.handler_type)
+                self.send_audit_request(audit_payload)
 
             resp = self.session.request(method, url=url, **args)
 
             if audit:
-                self.send_audit_response(resp, self.handler_type)
+                self.send_audit_response(resp)
 
         except Timeout as exception:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
@@ -391,6 +391,8 @@ class MockedMiner(BaseAgent):
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
+        config_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+        super().__init__(retry_count, user_info, config_handler_type, scheme_slug)
         self.errors = {}
         self.headers = {}
         self.identifier = {}
