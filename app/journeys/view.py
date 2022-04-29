@@ -7,7 +7,7 @@ from app import publish
 from app.agents.exceptions import SCHEME_REQUESTED_DELETE, AgentError, LoginError, errors
 from app.agents.schemas import balance_tuple_to_dict
 from app.encoding import JsonEncoder
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import AgentException, UnknownException, BaseError
 from app.http_request import get_headers
 from app.journeys.common import agent_login, publish_transactions
 from app.publish import thread_pool_executor
@@ -37,6 +37,9 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     except (LoginError, AgentError) as e:
         status = e.code
         raise AgentException(e)
+    except BaseError as e:
+        status = e.code
+        raise e
     except AgentException as e:
         status = e.status_code
         raise

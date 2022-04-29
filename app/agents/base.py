@@ -38,6 +38,8 @@ from app.agents.exceptions import (
 )
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
+from app.exceptions import StatusLoginFailedError, IPBlockedError, NotSentError, EndSiteDownError, \
+    RetryLimitReachedError, UnknownError, ConfigurationError
 from app.mocks.users import USER_STORE
 from app.reporting import get_logger
 from app.requests_retry import requests_retry_session
@@ -205,15 +207,15 @@ class BaseAgent(object):
             if audit:
                 self.send_audit_response(resp)
 
-        except Timeout as exception:
+        except Timeout as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
-            sentry_sdk.capture_exception(exception)
-            raise AgentError(END_SITE_DOWN) from exception
+            sentry_sdk.capture_exception(e)
+            raise EndSiteDownError(response=e.response) from e
 
-        except RetryError as exception:
+        except RetryError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RETRY_LIMIT_REACHED)
-            sentry_sdk.capture_exception(exception)
-            raise AgentError(RETRY_LIMIT_REACHED) from exception
+            sentry_sdk.capture_exception(e)
+            raise RetryLimitReachedError(response=e.response) from e
 
         signal("record-http-request").send(
             self,
@@ -233,24 +235,31 @@ class BaseAgent(object):
                     channel=self.channel,
                     error=STATUS_LOGIN_FAILED,
                 )
-                raise LoginError(STATUS_LOGIN_FAILED, response=e.response)
+                raise StatusLoginFailedError(response=e.response)
             elif e.response.status_code == 403:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
-                raise AgentError(IP_BLOCKED, response=e.response) from e
+                raise IPBlockedError(response=e.response) from e
             elif e.response.status_code in [503, 504]:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NOT_SENT)
-                raise AgentError(NOT_SENT, response=e.response) from e
+                raise NotSentError(response=e.response) from e
             else:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
-                raise AgentError(END_SITE_DOWN, response=e.response) from e
+                raise EndSiteDownError(response=e.response) from e
 
         return resp
 
-    def handle_errors(self, error_code, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
-        for key, values in self.errors.items():
-            if error_code in values:
-                raise exception_type(key)
-        raise AgentError(unhandled_exception_code)
+    def handle_error_codes(self, error_code, unhandled_exception=UnknownError):
+        for agent_error, agent_error_codes in self.errors.items():
+            if error_code in agent_error_codes:
+                raise agent_error
+        raise unhandled_exception()
+
+    def handle_errors(self, error, unhandled_exception=UnknownError):
+        agent_error = [agent_error for agent_error, _ in self.errors.items() if error == agent_error][0]
+        # for agent_error, _ in self.errors.items():
+        #     if error == agent_error:
+        #         raise agent_error
+        raise agent_error or unhandled_exception
 
     def join(self):
         raise NotImplementedError()
@@ -318,7 +327,7 @@ class BaseAgent(object):
 
     def attempt_login(self):
         if self.retry_limit and self.retry_count >= self.retry_limit:
-            raise RetryLimitError(RETRY_LIMIT_REACHED)
+            raise RetryLimitReachedError()
 
         try:
             self.login()
@@ -368,9 +377,8 @@ def pluralise(count, plural_suffix):
 
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
-        raise AgentError(
-            CONFIGURATION_ERROR,
-            message=f"Agent expecting Security Type(s) "
+        raise ConfigurationError(
+            response=f"Agent expecting Security Type(s) "
             f"{[Configuration.SECURITY_TYPE_CHOICES[i][1] for i in allowed_config_auth_types]} but got "
             f"Security Type '{Configuration.SECURITY_TYPE_CHOICES[actual_config_auth_type][1]}' instead",
         )

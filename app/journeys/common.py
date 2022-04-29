@@ -7,7 +7,7 @@ from app import publish, redis_retry
 from app.active import AGENTS
 from app.agents.exceptions import SYSTEM_ACTION_REQUIRED, UNKNOWN, AgentError, LoginError, RetryLimitError, errors
 from app.agents.schemas import transaction_tuple_to_dict
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import AgentException, UnknownException, BaseError
 from app.scheme_account import JourneyTypes
 
 
@@ -58,6 +58,11 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
     except RetryLimitError as e:
         redis_retry.max_out_count(key, agent_instance.retry_limit)
         raise AgentException(e)
+    except BaseError as e:
+        if e.system_action_required and from_join:
+            raise e
+        redis_retry.inc_count(key)
+        raise e
     except (LoginError, AgentError) as e:
         # If this is an UNKNOWN error, also log to sentry
         if e.code == errors[UNKNOWN]["code"]:

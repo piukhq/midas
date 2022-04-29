@@ -8,7 +8,6 @@ http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 4xx client errors, custom error codes are in the range 432-440
 5xx service errors, custom error codes are in the range 530-540
 """
-import sentry_sdk
 
 
 class AgentException(Exception):
@@ -40,7 +39,7 @@ class BaseError(Exception):
         self.system_action_required = False
 
     def __str__(self):
-        return f"{self.code} {self.__repr__()}: {self.name}: {self.message}"
+        return f"{self.code} {self.name}: {self.message}"
 
 
 class ValidationError(BaseError):
@@ -52,7 +51,9 @@ class ValidationError(BaseError):
 
 class StatusLoginFailedError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 403
+        self.status_code = 403
         self.name = "Invalid credentials"
         self.message = """We could not update your account because your username and/or password 
         were reported to be incorrect. Please re-verify your username and password."""
@@ -74,6 +75,7 @@ class RetryLimitReachedError(BaseError):
         self.name = "Retry limit reached"
         self.message = "You have reached your maximum amount of login tries. Please wait 15 minutes."
         self.system_action_required = True
+        self.response = response
 
 
 class StatusAccountLockedError(BaseError):

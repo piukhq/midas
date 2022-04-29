@@ -135,7 +135,7 @@ class HarveyNichols(BaseAgent):
             result = self.call_balance_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self.handle_error_codes(result["outcome"])
 
         tiers_list = {"SILVER": 1, "GOLD": 2, "PLATINUM": 3, "BLACK": 4}
         tier = tiers_list[result["loyaltyTierId"]]
@@ -195,7 +195,7 @@ class HarveyNichols(BaseAgent):
             result = self.call_transaction_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self.handle_error_codes(result["outcome"])
 
         customer_transactions = [transaction["CustomerTransaction"] for transaction in result["transactions"]]
         transaction_types = ["Sale", "Refund"]
@@ -235,7 +235,7 @@ class HarveyNichols(BaseAgent):
             return {"message": "success"}
 
         signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-        self.handle_errors(message, exception_type=JoinError)
+        self.handle_error_codes(message, exception_type=JoinError)
 
     def _login(self):
         """
@@ -306,7 +306,7 @@ class HarveyNichols(BaseAgent):
 
         else:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(json_result["outcome"])
+            self.handle_error_codes(json_result["outcome"])
 
 
 def agent_consent_response(resp):

@@ -7,6 +7,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.exceptions import GeneralError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -298,10 +299,10 @@ class TestBase(TestCase):
             config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
-            GENERAL_ERROR: "GENERAL_ERROR",
+            GeneralError: "GENERAL_ERROR",
         }
-        with self.assertRaises(LoginError) as e:
-            agent.handle_errors(error_code="GENERAL_ERROR")
+        with self.assertRaises(GeneralError) as e:
+            agent.handle_error_codes(error_code="GENERAL_ERROR")
         self.assertEqual("General Error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
@@ -318,9 +319,9 @@ class TestBase(TestCase):
             config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
-            GENERAL_ERROR: "GENERAL_ERROR",
+            GeneralError: "GENERAL_ERROR",
         }
-        with self.assertRaises(AgentError) as e:
-            agent.handle_errors(error_code="VALIDATION")
+        with self.assertRaises(UnknownError) as e:
+            agent.handle_error_codes(error_code="VALIDATION")
         self.assertEqual("An unknown error has occurred", e.exception.name)
         self.assertEqual(520, e.exception.code)

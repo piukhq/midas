@@ -75,7 +75,7 @@ class Squaremeal(BaseAgent):
         except (AgentError, JoinError) as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def _update_newsletters(self, user_id, consents):
@@ -103,7 +103,7 @@ class Squaremeal(BaseAgent):
         except (LoginError, AgentError) as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def _get_balance(self):
@@ -114,7 +114,7 @@ class Squaremeal(BaseAgent):
             resp = self.make_request(url, method="get")
         except (JoinError, AgentError) as ex:
             error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def join(self):
