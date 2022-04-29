@@ -120,7 +120,7 @@ class Iceland(BaseAgent):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             scheme_slug=self.scheme_slug,
-            handler_type=self.handler_type,
+            handler_type=self.audit_handler_type,
             integration_service=self.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
             channel=self.channel,

@@ -71,7 +71,7 @@ class BaseAgent(object):
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
         )
-        self.handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
+        self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.retry_count: int = retry_count
         self.user_info = user_info
         self.scheme_slug: str = scheme_slug
@@ -101,7 +101,7 @@ class BaseAgent(object):
             self,
             payload=audit_payload,
             scheme_slug=self.scheme_slug,
-            handler_type=self.handler_type,
+            handler_type=self.audit_handler_type,
             integration_service=self.integration_service,
             message_uid=self.message_uid,
             record_uid=self.record_uid,
@@ -113,7 +113,7 @@ class BaseAgent(object):
             self,
             response=response,
             scheme_slug=self.scheme_slug,
-            handler_type=self.handler_type,
+            handler_type=self.audit_handler_type,
             integration_service=self.integration_service,
             status_code=response.status_code,
             message_uid=self.message_uid,
@@ -392,26 +392,32 @@ class MockedMiner(BaseAgent):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(
-            retry_count, user_info, JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]], scheme_slug
+            retry_count,
+            user_info,
+            config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
+            scheme_slug=scheme_slug,
         )
         self.errors = {}
         self.headers = {}
         self.identifier = {}
         self.journey_type = user_info.get("journey_type")
-        self.retry_count = retry_count
+        self.credentials = self.user_info["credentials"]
         self.scheme_id = user_info["scheme_account_id"]
+        self.retry_count = retry_count
         self.scheme_slug = scheme_slug
         self.user_info = user_info
 
-    def check_and_raise_error_credentials(self, credentials):
-        for credential_type, credential in credentials.items():
+    def check_and_raise_error_credentials(
+        self,
+    ):
+        for credential_type, credential in self.credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
                 raise LoginError(error_to_raise)
             except KeyError:
                 pass
 
-        card_number = credentials.get("card_number") or credentials.get("barcode")
+        card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
             raise LoginError(PRE_REGISTERED_CARD)
 

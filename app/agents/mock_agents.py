@@ -142,8 +142,8 @@ class MockAgentHN(MockedMiner):
 
         return transactions_list[:max_transactions]
 
-    def join(self, credentials):
-        self._validate_join_credentials(credentials)
+    def join(self):
+        self._validate_join_credentials(self.credentials)
         return {"message": "success"}
 
     def _validate_join_credentials(self, data):
