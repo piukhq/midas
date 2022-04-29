@@ -46,9 +46,9 @@ make_class() {
     sed -i "" "s/template_slug/${slug}/g" $path/agents/"${filename}"
 }
 
-# This script re-generates active.py every time it is run.
+# This script overwrites active.py every time it is run.
 # This is very hacky and should be rewritten in the future.
-# Active.py should be a JSON so we can edit the file instead of regenerating it.
+# Active.py should be a JSON.
 add_to_active() {
   info 'Updating list of active merchants...'
 python - <<EOF
