@@ -1,0 +1,86 @@
+#!/bin/sh
+. scripts/_common
+
+get_variables() {
+    read -p "Enter merchant slug (hyphen-separated if two-part, e.g. harvey-nichols): " slug
+    read -p "Enter merchant system name: " identifier
+    read -p "Enter merchant class name (optional): " classname
+    read -p "Enter merchant module name (optional): " filename
+
+    if [[ -z $filename ]];
+    then
+      filename=$(echo "$slug" | sed "s/-/_/g")
+    fi
+    modulename=$filename
+
+    if [[ -z $classname ]];
+    then
+      if [[ $slug == *"-"* ]] || [[ $slug == *"_"* ]];
+        then
+          split=$(echo "$slug" | sed "s/-/ /g" | sed "s/_/ /g" )
+          for word in $split; do
+            word="$(tr '[:lower:]' '[:upper:]' <<< ${word:0:1})${word:1}"
+            classname=$classname$word
+        done
+      else
+          classname="$(tr '[:lower:]' '[:upper:]' <<< ${slug:0:1})${slug:1}"
+      fi
+    fi
+}
+
+make_file() {
+    path=$PWD
+    if test -f $path/agents/"${filename}.py"; then
+      info "An agent with the same name exists in the directory. Exiting script."
+      exit 1
+    fi
+    info 'Creating agent file...'
+    filename="${filename}.py"
+    cp $path/scripts/templates/agent_generic.py $path/agents/$filename
+}
+
+make_class() {
+    info 'Creating agent class...'
+    sed -i "" "s/TemplateClassName/${classname}/g" $path/agents/"${filename}"
+    sed -i "" "s/template_identifier/${identifier}/g" $path/agents/"${filename}"
+    sed -i "" "s/template_slug/${slug}/g" $path/agents/"${filename}"
+}
+
+# This script overwrites active.py every time it is run.
+# This is very hacky and should be rewritten in the future.
+# Active.py should be a JSON.
+add_to_active() {
+  info 'Updating list of active merchants...'
+python - <<EOF
+import os, sys
+import json
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.active import AGENTS
+filecomments = '''# We possibly don't need the class path but we'll see
+
+# These could be strings, if we end up with too many imports
+# Commented entries are agents whose tests are currently not passing.
+'''
+AGENTS["$slug"] = "$modulename.$classname"
+f = open("$path/active.py", "w")
+f.write(filecomments + "\n")
+f.write('AGENTS = ' + json.dumps(AGENTS, indent=4))
+f.close()
+EOF
+}
+
+make_test() {
+  info 'Creating a unit test file...'
+  test_filename="test_${filename}"
+  cp $path/scripts/templates/agent_generic_test.py $path/tests/unit/$test_filename
+  sed -i "" "s/TestTemplate/Test${classname}/g" $path/tests/unit/"${test_filename}"
+  sed -i "" "s/TemplateAgent/${classname}/g" $path/tests/unit/"${test_filename}"
+  sed -i "" "s/template_agent/$(echo "$filename" | sed "s/.py//g")/g" $path/tests/unit/"${test_filename}"
+}
+
+get_variables
+make_file
+make_class
+add_to_active
+make_test
+info 'Finished.'
