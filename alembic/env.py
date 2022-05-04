@@ -3,19 +3,20 @@ Contains functions for setting up an alembic context and running migrations.
 """
 
 import logging
+import os
+import sys
 
 # pylint: disable=no-member
 from alembic import context
-import sys
-import os
 
 sys.path.append(os.getcwd())
 
-from app import db
 from sqlalchemy import engine_from_config, pool
 
-from app.reporting import LOG_FORMAT
 import settings
+from app import db
+from app.reporting import LOG_FORMAT
+
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
 config = context.config
