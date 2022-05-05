@@ -8,16 +8,15 @@ from soteria.configuration import Configuration
 import settings
 from app import publish
 from app.agents.base import BaseAgent
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    GENERAL_ERROR,
-    STATUS_LOGIN_FAILED,
-    STATUS_REGISTRATION_FAILED,
-    AgentError,
-    LoginError,
-)
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import hash_ids
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    GeneralError,
+    StatusLoginFailedError,
+    StatusRegistrationFailedError,
+)
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
@@ -53,10 +52,10 @@ class Bpl(BaseAgent):
         self.headers = {"bpl-user-channel": self.channel, "Authorization": f"Token {self.auth_token}"}
         self.integration_service = "ASYNC"
         self.errors = {
-            GENERAL_ERROR: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
-            ACCOUNT_ALREADY_EXISTS: ["ACCOUNT_EXISTS"],
-            STATUS_REGISTRATION_FAILED: ["MISSING_FIELDS", "VALIDATION_FAILED"],
-            STATUS_LOGIN_FAILED: ["NO_ACCOUNT_FOUND"],
+            GeneralError: ["MALFORMED_REQUEST", "INVALID_TOKEN", "INVALID_RETAILER", "FORBIDDEN"],
+            AccountAlreadyExistsError: ["ACCOUNT_EXISTS"],
+            StatusRegistrationFailedError: ["MISSING_FIELDS", "VALIDATION_FAILED"],
+            StatusLoginFailedError: ["NO_ACCOUNT_FOUND"],
         }
 
     def join(self):
@@ -72,9 +71,9 @@ class Bpl(BaseAgent):
 
         try:
             self.make_request(url, method="post", audit=True, json=payload)
-        except (LoginError, AgentError) as ex:
+        except BaseError as ex:
             error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
-            self.handle_error_codes(error_code, unhandled_exception=GENERAL_ERROR)
+            self.handle_error_codes(error_code, unhandled_exception=GeneralError)
         else:
             self.expecting_callback = True
             if consents:
@@ -95,9 +94,9 @@ class Bpl(BaseAgent):
 
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
-        except (LoginError, AgentError) as ex:
+        except BaseError as ex:
             error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
-            self.handle_error_codes(error_code, unhandled_exception=GENERAL_ERROR)
+            self.handle_error_codes(error_code, unhandled_exception=GeneralError)
         else:
             self.expecting_callback = True
 

@@ -10,22 +10,22 @@ http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 """
 
 
-class AgentException(Exception):
-    def __init__(self, error):
-        self.status_code = return_error_code(error)
-
-
-class UnknownException(Exception):
-    def __init__(self, error):
-        self.status_code = return_error_code(error)
-
-
-def return_error_code(exception):
-    try:
-        return exception.code
-    except AttributeError:
-        # Return unknown error status code
-        return 520
+# class AgentException(Exception):
+#     def __init__(self, error):
+#         self.status_code = return_error_code(error)
+#
+#
+# class UnknownException(Exception):
+#     def __init__(self, error):
+#         self.status_code = return_error_code(error)
+#
+#
+# def return_error_code(exception):
+#     try:
+#         return exception.code
+#     except AttributeError:
+#         # Return unknown error status code
+#         return 520
 
 
 class BaseError(Exception):
@@ -99,7 +99,7 @@ class WrongCredentialTypeError(BaseError):
 
 class CardNumberError(BaseError):
     def __init__(self, response=None):
-        self.code = 438
+        self.code = 436
         self.name = "Card not registered or Unknown"
         self.message = "Unknown Card number."
         self.response = response
@@ -107,7 +107,7 @@ class CardNumberError(BaseError):
 
 class LinkLimitExceededError(BaseError):
     def __init__(self, response=None):
-        self.code = 438
+        self.code = 437
         self.name = "Card not registered or Unknown"
         self.message = "Unknown Card number."
         self.response = response
@@ -135,6 +135,7 @@ class StatusRegistrationFailedError(BaseError):
         self.name = "Join in progress"
         self.message = """The username and/or password you have entered were reported to be invalid. 
         This may due to password validation - it's too short, it requires capital letters and numbers, etc."""
+        self.response = response
 
 
 class JoinInProgressError(BaseError):
@@ -183,6 +184,7 @@ class EndSiteDownError(BaseError):
         self.name = "End site down"
         self.message = "The scheme end site is currently down."
         self.system_action_required = True
+        self.response = response
 
 
 class IPBlockedError(BaseError):
@@ -216,6 +218,7 @@ class ConfigurationError(BaseError):
         self.name = "Configuration error"
         self.message = "There is an error with the configuration or it was not possible to retrieve."
         self.system_action_required = True
+        self.response = response
 
 
 class ServiceConnectionError(BaseError):
@@ -223,6 +226,7 @@ class ServiceConnectionError(BaseError):
         self.code = 537
         self.name = "Service connection error"
         self.message = "There was in issue connecting to an external service."
+        self.response = response
 
 
 class JoinError(BaseError):
@@ -237,7 +241,7 @@ class JoinError(BaseError):
 class UnknownError(BaseError):
     def __init__(self, response=None):
         self.code = 520
-        self.name = "Invalid mfa"
+        self.name = "An unknown error has occurred"
         self.message = "We have no idea what went wrong - the team is on it."
         self.system_action_required = True
         self.response = response

@@ -16,14 +16,14 @@ from app.agents.exceptions import (
     CARD_NUMBER_ERROR,
     NO_SUCH_RECORD,
     SERVICE_CONNECTION_ERROR,
-    AgentError,
-    JoinError,
-    LoginError,
     errors,
 )
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
 from app.api import create_app
+from app.exceptions import StatusLoginFailedError, ValidationError, UnknownError, CardNotRegisteredError, \
+    LinkLimitExceededError, CardNumberError, NoSuchRecordError, GeneralError, NotSentError, ConfigurationError, \
+    AccountAlreadyExistsError, JoinError, JoinInProgressError
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join
 from app.reporting import get_logger
@@ -345,13 +345,13 @@ class TestIcelandAdd(TestCase):
 
     def test_login_wrong_authentication_selected(self):
         self.iceland.outbound_auth_service = Configuration.RSA_SECURITY
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ConfigurationError) as e:
             self.iceland.login()
         self.assertEqual("Configuration error", e.exception.name)
         self.assertEqual(
             "Agent expecting Security Type(s) ['Open Auth (No Authentication)', 'OAuth'] "
             "but got Security Type 'RSA' instead",
-            e.exception.message,
+            e.exception.response,
         )
 
     @httpretty.activate
@@ -382,11 +382,10 @@ class TestIcelandAdd(TestCase):
             status=401,
         )
 
-        with self.assertRaises(AgentError) as e:
-            with self.assertRaises(LoginError):
-                self.iceland.login()
+        with self.assertRaises(StatusLoginFailedError) as e:
+            self.iceland.login()
 
-        self.assertEqual([e.exception.name, e.exception.code], ["An unknown error has occurred", 520])
+        self.assertEqual([e.exception.name, e.exception.code], ["Invalid credentials", 403])
 
     @httpretty.activate
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
@@ -405,7 +404,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.iceland.login()
         self.assertEqual(e.exception.code, 403)
 
@@ -426,7 +425,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(CardNumberError) as e:
             self.iceland.login()
         self.assertEqual(e.exception.code, 436)
 
@@ -447,7 +446,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(LinkLimitExceededError) as e:
             self.iceland.login()
         self.assertEqual(e.exception.code, 437)
 
@@ -472,7 +471,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(CardNotRegisteredError) as e:
             self.iceland.login()
         self.assertEqual(e.exception.code, 438)
 
@@ -493,7 +492,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.iceland.login()
         self.assertEqual(e.exception.code, 439)
 
@@ -512,7 +511,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(NotSentError) as e:
             self.iceland.login()
         self.assertEqual(535, e.exception.code)
 
@@ -537,7 +536,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(UnknownError) as e:
             self.iceland.login()
         self.assertEqual(520, e.exception.code)
 
@@ -558,7 +557,7 @@ class TestIcelandAdd(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(NoSuchRecordError) as e:
             self.iceland.login()
         self.assertEqual(444, e.exception.code)
 
@@ -694,7 +693,7 @@ class TestIcelandAdd(TestCase):
             call().send(self.iceland, slug=self.iceland.scheme_slug),
         ]
 
-        with self.assertRaises(LoginError):
+        with self.assertRaises(StatusLoginFailedError):
             self.iceland.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:6])
@@ -764,9 +763,8 @@ class TestIcelandAdd(TestCase):
             ),
         ]
 
-        with self.assertRaises(AgentError):
-            with self.assertRaises(LoginError):
-                self.iceland.login()
+        with self.assertRaises(StatusLoginFailedError):
+            self.iceland.login()
 
         self.assertEqual(expected_base_calls, mock_base_signal.mock_calls[:8])
         self.assertEqual(4, mock_base_signal.call_count)
@@ -991,10 +989,10 @@ class TestIcelandJoin(TestCase):
             status=401,
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.iceland.join()
-        self.assertEqual(e.exception.code, 520)
-        self.assertEqual(e.exception.name, "An unknown error has occurred")
+        self.assertEqual(e.exception.code, 403)
+        self.assertEqual(e.exception.name, "Invalid credentials")
 
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1027,7 +1025,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
         self.iceland.errors = {
-            CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
+            CardNumberError: "CARD_NUMBER_ERROR",
         }
         data = {
             "error_codes": [{"code": "CARD_NUMBER_ERROR", "description": "Card number not found"}],
@@ -1035,7 +1033,7 @@ class TestIcelandJoin(TestCase):
             "record_uid": "a_record_uid",
             "merchant_scheme_id1": "a_merchant_scheme_id1",
         }
-        with self.assertRaises(JoinError):
+        with self.assertRaises(CardNumberError):
             self.iceland._process_join_callback_response(data=data)
 
     @mock.patch("requests.Session.post")
@@ -1171,7 +1169,7 @@ class TestIcelandJoin(TestCase):
             call([{"id": 1, "slug": "marketing_opt_in", "value": True, "journey_type": 0}], ConsentStatus.FAILED)
         ]
 
-        with self.assertRaises(JoinError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.iceland.join()
         self.assertEqual(expected_consent_confirmation_calls, mock_consent_confirmation.call_args_list)
         self.assertEqual(e.exception.code, 403)
@@ -1203,7 +1201,7 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
 
-        with self.assertRaises(JoinError) as e:
+        with self.assertRaises(JoinInProgressError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("Join in progress", e.exception.name)
         self.assertEqual(441, e.exception.code)
@@ -1282,7 +1280,7 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
 
-        with self.assertRaises(JoinError) as e:
+        with self.assertRaises(AccountAlreadyExistsError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("Account already exists", e.exception.name)
         self.assertEqual(445, e.exception.code)
@@ -1320,7 +1318,7 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
 
-        with self.assertRaises(JoinError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("General Error", e.exception.name)
         self.assertEqual(439, e.exception.code)
@@ -1389,7 +1387,7 @@ class TestIcelandJoin(TestCase):
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_consents_confirmed_as_failed_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
         self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
-        with self.assertRaises(JoinError):
+        with self.assertRaises(GeneralError):
             self.iceland.join()
 
         self.assertTrue(mock_join.called)
@@ -1618,7 +1616,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_update_join,
         mock_collect_credentials,
     ):
-        mock_retry.side_effect = AgentError(NO_SUCH_RECORD)
+        mock_retry.side_effect = NoSuchRecordError
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
@@ -1632,7 +1630,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_update_join.called)
         self.assertTrue(mock_collect_credentials.called)
 
-        self.assertEqual(response.status_code, errors[NO_SUCH_RECORD]["code"])
+        self.assertEqual(444, response.status_code)
         self.assertEqual(response.json, errors[NO_SUCH_RECORD])
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")

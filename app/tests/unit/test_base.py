@@ -7,7 +7,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
 from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
-from app.exceptions import GeneralError, UnknownError
+from app.exceptions import GeneralError, UnknownError, EndSiteDownError, StatusLoginFailedError, IPBlockedError
 from app.scheme_account import JourneyTypes
 
 
@@ -78,7 +78,7 @@ class TestBase(TestCase):
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            EndSiteDownError,
             m.make_request,
             api_url,
             method="get",
@@ -127,7 +127,7 @@ class TestBase(TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, m.make_request, api_url, method="get")
+        self.assertRaises(StatusLoginFailedError, m.make_request, api_url, method="get")
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -177,7 +177,7 @@ class TestBase(TestCase):
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            EndSiteDownError,
             m.make_request,
             api_url,
             method="get",
@@ -231,7 +231,7 @@ class TestBase(TestCase):
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            StatusLoginFailedError,
             m.make_request,
             api_url,
             method="get",
@@ -277,7 +277,7 @@ class TestBase(TestCase):
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            IPBlockedError,
             m.make_request,
             api_url,
             method="get",

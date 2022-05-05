@@ -14,6 +14,8 @@ from app.agents.exceptions import AgentError
 from app.agents.schemas import Balance
 from app.agents.squaremeal import Squaremeal
 from app.api import create_app
+from app.exceptions import ServiceConnectionError, NoSuchRecordError, AccountAlreadyExistsError, StatusLoginFailedError, \
+    UnknownError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -148,7 +150,7 @@ class TestSquaremealJoin(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Service connection error")
@@ -175,7 +177,7 @@ class TestSquaremealJoin(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(AccountAlreadyExistsError) as e:
             self.squaremeal.join()
 
         self.assertEqual(e.exception.name, "Account already exists")
@@ -231,7 +233,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(NoSuchRecordError) as e:
             self.squaremeal.balance()
 
         self.assertEqual(e.exception.name, "Account does not exist")
@@ -259,7 +261,7 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.squaremeal.balance()
 
         self.assertEqual(e.exception.name, "Service connection error")
@@ -399,7 +401,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Invalid credentials")
@@ -421,7 +423,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.squaremeal.login()
 
         self.assertEqual(e.exception.name, "Service connection error")
@@ -443,7 +445,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(AgentError):
+        with self.assertRaises(UnknownError):
             self.squaremeal.login()
 
         self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))
