@@ -1,52 +1,36 @@
-"""
-Contains functions for setting up an alembic context and running migrations.
-"""
-import logging
+from __future__ import with_statement
+
 import os
 import sys
+from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine
 
-import settings
 from alembic import context
 
 sys.path.append(os.getcwd())
-from app import db  # noqa: E402
-from app.reporting import LOG_FORMAT  # noqa: E402
 
-logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+import settings  # noqa
+from app.db import Base  # noqa
+from app.models import *  # noqa
 
-config = context.config
-config.set_main_option("sqlalchemy.url", settings.POSTGRES_DSN)
+# setup default sqlalchemy configuration (loggers et cetera.)
+fileConfig(context.config.config_file_name)
 
-target_metadata = db.Model.metadata
+# custom declarative base metadata used in both migration methods below.
+target_metadata = Base.metadata
 
 
 def run_migrations_offline():
-    """
-    Runs migrations without an active database connection.
-    """
-    url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
+    url = settings.POSTGRES_DSN
+    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
 
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online():
-    """
-    Runs migrations with an active database connection.
-    """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(settings.POSTGRES_DSN)
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

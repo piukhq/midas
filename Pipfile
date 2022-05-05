@@ -37,7 +37,6 @@ urllib3 = "*"
 click = "==8.0.4"
 alembic = "*"
 sqlalchemy = "*"
-flask-sqlalchemy = "*"
 
 [dev-packages]
 black = "==21.6b0"
