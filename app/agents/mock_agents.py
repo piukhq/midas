@@ -54,24 +54,24 @@ class MockAgentHN(MockedMiner):
         "Lady",
     ]
 
-    def login(self, credentials):
-        self.check_and_raise_error_credentials(credentials)
+    def login(self):
+        self.check_and_raise_error_credentials()
 
         # if join request, assign new user rather than check credentials
-        if self.join_fields.issubset(credentials.keys()):
+        if self.join_fields.issubset(self.credentials.keys()):
             self.user_info = USER_STORE["000000"]
             card_suffix = random.randint(0, 9999999999)
             self.identifier = {"card_number": f"{self.join_prefix}{card_suffix:010d}"}
             return
 
-        card_number = credentials.get("card_number")
+        card_number = self.credentials.get("card_number")
         # if created from join, dont check credentials on balance updates
         if card_number and card_number.startswith(self.join_prefix):
             self.user_info = USER_STORE["000000"]
             return
 
         # if none of the above, do the normal login checks
-        login_credentials = (credentials["email"].lower(), credentials["password"])
+        login_credentials = (self.credentials["email"].lower(), self.credentials["password"])
         for user, info in USER_STORE.items():
             try:
                 auth_check = (
@@ -90,7 +90,7 @@ class MockAgentHN(MockedMiner):
             raise LoginError(STATUS_LOGIN_FAILED)
 
         self.customer_number = card_numbers.HARVEY_NICHOLS[user_id]
-        if credentials.get("card_number") != self.customer_number:
+        if self.credentials.get("card_number") != self.customer_number:
             self.identifier = {"card_number": self.customer_number}
 
         return
@@ -181,10 +181,10 @@ class MockAgentIce(MockedMiner):
         },
     }
 
-    def login(self, credentials):
-        card_number = credentials.get("card_number") or credentials.get("barcode")
+    def login(self):
+        card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
         # if join request, assign new user rather than check credentials
-        if self.join_fields.issubset(credentials.keys()):
+        if self.join_fields.issubset(self.credentials.keys()):
             self.user_info = USER_STORE["000000"]
             if not card_number:
                 card_suffix = random.randint(0, 999999999999999)
@@ -196,12 +196,12 @@ class MockAgentIce(MockedMiner):
             return
 
         # if created from join, dont check credentials on balance updates
-        if credentials.get("merchant_identifier") == "testjoin":
+        if self.credentials.get("merchant_identifier") == "testjoin":
             self.user_info = USER_STORE["000000"]
             return
 
         # if none of the above, do the normal login checks
-        self.check_and_raise_error_credentials(credentials)
+        self.check_and_raise_error_credentials()
         try:
             user_id = card_numbers.ICELAND[card_number]
         except (KeyError, TypeError):
@@ -212,8 +212,8 @@ class MockAgentIce(MockedMiner):
 
         self.user_info = USER_STORE[user_id]
         login_credentials = (
-            credentials["last_name"].lower(),
-            credentials["postcode"].lower(),
+            self.credentials["last_name"].lower(),
+            self.credentials["postcode"].lower(),
         )
         auth_check = (
             self.user_info["credentials"]["last_name"],
@@ -223,7 +223,7 @@ class MockAgentIce(MockedMiner):
         if login_credentials != auth_check:
             raise LoginError(STATUS_LOGIN_FAILED)
 
-        self.add_missing_credentials(credentials, card_number)
+        self.add_missing_credentials(card_number)
         return
 
     def balance(self) -> Optional[Balance]:
@@ -276,10 +276,10 @@ class MockAgentIce(MockedMiner):
 
         return super()._validate_join_credentials(data)
 
-    def add_missing_credentials(self, credentials, card_number):
-        if not credentials.get("merchant_identifier"):
+    def add_missing_credentials(self, card_number):
+        if not self.credentials.get("merchant_identifier"):
             self.identifier["merchant_identifier"] = "2900001"
-        if not credentials.get("card_number"):
+        if not self.credentials.get("card_number"):
             self.identifier["card_number"] = card_number
-        if not credentials.get("barcode"):
+        if not self.credentials.get("barcode"):
             self.identifier["barcode"] = card_number

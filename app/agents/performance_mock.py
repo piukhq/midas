@@ -16,12 +16,12 @@ GHOST_CARD_PREFIX = "0"
 class MockPerformance(MockedMiner):
     point_conversion_rate = Decimal("1")
 
-    def login(self, credentials):
-        if not credentials.get("card_number"):
+    def login(self):
+        if not self.credentials.get("card_number"):
             self.identifier = {"card_number": f"1{uuid4()}"}
             return
 
-        if credentials["card_number"].startswith(GHOST_CARD_PREFIX):
+        if self.credentials["card_number"].startswith(GHOST_CARD_PREFIX):
             raise LoginError(PRE_REGISTERED_CARD)
 
         return
@@ -63,20 +63,20 @@ class MockPerformance(MockedMiner):
 
         return transactions_list
 
-    def join(self, credentials):
-        if "failure" in credentials["password"].lower():
+    def join(self):
+        if "failure" in self.credentials["password"].lower():
             raise JoinError(GENERAL_ERROR)
 
         return {"message": "success"}
 
 
 class MockPerformanceVoucher(MockedMiner):
-    def login(self, credentials):
-        if not credentials.get("card_number"):
+    def login(self):
+        if not self.credentials.get("card_number"):
             self.identifier = {"card_number": f"1{uuid4()}"}
             return
 
-        if credentials.get("card_number", "").startswith(GHOST_CARD_PREFIX):
+        if self.credentials.get("card_number", "").startswith(GHOST_CARD_PREFIX):
             raise LoginError(PRE_REGISTERED_CARD)
 
         return
@@ -117,8 +117,8 @@ class MockPerformanceVoucher(MockedMiner):
     def transaction_history(self) -> list[Transaction]:
         return []
 
-    def join(self, credentials):
-        if "failure" in credentials["password"].lower():
+    def join(self):
+        if "failure" in self.credentials["password"].lower():
             raise JoinError(GENERAL_ERROR)
 
         return {"message": "success"}
