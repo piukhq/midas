@@ -53,8 +53,6 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
     JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
 }
 
-MOCK_AGENTS = ["iceland-bonus-card-mock", "harvey-nichols-mock", "performance-mock", "performance-voucher-mock"]
-
 
 class BaseAgent(object):
     retry_limit: Optional[int] = 2
@@ -66,14 +64,13 @@ class BaseAgent(object):
     create_journey: Optional[str] = None
 
     def __init__(self, retry_count, user_info, config_handler_type, scheme_slug=None, config=None):
-        if scheme_slug not in MOCK_AGENTS:
-            self.config = config or Configuration(
-                scheme_slug,
-                config_handler_type,
-                settings.VAULT_URL,
-                settings.VAULT_TOKEN,
-                settings.CONFIG_SERVICE_URL,
-            )
+        self.config = config or Configuration(
+            scheme_slug,
+            config_handler_type,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+        )
         self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.retry_count: int = retry_count
         self.user_info = user_info
@@ -397,8 +394,9 @@ class MockedMiner(BaseAgent):
         super().__init__(
             retry_count,
             user_info,
-            config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
+            config_handler_type=None,
             scheme_slug=scheme_slug,
+            config=None
         )
         self.errors = {}
         self.headers = {}
