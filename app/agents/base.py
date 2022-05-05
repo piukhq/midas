@@ -5,6 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 from decimal import Decimal
 from typing import Optional
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
@@ -391,7 +392,8 @@ class MockedMiner(BaseAgent):
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, config_handler_type=None, scheme_slug=scheme_slug, config=None)
+        config = MagicMock()
+        super().__init__(retry_count, user_info, config_handler_type=None, scheme_slug=scheme_slug, config=config)
         self.errors = {}
         self.headers = {}
         self.identifier = {}
