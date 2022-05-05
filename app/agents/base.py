@@ -391,12 +391,7 @@ class MockedMiner(BaseAgent):
     titles: list[str] = []
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(
-            retry_count,
-            user_info,
-            config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
-            scheme_slug=scheme_slug,
-        )
+        super().__init__(retry_count, user_info, config_handler_type=None, scheme_slug=scheme_slug, config=None)
         self.errors = {}
         self.headers = {}
         self.identifier = {}
