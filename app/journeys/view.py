@@ -4,10 +4,9 @@ import requests
 
 import settings
 from app import publish
-from app.agents.exceptions import SCHEME_REQUESTED_DELETE, AgentError, LoginError, errors
 from app.agents.schemas import balance_tuple_to_dict
 from app.encoding import JsonEncoder
-from app.exceptions import AgentException, UnknownException, BaseError
+from app.exceptions import BaseError, SchemeRequestedDeleteError, UnknownError
 from app.http_request import get_headers
 from app.journeys.common import agent_login, publish_transactions
 from app.publish import thread_pool_executor
@@ -34,18 +33,12 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             agent_class, user_info, scheme_account_id, scheme_slug, tid, threads
         )
         return balance
-    except (LoginError, AgentError) as e:
-        status = e.code
-        raise AgentException(e)
     except BaseError as e:
         status = e.code
         raise e
-    except AgentException as e:
-        status = e.status_code
-        raise
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
-        raise UnknownException(e)
+        raise UnknownError from e
     finally:
         if user_info.get("pending") and not status == SchemeAccountStatus.ACTIVE:
             pass
@@ -64,7 +57,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             )
 
         [thread.result() for thread in threads]
-        if status == errors[SCHEME_REQUESTED_DELETE]["code"]:
+        if status == SchemeRequestedDeleteError().code:
             log.debug(
                 f"Received deleted request from scheme: {scheme_slug}. Deleting scheme account: {scheme_account_id}"
             )
@@ -80,7 +73,7 @@ def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid,
 
     # Send identifier (e.g membership id) to hermes if it's not already stored.
     if agent_instance.identifier:
-        update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
+        update_pending_join_account(user_info, tid, identifier=agent_instance.identifier)
 
     balance_result = agent_instance.balance()
     if not balance_result:
@@ -115,12 +108,12 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
         return balance
 
-    except (AgentException, UnknownException) as e:
+    except BaseError as e:
         if user_info.get("pending"):
             message = f"Error with async linking. Scheme: {scheme_slug}, Error: {repr(e)}"
-            update_pending_link_account(user_info, message, tid, scheme_slug=scheme_slug)
+            update_pending_link_account(user_info, tid, error=e, response=message, scheme_slug=scheme_slug)
         else:
-            status = e.status_code
+            status = e.code
             requests.post(
                 f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/status",
                 data=json.dumps({"status": status, "user_info": user_info}, cls=JsonEncoder),

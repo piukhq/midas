@@ -12,18 +12,24 @@ from requests import Response
 from soteria.configuration import Configuration
 
 from app.agents.base import Balance, BaseAgent
-from app.agents.exceptions import (
-    CARD_NUMBER_ERROR,
-    NO_SUCH_RECORD,
-    SERVICE_CONNECTION_ERROR,
-    errors,
-)
+from app.exceptions import NoSuchRecordError, ServiceConnectionError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
 from app.api import create_app
-from app.exceptions import StatusLoginFailedError, ValidationError, UnknownError, CardNotRegisteredError, \
-    LinkLimitExceededError, CardNumberError, NoSuchRecordError, GeneralError, NotSentError, ConfigurationError, \
-    AccountAlreadyExistsError, JoinError, JoinInProgressError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    CardNotRegisteredError,
+    CardNumberError,
+    ConfigurationError,
+    GeneralError,
+    JoinError,
+    JoinInProgressError,
+    LinkLimitExceededError,
+    NoSuchRecordError,
+    NotSentError,
+    StatusLoginFailedError,
+    UnknownError,
+)
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join
 from app.reporting import get_logger
@@ -351,7 +357,7 @@ class TestIcelandAdd(TestCase):
         self.assertEqual(
             "Agent expecting Security Type(s) ['Open Auth (No Authentication)', 'OAuth'] "
             "but got Security Type 'RSA' instead",
-            e.exception.response,
+            e.exception.message,
         )
 
     @httpretty.activate
@@ -1611,27 +1617,26 @@ class TestIcelandEndToEnd(FlaskTestCase):
     def test_join_callback_specific_error(
         self,
         mock_config,
-        mock_decode,
-        mock_retry,
-        mock_update_join,
+        mock_RSA_decode,
+        mock_redis_retry_get_key,
+        mock_update_pending_join_account,
         mock_collect_credentials,
     ):
-        mock_retry.side_effect = NoSuchRecordError
+        mock_redis_retry_get_key.side_effect = NoSuchRecordError()
         mock_config.return_value = self.config
-        mock_decode.return_value = self.json_data
+        mock_RSA_decode.return_value = self.json_data
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
         self.assertTrue(mock_config.called)
-        self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_retry.called)
-        self.assertTrue(mock_update_join.called)
+        self.assertTrue(mock_RSA_decode.called)
+        self.assertTrue(mock_redis_retry_get_key.called)
+        self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_collect_credentials.called)
 
         self.assertEqual(444, response.status_code)
-        self.assertEqual(response.json, errors[NO_SUCH_RECORD])
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
     @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
@@ -1678,7 +1683,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]["code"])
+        self.assertEqual(response.status_code, ServiceConnectionError().code)
         self.assertEqual(
             response.json,
             {
@@ -1694,7 +1699,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
             response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
-        self.assertEqual(response.status_code, errors[SERVICE_CONNECTION_ERROR]["code"])
+        self.assertEqual(response.status_code, ServiceConnectionError().code)
         self.assertEqual(
             response.json,
             {

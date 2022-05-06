@@ -4,7 +4,7 @@ import unittest
 
 import arrow
 
-from app.agents.exceptions import AgentError
+from app.exceptions import ValidationError
 from app.security.base import BaseSecurity
 
 
@@ -13,7 +13,7 @@ class TestBaseSecurity(unittest.TestCase):
         self.base_security = BaseSecurity()
 
     def test_validate_timestamp(self):
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ValidationError) as e:
             self.base_security._validate_timestamp(arrow.get(datetime.date(1996, 5, 5)).int_timestamp)
         self.assertEqual(e.exception.name, "Failed validation")
 

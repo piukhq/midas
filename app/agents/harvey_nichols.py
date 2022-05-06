@@ -13,10 +13,11 @@ import settings
 from app.agents.base import Balance, BaseAgent, Transaction
 from app.exceptions import (
     AccountAlreadyExistsError,
+    BaseError,
     NoSuchRecordError,
     StatusLoginFailedError,
     StatusRegistrationFailedError,
-    UnknownError, BaseError,
+    UnknownError,
 )
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
@@ -102,7 +103,6 @@ class HarveyNichols(BaseAgent):
                 except BaseError:
                     signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
-
 
         try:
             self.customer_number = self.credentials[self.identifier_type]

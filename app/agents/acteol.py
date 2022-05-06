@@ -15,8 +15,15 @@ import settings
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import HashSHA1
-from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError, NoSuchRecordError, ValidationError, \
-    StatusLoginFailedError, EndSiteDownError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    EndSiteDownError,
+    JoinError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    ValidationError,
+)
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents

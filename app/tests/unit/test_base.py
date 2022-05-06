@@ -6,8 +6,7 @@ import httpretty
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
-from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
-from app.exceptions import GeneralError, UnknownError, EndSiteDownError, StatusLoginFailedError, IPBlockedError
+from app.exceptions import EndSiteDownError, GeneralError, IPBlockedError, StatusLoginFailedError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -71,7 +70,7 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=END_SITE_DOWN,
+                error=EndSiteDownError,
                 slug=m.scheme_slug,
             ),
         ]
@@ -121,7 +120,7 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=STATUS_LOGIN_FAILED,
+                error=StatusLoginFailedError,
                 slug=m.scheme_slug,
             ),
         ]
@@ -170,7 +169,7 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=END_SITE_DOWN,
+                error=EndSiteDownError,
                 slug=m.scheme_slug,
             ),
         ]
@@ -224,7 +223,7 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=STATUS_LOGIN_FAILED,
+                error=StatusLoginFailedError,
                 slug=m.scheme_slug,
             ),
         ]
@@ -270,7 +269,7 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=IP_BLOCKED,
+                error=IPBlockedError,
                 slug=m.scheme_slug,
             ),
         ]

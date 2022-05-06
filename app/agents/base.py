@@ -19,27 +19,21 @@ from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    CONFIGURATION_ERROR,
-    END_SITE_DOWN,
-    IP_BLOCKED,
-    JOIN_ERROR,
-    NOT_SENT,
-    PRE_REGISTERED_CARD,
-    RETRY_LIMIT_REACHED,
-    SERVICE_CONNECTION_ERROR,
-    STATUS_LOGIN_FAILED,
-    UNKNOWN,
-    AgentError,
-    JoinError,
-    LoginError,
-    RetryLimitError,
-)
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
-from app.exceptions import StatusLoginFailedError, IPBlockedError, NotSentError, EndSiteDownError, \
-    RetryLimitReachedError, UnknownError, ConfigurationError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    ConfigurationError,
+    EndSiteDownError,
+    IPBlockedError,
+    JoinError,
+    NotSentError,
+    PreRegisteredCardError,
+    RetryLimitReachedError,
+    ServiceConnectionError,
+    StatusLoginFailedError,
+    UnknownError,
+)
 from app.mocks.users import USER_STORE
 from app.reporting import get_logger
 from app.requests_retry import requests_retry_session
@@ -168,9 +162,9 @@ class BaseAgent(object):
             response = self.session.post(url, data=payload)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
-            raise AgentError(SERVICE_CONNECTION_ERROR) from e
+            raise ServiceConnectionError from e
         except (KeyError, IndexError) as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
+            raise ConfigurationError from e
 
         return response.json()["access_token"]
 
@@ -213,7 +207,7 @@ class BaseAgent(object):
             raise EndSiteDownError(response=e.response) from e
 
         except RetryError as e:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RETRY_LIMIT_REACHED)
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
             sentry_sdk.capture_exception(e)
             raise RetryLimitReachedError(response=e.response) from e
 
@@ -233,17 +227,17 @@ class BaseAgent(object):
                     self,
                     slug=self.scheme_slug,
                     channel=self.channel,
-                    error=STATUS_LOGIN_FAILED,
+                    error=StatusLoginFailedError,
                 )
                 raise StatusLoginFailedError(response=e.response)
             elif e.response.status_code == 403:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
                 raise IPBlockedError(response=e.response) from e
             elif e.response.status_code in [503, 504]:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NOT_SENT)
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
                 raise NotSentError(response=e.response) from e
             else:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
                 raise EndSiteDownError(response=e.response) from e
 
         return resp
@@ -253,13 +247,6 @@ class BaseAgent(object):
             if error_code in agent_error_codes:
                 raise agent_error
         raise unhandled_exception()
-
-    def handle_errors(self, error, unhandled_exception=UnknownError):
-        agent_error = [agent_error for agent_error, _ in self.errors.items() if error == agent_error][0]
-        # for agent_error, _ in self.errors.items():
-        #     if error == agent_error:
-        #         raise agent_error
-        raise agent_error or unhandled_exception
 
     def join(self):
         raise NotImplementedError()
@@ -416,13 +403,13 @@ class MockedMiner(BaseAgent):
         for credential_type, credential in self.credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
-                raise LoginError(error_to_raise)
+                raise error_to_raise()
             except KeyError:
                 pass
 
         card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
-            raise LoginError(PRE_REGISTERED_CARD)
+            raise PreRegisteredCardError()
 
     @staticmethod
     def _check_email_already_exists(email):
@@ -431,12 +418,12 @@ class MockedMiner(BaseAgent):
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
             if ghost_card in self.existing_card_numbers:
-                raise JoinError(ACCOUNT_ALREADY_EXISTS)
+                raise AccountAlreadyExistsError()
             if self._check_email_already_exists(email):
-                raise JoinError(JOIN_ERROR)
+                raise JoinError()
         else:
             if self._check_email_already_exists(email):
-                raise JoinError(ACCOUNT_ALREADY_EXISTS)
+                raise AccountAlreadyExistsError()
 
     def _validate_join_credentials(self, data):
         for join_field in self.join_fields:
@@ -448,12 +435,12 @@ class MockedMiner(BaseAgent):
         self._check_existing_join_credentials(email, ghost_card)
 
         if email == "fail@unknown.com":
-            raise JoinError(UNKNOWN)
+            raise UnknownError()
         elif email == "slowjoin@testbink.com":
             time.sleep(60)
 
         title = data.get("title").capitalize()
         if self.titles and title not in self.titles:
-            raise JoinError(JOIN_ERROR)
+            raise JoinError()
 
         return {"message": "success"}

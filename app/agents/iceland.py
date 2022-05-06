@@ -8,7 +8,6 @@ from soteria.configuration import Configuration
 
 from app import publish
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
-from app.agents.base import Balance, BaseAgent, check_correct_authentication
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
 from app.exceptions import (
@@ -128,7 +127,7 @@ class Iceland(BaseAgent):
             error = data.get("error_codes")
             if error:
                 self.handle_error_codes(error_code=error[0]["code"])
-            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=self.identifier)
+            update_pending_join_account(self.user_info, self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
         # except (AgentException, LoginError, JoinErrorOld, AgentError):
         #     consent_status = ConsentStatus.FAILED
@@ -155,7 +154,7 @@ class Iceland(BaseAgent):
             signal("callback-success").send(self, slug=self.scheme_slug)
         except BaseError as e:
             signal("callback-fail").send(self, slug=self.scheme_slug)
-            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
+            update_pending_join_account(self.user_info, self.message_uid, error=e, raise_exception=False)
             raise e
 
     def _join(self, payload: dict):

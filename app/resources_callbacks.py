@@ -4,9 +4,8 @@ from flask_restful import Resource
 from soteria.configuration import Configuration
 
 from app import redis_retry
-from app.agents.exceptions import SERVICE_CONNECTION_ERROR, UNKNOWN, AgentError, JoinError
 from app.encryption import hash_ids
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import BaseError, ServiceConnectionError, UnknownError
 from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
@@ -22,8 +21,8 @@ class JoinCallback(Resource):
             consent_ids = (consent["id"] for consent in consents)
             update_pending_join_account(
                 user_info,
-                exception.args[0],
                 message_uid,
+                error=exception,
                 scheme_slug=scheme_slug,
                 consent_ids=consent_ids,
                 raise_exception=False,
@@ -44,10 +43,10 @@ class JoinCallback(Resource):
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
-            raise UnknownException(e) from e
-        except (requests.ConnectionError, AgentError) as e:
+            raise UnknownError from e
+        except requests.ConnectionError as e:
             sentry_sdk.capture_exception()
-            raise AgentException(JoinError(SERVICE_CONNECTION_ERROR)) from e
+            raise ServiceConnectionError from e
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -56,12 +55,12 @@ class JoinCallback(Resource):
             retry_count = redis_retry.get_count(key)
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
             agent_instance.join_callback(data)
-        except AgentError as e:
+        except BaseError as e:
             update_failed_scheme_account(e)
-            raise AgentException(e)
+            raise e
         except Exception as e:
             update_failed_scheme_account(e)
-            raise UnknownException(e)
+            raise UnknownError from e
 
         return create_response({"success": True})
 
@@ -76,7 +75,7 @@ class JoinCallback(Resource):
         try:
             response.raise_for_status()
         except Exception as ex:
-            raise AgentError(UNKNOWN) from ex
+            raise UnknownError from ex
 
         credentials = decrypt_credentials(response.json()["credentials"])
 

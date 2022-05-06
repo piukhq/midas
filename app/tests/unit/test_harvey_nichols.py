@@ -8,10 +8,9 @@ import arrow
 import httpretty
 
 import settings
-from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Transaction
-from app.exceptions import StatusLoginFailedError
+from app.exceptions import StatusLoginFailedError, BaseError
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
@@ -500,7 +499,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
         try:
             self.hn.login()
-        except LoginError:
+        except BaseError:
             self.fail("Unexpected LoginError (JourneyType: LINK)")
 
         self.assertEqual(

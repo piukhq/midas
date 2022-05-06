@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import httpretty
 
 from app.agents.bpl import Bpl
-from app.agents.exceptions import AgentError, LoginError
+from app.exceptions import GeneralError, AccountAlreadyExistsError, StatusRegistrationFailedError, NoSuchRecordError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 
@@ -29,7 +29,7 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=400)],
         )
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -51,7 +51,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=401)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -73,7 +73,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=403)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -99,7 +99,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=409)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(AccountAlreadyExistsError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -128,7 +128,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=422)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusRegistrationFailedError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -158,7 +158,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=422)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusRegistrationFailedError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -183,7 +183,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=500)],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.join(
                 {
                     "email": "bpluserd@binktest.com",
@@ -205,7 +205,7 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=400)],
         )
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",
@@ -225,7 +225,7 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=401)],
         )
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",
@@ -245,7 +245,7 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=403)],
         )
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",
@@ -265,7 +265,7 @@ class TestBPL(unittest.TestCase):
             conf.merchant_url,
             responses=[httpretty.Response(body=json.dumps(error_response), status=404)],
         )
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(NoSuchRecordError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",
@@ -293,7 +293,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=422)],
         )
 
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusRegistrationFailedError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",
@@ -317,7 +317,7 @@ class TestBPL(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(error_response), status=400)],
         )
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(GeneralError) as e:
             self.agent.login(
                 {
                     "email": "bpluserd@binktest.com",

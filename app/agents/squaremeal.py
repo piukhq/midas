@@ -9,9 +9,10 @@ from app.agents.schemas import Balance, Transaction
 from app.exceptions import (
     AccountAlreadyExistsError,
     BaseError,
+    EndSiteDownError,
     NoSuchRecordError,
+    ServiceConnectionError,
     StatusLoginFailedError,
-    ServiceConnectionError, EndSiteDownError,
 )
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes

@@ -5,7 +5,6 @@ from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
 
 import settings
-from app.exceptions import AgentException
 from app.journeys.join import attempt_join
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -41,8 +40,4 @@ class TaskConsumer(ConsumerMixin):
             "channel": message.channel,
         }
 
-        try:
-            attempt_join(message.loyalty_plan, user_info, message.transaction_id)
-        except AgentException as ex:  # we don't want AgentExceptions to go to Sentry
-            log.warning(f"attempt_join raised {repr(ex)}")
-            return
+        attempt_join(message.loyalty_plan, user_info, message.transaction_id)

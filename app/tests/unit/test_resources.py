@@ -11,21 +11,18 @@ from flask_testing import TestCase
 
 from app import publish
 from app.agents.base import BaseAgent
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    NO_SUCH_RECORD,
-    STATUS_LOGIN_FAILED,
-    STATUS_REGISTRATION_FAILED,
-    AgentError,
-    JoinError,
-    LoginError,
-    errors,
-)
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
 from app.encryption import AESCipher
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    StatusRegistrationFailedError,
+    UnknownError,
+)
 from app.http_request import get_headers
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join, attempt_join
@@ -293,7 +290,7 @@ class TestResources(TestCase):
     @mock.patch("app.publish.transactions", autospec=True)
     @mock.patch("app.resources.agent_login", autospec=True)
     def test_transactions_login_error(self, mock_agent_login, mock_publish_transactions, mock_pool, mock_get_aes_key):
-        mock_publish_transactions.side_effect = LoginError(STATUS_LOGIN_FAILED)
+        mock_publish_transactions.side_effect = StatusLoginFailedError()
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
         url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
@@ -301,10 +298,19 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json["name"], errors[STATUS_LOGIN_FAILED]["name"])
-        self.assertEqual(response.json["message"], errors[STATUS_LOGIN_FAILED]["message"])
-        self.assertEqual(response.json["code"], errors[STATUS_LOGIN_FAILED]["code"])
+        self.assertEqual(403, response.status_code)
+        self.assertEqual(
+            StatusLoginFailedError().name,
+            response.json["name"],
+        )
+        self.assertEqual(
+            StatusLoginFailedError().message,
+            response.json["message"],
+        )
+        self.assertEqual(
+            StatusLoginFailedError().code,
+            response.json["code"],
+        )
 
     def test_bad_agent(self):
         url = "/bad-agent-key/transactions?credentials=234&scheme_account_id=1"
@@ -403,8 +409,8 @@ class TestResources(TestCase):
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
     def test_agent_join_fail(self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join):
-        mock_join.side_effect = JoinError(STATUS_REGISTRATION_FAILED)
-        mock_update_pending_join_account.side_effect = AgentException(STATUS_REGISTRATION_FAILED)
+        mock_join.side_effect = StatusRegistrationFailedError()
+        mock_update_pending_join_account.side_effect = StatusRegistrationFailedError()
         user_info = {
             "metadata": {},
             "scheme_slug": "test slug",
@@ -416,7 +422,7 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(StatusRegistrationFailedError):
             agent_join(HarveyNichols, user_info, {}, 1)
 
         self.assertTrue(mock_join.called)
@@ -431,7 +437,7 @@ class TestResources(TestCase):
     def test_agent_join_fail_account_exists(
         self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join
     ):
-        mock_join.side_effect = JoinError(ACCOUNT_ALREADY_EXISTS)
+        mock_join.side_effect = AccountAlreadyExistsError()
         user_info = {
             "credentials": {},
             "scheme_account_id": 2,
@@ -496,7 +502,6 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
-        self.assertTrue("success" in mock_update_pending_join_account.call_args[0])
         self.assertEqual(result, True)
 
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
@@ -518,9 +523,9 @@ class TestResources(TestCase):
                     "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
                 },
             ),
-            "error": ACCOUNT_ALREADY_EXISTS,
+            "error": AccountAlreadyExistsError,
         }
-        mock_agent_login.side_effect = AgentException(STATUS_LOGIN_FAILED)
+        mock_agent_login.side_effect = StatusLoginFailedError
         scheme_slug = "harvey-nichols"
         user_info = {
             "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
@@ -561,21 +566,21 @@ class TestResources(TestCase):
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
-    def test_agent_login_system_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
-        mock_login.side_effect = AgentError(NO_SUCH_RECORD)
+    def test_agent_login_system_fail_(self, mock_attempt_login, mock_base_config, mock_hn_config, mock_retry):
+        mock_attempt_login.side_effect = NoSuchRecordError()
         user_info = {"scheme_account_id": 1, "credentials": {}, "status": "", "channel": "com.bink.wallet"}
-        with self.assertRaises(AgentError):
+        with self.assertRaises(NoSuchRecordError):
             agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_join=True)
-        self.assertTrue(mock_login.called)
+        self.assertTrue(mock_attempt_login.called)
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch.object(HarveyNichols, "attempt_login")
     def test_agent_login_user_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
-        mock_login.side_effect = AgentError(STATUS_LOGIN_FAILED)
+        mock_login.side_effect = StatusLoginFailedError()
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(StatusLoginFailedError):
             agent_login(HarveyNichols, self.user_info, "harvey-nichols")
         self.assertTrue(mock_login.called)
 
@@ -640,18 +645,16 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
     def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_pending_link_account):
         scheme_slug = "harvey-nichols"
-        mock_balance_and_publish.side_effect = AgentException("Linking error")
+        mock_balance_and_publish.side_effect = UnknownError(response="Linking error")
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(BaseError):
             async_get_balance_and_publish("agent_class", scheme_slug, self.user_info, "tid")
 
         self.assertTrue(mock_balance_and_publish.called)
         self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
-            "Error with async linking. Scheme: {}, Error: {}".format(
-                scheme_slug, repr(mock_balance_and_publish.side_effect)
-            ),
-            mock_update_pending_link_account.call_args[0][1],
+            "Error with async linking. Scheme: harvey-nichols, Error: UnknownError()",
+            mock_update_pending_link_account.call_args[1]["response"],
         )
 
     @mock.patch("requests.get", autospec=True)
@@ -663,7 +666,7 @@ class TestResources(TestCase):
     @mock.patch("requests.get", autospec=False)
     def test_get_hades_balance_error(self, mock_requests):
         mock_requests.return_value = None
-        with self.assertRaises(UnknownException):
+        with self.assertRaises(UnknownError):
             self.assertEqual(get_hades_balance(1), None)
 
         self.assertTrue(mock_requests.called)
@@ -700,11 +703,11 @@ class TestResources(TestCase):
     def test_get_balance_and_publish_balance_error(
         self, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_join_account
     ):
-        mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
+        mock_publish_balance.side_effect = StatusLoginFailedError()
         user_info = self.user_info
         user_info["pending"] = False
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(StatusLoginFailedError):
             get_balance_and_publish(HarveyNichols, "scheme_slug", user_info, "tid")
 
         self.assertTrue(mock_login.called)
@@ -771,7 +774,7 @@ class TestResources(TestCase):
         self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_link_account
     ):
 
-        mock_publish_balance.side_effect = AgentError(STATUS_LOGIN_FAILED)
+        mock_publish_balance.side_effect = StatusLoginFailedError()
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
 
@@ -779,7 +782,7 @@ class TestResources(TestCase):
             async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
         )
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(StatusLoginFailedError):
             async_balance.result(timeout=15)
 
         self.assertTrue(mock_login.called)
@@ -788,7 +791,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_link_account.called)
 
     @mock.patch("app.journeys.view.update_pending_link_account")
-    @mock.patch("app.journeys.view.agent_login", autospec=False)
+    @mock.patch("app.journeys.view.agent_login", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.publish.balance", autospec=False)
     @mock.patch("app.journeys.view.publish_transactions", autospec=True)
@@ -797,11 +800,11 @@ class TestResources(TestCase):
     ):
 
         mock_publish_balance.side_effect = KeyError("test not handled agent error")
-        mock_update_pending_link_account.side_effect = AgentException("test not handled agent error")
+        mock_update_pending_link_account.side_effect = NoSuchRecordError("test not handled agent error")
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
 
-        with self.assertRaises(AgentException):
+        with self.assertRaises(UnknownError):
             async_balance = thread_pool_executor.submit(
                 async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
             )

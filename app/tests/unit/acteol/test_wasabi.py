@@ -14,8 +14,15 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Wasabi
 from app.agents.schemas import Balance, Transaction, Voucher
-from app.exceptions import RetryLimitReachedError, EndSiteDownError, NoSuchRecordError, AccountAlreadyExistsError, \
-    StatusLoginFailedError, IPBlockedError, ValidationError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    EndSiteDownError,
+    IPBlockedError,
+    NoSuchRecordError,
+    RetryLimitReachedError,
+    StatusLoginFailedError,
+    ValidationError,
+)
 from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -942,7 +949,8 @@ class TestWasabi(unittest.TestCase):
         self, mock_validate_member_number, mock_authenticate, mock_signal
     ):
         """
-        Check that the call to login() calls signal events if we're on an ADD journey but there's a StatusLoginFailedError
+        Check that the call to login() calls signal events if we're on an ADD
+        journey but there's a StatusLoginFailedError
         """
         # GIVEN
         # Mock us through authentication

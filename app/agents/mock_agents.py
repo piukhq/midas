@@ -7,20 +7,18 @@ from typing import Optional
 import arrow
 
 from app.agents.base import MockedMiner
-from app.agents.exceptions import (
-    END_SITE_DOWN,
-    GENERAL_ERROR,
-    INVALID_MFA_INFO,
-    NO_SUCH_RECORD,
-    PASSWORD_EXPIRED,
-    STATUS_ACCOUNT_LOCKED,
-    STATUS_LOGIN_FAILED,
-    STATUS_REGISTRATION_FAILED,
-    UNKNOWN,
-    JoinError,
-    LoginError,
-)
 from app.agents.schemas import Balance, Transaction
+from app.exceptions import (
+    EndSiteDownError,
+    GeneralError,
+    InvalidMFAInfoError,
+    NoSuchRecordError,
+    PasswordExpiredError,
+    StatusAccountLockedError,
+    StatusLoginFailedError,
+    StatusRegistrationFailedError,
+    UnknownError,
+)
 from app.mocks import card_numbers
 from app.mocks.users import USER_STORE, transactions
 
@@ -30,12 +28,12 @@ JOIN_FAIL_POSTCODES = ["fail", "fa1 1fa"]
 class MockAgentHN(MockedMiner):
     add_error_credentials = {
         "email": {
-            "endsitedown@testbink.com": END_SITE_DOWN,
-            "external_unhandled_error@testbink.com": GENERAL_ERROR,
-            "account_blocked@testbink.com": STATUS_ACCOUNT_LOCKED,
-            "authorisation_expired@testbink.com": PASSWORD_EXPIRED,
-            "user_doesnt_exist@testbink.com": NO_SUCH_RECORD,
-            "non_recoverable_error@testbink.com": INVALID_MFA_INFO,
+            "endsitedown@testbink.com": EndSiteDownError,
+            "external_unhandled_error@testbink.com": GeneralError,
+            "account_blocked@testbink.com": StatusAccountLockedError,
+            "authorisation_expired@testbink.com": PasswordExpiredError,
+            "user_doesnt_exist@testbink.com": NoSuchRecordError,
+            "non_recoverable_error@testbink.com": InvalidMFAInfoError,
         },
     }
     existing_card_numbers = card_numbers.HARVEY_NICHOLS
@@ -87,7 +85,7 @@ class MockAgentHN(MockedMiner):
                 break
 
         else:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            raise StatusLoginFailedError()
 
         self.customer_number = card_numbers.HARVEY_NICHOLS[user_id]
         if self.credentials.get("card_number") != self.customer_number:
@@ -148,7 +146,7 @@ class MockAgentHN(MockedMiner):
 
     def _validate_join_credentials(self, data):
         if len(data["password"]) < 6:
-            raise JoinError(STATUS_REGISTRATION_FAILED)
+            raise StatusRegistrationFailedError()
 
         return super()._validate_join_credentials(data)
 
@@ -173,11 +171,11 @@ class MockAgentIce(MockedMiner):
     retry_limit = None
     add_error_credentials = {
         "last_name": {
-            "external_unhandled_error": GENERAL_ERROR,
-            "account_blocked": STATUS_ACCOUNT_LOCKED,
-            "authorisation_expired": PASSWORD_EXPIRED,
-            "user_doesnt_exist": NO_SUCH_RECORD,
-            "non_recoverable_error": INVALID_MFA_INFO,
+            "external_unhandled_error": GeneralError,
+            "account_blocked": StatusAccountLockedError,
+            "authorisation_expired": PasswordExpiredError,
+            "user_doesnt_exist": NoSuchRecordError,
+            "non_recoverable_error": InvalidMFAInfoError,
         },
     }
 
@@ -204,8 +202,8 @@ class MockAgentIce(MockedMiner):
         self.check_and_raise_error_credentials()
         try:
             user_id = card_numbers.ICELAND[card_number]
-        except (KeyError, TypeError):
-            raise LoginError(STATUS_LOGIN_FAILED)
+        except (KeyError, TypeError) as e:
+            raise StatusLoginFailedError from e
 
         if user_id in ["999000", "999001", "999002", "999003", "999004"]:
             sleep(60)
@@ -221,7 +219,7 @@ class MockAgentIce(MockedMiner):
         )
 
         if login_credentials != auth_check:
-            raise LoginError(STATUS_LOGIN_FAILED)
+            raise StatusLoginFailedError()
 
         self.add_missing_credentials(card_number)
         return
@@ -272,7 +270,7 @@ class MockAgentIce(MockedMiner):
 
     def _validate_join_credentials(self, data):
         if data["postcode"].lower() in JOIN_FAIL_POSTCODES:
-            raise JoinError(UNKNOWN)
+            raise UnknownError()
 
         return super()._validate_join_credentials(data)
 

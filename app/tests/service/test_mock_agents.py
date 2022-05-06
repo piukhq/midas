@@ -1,6 +1,6 @@
 import unittest
 
-from app.agents.exceptions import LoginError
+from app.exceptions import StatusLoginFailedError
 from app.agents.mock_agents import MockAgentHN, MockAgentIce
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
@@ -26,7 +26,7 @@ class TestHNFail(unittest.TestCase):
     def test_login_fail(self):
         b = MockAgentHN(*AGENT_CLASS_ARGUMENTS)
         credentials = {"card_number": "000001", "email": "notzero@testbink.com", "password": "Password01"}
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
@@ -55,7 +55,7 @@ class TestIceFail(unittest.TestCase):
     def test_login_fail(self):
         b = MockAgentIce(*AGENT_CLASS_ARGUMENTS)
         credentials = {"card_number": "000000", "last_name": "notzero", "postcode": "RG0 0aa"}
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             b.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
