@@ -11,7 +11,7 @@ from app.db import Base
 
 
 class TestModel(Base):
-    __tablename__ = 'test_table'
+    __tablename__ = "test_table"
     id = s.Column(s.Integer, primary_key=True)
     key = s.Column(s.String(100), nullable=False, index=True, unique=True)
     value = s.Column(s.String(100), nullable=False)
@@ -19,7 +19,7 @@ class TestModel(Base):
 
 @pytest.fixture
 def db_session():
-    engine = create_engine('sqlite:///:memory:')
+    engine = create_engine("sqlite:///:memory:")
     connection = engine.connect()
     TestModel.metadata.create_all(engine)
     session = Session(bind=connection)
