@@ -16,6 +16,7 @@ class TestModel(Base):
     key = s.Column(s.String(100), nullable=False, index=True, unique=True)
     value = s.Column(s.String(100), nullable=False)
 
+
 @pytest.fixture
 def db_session():
     engine = create_engine('sqlite:///:memory:')
@@ -41,6 +42,7 @@ def test_get_or_create(db_session):
     ci, created = db.get_or_create(TestModel, key="potato", defaults={"value": "baked"}, session=db_session)
     assert created is False
     assert ci.value == "mashed"
+
 
 def test_get_or_create_integrity_error(db_session):
     with mock.patch("app.db.run_query") as mock_run_query:
