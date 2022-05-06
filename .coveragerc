@@ -8,6 +8,9 @@ omit = *migrations*
        manage.py
        local_credentials.py
        app/mocks*
+       app/constants.py
+       app/postgres.py
+       app/db.py
 
 branch = True
 

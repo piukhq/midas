@@ -110,6 +110,12 @@ else:
         ]
     )
 
+QUERY_TRACE_LEVEL = getenv("QUERY_TRACE_LEVEL", default="0", conv=int)
+
+# These are set automatically based on the above.
+TRACE_QUERY_DESCRIPTIONS = QUERY_TRACE_LEVEL > 0
+TRACE_QUERY_SQL = QUERY_TRACE_LEVEL > 1
+
 PROPAGATE_EXCEPTIONS = True
 
 MAX_VALUE_LABEL_LENGTH = 11

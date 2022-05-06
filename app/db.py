@@ -1,3 +1,4 @@
+import json
 import typing as t
 from contextlib import contextmanager
 from uuid import uuid4
@@ -8,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.orm.exc import NoResultFound  # noqa
 from sqlalchemy.pool import NullPool
-import json
 
 import settings
 from app import postgres
