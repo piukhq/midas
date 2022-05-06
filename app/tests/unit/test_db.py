@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 import sqlalchemy as s
+from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,8 +18,9 @@ class TestModel(Base):
 
 @pytest.fixture
 def db_session():
-    connection = db.engine.connect()
-    TestModel.metadata.create_all(db.engine)
+    engine = create_engine('sqlite:///:memory:')
+    connection = engine.connect()
+    TestModel.metadata.create_all(engine)
     session = Session(bind=connection)
     transaction = connection.begin_nested()
     try:
@@ -26,7 +28,7 @@ def db_session():
     finally:
         transaction.rollback()
         session.close()
-        Base.metadata.drop_all(db.engine)
+        Base.metadata.drop_all(engine)
 
 
 def test_get_or_create(db_session):
