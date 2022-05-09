@@ -87,6 +87,35 @@ if SENTRY_DSN:
         release=__version__,
     )
 
+if getenv("POSTGRES_DSN", required=False):
+    POSTGRES_DSN = getenv("POSTGRES_DSN")
+else:
+    POSTGRES_HOST = getenv("POSTGRES_HOST")
+    POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
+    POSTGRES_USER = getenv("POSTGRES_USER")
+    POSTGRES_PASS = getenv("POSTGRES_PASS", required=False)
+    POSTGRES_DB = getenv("POSTGRES_DB")
+
+    POSTGRES_DSN = "".join(
+        [
+            "postgresql+psycopg2://",
+            POSTGRES_USER,
+            f":{POSTGRES_PASS}" if POSTGRES_PASS else "",
+            "@",
+            POSTGRES_HOST,
+            ":",
+            str(POSTGRES_PORT),
+            "/",
+            POSTGRES_DB,
+        ]
+    )
+
+QUERY_TRACE_LEVEL = getenv("QUERY_TRACE_LEVEL", default="0", conv=int)
+
+# These are set automatically based on the above.
+TRACE_QUERY_DESCRIPTIONS = QUERY_TRACE_LEVEL > 0
+TRACE_QUERY_SQL = QUERY_TRACE_LEVEL > 1
+
 PROPAGATE_EXCEPTIONS = True
 
 MAX_VALUE_LABEL_LENGTH = 11

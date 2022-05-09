@@ -35,6 +35,8 @@ user-token-store = "*"
 olympus-messaging = "*"
 urllib3 = "*"
 click = "==8.0.4"
+alembic = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 black = "==21.6b0"
