@@ -88,7 +88,7 @@ if SENTRY_DSN:
     )
 
 if getenv("POSTGRES_DSN", required=False):
-    POSTGRES_DSN = getenv("POSTGRES_DSN")
+    POSTGRES_DSN = getenv("POSTGRES_DSN").format(getenv("POSTGRES_DB", "midas"))
 else:
     POSTGRES_HOST = getenv("POSTGRES_HOST")
     POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
