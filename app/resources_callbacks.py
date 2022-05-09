@@ -43,7 +43,7 @@ class JoinCallback(Resource):
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
-            raise UnknownError from e
+            raise UnknownError(response=e.args[0])
         except requests.ConnectionError as e:
             sentry_sdk.capture_exception()
             raise ServiceConnectionError from e

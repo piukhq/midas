@@ -10,14 +10,6 @@ http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 """
 
 
-def return_error_code(exception):
-    try:
-        return exception.code
-    except AttributeError:
-        # Return unknown error status code
-        return 520
-
-
 class BaseError(Exception):
     """Exception raised for errors in the input."""
 
@@ -26,6 +18,7 @@ class BaseError(Exception):
         self.message: str = ""
         self.code: int = None
         self.system_action_required = False
+        self.response = None
 
     def __str__(self):
         return f"{self.code} {self.name}: {self.message}"
@@ -35,7 +28,8 @@ class ValidationError(BaseError):
     def __init__(self, response=None):
         self.code = 401
         self.name = "Failed validation"
-        self.message = response or "Validation of the request has failed."
+        self.response = response
+        self.message = self.response or "Validation of the request has failed."
 
 
 class StatusLoginFailedError(BaseError):
@@ -44,8 +38,9 @@ class StatusLoginFailedError(BaseError):
         self.code = 403
         self.status_code = 403
         self.name = "Invalid credentials"
+        self.response = response
         self.message = (
-            response
+            self.response
             or "We could not update your account because your username and/or password "
             "were reported to be incorrect. Please re-verify your username and password."
         )
@@ -55,9 +50,9 @@ class PreRegisteredCardError(BaseError):
     def __init__(self, response=None):
         self.code = 406
         self.name = "Pre-registered card"
+        self.response = response
         self.message = (
-            response
-            or "We could not link your account because this card does not exist yet in this "
+            self.response or "We could not link your account because this card does not exist yet in this "
             "loyalty scheme. Please join this loyalty scheme with those credentials and try again."
         )
 
@@ -66,7 +61,8 @@ class RetryLimitReachedError(BaseError):
     def __init__(self, response=None):
         self.code = 429
         self.name = "Retry limit reached"
-        self.message = response or "You have reached your maximum amount of login tries. Please wait 15 minutes."
+        self.response = response
+        self.message = self.response or "You have reached your maximum amount of login tries. Please wait 15 minutes."
         self.system_action_required = True
 
 
@@ -74,8 +70,10 @@ class InvalidMFAInfoError(BaseError):
     def __init__(self, response=None):
         self.code = 432
         self.name = "Invalid MFA"
+        self.response = response
         self.message = (
-            response or "We're sorry, the authentication information you provided is incorrect. Please try again."
+            self.response
+            or "We're sorry, the authentication information you provided is incorrect. Please try again."
         )
 
 
@@ -83,8 +81,9 @@ class StatusAccountLockedError(BaseError):
     def __init__(self, response=None):
         self.code = 434
         self.name = "Account locked on end site"
+        self.response = response
         self.message = (
-            response
+            self.response
             or "We could not update your account because it appears your account has been locked. "
             "This usually results from too many unsuccessful login attempts in a short period of time. "
             "Please visit the site or contact its customer support to resolve this issue. Once done, "
@@ -92,52 +91,45 @@ class StatusAccountLockedError(BaseError):
         )
 
 
-class WrongCredentialTypeError(BaseError):
-    def __init__(self, response=None):
-        self.code = 435
-        self.name = "Wrong credential type entered"
-        self.message = (
-            response
-            or "One of the account credentials you have entered is the wrong type. For example, "
-            "you may have entered your card number instead of your barcode. Please correct "
-            "this information and try again."
-        )
-
-
 class CardNumberError(BaseError):
     def __init__(self, response=None):
         self.code = 436
         self.name = "Card not registered or Unknown"
-        self.message = response or "Unknown Card number."
+        self.response = response
+        self.message = self.response or "Unknown Card number."
 
 
 class LinkLimitExceededError(BaseError):
     def __init__(self, response=None):
         self.code = 437
         self.name = "Card not registered or Unknown"
-        self.message = response or "Unknown Card number."
+        self.response = response
+        self.message = self.response or "Unknown Card number."
 
 
 class CardNotRegisteredError(BaseError):
     def __init__(self, response=None):
         self.code = 438
         self.name = "Card not registered or Unknown"
-        self.message = response or "Unknown Card number."
+        self.response = response
+        self.message = self.response or "Unknown Card number."
 
 
 class GeneralError(BaseError):
     def __init__(self, response=None):
         self.code = 439
         self.name = "General Error"
-        self.message = response or "General Error such as incorrect user details."
+        self.response = response
+        self.message = self.response or "General Error such as incorrect user details."
 
 
 class StatusRegistrationFailedError(BaseError):
     def __init__(self, response=None):
         self.code = 440
         self.name = "Join in progress"
+        self.response = response
         self.message = (
-            response
+            self.response
             or "The username and/or password you have entered were reported to be invalid. "
             "This may due to password validation - it's too short, it requires capital letters "
             "and numbers, etc."
@@ -148,14 +140,16 @@ class JoinInProgressError(BaseError):
     def __init__(self, response=None):
         self.code = 441
         self.name = "Join in progress"
-        self.message = response or "Join in progress."
+        self.response = response
+        self.message = self.response or "Join in progress."
 
 
 class NoSuchRecordError(BaseError):
     def __init__(self, response=None):
         self.code = 444
         self.name = "Account does not exist"
-        self.message = response or "There is currently no account with the credentials you have provided."
+        self.response = response
+        self.message = self.response or "There is currently no account with the credentials you have provided."
         self.system_action_required = True
 
 
@@ -163,23 +157,24 @@ class AccountAlreadyExistsError(BaseError):
     def __init__(self, response=None):
         self.code = 445
         self.name = "Account already exists"
-        self.message = response or "An account with this username/email already exists."
+        self.response = response
+        self.message = self.response or "An account with this username/email already exists."
 
 
 class SchemeRequestedDeleteError(BaseError):
     def __init__(self, response=None):
         self.code = 447
-        self.name = response or "Scheme requested account deletion"
-        self.message = "The scheme has requested this account should be deleted."
+        self.name = "Scheme requested account deletion"
+        self.response = response
+        self.message = self.response or "The scheme has requested this account should be deleted."
 
 
-class ResourceLimitReachedError(BaseError):
+class UnknownError(BaseError):
     def __init__(self, response=None):
-        self.code = 503
-        self.name = "Resource limit reached"
-        self.message = (
-            response or "There are currently too many balance requests running. Please wait before trying again."
-        )
+        self.code = 520
+        self.name = "An unknown error has occurred"
+        self.response = response
+        self.message = self.response or "We have no idea what went wrong - the team is on it."
         self.system_action_required = True
 
 
@@ -187,7 +182,8 @@ class EndSiteDownError(BaseError):
     def __init__(self, response=None):
         self.code = 530
         self.name = "End site down"
-        self.message = response or "The scheme end site is currently down."
+        self.response = response
+        self.message = self.response or "The scheme end site is currently down."
         self.system_action_required = True
 
 
@@ -195,7 +191,8 @@ class IPBlockedError(BaseError):
     def __init__(self, response=None):
         self.code = 531
         self.name = "IP blocked"
-        self.message = response or "The end site is currently blocking this ip address."
+        self.response = response
+        self.message = self.response or "The end site is currently blocking this ip address."
         self.system_action_required = True
 
 
@@ -203,8 +200,9 @@ class PasswordExpiredError(BaseError):
     def __init__(self, response=None):
         self.code = 533
         self.name = "Password expired"
+        self.response = response
         self.message = (
-            response
+            self.response
             or "We could not update your account because the end site requires that you reset "
             "your password. Please visit the site and resolve this issue before trying again."
         )
@@ -214,7 +212,8 @@ class NotSentError(BaseError):
     def __init__(self, response=None):
         self.code = 535
         self.name = "Message was not sent"
-        self.message = response or "Message was not sent."
+        self.response = response
+        self.message = self.response or "Message was not sent."
         self.system_action_required = True
 
 
@@ -222,7 +221,8 @@ class ConfigurationError(BaseError):
     def __init__(self, response=None):
         self.code = 536
         self.name = "Configuration error"
-        self.message = response or "There is an error with the configuration or it was not possible to retrieve."
+        self.response = response
+        self.message = self.response or "There is an error with the configuration or it was not possible to retrieve."
         self.system_action_required = True
 
 
@@ -230,45 +230,14 @@ class ServiceConnectionError(BaseError):
     def __init__(self, response=None):
         self.code = 537
         self.name = "Service connection error"
-        self.message = response or "There was in issue connecting to an external service."
+        self.response = response
+        self.message = self.response or "There was in issue connecting to an external service."
 
 
 class JoinError(BaseError):
     def __init__(self, response=None):
         self.code = 538
         self.name = "General Error preventing join"
-        self.message = response or "A system error occurred during join."
+        self.response = response
+        self.message = self.response or "A system error occurred during join."
         self.system_action_required = True
-
-
-class UnknownError(BaseError):
-    def __init__(self, response=None):
-        self.code = 520
-        self.name = "An unknown error has occurred"
-        self.message = response or "We have no idea what went wrong - the team is on it."
-        self.system_action_required = True
-
-
-# class ConfirmationRequiredError(BaseError):
-#     def __init__(self, response=None):
-#         self.code = 534
-#         self.name = "Confirmation required"
-#         self.message = """The end-site requires that you confirm some information before we
-#         can continue. Please log into your account on the end-site and follow through any
-#         confirmation steps shown, then try again."""
-
-
-# class TrippedCaptchaError(BaseError):
-#     def __init__(self, response=None):
-#         self.code = 532
-#         self.name = "Tripped captcha"
-#         self.message = "The agent has tripped the scheme capture."
-#         self.system_action_required = True
-
-
-class AgentModifiedError(Exception):
-    pass
-
-
-class UnauthorisedError(Exception):
-    pass

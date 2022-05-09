@@ -1606,7 +1606,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertEqual(520, response.status_code)
         self.assertEqual(
-            {"code": 520, "message": "The record_uid provided is not valid", "name": "Unknown Error"}, response.json
+            {"code": 520, "message": "The record_uid provided is not valid", "name": "An unknown error has occurred"},
+            response.json,
         )
 
     @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
@@ -1661,7 +1662,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_credentials.called)
 
         self.assertEqual(response.status_code, 520)
-        self.assertEqual(response.json, {"code": 520, "message": "test exception", "name": "Unknown Error"})
+        self.assertEqual(response.json, {"code": 520, "message": "test exception", "name": 'An unknown error has occurred'})
 
     @mock.patch("requests.sessions.Session.get")
     @mock.patch.object(RSA, "decode", autospec=True)
@@ -1683,14 +1684,14 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertEqual(response.status_code, ServiceConnectionError().code)
+        self.assertEqual(ServiceConnectionError().code, response.status_code)
         self.assertEqual(
-            response.json,
             {
                 "code": 537,
                 "message": "There was in issue connecting to an external service.",
                 "name": "Service connection error",
             },
+            response.json,
         )
 
         # Connection error test
@@ -1699,12 +1700,15 @@ class TestIcelandEndToEnd(FlaskTestCase):
         with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
             response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
-        self.assertEqual(response.status_code, ServiceConnectionError().code)
         self.assertEqual(
-            response.json,
+            ServiceConnectionError().code,
+            response.status_code,
+        )
+        self.assertEqual(
             {
                 "code": 537,
                 "message": "There was in issue connecting to an external service.",
                 "name": "Service connection error",
             },
+            response.json,
         )

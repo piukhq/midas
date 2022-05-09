@@ -24,7 +24,6 @@ def create_app(config_name="settings"):
 
     @app.errorhandler(BaseError)
     def agent_error_request_handler(error):
-        error = error.args[0]
         log.warning(error.message)
 
         response = jsonify({"message": error.message, "code": error.code, "name": error.name})
