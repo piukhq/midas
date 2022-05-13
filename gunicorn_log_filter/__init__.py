@@ -5,7 +5,6 @@ from gunicorn import glogging
 
 
 class RedactingFilter(logging.Filter):
-
     def __init__(self, patterns):
         super(RedactingFilter, self).__init__()
         self._patterns = patterns
@@ -32,6 +31,8 @@ class Logger(glogging.Logger):
     def setup(self, cfg):
         super().setup(cfg)
 
-        patterns = [re.compile(r"credentials=[a-zA-Z0-9+/=]*"), ]
+        patterns = [
+            re.compile(r"credentials=[a-zA-Z0-9+/=]*"),
+        ]
         self.access_log.addFilter(RedactingFilter(patterns))
         self.error_log.addFilter(RedactingFilter(patterns))
