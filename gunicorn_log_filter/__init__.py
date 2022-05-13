@@ -32,7 +32,7 @@ class Logger(glogging.Logger):
         super().setup(cfg)
 
         patterns = [
-            re.compile(r"credentials=[a-zA-Z0-9+/=]*"),
+            re.compile(r"credentials=[a-zA-Z0-9+/%=]*"),
         ]
         self.access_log.addFilter(RedactingFilter(patterns))
         self.error_log.addFilter(RedactingFilter(patterns))
