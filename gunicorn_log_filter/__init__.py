@@ -3,13 +3,27 @@ import re
 
 from gunicorn import glogging
 
-creds_query = re.compile(r"credentials=[a-zA-Z0-9+/=]*")
 
+class RedactingFilter(logging.Filter):
 
-class CredentialFilter(logging.Filter):
+    def __init__(self, patterns):
+        super(RedactingFilter, self).__init__()
+        self._patterns = patterns
+
     def filter(self, record):
-        record.msg = creds_query.sub("credentials=[REDACTED]", record.msg)
+        record.msg = self.redact(record.msg)
+        if isinstance(record.args, dict):
+            for k in record.args.keys():
+                record.args[k] = self.redact(record.args[k])
+        else:
+            record.args = tuple(self.redact(arg) for arg in record.args)
         return True
+
+    def redact(self, msg):
+        if isinstance(msg, str):
+            for pattern in self._patterns:
+                msg = re.sub(pattern, "credentials=[REDACTED]", msg)
+        return msg
 
 
 class Logger(glogging.Logger):
@@ -18,5 +32,6 @@ class Logger(glogging.Logger):
     def setup(self, cfg):
         super().setup(cfg)
 
-        logger = logging.getLogger("gunicorn")
-        logger.addFilter(CredentialFilter())
+        patterns = [re.compile(r"credentials=[a-zA-Z0-9+/=]*"), ]
+        self.access_log.addFilter(RedactingFilter(patterns))
+        self.error_log.addFilter(RedactingFilter(patterns))
