@@ -141,7 +141,7 @@ class BaseAgent(object):
 
     def _oauth_authentication(self):
         have_valid_token = False
-        current_timestamp = (arrow.utcnow().int_timestamp,)
+        current_timestamp = arrow.utcnow().int_timestamp
         token = ""
         try:
             cached_token = json.loads(self.token_store.get(self.scheme_id))
@@ -172,15 +172,15 @@ class BaseAgent(object):
 
         return response.json()["access_token"]
 
-    def _store_token(self, token: str, current_timestamp: tuple[int]) -> None:
+    def _store_token(self, token: str, current_timestamp: int) -> None:
         token_dict = {
             f"{self.scheme_slug.replace('-', '_')}_access_token": token,
             "timestamp": current_timestamp,
         }
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
-    def _token_is_valid(self, token: dict, current_timestamp: tuple[int]) -> bool:
-        return current_timestamp[0] - token["timestamp"][0] < self.oauth_token_timeout
+    def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
+        return current_timestamp - token["timestamp"] < self.oauth_token_timeout
 
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
