@@ -122,17 +122,13 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "wasabi_club_access_token": "abcde12345fghij",
-            "timestamp": [
-                100,
-            ],  # an easy number to work with to get 75600
+            "timestamp": 100,  # an easy number to work with to get 75600
         }
 
         # WHEN
         is_valid = self.wasabi._token_is_valid(
             token=mock_token,
-            current_timestamp=[
-                mock_current_timestamp,
-            ],
+            current_timestamp=mock_current_timestamp,
         )
 
         # THEN
@@ -149,17 +145,13 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "wasabi_club_access_token": "abcde12345fghij",
-            "timestamp": [
-                10,
-            ],  # an easy number to work with to exceed the timout setting
+            "timestamp": 10,  # an easy number to work with to exceed the timout setting
         }
 
         # WHEN
         is_valid = self.wasabi._token_is_valid(
             token=mock_token,
-            current_timestamp=[
-                mock_current_timestamp,
-            ],
+            current_timestamp=mock_current_timestamp,
         )
 
         # THEN
@@ -176,18 +168,11 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.oauth_token_timeout = mock_auth_token_timeout
         mock_token = {
             "wasabi_club_access_token": "abcde12345fghij",
-            "timestamp": [
-                450,
-            ],  # an easy number to work with to stay within validity range
+            "timestamp": 450,  # an easy number to work with to stay within validity range
         }
 
         # WHEN
-        is_valid = self.wasabi._token_is_valid(
-            token=mock_token,
-            current_timestamp=[
-                mock_current_timestamp,
-            ],
-        )
+        is_valid = self.wasabi._token_is_valid(token=mock_token, current_timestamp=mock_current_timestamp)
 
         # THEN
         assert is_valid is True
@@ -208,9 +193,7 @@ class TestWasabi(unittest.TestCase):
         with patch.object(self.wasabi.token_store, "set", return_value=True):
             self.wasabi._store_token(
                 token=mock_wasabi_club_access_token,
-                current_timestamp=[
-                    mock_current_timestamp,
-                ],
+                current_timestamp=mock_current_timestamp,
             )
 
             # THEN
