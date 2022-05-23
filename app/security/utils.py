@@ -27,7 +27,7 @@ def get_security_agent(security_type, *args, **kwargs):
         agent_instance = agent_class(*args, **kwargs)
 
     except (AttributeError, ImportError) as e:
-        raise ConfigurationError from e
+        raise ConfigurationError() from e
 
     return agent_instance
 

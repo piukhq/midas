@@ -70,7 +70,7 @@ class HarveyNichols(BaseAgent):
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
-            raise StatusLoginFailedError
+            raise StatusLoginFailedError()
 
     def login(self):
         self.identifier_type = "card_number"

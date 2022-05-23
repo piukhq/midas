@@ -46,7 +46,7 @@ class JoinCallback(Resource):
             raise UnknownError(response=e.args[0])
         except requests.ConnectionError as e:
             sentry_sdk.capture_exception()
-            raise ServiceConnectionError from e
+            raise ServiceConnectionError() from e
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -75,7 +75,7 @@ class JoinCallback(Resource):
         try:
             response.raise_for_status()
         except Exception as ex:
-            raise UnknownError from ex
+            raise UnknownError() from ex
 
         credentials = decrypt_credentials(response.json()["credentials"])
 

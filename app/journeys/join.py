@@ -20,7 +20,7 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
         error = e
         consents = user_info["credentials"].get("consents", [])
         consent_ids = (consent["id"] for consent in consents)
-        update_pending_join_account(user_info, tid, error=e, scheme_slug=scheme_slug, consent_ids=consent_ids)
+        update_pending_join_account(user_info, tid, error=error, scheme_slug=scheme_slug, consent_ids=consent_ids)
     except Exception as e:
         error = e.args[0]
         consents = user_info["credentials"].get("consents", [])

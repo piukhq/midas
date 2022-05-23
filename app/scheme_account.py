@@ -112,7 +112,7 @@ def update_pending_join_account(
     )
 
     if raise_exception:
-        raise error
+        raise error()
 
 
 def update_pending_link_account(user_info, tid, error=None, response=None, scheme_slug=None, raise_exception=True):

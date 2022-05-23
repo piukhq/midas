@@ -165,7 +165,7 @@ class Iceland(BaseAgent):
             return response.json()
         except BaseError as e:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            raise e
+            raise
 
     def join(self) -> None:
         # Barclays expects only 1 consent for an Iceland join, whereas Iceland expects 2
@@ -200,7 +200,7 @@ class Iceland(BaseAgent):
             return response.json()
         except (BaseError) as e:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            raise e
+            raise
 
     def login(self) -> None:
         self.integration_service = "SYNC"

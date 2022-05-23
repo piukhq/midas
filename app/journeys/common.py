@@ -62,7 +62,7 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
         redis_retry.inc_count(key)
         raise e
     except Exception as e:
-        raise UnknownError from e
+        raise UnknownError() from e
 
     return agent_instance
 

@@ -202,7 +202,7 @@ class AccountOverview(Resource):
         except BaseError as e:
             raise e
         except Exception as e:
-            raise UnknownError from e
+            raise UnknownError() from e
 
 
 class TestResults(Resource):

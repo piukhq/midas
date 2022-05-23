@@ -38,7 +38,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         raise e
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
-        raise UnknownError from e
+        raise UnknownError() from e
     finally:
         if user_info.get("pending") and not status == SchemeAccountStatus.ACTIVE:
             pass
