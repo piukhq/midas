@@ -13,7 +13,7 @@ from app import publish
 from app.agents.schemas import transaction_tuple_to_dict
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
-from app.exceptions import UnknownError, BaseError
+from app.exceptions import BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.messaging import queue

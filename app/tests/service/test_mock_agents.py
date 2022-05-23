@@ -1,7 +1,7 @@
 import unittest
 
-from app.exceptions import StatusLoginFailedError
 from app.agents.mock_agents import MockAgentHN, MockAgentIce
+from app.exceptions import StatusLoginFailedError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 

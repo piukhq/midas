@@ -12,7 +12,6 @@ from requests import Response
 from soteria.configuration import Configuration
 
 from app.agents.base import Balance, BaseAgent
-from app.exceptions import NoSuchRecordError, ServiceConnectionError
 from app.agents.iceland import Iceland
 from app.agents.schemas import Transaction
 from app.api import create_app
@@ -27,6 +26,7 @@ from app.exceptions import (
     LinkLimitExceededError,
     NoSuchRecordError,
     NotSentError,
+    ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
 )
@@ -1250,7 +1250,7 @@ class TestIcelandJoin(TestCase):
 
         with self.assertRaises(JoinError) as e:
             self.iceland.join_callback(data=data)
-        self.assertEqual("General Error preventing join", e.exception.name)
+        self.assertEqual("General error preventing join", e.exception.name)
         self.assertEqual(538, e.exception.code)
         self.assertEqual(
             ConsentStatus.FAILED,
@@ -1326,7 +1326,7 @@ class TestIcelandJoin(TestCase):
 
         with self.assertRaises(GeneralError) as e:
             self.iceland.join_callback(data=data)
-        self.assertEqual("General Error", e.exception.name)
+        self.assertEqual("General error", e.exception.name)
         self.assertEqual(439, e.exception.code)
         self.assertEqual(
             ConsentStatus.FAILED,
@@ -1606,7 +1606,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertEqual(520, response.status_code)
         self.assertEqual(
-            {"code": 520, "message": "The record_uid provided is not valid", "name": "An unknown error has occurred"},
+            {"code": 520, "message": "The record_uid provided is not valid", "name": "Unknown error"},
             response.json,
         )
 
@@ -1662,7 +1662,9 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_credentials.called)
 
         self.assertEqual(520, response.status_code)
-        self.assertEqual({"code": 520, "message": "test exception", "name": 'An unknown error has occurred'}, response.json)
+        self.assertEqual(
+            {"code": 520, "message": "test exception", "name": "Unknown error"}, response.json
+        )
 
     @mock.patch("requests.sessions.Session.get")
     @mock.patch.object(RSA, "decode", autospec=True)

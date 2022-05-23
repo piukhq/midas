@@ -33,6 +33,7 @@ from app.exceptions import (
     ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
+    BaseError,
 )
 from app.mocks.users import USER_STORE
 from app.reporting import get_logger
@@ -378,7 +379,7 @@ def create_error_response(error_code, error_description):
 
 
 class MockedMiner(BaseAgent):
-    add_error_credentials: dict[str, dict[str, str]] = {}
+    add_error_credentials: dict[str, dict[str, type[BaseError]]] = {}
     existing_card_numbers: dict[str, str] = {}
     ghost_card_prefix: Optional[str] = None
     join_fields: set[str] = set()

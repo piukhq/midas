@@ -3,7 +3,7 @@ from werkzeug.exceptions import NotFound
 
 from app import publish
 from app.agents.schemas import balance_tuple_to_dict
-from app.exceptions import BaseError, AccountAlreadyExistsError, UnknownError
+from app.exceptions import AccountAlreadyExistsError, BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus, update_pending_join_account

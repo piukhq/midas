@@ -6,9 +6,8 @@ from uuid import uuid4
 import arrow
 
 from app.agents.base import MockedMiner
-from app.exceptions import GeneralError, PreRegisteredCardError
-
 from app.agents.schemas import Balance, Transaction, Voucher
+from app.exceptions import GeneralError, PreRegisteredCardError
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"

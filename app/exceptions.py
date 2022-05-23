@@ -54,7 +54,8 @@ class PreRegisteredCardError(BaseError):
         self.name = "Pre-registered card"
         self.response = response
         self.message = (
-            self.response or "We could not link your account because this card does not exist yet in this "
+            self.response
+            or "We could not link your account because this card does not exist yet in this "
             "loyalty scheme. Please join this loyalty scheme with those credentials and try again."
         )
 
@@ -76,8 +77,7 @@ class InvalidMFAInfoError(BaseError):
         self.name = "Invalid MFA"
         self.response = response
         self.message = (
-            self.response
-            or "We're sorry, the authentication information you provided is incorrect. Please try again."
+            self.response or "We're sorry, the authentication information you provided is incorrect. Please try again."
         )
 
 
@@ -102,7 +102,7 @@ class CardNumberError(BaseError):
         self.code = 436
         self.name = "Card not registered or Unknown"
         self.response = response
-        self.message = self.response or "Unknown Card number."
+        self.message = self.response or "Unknown card number."
 
 
 class LinkLimitExceededError(BaseError):
@@ -127,16 +127,16 @@ class GeneralError(BaseError):
     def __init__(self, response=None):
         super().__init__()
         self.code = 439
-        self.name = "General Error"
+        self.name = "General error"
         self.response = response
-        self.message = self.response or "General Error such as incorrect user details."
+        self.message = self.response or "General error such as incorrect user details."
 
 
 class StatusRegistrationFailedError(BaseError):
     def __init__(self, response=None):
         super().__init__()
         self.code = 440
-        self.name = "Join in progress"
+        self.name = "Status registration failed"
         self.response = response
         self.message = (
             self.response
@@ -187,9 +187,9 @@ class UnknownError(BaseError):
     def __init__(self, response=None):
         super().__init__()
         self.code = 520
-        self.name = "An unknown error has occurred"
+        self.name = "Unknown error"
         self.response = response
-        self.message = self.response or "We have no idea what went wrong - the team is on it."
+        self.message = self.response or "An unknown error has occurred."
         self.system_action_required = True
 
 
@@ -259,7 +259,7 @@ class JoinError(BaseError):
     def __init__(self, response=None):
         super().__init__()
         self.code = 538
-        self.name = "General Error preventing join"
+        self.name = "General error preventing join"
         self.response = response
         self.message = self.response or "A system error occurred during join."
         self.system_action_required = True

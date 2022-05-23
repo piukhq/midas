@@ -2,8 +2,8 @@ import unittest
 
 from user_auth_token import UserTokenStore
 
-from app.exceptions import NoSuchRecordError, StatusLoginFailedError
 from app.agents.harvey_nichols import HarveyNichols
+from app.exceptions import NoSuchRecordError, StatusLoginFailedError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from settings import REDIS_URL
 

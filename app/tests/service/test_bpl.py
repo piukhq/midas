@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import httpretty
 
 from app.agents.bpl import Bpl
-from app.exceptions import GeneralError, AccountAlreadyExistsError, StatusRegistrationFailedError, NoSuchRecordError
+from app.exceptions import AccountAlreadyExistsError, GeneralError, NoSuchRecordError, StatusRegistrationFailedError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 
 

@@ -302,7 +302,7 @@ class TestBase(TestCase):
         }
         with self.assertRaises(GeneralError) as e:
             agent.handle_error_codes(error_code="GENERAL_ERROR")
-        self.assertEqual("General Error", e.exception.name)
+        self.assertEqual("General error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
     @mock.patch("app.agents.base.Configuration")
@@ -322,5 +322,5 @@ class TestBase(TestCase):
         }
         with self.assertRaises(UnknownError) as e:
             agent.handle_error_codes(error_code="VALIDATION")
-        self.assertEqual("An unknown error has occurred", e.exception.name)
+        self.assertEqual("Unknown error", e.exception.name)
         self.assertEqual(520, e.exception.code)

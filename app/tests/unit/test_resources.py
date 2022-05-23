@@ -224,7 +224,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(520, response.status_code)
-        self.assertEqual("An unknown error has occurred", response.json["name"])
+        self.assertEqual("Unknown error", response.json["name"])
         self.assertEqual("test error", response.json["message"])
         self.assertEqual(520, response.json["code"])
 
@@ -281,7 +281,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(520, response.status_code)
-        self.assertEqual("An unknown error has occurred", response.json["name"])
+        self.assertEqual("Unknown error", response.json["name"])
         self.assertEqual("test error", response.json["message"])
         self.assertEqual(520, response.json["code"])
 
