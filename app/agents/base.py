@@ -245,7 +245,7 @@ class BaseAgent(object):
     def handle_error_codes(self, error_code, unhandled_exception=UnknownError):
         for agent_error, agent_error_codes in self.errors.items():
             if error_code in agent_error_codes:
-                raise agent_error
+                raise agent_error()
         raise unhandled_exception()
 
     def join(self):

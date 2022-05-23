@@ -6,14 +6,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import (
-    AccountAlreadyExistsError,
-    BaseError,
-    EndSiteDownError,
-    NoSuchRecordError,
-    ServiceConnectionError,
-    StatusLoginFailedError,
-)
+from app.exceptions import BaseError, AccountAlreadyExistsError, EndSiteDownError, NoSuchRecordError, ServiceConnectionError, StatusLoginFailedError
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus

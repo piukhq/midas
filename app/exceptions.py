@@ -26,6 +26,7 @@ class BaseError(Exception):
 
 class ValidationError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 401
         self.name = "Failed validation"
         self.response = response
@@ -48,6 +49,7 @@ class StatusLoginFailedError(BaseError):
 
 class PreRegisteredCardError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 406
         self.name = "Pre-registered card"
         self.response = response
@@ -59,6 +61,7 @@ class PreRegisteredCardError(BaseError):
 
 class RetryLimitReachedError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 429
         self.name = "Retry limit reached"
         self.response = response
@@ -68,6 +71,7 @@ class RetryLimitReachedError(BaseError):
 
 class InvalidMFAInfoError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 432
         self.name = "Invalid MFA"
         self.response = response
@@ -79,6 +83,7 @@ class InvalidMFAInfoError(BaseError):
 
 class StatusAccountLockedError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 434
         self.name = "Account locked on end site"
         self.response = response
@@ -93,6 +98,7 @@ class StatusAccountLockedError(BaseError):
 
 class CardNumberError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 436
         self.name = "Card not registered or Unknown"
         self.response = response
@@ -101,6 +107,7 @@ class CardNumberError(BaseError):
 
 class LinkLimitExceededError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 437
         self.name = "Card not registered or Unknown"
         self.response = response
@@ -109,6 +116,7 @@ class LinkLimitExceededError(BaseError):
 
 class CardNotRegisteredError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 438
         self.name = "Card not registered or Unknown"
         self.response = response
@@ -117,6 +125,7 @@ class CardNotRegisteredError(BaseError):
 
 class GeneralError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 439
         self.name = "General Error"
         self.response = response
@@ -125,6 +134,7 @@ class GeneralError(BaseError):
 
 class StatusRegistrationFailedError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 440
         self.name = "Join in progress"
         self.response = response
@@ -138,6 +148,7 @@ class StatusRegistrationFailedError(BaseError):
 
 class JoinInProgressError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 441
         self.name = "Join in progress"
         self.response = response
@@ -146,6 +157,7 @@ class JoinInProgressError(BaseError):
 
 class NoSuchRecordError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 444
         self.name = "Account does not exist"
         self.response = response
@@ -155,6 +167,7 @@ class NoSuchRecordError(BaseError):
 
 class AccountAlreadyExistsError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 445
         self.name = "Account already exists"
         self.response = response
@@ -163,6 +176,7 @@ class AccountAlreadyExistsError(BaseError):
 
 class SchemeRequestedDeleteError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 447
         self.name = "Scheme requested account deletion"
         self.response = response
@@ -171,6 +185,7 @@ class SchemeRequestedDeleteError(BaseError):
 
 class UnknownError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 520
         self.name = "An unknown error has occurred"
         self.response = response
@@ -180,6 +195,7 @@ class UnknownError(BaseError):
 
 class EndSiteDownError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 530
         self.name = "End site down"
         self.response = response
@@ -189,6 +205,7 @@ class EndSiteDownError(BaseError):
 
 class IPBlockedError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 531
         self.name = "IP blocked"
         self.response = response
@@ -198,6 +215,7 @@ class IPBlockedError(BaseError):
 
 class PasswordExpiredError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 533
         self.name = "Password expired"
         self.response = response
@@ -210,6 +228,7 @@ class PasswordExpiredError(BaseError):
 
 class NotSentError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 535
         self.name = "Message was not sent"
         self.response = response
@@ -219,6 +238,7 @@ class NotSentError(BaseError):
 
 class ConfigurationError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 536
         self.name = "Configuration error"
         self.response = response
@@ -228,6 +248,7 @@ class ConfigurationError(BaseError):
 
 class ServiceConnectionError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 537
         self.name = "Service connection error"
         self.response = response
@@ -236,6 +257,7 @@ class ServiceConnectionError(BaseError):
 
 class JoinError(BaseError):
     def __init__(self, response=None):
+        super().__init__()
         self.code = 538
         self.name = "General Error preventing join"
         self.response = response

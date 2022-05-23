@@ -736,7 +736,7 @@ class TestIcelandAdd(TestCase):
                     "merchant_scheme_id2": None,
                 },
                 scheme_slug="iceland-bonus-card",
-                handler_type=ANY,
+                handler_type=Configuration.VALIDATE_HANDLER,
                 integration_service="SYNC",
                 message_uid=ANY,
                 record_uid=ANY,
@@ -747,7 +747,7 @@ class TestIcelandAdd(TestCase):
                 self.iceland,
                 response=ANY,
                 scheme_slug="iceland-bonus-card",
-                handler_type=ANY,
+                handler_type=Configuration.VALIDATE_HANDLER,
                 integration_service="SYNC",
                 status_code=401,
                 message_uid=ANY,
@@ -759,7 +759,7 @@ class TestIcelandAdd(TestCase):
                 self.iceland, slug="iceland-bonus-card", endpoint="/api/v1/bink/link", latency=ANY, response_code=401
             ),
             call("request-fail"),
-            call().send(self.iceland, slug="iceland-bonus-card", channel="", error="STATUS_LOGIN_FAILED"),
+            call().send(self.iceland, slug="iceland-bonus-card", channel="", error=StatusLoginFailedError),
         ]
         expected_iceland_calls = [
             call("log-in-fail"),
@@ -1661,8 +1661,8 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_update_join.called)
         self.assertTrue(mock_credentials.called)
 
-        self.assertEqual(response.status_code, 520)
-        self.assertEqual(response.json, {"code": 520, "message": "test exception", "name": 'An unknown error has occurred'})
+        self.assertEqual(520, response.status_code)
+        self.assertEqual({"code": 520, "message": "test exception", "name": 'An unknown error has occurred'}, response.json)
 
     @mock.patch("requests.sessions.Session.get")
     @mock.patch.object(RSA, "decode", autospec=True)

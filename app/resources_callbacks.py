@@ -60,7 +60,7 @@ class JoinCallback(Resource):
             raise e
         except Exception as e:
             update_failed_scheme_account(e)
-            raise UnknownError from e
+            raise UnknownError(response=e.args[0]) from e
 
         return create_response({"success": True})
 
