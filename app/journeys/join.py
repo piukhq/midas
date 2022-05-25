@@ -77,7 +77,7 @@ def attempt_join(scheme_slug, user_info, tid):
         publish_transactions(agent_instance, user_info["scheme_account_id"], user_info["user_set"], tid)
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
-        raise UnknownError() from e
+        raise UnknownError(exception=e) from e
     finally:
         publish.status(user_info["scheme_account_id"], status, tid, user_info, journey="join")
         return True

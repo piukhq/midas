@@ -129,9 +129,6 @@ class Iceland(BaseAgent):
                 self.handle_error_codes(error_code=error[0]["code"])
             update_pending_join_account(self.user_info, self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
-        # except (AgentException, LoginError, JoinErrorOld, AgentError):
-        #     consent_status = ConsentStatus.FAILED
-        #     raise
         except BaseError as e:
             consent_status = ConsentStatus.FAILED
             raise e
@@ -155,7 +152,7 @@ class Iceland(BaseAgent):
         except BaseError as e:
             signal("callback-fail").send(self, slug=self.scheme_slug)
             update_pending_join_account(self.user_info, self.message_uid, error=e, raise_exception=False)
-            raise e
+            raise
 
     def _join(self, payload: dict):
         try:
@@ -163,7 +160,7 @@ class Iceland(BaseAgent):
             if response.text == "":
                 return {}
             return response.json()
-        except BaseError as e:
+        except BaseError:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
 
@@ -198,7 +195,7 @@ class Iceland(BaseAgent):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
             return response.json()
-        except (BaseError) as e:
+        except (BaseError):
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
 

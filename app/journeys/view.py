@@ -38,7 +38,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
         raise e
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
-        raise UnknownError() from e
+        raise UnknownError(exception=e) from e
     finally:
         if user_info.get("pending") and not status == SchemeAccountStatus.ACTIVE:
             pass
@@ -111,7 +111,7 @@ def async_get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
     except BaseError as e:
         if user_info.get("pending"):
             message = f"Error with async linking. Scheme: {scheme_slug}, Error: {repr(e)}"
-            update_pending_link_account(user_info, tid, error=e, response=message, scheme_slug=scheme_slug)
+            update_pending_link_account(user_info, tid, error=e, message=message, scheme_slug=scheme_slug)
         else:
             status = e.code
             requests.post(

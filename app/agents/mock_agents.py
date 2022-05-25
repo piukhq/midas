@@ -203,7 +203,7 @@ class MockAgentIce(MockedMiner):
         try:
             user_id = card_numbers.ICELAND[card_number]
         except (KeyError, TypeError) as e:
-            raise StatusLoginFailedError() from e
+            raise StatusLoginFailedError(exception=e) from e
 
         if user_id in ["999000", "999001", "999002", "999003", "999004"]:
             sleep(60)

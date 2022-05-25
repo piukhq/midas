@@ -48,7 +48,7 @@ class RSA(BaseSecurity):
             auth_header = headers["Authorization"]
             timestamp = headers["X-REQ-TIMESTAMP"]
         except KeyError as e:
-            raise ValidationError() from e
+            raise ValidationError(exception=e) from e
 
         prefix, signature = auth_header.split(" ")
 
@@ -61,7 +61,7 @@ class RSA(BaseSecurity):
         try:
             key = CRYPTO_RSA.importKey(self._get_key("merchant_public_key", self.credentials["inbound"]["credentials"]))
         except KeyError as e:
-            raise ConfigurationError() from e
+            raise ConfigurationError(exception=e) from e
 
         digest = SHA256.new(json_data_with_timestamp.encode("utf8"))
         signer = pkcs1_15.new(key)
@@ -70,6 +70,6 @@ class RSA(BaseSecurity):
         try:
             signer.verify(digest, decoded_sig)
         except ValueError as e:
-            raise ValidationError() from e
+            raise ValidationError(exception=e) from e
 
         return json_data

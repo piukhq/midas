@@ -27,7 +27,7 @@ def get_security_agent(security_type, *args, **kwargs):
         agent_instance = agent_class(*args, **kwargs)
 
     except (AttributeError, ImportError) as e:
-        raise ConfigurationError() from e
+        raise ConfigurationError(exception=e) from e
 
     return agent_instance
 
@@ -59,7 +59,7 @@ def authorise(handler_type):
             except BaseError as e:
                 raise e
             except Exception as e:
-                raise UnknownError() from e
+                raise UnknownError(exception=e) from e
 
             return fn(data=decoded_data, config=config, *args, **kwargs)
 

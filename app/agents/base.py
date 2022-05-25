@@ -23,6 +23,7 @@ from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.exceptions import (
     AccountAlreadyExistsError,
+    BaseError,
     ConfigurationError,
     EndSiteDownError,
     IPBlockedError,
@@ -33,7 +34,6 @@ from app.exceptions import (
     ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
-    BaseError,
 )
 from app.mocks.users import USER_STORE
 from app.reporting import get_logger
@@ -163,9 +163,9 @@ class BaseAgent(object):
             response = self.session.post(url, data=payload)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
-            raise ServiceConnectionError from e
+            raise ServiceConnectionError(exception=e) from e
         except (KeyError, IndexError) as e:
-            raise ConfigurationError from e
+            raise ConfigurationError(exception=e) from e
 
         return response.json()["access_token"]
 
@@ -205,12 +205,12 @@ class BaseAgent(object):
         except Timeout as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
             sentry_sdk.capture_exception(e)
-            raise EndSiteDownError(response=e.response) from e
+            raise EndSiteDownError(exception=e) from e
 
         except RetryError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
             sentry_sdk.capture_exception(e)
-            raise RetryLimitReachedError(response=e.response) from e
+            raise RetryLimitReachedError(exception=e) from e
 
         signal("record-http-request").send(
             self,
@@ -230,16 +230,16 @@ class BaseAgent(object):
                     channel=self.channel,
                     error=StatusLoginFailedError,
                 )
-                raise StatusLoginFailedError(response=e.response)
+                raise StatusLoginFailedError(exception=e)
             elif e.response.status_code == 403:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
-                raise IPBlockedError(response=e.response) from e
+                raise IPBlockedError(exception=e) from e
             elif e.response.status_code in [503, 504]:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
-                raise NotSentError(response=e.response) from e
+                raise NotSentError(exception=e) from e
             else:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
-                raise EndSiteDownError(response=e.response) from e
+                raise EndSiteDownError(exception=e) from e
 
         return resp
 
@@ -320,13 +320,13 @@ class BaseAgent(object):
         try:
             self.login()
         except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
+            raise Exception(message=f"missing the credential '{e.args[0]}'")
 
     def attempt_join(self):
         try:
             self.join()
         except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
+            raise Exception(message=f"missing the credential '{e.args[0]}'")
 
     @staticmethod
     def consent_confirmation(consents_data: list[dict], status: int) -> None:
@@ -366,7 +366,7 @@ def pluralise(count, plural_suffix):
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
         raise ConfigurationError(
-            response=f"Agent expecting Security Type(s) "
+            message=f"Agent expecting Security Type(s) "
             f"{[Configuration.SECURITY_TYPE_CHOICES[i][1] for i in allowed_config_auth_types]} but got "
             f"Security Type '{Configuration.SECURITY_TYPE_CHOICES[actual_config_auth_type][1]}' instead",
         )

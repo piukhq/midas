@@ -163,7 +163,7 @@ class Transactions(Resource):
             raise e
         except Exception as e:
             status = SchemeAccountStatus.UNKNOWN_ERROR
-            raise UnknownError() from e
+            raise UnknownError(exception=e) from e
         finally:
             thread_pool_executor.submit(publish.status, user_info["scheme_account_id"], status, tid, user_info)
 
@@ -202,7 +202,7 @@ class AccountOverview(Resource):
         except BaseError as e:
             raise e
         except Exception as e:
-            raise UnknownError() from e
+            raise UnknownError(exception=e) from e
 
 
 class TestResults(Resource):
@@ -251,11 +251,11 @@ def get_hades_balance(scheme_account_id):
     try:
         resp_json = resp.json()
     except (AttributeError, TypeError) as e:
-        raise UnknownError from e
+        raise UnknownError(exception=e) from e
     else:
         if resp_json:
             return resp_json
-        raise UnknownError(response="Empty response getting previous balance")
+        raise UnknownError(message="Empty response getting previous balance")
 
 
 def get_user_set_from_request(request_args):

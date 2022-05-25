@@ -162,10 +162,13 @@ class TestBplCallback(TestCase):
         self.assertEqual("Due:16thMar 2021", balance.vouchers[2].code)
         self.assertEqual("Due: 7thMar 2022", balance.vouchers[3].code)
 
+    @mock.patch("app.bpl_callback.redis_retry.get_count", return_value=0)
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
     @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
     @mock.patch("app.agents.base.Configuration")
-    def test_requests_retry_session(self, mock_config, mock_collect_credentials, mock_update_hermes):
+    def test_requests_retry_session(
+        self, mock_config, mock_collect_credentials, mock_update_hermes, mock_redis_retry_get_count
+    ):
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
         self.assertTrue(mock_collect_credentials.called)

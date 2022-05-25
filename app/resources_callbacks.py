@@ -43,10 +43,10 @@ class JoinCallback(Resource):
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
-            raise UnknownError(response=e.args[0])
+            raise UnknownError(exception=e)
         except requests.ConnectionError as e:
             sentry_sdk.capture_exception()
-            raise ServiceConnectionError() from e
+            raise ServiceConnectionError(exception=e) from e
 
         try:
             agent_class = get_agent_class(scheme_slug)
@@ -60,7 +60,7 @@ class JoinCallback(Resource):
             raise e
         except Exception as e:
             update_failed_scheme_account(e)
-            raise UnknownError(response=e.args[0]) from e
+            raise UnknownError(exception=e) from e
 
         return create_response({"success": True})
 
@@ -74,8 +74,8 @@ class JoinCallback(Resource):
 
         try:
             response.raise_for_status()
-        except Exception as ex:
-            raise UnknownError() from ex
+        except Exception as e:
+            raise UnknownError(exception=e) from e
 
         credentials = decrypt_credentials(response.json()["credentials"])
 

@@ -1662,9 +1662,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_credentials.called)
 
         self.assertEqual(520, response.status_code)
-        self.assertEqual(
-            {"code": 520, "message": "test exception", "name": "Unknown error"}, response.json
-        )
+        self.assertEqual({"code": 520, "message": "test exception", "name": "Unknown error"}, response.json)
 
     @mock.patch("requests.sessions.Session.get")
     @mock.patch.object(RSA, "decode", autospec=True)
@@ -1680,7 +1678,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         # Bad response test
         mock_session_get.return_value = mock_response
-        headers = {"Authorization": "Signature {}".format(self.signature)}
+        headers = {"Authorization": f"Signature {self.signature}"}
 
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 

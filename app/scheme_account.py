@@ -115,7 +115,7 @@ def update_pending_join_account(
         raise error()
 
 
-def update_pending_link_account(user_info, tid, error=None, response=None, scheme_slug=None, raise_exception=True):
+def update_pending_link_account(user_info, tid, error=None, message=None, scheme_slug=None, raise_exception=True):
 
     scheme_account_id = user_info["scheme_account_id"]
     # error handling for pending scheme accounts waiting for async link to complete
@@ -140,7 +140,7 @@ def update_pending_link_account(user_info, tid, error=None, response=None, schem
     )
 
     if error and raise_exception:
-        raise error(response=response)
+        raise error(message=message)
 
 
 def remove_pending_consents(consent_ids, headers):

@@ -22,8 +22,8 @@ class OAuth(BaseSecurity):
             }
         except requests.RequestException as e:
             sentry_sdk.capture_message("Failed request to get oauth token from {}. exception: {}".format(url, e))
-            raise ServiceConnectionError() from e
+            raise ServiceConnectionError(exception=e) from e
         except (KeyError, IndexError) as e:
-            raise ConfigurationError() from e
+            raise ConfigurationError(exception=e) from e
 
         return request_data

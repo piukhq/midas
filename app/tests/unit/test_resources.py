@@ -645,7 +645,7 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
     def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_pending_link_account):
         scheme_slug = "harvey-nichols"
-        mock_balance_and_publish.side_effect = UnknownError(response="Linking error")
+        mock_balance_and_publish.side_effect = UnknownError(message="Linking error")
 
         with self.assertRaises(BaseError):
             async_get_balance_and_publish("agent_class", scheme_slug, self.user_info, "tid")
@@ -654,7 +654,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
             "Error with async linking. Scheme: harvey-nichols, Error: UnknownError()",
-            mock_update_pending_link_account.call_args[1]["response"],
+            mock_update_pending_link_account.call_args[1]["message"],
         )
 
     @mock.patch("requests.get", autospec=True)
@@ -800,7 +800,7 @@ class TestResources(TestCase):
     ):
 
         mock_publish_balance.side_effect = KeyError("test not handled agent error")
-        mock_update_pending_link_account.side_effect = NoSuchRecordError("test not handled agent error")
+        mock_update_pending_link_account.side_effect = NoSuchRecordError(message="test not handled agent error")
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
 
