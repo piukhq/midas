@@ -10,6 +10,16 @@ http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 """
 
 
+def get_message_from_exception(exception):
+    if exception is None:
+        return None
+    if len(exception.args) > 0:
+        return str(exception.args[0])
+    if exception.message:
+        return exception.message
+    return None
+
+
 class BaseError(Exception):
     """Exception raised for errors in the input."""
 
@@ -203,12 +213,6 @@ class SchemeRequestedDeleteError(BaseError):
             or get_message_from_exception(exception)
             or "The scheme has requested this account should be deleted."
         )
-
-
-def get_message_from_exception(exception):
-    if exception:
-        return str(exception.args[0])
-    return None
 
 
 class UnknownError(BaseError):
