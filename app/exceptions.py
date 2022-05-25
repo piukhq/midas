@@ -28,7 +28,7 @@ class BaseError(Exception):
         self.message: str = ""
         self.code: int = None
         self.system_action_required = False
-        self.response = None
+        self.exception = None
 
     def __str__(self):
         return f"{self.code} {self.name}: {self.message}"
@@ -40,7 +40,7 @@ class ValidationError(BaseError):
         self.code = 401
         self.name = "Failed validation"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Validation of the request has failed."
+        self.message = message or get_message_from_exception(self.exception) or "Validation of the request has failed."
 
 
 class StatusLoginFailedError(BaseError):
@@ -52,7 +52,7 @@ class StatusLoginFailedError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "We could not update your account because your username and/or password "
             "were reported to be incorrect. Please re-verify your username and password."
         )
@@ -66,7 +66,7 @@ class PreRegisteredCardError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "We could not link your account because this card does not exist yet in this "
             "loyalty scheme. Please join this loyalty scheme with those credentials and try again."
         )
@@ -80,7 +80,7 @@ class RetryLimitReachedError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "You have reached your maximum amount of login tries. Please wait 15 minutes."
         )
         self.system_action_required = True
@@ -94,7 +94,7 @@ class InvalidMFAInfoError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "We're sorry, the authentication information you provided is incorrect. Please try again."
         )
 
@@ -107,7 +107,7 @@ class StatusAccountLockedError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "We could not update your account because it appears your account has been locked. "
             "This usually results from too many unsuccessful login attempts in a short period of time. "
             "Please visit the site or contact its customer support to resolve this issue. Once done, "
@@ -121,7 +121,7 @@ class CardNumberError(BaseError):
         self.code = 436
         self.name = "Card not registered or Unknown"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Unknown card number."
+        self.message = message or get_message_from_exception(self.exception) or "Unknown card number."
 
 
 class LinkLimitExceededError(BaseError):
@@ -130,7 +130,7 @@ class LinkLimitExceededError(BaseError):
         self.code = 437
         self.name = "Card not registered or Unknown"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Unknown Card number."
+        self.message = message or get_message_from_exception(self.exception) or "Unknown Card number."
 
 
 class CardNotRegisteredError(BaseError):
@@ -139,7 +139,7 @@ class CardNotRegisteredError(BaseError):
         self.code = 438
         self.name = "Card not registered or Unknown"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Unknown Card number."
+        self.message = message or get_message_from_exception(self.exception) or "Unknown Card number."
 
 
 class GeneralError(BaseError):
@@ -149,7 +149,7 @@ class GeneralError(BaseError):
         self.name = "General error"
         self.exception = exception
         self.message = (
-            message or get_message_from_exception(exception) or "General error such as incorrect user details."
+            message or get_message_from_exception(self.exception) or "General error such as incorrect user details."
         )
 
 
@@ -161,7 +161,7 @@ class StatusRegistrationFailedError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "The username and/or password you have entered were reported to be invalid. "
             "This may due to password validation - it's too short, it requires capital letters "
             "and numbers, etc."
@@ -174,7 +174,7 @@ class JoinInProgressError(BaseError):
         self.code = 441
         self.name = "Join in progress"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Join in progress."
+        self.message = message or get_message_from_exception(self.exception) or "Join in progress."
 
 
 class NoSuchRecordError(BaseError):
@@ -185,7 +185,7 @@ class NoSuchRecordError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "There is currently no account with the credentials you have provided."
         )
         self.system_action_required = True
@@ -198,7 +198,9 @@ class AccountAlreadyExistsError(BaseError):
         self.name = "Account already exists"
         self.exception = exception
         self.message = (
-            message or get_message_from_exception(exception) or "An account with this username/email already exists."
+            message
+            or get_message_from_exception(self.exception)
+            or "An account with this username/email already exists."
         )
 
 
@@ -210,7 +212,7 @@ class SchemeRequestedDeleteError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "The scheme has requested this account should be deleted."
         )
 
@@ -221,7 +223,7 @@ class UnknownError(BaseError):
         self.code = 520
         self.name = "Unknown error"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "An unknown error has occurred."
+        self.message = message or get_message_from_exception(self.exception) or "An unknown error has occurred."
         self.system_action_required = True
 
 
@@ -231,7 +233,7 @@ class EndSiteDownError(BaseError):
         self.code = 530
         self.name = "End site down"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "The scheme end site is currently down."
+        self.message = message or get_message_from_exception(self.exception) or "The scheme end site is currently down."
         self.system_action_required = True
 
 
@@ -242,7 +244,9 @@ class IPBlockedError(BaseError):
         self.name = "IP blocked"
         self.exception = exception
         self.message = (
-            message or get_message_from_exception(exception) or "The end site is currently blocking this ip address."
+            message
+            or get_message_from_exception(self.exception)
+            or "The end site is currently blocking this ip address."
         )
         self.system_action_required = True
 
@@ -255,7 +259,7 @@ class PasswordExpiredError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "We could not update your account because the end site requires that you reset "
             "your password. Please visit the site and resolve this issue before trying again."
         )
@@ -267,7 +271,7 @@ class NotSentError(BaseError):
         self.code = 535
         self.name = "Message was not sent"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "Message was not sent."
+        self.message = message or get_message_from_exception(self.exception) or "Message was not sent."
         self.system_action_required = True
 
 
@@ -279,7 +283,7 @@ class ConfigurationError(BaseError):
         self.exception = exception
         self.message = (
             message
-            or get_message_from_exception(exception)
+            or get_message_from_exception(self.exception)
             or "There is an error with the configuration or it was not possible to retrieve."
         )
         self.system_action_required = True
@@ -292,7 +296,9 @@ class ServiceConnectionError(BaseError):
         self.name = "Service connection error"
         self.exception = exception
         self.message = (
-            message or get_message_from_exception(exception) or "There was in issue connecting to an external service."
+            message
+            or get_message_from_exception(self.exception)
+            or "There was in issue connecting to an external service."
         )
 
 
@@ -302,5 +308,5 @@ class JoinError(BaseError):
         self.code = 538
         self.name = "General error preventing join"
         self.exception = exception
-        self.message = message or get_message_from_exception(exception) or "A system error occurred during join."
+        self.message = message or get_message_from_exception(self.exception) or "A system error occurred during join."
         self.system_action_required = True

@@ -76,7 +76,7 @@ class Squaremeal(BaseAgent):
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            error_code = ex.response.status_code if ex.response is not None else ex.code
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
         return resp.json()
 
@@ -104,7 +104,7 @@ class Squaremeal(BaseAgent):
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except BaseError as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            error_code = ex.response.status_code if ex.response is not None else ex.code
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
         return resp.json()
 
@@ -115,7 +115,7 @@ class Squaremeal(BaseAgent):
         try:
             resp = self.make_request(url, method="get")
         except BaseError as ex:
-            error_code = ex.response.status_code if ex.response is not None else ex.code
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
         return resp.json()
 

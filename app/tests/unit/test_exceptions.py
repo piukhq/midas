@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from requests import HTTPError
 
-from app.exceptions import get_message_from_exception, UnknownError
+from app.exceptions import UnknownError, get_message_from_exception
 
 
 class TestExceptions(TestCase):
