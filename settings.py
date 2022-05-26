@@ -6,7 +6,7 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
-from app.exceptions import StatusLoginFailedError
+from app.exceptions import CardNumberError, PreRegisteredCardError, StatusLoginFailedError
 from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
@@ -33,6 +33,14 @@ def boolconv(s: str) -> bool:
 
 def listconv(s: str) -> list[str]:
     return s.split(",")
+
+
+EXCEPTIONS_NOT_SENT_TO_SENTRY = [StatusLoginFailedError, CardNumberError, PreRegisteredCardError]
+
+
+def before_send(event, hint):
+    if hint["exc_info"][0] in EXCEPTIONS_NOT_SENT_TO_SENTRY:
+        return None
 
 
 DEV_HOST = getenv("DEV_HOST", default="0.0.0.0")
@@ -77,14 +85,6 @@ CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
 ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
-
-EXCEPTIONS_NOT_SENT_TO_SENTRY = [StatusLoginFailedError]
-
-
-def before_send(event, hint):
-    if hint["exc_info"][0] in EXCEPTIONS_NOT_SENT_TO_SENTRY:
-        return None
-
 
 SENTRY_DSN = getenv("SENTRY_DSN", required=False)
 SENTRY_ENV = getenv("SENTRY_ENV", required=False)
