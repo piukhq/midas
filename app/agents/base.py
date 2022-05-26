@@ -90,6 +90,9 @@ class BaseAgent(object):
         self.integration_service: str = ""
         self.outbound_auth_service: int = None
 
+        if settings.SENTRY_DSN:
+            sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
+
     def send_audit_request(self, payload):
         audit_payload = deepcopy(payload)
         if audit_payload.get("password"):

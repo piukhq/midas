@@ -78,7 +78,6 @@ ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
 
-EXCEPTIONS_NOT_SENT_TO_SENTRY = [StatusLoginFailedError, CardNumberError, PreRegisteredCardError]
 SENTRY_DSN = getenv("SENTRY_DSN", required=False)
 SENTRY_ENV = getenv("SENTRY_ENV", required=False)
 if SENTRY_DSN:
@@ -87,7 +86,7 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration(), RedisIntegration()],
         release=__version__,
-        ignore_errors=EXCEPTIONS_NOT_SENT_TO_SENTRY,
+        ignore_errors=[StatusLoginFailedError, CardNumberError, PreRegisteredCardError],
     )
 
 if getenv("POSTGRES_DSN", required=False):
