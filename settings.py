@@ -6,6 +6,7 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
+from app.exceptions import StatusLoginFailedError
 from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
@@ -77,6 +78,14 @@ ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
 
+EXCEPTIONS_NOT_SENT_TO_SENTRY = [StatusLoginFailedError]
+
+
+def before_send(event, hint):
+    if hint["exc_info"][0] in EXCEPTIONS_NOT_SENT_TO_SENTRY:
+        return None
+
+
 SENTRY_DSN = getenv("SENTRY_DSN", required=False)
 SENTRY_ENV = getenv("SENTRY_ENV", required=False)
 if SENTRY_DSN:
@@ -85,6 +94,7 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration(), RedisIntegration()],
         release=__version__,
+        before_send=before_send,
     )
 
 if getenv("POSTGRES_DSN", required=False):

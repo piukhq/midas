@@ -800,7 +800,7 @@ class TestResources(TestCase):
     ):
 
         mock_publish_balance.side_effect = KeyError("test not handled agent error")
-        mock_update_pending_link_account.side_effect = NoSuchRecordError(message="test not handled agent error")
+        mock_update_pending_link_account.side_effect = UnknownError(message="test not handled agent error")
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
 

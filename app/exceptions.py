@@ -15,9 +15,10 @@ def get_message_from_exception(exception):
         return None
     if len(exception.args) > 0:
         return str(exception.args[0])
-    if exception.message:
+    try:
         return exception.message
-    return None
+    except AttributeError:
+        return None
 
 
 class BaseError(Exception):

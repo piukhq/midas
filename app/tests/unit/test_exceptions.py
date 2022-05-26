@@ -17,3 +17,7 @@ class TestExceptions(TestCase):
     def test_get_message_from_specific_exception(self):
         message = get_message_from_exception(exception=UnknownError(exception=HTTPError("Any old exception will do")))
         self.assertEqual("Any old exception will do", message)
+
+    def test_get_message_from_empty_exception(self):
+        message = get_message_from_exception(UnknownError(exception=Exception()))
+        self.assertEqual("An unknown error has occurred.", message)

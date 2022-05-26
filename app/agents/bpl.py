@@ -72,7 +72,7 @@ class Bpl(BaseAgent):
         try:
             self.make_request(url, method="post", audit=True, json=payload)
         except BaseError as ex:
-            error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
+            error_code = ex.exception.response.json()["code"] if ex.exception.response is not None else ex.args[0]
             self.handle_error_codes(error_code, unhandled_exception=GeneralError)
         else:
             self.expecting_callback = True
@@ -95,7 +95,7 @@ class Bpl(BaseAgent):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
         except BaseError as ex:
-            error_code = ex.response.json()["code"] if ex.response is not None else ex.args[0]
+            error_code = ex.exception.response.json()["code"] if ex.exception.response is not None else ex.args[0]
             self.handle_error_codes(error_code, unhandled_exception=GeneralError)
         else:
             self.expecting_callback = True

@@ -1289,7 +1289,7 @@ class TestIcelandJoin(TestCase):
         with self.assertRaises(AccountAlreadyExistsError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("Account already exists", e.exception.name)
-        self.assertEqual(445, e.exception.code)
+        self.assertEqual(SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS, e.exception.code)
         self.assertEqual(
             ConsentStatus.FAILED,
             mock_consent_confirmation.call_args_list[0][0][1],
@@ -1688,7 +1688,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertEqual(
             {
                 "code": 537,
-                "message": "There was in issue connecting to an external service.",
+                "message": "404 Client Error: None for url: None",
                 "name": "Service connection error",
             },
             response.json,

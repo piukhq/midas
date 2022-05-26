@@ -82,7 +82,7 @@ def update_pending_join_account(
         card_number = credentials.get("card_number") or credentials.get("barcode")
 
     delete_data = {"all": True}
-    if error == AccountAlreadyExistsError:
+    if isinstance(error, AccountAlreadyExistsError):
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
     elif card_number:
         status = SchemeAccountStatus.REGISTRATION_FAILED
