@@ -1,6 +1,6 @@
 import json
 import unittest
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock, patch
 from uuid import uuid4
 
 import arrow
@@ -129,3 +129,32 @@ class TestAudit(unittest.TestCase):
 
         data = json.loads(httpretty.last_request().body.decode("utf-8"))
         assert expected == data
+
+    @httpretty.activate
+    @patch("app.audit.AuditLogger.send_to_atlas")
+    def test_atlas_exception_send_logs(self, mock_send_to_atlas):
+        httpretty.register_uri("POST", settings.ATLAS_URL + "/audit/membership/")
+
+        resp_message_uid = uuid4().hex
+        record_uid = uuid4().hex
+
+        logger = AuditLogger()
+
+        mock_resp = Mock()
+        mock_resp.json.side_effect = AttributeError()
+        mock_resp.content = 'Not json'
+        mock_resp.status_code = 200
+
+        logger.send_response_audit_log(
+            sender="test",
+            response=mock_resp,
+            scheme_slug="test-scheme",
+            handler_type=0,
+            integration_service=0,
+            status_code=200,
+            message_uid=resp_message_uid,
+            record_uid=record_uid,
+            channel="unit tests",
+        )
+
+        assert mock_send_to_atlas.called
