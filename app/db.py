@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from uuid import uuid4
 
 import sqlalchemy as s
+from retry_tasks_lib.db.models import load_models_to_metadata
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,7 +23,9 @@ engine = s.create_engine(
 )
 
 SessionMaker = sessionmaker(bind=engine)
+db_session = SessionMaker()
 Base = declarative_base()  # type: t.Any
+load_models_to_metadata(Base.metadata)
 
 log = get_logger("db")
 

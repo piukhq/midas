@@ -4,11 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [[source]]
-name = "gitlab-libraries"
-url = "https://bink-libs:y6nzdKbo9J6MkEmwvB-i@git.bink.com/api/v4/groups/86/-/packages/pypi/simple"
+name = "pypi-cloud"
+url = "https://269fdc63-af3d-4eca-8101-8bddc22d6f14:b694b5b1-f97e-49e4-959e-f3c202e3ab91@pypi.uksouth.bink.sh/simple"
 verify_ssl = true
 
 [packages]
+retry-tasks-lib = {version="*", index="pypi-cloud"}
 arrow = "*"
 blinker = "*"
 flask-restplus = "*"
@@ -28,15 +29,17 @@ sentry-sdk = "*"
 requests = "*"
 prometheus-client = "*"
 Werkzeug = "*"
-azure-oidc = "*"
-soteria = "*"
+azure-oidc = {version="*", index="pypi-cloud"}
+soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
-user-token-store = "*"
-olympus-messaging = "*"
+user-token-store = {version="*", index="pypi-cloud"}
+olympus-messaging = {version="*", index="pypi-cloud"}
 urllib3 = "*"
 click = "==8.0.4"
 alembic = "*"
 sqlalchemy = "*"
+typer = "*"
+isort = "*"
 
 [dev-packages]
 black = "==21.6b0"

@@ -1,13 +1,16 @@
+import json
 from typing import Any, Type, cast
 
 import kombu
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
+from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
 
 import settings
+from app.db import db_session
 from app.exceptions import AgentException
-from app.journeys.join import attempt_join
 from app.reporting import get_logger
+from app.retry_worker import redis_raw
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 log = get_logger("task-consumer")
@@ -42,7 +45,19 @@ class TaskConsumer(ConsumerMixin):
         }
 
         try:
-            attempt_join(message.loyalty_plan, user_info, message.transaction_id)
+            task = sync_create_task(
+                db_session=db_session,
+                task_type_name="attempt-join",
+                params={
+                    "scheme_slug": message.loyalty_plan,
+                    "user_info": json.dumps(user_info),
+                    "tid": message.transaction_id,
+                },
+            )
+            with db_session:
+                enqueue_retry_task(connection=redis_raw, retry_task=task)
+                db_session.commit()
+
         except AgentException as ex:  # we don't want AgentExceptions to go to Sentry
             log.warning(f"attempt_join raised {repr(ex)}")
             return

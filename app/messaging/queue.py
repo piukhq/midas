@@ -17,4 +17,4 @@ def enqueue_request(message: Message) -> None:
             errback=_on_error, max_retries=3, interval_start=0.2, interval_step=0.4, interval_max=1, timeout=3
         )
         q = conn.SimpleQueue(settings.LOYALTY_REQUEST_QUEUE)
-        q.put(message.body, headers=message.properties)
+        q.put(message.body, headers=message.metadata)
