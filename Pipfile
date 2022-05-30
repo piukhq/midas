@@ -9,6 +9,7 @@ url = "https://269fdc63-af3d-4eca-8101-8bddc22d6f14:b694b5b1-f97e-49e4-959e-f3c2
 verify_ssl = true
 
 [packages]
+retry-tasks-lib = {version="*", index="pypi-cloud"}
 arrow = "*"
 blinker = "*"
 flask-restplus = "*"
@@ -28,16 +29,11 @@ sentry-sdk = "*"
 requests = "*"
 prometheus-client = "*"
 Werkzeug = "*"
-azure-oidc = "*"
-soteria = "*"
+azure-oidc = {version="*", index="pypi-cloud"}
+soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
-user-token-store = "*"
-olympus-messaging = "*"
-urllib3 = "*"
-click = "==8.0.4"
-alembic = "*"
-sqlalchemy = "*"
-responses = "*"
+user-token-store = {version="*", index="pypi-cloud"}
+olympus-messaging = {version="*", index="pypi-cloud"}
 
 [dev-packages]
 black = "==21.6b0"
