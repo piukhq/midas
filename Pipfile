@@ -34,6 +34,7 @@ soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
 user-token-store = {version="*", index="pypi-cloud"}
 olympus-messaging = {version="*", index="pypi-cloud"}
+click = "==8.0.4"
 
 [dev-packages]
 black = "==21.6b0"
