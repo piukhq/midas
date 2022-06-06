@@ -40,6 +40,7 @@ alembic = "*"
 sqlalchemy = "*"
 typer = "*"
 isort = "*"
+flask-admin = "*"
 
 [dev-packages]
 black = "==21.6b0"
