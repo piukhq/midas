@@ -8,13 +8,12 @@ import arrow
 import httpretty
 import requests
 
-
 import settings
 from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
 
 settings.ATLAS_URL = "http://binktest.com/atlas"
 
-from app.audit import AuditLogger, sanitise, ResponseAuditLog, AuditLogType  # noqa
+from app.audit import AuditLogger, AuditLogType, ResponseAuditLog, sanitise  # noqa
 
 standin = settings.SANITISATION_STANDIN
 
@@ -149,7 +148,7 @@ class TestAudit(unittest.TestCase):
 
         mock_resp = Mock()
         mock_resp.json.side_effect = AttributeError()
-        mock_resp.content = 'Not json'
+        mock_resp.content = "Not json"
         mock_resp.status_code = 200
 
         logger.send_response_audit_log(
@@ -179,10 +178,8 @@ class TestAudit(unittest.TestCase):
         logger = AuditLogger()
 
         # Create a response that does  not contain json
-        httpretty.register_uri(httpretty.GET, 'http://example.com/',
-                               body="Not json",
-                               content_type='application/json')
-        response = requests.get('http://example.com/')
+        httpretty.register_uri(httpretty.GET, "http://example.com/", body="Not json", content_type="application/json")
+        response = requests.get("http://example.com/")
 
         logger.send_response_audit_log(
             sender="test",
@@ -203,7 +200,7 @@ class TestAudit(unittest.TestCase):
     def test_send_to_atlas_no_audit_log(self):
         audit_logger = AuditLogger()
         log_logger = logging.getLogger("audit")
-        with self.assertLogs(logger=log_logger, level='DEBUG') as captured:
+        with self.assertLogs(logger=log_logger, level="DEBUG") as captured:
             result = audit_logger.send_to_atlas(None)
 
         assert captured.records[0].getMessage() == "No request or response data to send to Atlas."
@@ -231,7 +228,7 @@ class TestAudit(unittest.TestCase):
             status_code=201,
         )
 
-        with self.assertLogs(logger=log_logger, level='DEBUG') as captured:
+        with self.assertLogs(logger=log_logger, level="DEBUG") as captured:
             audit_logger.send_to_atlas(response_audit_log)
 
         assert "Error response from Atlas when sending audit logs" in captured.records[1].getMessage()
