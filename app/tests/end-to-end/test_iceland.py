@@ -70,6 +70,21 @@ europa_config_add = {
     },
 }
 
+# vault_secrets = {
+#     "value": '{"LOCAL_AES_KEY":"OLNnJPTcsdBXi1UqMBp2ZibUF3C7vQ", "AES_KEY":"6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"}',
+#     "id": "https://bink-uksouth-dev-com.vault.azure.net/secrets/aes-keys/68a1b299334340809d7c2d0b6b9ab98a",
+#     "attributes": {
+#         "enabled": True,
+#         "created": 1652185865,
+#         "updated": 1652185865,
+#         "recoveryLevel": "NO",
+#         "recoverableDays": 0,
+#     },
+#     "tags": {},
+# }
+vault_secrets = b'{"value":"{\\"data\\": {\\"payload\\": {\\"client_id\\": \\"27e76b84-c087-4a98-8d7c-8f4952f443dc\\", \\"client_secret\\": \\"WtVzP+E9jWu0abA299vN/Zw/EaH4u03xGMXst7lfZCs=\\", \\"grant_type\\": \\"client_credentials\\", \\"resource\\": \\"27e76b84-c087-4a98-8d7c-8f4952f443dc\\"}, \\"prefix\\": \\"Bearer\\", \\"url\\": \\"http://api-reflector/mock/token\\"}}","id":"https://bink-uksouth-dev-com.vault.azure.net/secrets/887a96f3cebfa598b459bafc39653c9bc5cd5597a7b00eb55b9011380cc7d719/cac19a62a4ee424d8728f6782783f258","attributes":{"enabled":true,"created":1652798014,"updated":1652798014,"recoveryLevel":"Purgeable","recoverableDays":0}}'
+
+
 
 class TestIcelandAdd(FlaskTestCase):
     def create_app(self):
@@ -78,10 +93,11 @@ class TestIcelandAdd(FlaskTestCase):
         api.init_app(app)
         return app
 
-    # @responses.activate
+    @responses.activate
     def test_add_journey_success(self):
         # Europa config
-        # responses.add(responses.GET, settings.CONFIG_SERVICE_URL + "/configuration", json=europa_config_add, status=200)
+        responses.add(responses.GET, settings.CONFIG_SERVICE_URL + "/configuration", json=europa_config_add, status=200)
+        responses.add(responses.GET, "https://bink-uksouth-dev-com.vault.azure.net/secrets/887a96f3cebfa598b459bafc39653c9bc5cd5597a7b00eb55b9011380cc7d719/?api-version=7.3", body=vault_secrets, status=200)
         parameters = {
             "scheme_account_id": 159779,
             "credentials": encrypted_credentials,
