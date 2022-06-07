@@ -57,10 +57,12 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
         redis_retry.max_out_count(key, agent_instance.retry_limit)
         raise e
     except BaseError as e:
-        if e.system_action_required and from_join:
+        try:
+            if e.system_action_required and from_join:
+                raise e
+        except AttributeError:
+            redis_retry.inc_count(key)
             raise e
-        redis_retry.inc_count(key)
-        raise e
     except Exception as e:
         raise UnknownError(exception=e) from e
 

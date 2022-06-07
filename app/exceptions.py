@@ -22,292 +22,177 @@ def get_message_from_exception(exception):
 
 
 class BaseError(Exception):
-    """Exception raised for errors in the input."""
+    code: int
+    name: str
+    generic_message: str
+    system_action_required: bool
 
-    def __init__(self):
-        self.name: str = ""
-        self.message: str = ""
-        self.code: int = None
-        self.system_action_required = False
-        self.exception = None
+    def __init__(self, exception=None, message=None):
+        self.exception = exception
+        self.message = message or get_message_from_exception(self.exception) or self.generic_message
 
     def __str__(self):
         return f"{self.code} {self.name}: {self.message}"
 
 
 class ValidationError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 401
-        self.name = "Failed validation"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Validation of the request has failed."
+    code = 401
+    name = "Failed validation"
+    generic_message = "Validation of the request has failed."
 
 
 class StatusLoginFailedError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 403
-        self.status_code = 403
-        self.name = "Invalid credentials"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "We could not update your account because your username and/or password "
-            "were reported to be incorrect. Please re-verify your username and password."
-        )
+    code = 403
+    name = "Invalid credentials"
+    generic_message = (
+        "We could not update your account because your username and/or password "
+        "were reported to be incorrect. Please re-verify your username and password."
+    )
 
 
 class PreRegisteredCardError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 406
-        self.name = "Pre-registered card"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "We could not link your account because this card does not exist yet in this "
-            "loyalty scheme. Please join this loyalty scheme with those credentials and try again."
-        )
+    code = 406
+    name = "Pre-registered card"
+    generic_message = (
+        "We could not link your account because this card does not exist yet in this loyalty "
+        "scheme. Please join this loyalty scheme with those credentials and try again."
+    )
 
 
 class RetryLimitReachedError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 429
-        self.name = "Retry limit reached"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "You have reached your maximum amount of login tries. Please wait 15 minutes."
-        )
-        self.system_action_required = True
+    code = 429
+    name = "Retry limit reached"
+    generic_message = "You have reached your maximum amount of login tries. Please wait 15 minutes."
+    system_action_required = True
 
 
 class InvalidMFAInfoError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 432
-        self.name = "Invalid MFA"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "We're sorry, the authentication information you provided is incorrect. Please try again."
-        )
+    code = 432
+    name = "Invalid MFA"
+    generic_message = "We're sorry, the authentication information you provided is incorrect. Please try again."
 
 
 class StatusAccountLockedError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 434
-        self.name = "Account locked on end site"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "We could not update your account because it appears your account has been locked. "
-            "This usually results from too many unsuccessful login attempts in a short period of time. "
-            "Please visit the site or contact its customer support to resolve this issue. Once done, "
-            "please update your account credentials in case they are changed."
-        )
+    code = 434
+    name = "Account locked on end site"
+    generic_message = (
+        "We could not update your account because it appears your account has been locked. This usually results "
+        "from too many unsuccessful login attempts in a short period of time. Please visit the site or contact "
+        "its customer support to resolve this issue. Once done, please update your account credentials in case "
+        "they are changed."
+    )
 
 
 class CardNumberError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 436
-        self.name = "Card not registered or Unknown"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Unknown card number."
+    code = 436
+    name = "Card not registered or Unknown"
+    generic_message = "Unknown card number."
 
 
 class LinkLimitExceededError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 437
-        self.name = "Card not registered or Unknown"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Unknown Card number."
+    code = 437
+    name = "Card not registered or Unknown"
+    generic_message = "Unknown Card number."
 
 
 class CardNotRegisteredError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 438
-        self.name = "Card not registered or Unknown"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Unknown Card number."
+    code = 438
+    name = "Card not registered or Unknown"
+    generic_message = "Unknown Card number."
 
 
 class GeneralError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 439
-        self.name = "General error"
-        self.exception = exception
-        self.message = (
-            message or get_message_from_exception(self.exception) or "General error such as incorrect user details."
-        )
+    code = 439
+    name = "General error"
+    generic_message = "General error such as incorrect user details."
 
 
 class StatusRegistrationFailedError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 440
-        self.name = "Status registration failed"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "The username and/or password you have entered were reported to be invalid. "
-            "This may due to password validation - it's too short, it requires capital letters "
-            "and numbers, etc."
-        )
+    code = 440
+    name = "Status registration failed"
+    generic_message = (
+        "The username and/or password you have entered were reported to be invalid. This may due "
+        "to password validation - it's too short, it requires capital letters and numbers, etc."
+    )
 
 
 class JoinInProgressError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 441
-        self.name = "Join in progress"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Join in progress."
+    code = 441
+    name = "Join in progress"
+    generic_message = "Join in progress."
 
 
 class NoSuchRecordError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 444
-        self.name = "Account does not exist"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "There is currently no account with the credentials you have provided."
-        )
-        self.system_action_required = True
+    code = 444
+    name = "Account does not exist"
+    generic_message = "There is currently no account with the credentials you have provided."
+    system_action_required = True
 
 
 class AccountAlreadyExistsError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 445
-        self.name = "Account already exists"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "An account with this username/email already exists."
-        )
+    code = 445
+    name = "Account already exists"
+    generic_message = "An account with this username/email already exists."
 
 
 class SchemeRequestedDeleteError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 447
-        self.name = "Scheme requested account deletion"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "The scheme has requested this account should be deleted."
-        )
+    code = 447
+    name = "Scheme requested account deletion"
+    generic_message = "The scheme has requested this account should be deleted."
 
 
 class UnknownError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 520
-        self.name = "Unknown error"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "An unknown error has occurred."
-        self.system_action_required = True
+    code = 520
+    name = "Unknown error"
+    generic_message = "An unknown error has occurred."
+    system_action_required = True
 
 
 class EndSiteDownError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 530
-        self.name = "End site down"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "The scheme end site is currently down."
-        self.system_action_required = True
+    code = 530
+    name = "End site down"
+    generic_message = "The scheme end site is currently down."
+    system_action_required = True
 
 
 class IPBlockedError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 531
-        self.name = "IP blocked"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "The end site is currently blocking this ip address."
-        )
-        self.system_action_required = True
+    code = 531
+    name = "IP blocked"
+    generic_message = "The end site is currently blocking this ip address."
+    system_action_required = True
 
 
 class PasswordExpiredError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 533
-        self.name = "Password expired"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "We could not update your account because the end site requires that you reset "
-            "your password. Please visit the site and resolve this issue before trying again."
-        )
+    code = 533
+    name = "Password expired"
+    generic_message = (
+        "We could not update your account because the end site requires that you reset your password. "
+        "Please visit the site and resolve this issue before trying again."
+    )
 
 
 class NotSentError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 535
-        self.name = "Message was not sent"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "Message was not sent."
-        self.system_action_required = True
+    code = 535
+    name = "Message was not sent"
+    generic_message = "Message was not sent."
+    system_action_required = True
 
 
 class ConfigurationError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 536
-        self.name = "Configuration error"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "There is an error with the configuration or it was not possible to retrieve."
-        )
-        self.system_action_required = True
+    code = 536
+    name = "Configuration error"
+    generic_message = "There is an error with the configuration or it was not possible to retrieve."
+    system_action_required = True
 
 
 class ServiceConnectionError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 537
-        self.name = "Service connection error"
-        self.exception = exception
-        self.message = (
-            message
-            or get_message_from_exception(self.exception)
-            or "There was in issue connecting to an external service."
-        )
+    code = 537
+    name = "Service connection error"
+    generic_message = "There was in issue connecting to an external service."
 
 
 class JoinError(BaseError):
-    def __init__(self, exception=None, message=None):
-        super().__init__()
-        self.code = 538
-        self.name = "General error preventing join"
-        self.exception = exception
-        self.message = message or get_message_from_exception(self.exception) or "A system error occurred during join."
-        self.system_action_required = True
+    code = 538
+    name = "General error preventing join"
+    generic_message = "A system error occurred during join."
+    system_action_required = True
