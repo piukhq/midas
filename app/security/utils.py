@@ -5,7 +5,7 @@ from flask import request
 from soteria import configuration
 
 import settings
-from app.exceptions import BaseError, ConfigurationError, UnknownError
+from app.exceptions import ConfigurationError, UnknownError
 from app.security import registry
 
 
