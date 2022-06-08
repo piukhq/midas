@@ -56,8 +56,6 @@ def authorise(handler_type):
                 )
 
                 decoded_data = json.loads(security_agent.decode(request.headers, request.get_data().decode("utf8")))
-            except BaseError as e:
-                raise e
             except Exception as e:
                 raise UnknownError(exception=e) from e
 

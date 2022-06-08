@@ -73,7 +73,6 @@ def update_pending_join_account(
             )
             return
 
-    # error_name = error.name
     log.debug(f"{error}; updating scheme account: {scheme_account_id}")
     # error handling for pending scheme accounts waiting for join journey to complete
     credentials = user_info.get("credentials")

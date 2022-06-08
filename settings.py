@@ -6,7 +6,16 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
-from app.exceptions import CardNumberError, PreRegisteredCardError, StatusLoginFailedError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    CardNotRegisteredError,
+    CardNumberError,
+    JoinInProgressError,
+    LinkLimitExceededError,
+    NoSuchRecordError,
+    PreRegisteredCardError,
+    StatusLoginFailedError,
+)
 from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
@@ -86,7 +95,16 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration(), RedisIntegration()],
         release=__version__,
-        ignore_errors=[StatusLoginFailedError, CardNumberError, PreRegisteredCardError],
+        ignore_errors=[
+            AccountAlreadyExistsError,
+            CardNotRegisteredError,
+            CardNumberError,
+            JoinInProgressError,
+            LinkLimitExceededError,
+            NoSuchRecordError,
+            PreRegisteredCardError,
+            StatusLoginFailedError,
+        ],
     )
 
 if getenv("POSTGRES_DSN", required=False):

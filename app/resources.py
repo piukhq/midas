@@ -199,8 +199,6 @@ class AccountOverview(Resource):
             )
 
             return create_response(account_overview)
-        except BaseError as e:
-            raise e
         except Exception as e:
             raise UnknownError(exception=e) from e
 
