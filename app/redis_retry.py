@@ -7,7 +7,7 @@ import redis.exceptions as redis_exceptions
 from redis import Redis
 
 import settings
-from app.agents.exceptions import SERVICE_CONNECTION_ERROR, AgentError
+from app.exceptions import ServiceConnectionError
 
 redis = Redis.from_url(settings.REDIS_URL)
 
@@ -18,7 +18,7 @@ def redis_connection(func):
         try:
             return func(*args, **kwargs)
         except redis_exceptions.ConnectionError as e:
-            raise AgentError(SERVICE_CONNECTION_ERROR, message="Error connecting to Redis.") from e
+            raise ServiceConnectionError(message="Error connecting to Redis.") from e
 
     return wrapper
 

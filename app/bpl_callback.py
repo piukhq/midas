@@ -8,10 +8,9 @@ from flask_restful import Resource
 
 import settings
 from app import redis_retry
-from app.agents.exceptions import UNKNOWN, AgentError
 from app.encoding import JsonEncoder
 from app.encryption import hash_ids
-from app.exceptions import UnknownException
+from app.exceptions import UnknownError
 from app.http_request import get_headers
 from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
@@ -70,7 +69,7 @@ class JoinCallbackBpl(Resource):
             agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
             agent_instance.update_async_join(data)
         except Exception as e:
-            raise UnknownException(e)
+            raise UnknownError(exception=e) from e
 
 
 def update_hermes(data, scheme_account_id):
@@ -94,8 +93,8 @@ def collect_credentials(scheme_account_id):
 
     try:
         response.raise_for_status()
-    except Exception as ex:
-        raise AgentError(UNKNOWN) from ex
+    except Exception as e:
+        raise UnknownError(exception=e) from e
 
     credentials = decrypt_credentials(response.json()["credentials"])
 

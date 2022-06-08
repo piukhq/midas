@@ -5,9 +5,8 @@ from enum import IntEnum
 import requests
 
 import settings
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, JoinError, LoginError
 from app.encoding import JsonEncoder
-from app.exceptions import AgentException
+from app.exceptions import AccountAlreadyExistsError
 from app.http_request import get_headers
 from app.reporting import get_logger
 from app.tasks.resend_consents import ConsentStatus
@@ -57,7 +56,7 @@ class JourneyTypes(IntEnum):
 
 
 def update_pending_join_account(
-    user_info, message, tid, identifier=None, scheme_slug=None, consent_ids=(), raise_exception=True
+    user_info, tid, error=None, identifier=None, scheme_slug=None, consent_ids=(), raise_exception=True
 ):
     scheme_account_id = user_info["scheme_account_id"]
     # for updating user ID credential you get for joining (e.g. getting issued a card number)
@@ -74,7 +73,7 @@ def update_pending_join_account(
             )
             return
 
-    log.debug(f"Join error: {message}, updating scheme account: {scheme_account_id}")
+    log.debug(f"{error}; updating scheme account: {scheme_account_id}")
     # error handling for pending scheme accounts waiting for join journey to complete
     credentials = user_info.get("credentials")
     card_number = None
@@ -82,7 +81,7 @@ def update_pending_join_account(
         card_number = credentials.get("card_number") or credentials.get("barcode")
 
     delete_data = {"all": True}
-    if message == ACCOUNT_ALREADY_EXISTS:
+    if isinstance(error, AccountAlreadyExistsError):
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
     elif card_number:
         status = SchemeAccountStatus.REGISTRATION_FAILED
@@ -112,10 +111,10 @@ def update_pending_join_account(
     )
 
     if raise_exception:
-        raise AgentException(JoinError(message))
+        raise error()
 
 
-def update_pending_link_account(user_info, message, tid, scheme_slug=None, raise_exception=True):
+def update_pending_link_account(user_info, tid, error=None, message=None, scheme_slug=None, raise_exception=True):
 
     scheme_account_id = user_info["scheme_account_id"]
     # error handling for pending scheme accounts waiting for async link to complete
@@ -139,8 +138,8 @@ def update_pending_link_account(user_info, message, tid, scheme_slug=None, raise
         headers=headers,
     )
 
-    if raise_exception:
-        raise AgentException(LoginError(message))
+    if error and raise_exception:
+        raise error(message=message)
 
 
 def remove_pending_consents(consent_ids, headers):

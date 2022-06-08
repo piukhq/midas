@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import redis
 
-from app.agents.exceptions import AgentError
+from app.exceptions import ServiceConnectionError
 from app.redis_retry import get_count, get_key, inc_count, redis_connection
 
 
@@ -34,7 +34,7 @@ class TestRedisRetry(unittest.TestCase):
         def func():
             raise redis.exceptions.ConnectionError("Test connection error")
 
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             func()
 
         self.assertEqual(e.exception.message, "Error connecting to Redis.")

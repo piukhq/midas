@@ -13,8 +13,16 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Wasabi
-from app.agents.exceptions import END_SITE_DOWN, STATUS_LOGIN_FAILED, AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction, Voucher
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    EndSiteDownError,
+    IPBlockedError,
+    NoSuchRecordError,
+    RetryLimitReachedError,
+    StatusLoginFailedError,
+    ValidationError,
+)
 from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HERMES_URL
@@ -277,7 +285,7 @@ class TestWasabi(unittest.TestCase):
         # Force fast-as-possible retries so we don't have slow running tests
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(RetryLimitReachedError):
             self.wasabi._account_already_exists(origin_id=origin_id)
 
     @httpretty.activate
@@ -347,7 +355,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._create_account(origin_id=origin_id)
 
     @httpretty.activate
@@ -364,7 +372,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         assert not mock_send_to_atlas.called
-        with self.assertRaises(AgentError):
+        with self.assertRaises(EndSiteDownError):
             self.wasabi._create_account(origin_id=origin_id)
 
     @httpretty.activate
@@ -420,7 +428,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.journey_type = JourneyTypes.ADD
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._add_member_number(ctcid=ctcid)
 
     @httpretty.activate
@@ -533,7 +541,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._get_customer_details(origin_id=origin_id)
 
     def test_customer_fields_are_present(self):
@@ -813,7 +821,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
         "app.agents.acteol.Acteol._validate_member_number",
-        side_effect=LoginError(STATUS_LOGIN_FAILED),
+        side_effect=StatusLoginFailedError,
     )
     def test_login_fail(self, mock_validate_member_number, mock_authenticate):
         """
@@ -830,7 +838,7 @@ class TestWasabi(unittest.TestCase):
         }
 
         # THEN
-        with pytest.raises(LoginError):
+        with pytest.raises(StatusLoginFailedError):
             self.wasabi.login()
 
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -935,13 +943,14 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
         "app.agents.acteol.Acteol._validate_member_number",
-        side_effect=LoginError(STATUS_LOGIN_FAILED),
+        side_effect=StatusLoginFailedError,
     )
     def test_login_add_path_calls_fail_signals_on_login_error(
         self, mock_validate_member_number, mock_authenticate, mock_signal
     ):
         """
-        Check that the call to login() calls signal events if we're on an ADD journey but there's a LoginError
+        Check that the call to login() calls signal events if we're on an ADD
+        journey but there's a StatusLoginFailedError
         """
         # GIVEN
         # Mock us through authentication
@@ -963,7 +972,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         self.assertRaises(
-            LoginError,
+            StatusLoginFailedError,
             self.wasabi.login,
         )
 
@@ -974,7 +983,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch(
         "app.agents.acteol.Acteol._validate_member_number",
-        side_effect=AgentError(END_SITE_DOWN),
+        side_effect=EndSiteDownError,
     )
     def test_login_add_path_calls_fail_signals_on_agent_error(
         self, mock_validate_member_number, mock_authenticate, mock_signal
@@ -1002,7 +1011,7 @@ class TestWasabi(unittest.TestCase):
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            EndSiteDownError,
             self.wasabi.login,
         )
 
@@ -1548,7 +1557,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi.get_contact_ids_by_email(email=email)
 
     @httpretty.activate
@@ -1691,7 +1700,7 @@ class TestWasabi(unittest.TestCase):
         resp_json = {"Response": False, "Error": "Internal Exception"}
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._check_response_for_error(resp_json)
 
     def test_check_deleted_user(self):
@@ -1702,7 +1711,7 @@ class TestWasabi(unittest.TestCase):
         resp_json = {"CustomerID": "0", "CurrentMemberNumber": "ABC123"}
 
         # WHEN
-        with pytest.raises(AgentError):
+        with pytest.raises(NoSuchRecordError):
             self.wasabi._check_deleted_user(resp_json)
 
     @httpretty.activate
@@ -1723,7 +1732,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(RetryLimitReachedError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
@@ -1743,7 +1752,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(StatusLoginFailedError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
@@ -1763,7 +1772,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(IPBlockedError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
@@ -1771,7 +1780,7 @@ class TestWasabi(unittest.TestCase):
     @patch("app.agents.acteol.Acteol.authenticate")
     def test_validate_member_number_validation_error(self, mock_authenticate, mock_send_to_atlas):
         """
-        Test one of the LoginError scenarios
+        Test one of the error scenarios - ValidationError
         """
         # GIVEN
         self.wasabi.journey_type = JourneyTypes.ADD
@@ -1791,7 +1800,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(LoginError):
+        with pytest.raises(ValidationError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
@@ -1818,7 +1827,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(AgentError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
@@ -1864,14 +1873,14 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(JoinError, self.wasabi.join)
+        self.assertRaises(AccountAlreadyExistsError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
     @patch(
         "app.agents.acteol.Acteol._create_account",
-        side_effect=AgentError(END_SITE_DOWN),
+        side_effect=EndSiteDownError,
     )
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
@@ -1897,7 +1906,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(AgentError, self.wasabi.join)
+        self.assertRaises(EndSiteDownError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -1905,7 +1914,7 @@ class TestWasabi(unittest.TestCase):
     @httpretty.activate
     @patch(
         "app.agents.acteol.Acteol._add_member_number",
-        side_effect=LoginError(STATUS_LOGIN_FAILED),
+        side_effect=StatusLoginFailedError,
     )
     @patch("app.agents.acteol.Acteol._create_account")
     @patch("app.agents.acteol.Acteol._account_already_exists")
@@ -1934,7 +1943,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        self.assertRaises(LoginError, self.wasabi.join)
+        self.assertRaises(StatusLoginFailedError, self.wasabi.join)
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)

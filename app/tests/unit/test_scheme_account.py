@@ -1,8 +1,7 @@
 import json
 from unittest import TestCase, mock
 
-from app.agents.exceptions import GENERAL_ERROR
-from app.exceptions import AgentException
+from app.exceptions import GeneralError
 from app.scheme_account import (
     SchemeAccountStatus,
     delete_scheme_account,
@@ -18,8 +17,8 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete):
         user_info = {"scheme_account_id": 1}
-        with self.assertRaises(AgentException):
-            update_pending_link_account(user_info, GENERAL_ERROR, "tid123", scheme_slug="scheme_slug")
+        with self.assertRaises(GeneralError):
+            update_pending_link_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
         self.assertTrue(mock_intercom_call.called)
         self.assertTrue(mock_requests_delete.called)
@@ -29,7 +28,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_join_account(self, mock_requests_delete, mock_requests_put, mock_requests_post):
         user_info = {"scheme_account_id": 1}
-        update_pending_join_account(user_info, "success", "tid123", identifier="12345")
+        update_pending_join_account(user_info, "tid123", identifier="12345")
         self.assertTrue(mock_requests_put.called)
         self.assertFalse(mock_requests_delete.called)
         self.assertFalse(mock_requests_post.called)
@@ -39,8 +38,8 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post):
         user_info = {"scheme_account_id": 1}
-        with self.assertRaises(AgentException):
-            update_pending_join_account(user_info, GENERAL_ERROR, "tid123", scheme_slug="scheme_slug")
+        with self.assertRaises(GeneralError):
+            update_pending_join_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
@@ -54,8 +53,8 @@ class TestSchemeAccount(TestCase):
     def test_update_pending_join_account_with_join(self, mock_requests_delete, mock_requests_put, mock_requests_post):
         credentials_dict = {"card_number": "abc1234"}
         user_info = {"scheme_account_id": 1, "credentials": credentials_dict}
-        with self.assertRaises(AgentException):
-            update_pending_join_account(user_info, GENERAL_ERROR, "tid123", scheme_slug="scheme_slug")
+        with self.assertRaises(GeneralError):
+            update_pending_join_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)
@@ -71,7 +70,7 @@ class TestSchemeAccount(TestCase):
     ):
         user_info = {"scheme_account_id": 1}
         update_pending_join_account(
-            user_info, GENERAL_ERROR, "tid123", scheme_slug="scheme_slug", raise_exception=False
+            user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug", raise_exception=False
         )
 
         self.assertFalse(mock_requests_put.called)
@@ -87,9 +86,9 @@ class TestSchemeAccount(TestCase):
     ):
         user_info = {"scheme_account_id": 1}
         consent_ids = (1, 2)
-        with self.assertRaises(AgentException):
+        with self.assertRaises(GeneralError):
             update_pending_join_account(
-                user_info, GENERAL_ERROR, "tid123", scheme_slug="scheme_slug", consent_ids=consent_ids
+                user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug", consent_ids=consent_ids
             )
 
         self.assertFalse(mock_requests_put.called)

@@ -10,11 +10,10 @@ from werkzeug.exceptions import NotFound
 
 import settings
 from app import publish
-from app.agents.exceptions import AgentError, LoginError
 from app.agents.schemas import transaction_tuple_to_dict
 from app.encoding import JsonEncoder
 from app.encryption import AESCipher, get_aes_key
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.messaging import queue
@@ -159,12 +158,12 @@ class Transactions(Resource):
                 tid,
             )
             return create_response(transactions)
-        except (LoginError, AgentError) as e:
+        except BaseError as e:
             status = e.code
-            raise AgentException(e)
+            raise e
         except Exception as e:
             status = SchemeAccountStatus.UNKNOWN_ERROR
-            raise UnknownException(e)
+            raise UnknownError(exception=e) from e
         finally:
             thread_pool_executor.submit(publish.status, user_info["scheme_account_id"], status, tid, user_info)
 
@@ -200,10 +199,8 @@ class AccountOverview(Resource):
             )
 
             return create_response(account_overview)
-        except (LoginError, AgentError) as e:
-            raise AgentException(e)
         except Exception as e:
-            raise UnknownException(e)
+            raise UnknownError(exception=e) from e
 
 
 class TestResults(Resource):
@@ -252,11 +249,11 @@ def get_hades_balance(scheme_account_id):
     try:
         resp_json = resp.json()
     except (AttributeError, TypeError) as e:
-        raise UnknownException(e)
+        raise UnknownError(exception=e) from e
     else:
         if resp_json:
             return resp_json
-        raise UnknownException("Empty response getting previous balance")
+        raise UnknownError(message="Empty response getting previous balance")
 
 
 def get_user_set_from_request(request_args):

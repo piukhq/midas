@@ -1,13 +1,11 @@
 import importlib
 
-import sentry_sdk
 from flask_restful import abort
 
 from app import publish, redis_retry
 from app.active import AGENTS
-from app.agents.exceptions import SYSTEM_ACTION_REQUIRED, UNKNOWN, AgentError, LoginError, RetryLimitError, errors
 from app.agents.schemas import transaction_tuple_to_dict
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import BaseError, RetryLimitReachedError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -55,19 +53,18 @@ def agent_login(agent_class, user_info, scheme_slug=None, from_join=False):
     agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug)
     try:
         agent_instance.attempt_login()
-    except RetryLimitError as e:
+    except RetryLimitReachedError as e:
         redis_retry.max_out_count(key, agent_instance.retry_limit)
-        raise AgentException(e)
-    except (LoginError, AgentError) as e:
-        # If this is an UNKNOWN error, also log to sentry
-        if e.code == errors[UNKNOWN]["code"]:
-            sentry_sdk.capture_exception()
-        if e.args[0] in SYSTEM_ACTION_REQUIRED and from_join:
+        raise e
+    except BaseError as e:
+        try:
+            if e.system_action_required and from_join:
+                raise e
+        except AttributeError:
+            redis_retry.inc_count(key)
             raise e
-        redis_retry.inc_count(key)
-        raise AgentException(e)
     except Exception as e:
-        raise UnknownException(e) from e
+        raise UnknownError(exception=e) from e
 
     return agent_instance
 

@@ -11,15 +11,13 @@ from user_auth_token import UserTokenStore
 
 import settings
 from app.agents.base import Balance, BaseAgent, Transaction
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    NO_SUCH_RECORD,
-    STATUS_LOGIN_FAILED,
-    STATUS_REGISTRATION_FAILED,
-    UNKNOWN,
-    AgentError,
-    JoinError,
-    LoginError,
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    StatusRegistrationFailedError,
+    UnknownError,
 )
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
@@ -72,21 +70,21 @@ class HarveyNichols(BaseAgent):
 
         message = response.json()["auth_resp"]["message"]
         if message != "OK":
-            raise LoginError(STATUS_LOGIN_FAILED)
+            raise StatusLoginFailedError()
 
     def login(self):
         self.identifier_type = "card_number"
 
         if self.journey_type == JourneyTypes.LINK.value:
             self.errors = {
-                STATUS_LOGIN_FAILED: ["NoSuchRecord", "Invalid", "AuthFailed"],
-                UNKNOWN: ["Fail"],
+                StatusLoginFailedError: ["NoSuchRecord", "Invalid", "AuthFailed"],
+                UnknownError: ["Fail"],
             }
         else:
             self.errors = {
-                NO_SUCH_RECORD: ["NoSuchRecord"],
-                STATUS_LOGIN_FAILED: ["Invalid", "AuthFailed"],
-                UNKNOWN: ["Fail"],
+                NoSuchRecordError: ["NoSuchRecord"],
+                StatusLoginFailedError: ["Invalid", "AuthFailed"],
+                UnknownError: ["Fail"],
             }
 
         # For LINK journeys we should check to see if we can login by
@@ -102,7 +100,7 @@ class HarveyNichols(BaseAgent):
             if self.journey_type == JourneyTypes.LINK.value:
                 try:
                     self.check_loyalty_account_valid()
-                except (LoginError, AgentError):
+                except BaseError:
                     signal("log-in-fail").send(self, slug=self.scheme_slug)
                     raise
 
@@ -135,7 +133,7 @@ class HarveyNichols(BaseAgent):
             result = self.call_balance_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self.handle_error_codes(result["outcome"])
 
         tiers_list = {"SILVER": 1, "GOLD": 2, "PLATINUM": 3, "BLACK": 4}
         tier = tiers_list[result["loyaltyTierId"]]
@@ -195,7 +193,7 @@ class HarveyNichols(BaseAgent):
             result = self.call_transaction_url()
 
         if result["outcome"] != "Success":
-            self.handle_errors(result["outcome"])
+            self.handle_error_codes(result["outcome"])
 
         customer_transactions = [transaction["CustomerTransaction"] for transaction in result["transactions"]]
         transaction_types = ["Sale", "Refund"]
@@ -207,7 +205,11 @@ class HarveyNichols(BaseAgent):
         return transactions
 
     def join(self):
-        self.errors = {ACCOUNT_ALREADY_EXISTS: "AlreadyExists", STATUS_REGISTRATION_FAILED: "Invalid", UNKNOWN: "Fail"}
+        self.errors = {
+            AccountAlreadyExistsError: "AlreadyExists",
+            StatusRegistrationFailedError: "Invalid",
+            UnknownError: "Fail",
+        }
         url = self.base_url + "/SignUp"
         data = {
             "CustomerSignUpRequest": {
@@ -235,7 +237,7 @@ class HarveyNichols(BaseAgent):
             return {"message": "success"}
 
         signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-        self.handle_errors(message, exception_type=JoinError)
+        self.handle_error_codes(message)
 
     def _login(self):
         """
@@ -306,7 +308,7 @@ class HarveyNichols(BaseAgent):
 
         else:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(json_result["outcome"])
+            self.handle_error_codes(json_result["outcome"])
 
 
 def agent_consent_response(resp):

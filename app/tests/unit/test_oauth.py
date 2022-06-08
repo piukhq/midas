@@ -4,7 +4,7 @@ import unittest
 import httpretty
 from soteria.configuration import Configuration
 
-from app.agents.exceptions import AgentError
+from app.exceptions import ConfigurationError, ServiceConnectionError
 from app.security.oauth import OAuth
 
 
@@ -53,7 +53,7 @@ class TestOauth(unittest.TestCase):
             uri=self.token_url,
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=500)],
         )
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.oauth.encode(json.dumps({"key": "value"}))
         self.assertEqual(e.exception.name, "Service connection error")
 
@@ -65,6 +65,6 @@ class TestOauth(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps({"access_token": "a_token"}), status=200)],
         )
         self.oauth.credentials = self.credentials_missing
-        with self.assertRaises(AgentError) as e:
+        with self.assertRaises(ConfigurationError) as e:
             self.oauth.encode(json.dumps({"key": "value"}))
         self.assertEqual(e.exception.name, "Configuration error")

@@ -2,8 +2,8 @@ import unittest
 
 from user_auth_token import UserTokenStore
 
-from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
+from app.exceptions import NoSuchRecordError, StatusLoginFailedError
 from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 from settings import REDIS_URL
 
@@ -46,7 +46,7 @@ class TestHarveyNicholsFail(unittest.TestCase):
             "email": "no@user.email",
             "password": "Badpassword02",
         }
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(NoSuchRecordError) as e:
             self.h.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Account does not exist")
 
@@ -55,7 +55,7 @@ class TestHarveyNicholsFail(unittest.TestCase):
             "email": "Bademail",
             "password": "Badpassword02",
         }
-        with self.assertRaises(LoginError) as e:
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.h.attempt_login(credentials)
         self.assertEqual(e.exception.name, "Invalid credentials")
 

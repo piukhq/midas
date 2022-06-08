@@ -8,26 +8,23 @@ from soteria.configuration import Configuration
 
 from app import publish
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    CARD_NOT_REGISTERED,
-    CARD_NUMBER_ERROR,
-    GENERAL_ERROR,
-    JOIN_ERROR,
-    JOIN_IN_PROGRESS,
-    LINK_LIMIT_EXCEEDED,
-    NO_SUCH_RECORD,
-    NOT_SENT,
-    PRE_REGISTERED_CARD,
-    STATUS_LOGIN_FAILED,
-    UNKNOWN,
-    AgentError,
-    JoinError,
-    LoginError,
-)
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
-from app.exceptions import AgentException
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    CardNotRegisteredError,
+    CardNumberError,
+    GeneralError,
+    JoinError,
+    JoinInProgressError,
+    LinkLimitExceededError,
+    NoSuchRecordError,
+    NotSentError,
+    PreRegisteredCardError,
+    StatusLoginFailedError,
+    UnknownError,
+)
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, update_pending_join_account
 from app.tasks.resend_consents import ConsentStatus
@@ -53,18 +50,18 @@ class Iceland(BaseAgent):
         self._balance_amount = None
         self._transactions = None
         self.errors = {
-            ACCOUNT_ALREADY_EXISTS: ["ALREADY_PROCESSED", "ACCOUNT_ALREADY_EXISTS"],
-            CARD_NOT_REGISTERED: "CARD_NOT_REGISTERED",
-            CARD_NUMBER_ERROR: "CARD_NUMBER_ERROR",
-            GENERAL_ERROR: "GENERAL_ERROR",
-            JOIN_ERROR: "JOIN_ERROR",
-            JOIN_IN_PROGRESS: "JOIN_IN_PROGRESS",
-            LINK_LIMIT_EXCEEDED: "LINK_LIMIT_EXCEEDED",
-            NO_SUCH_RECORD: "NO_SUCH_RECORD",
-            NOT_SENT: "NOT_SENT",
-            PRE_REGISTERED_CARD: "PRE_REGISTERED_ERROR",
-            STATUS_LOGIN_FAILED: "VALIDATION",
-            UNKNOWN: "UNKNOWN",
+            AccountAlreadyExistsError: ["ALREADY_PROCESSED", "ACCOUNT_ALREADY_EXISTS"],
+            CardNotRegisteredError: "CARD_NOT_REGISTERED",
+            CardNumberError: "CARD_NUMBER_ERROR",
+            GeneralError: "GENERAL_ERROR",
+            JoinError: "JOIN_ERROR",
+            JoinInProgressError: "JOIN_IN_PROGRESS",
+            LinkLimitExceededError: "LINK_LIMIT_EXCEEDED",
+            NoSuchRecordError: "NO_SUCH_RECORD",
+            NotSentError: "NOT_SENT",
+            PreRegisteredCardError: "PRE_REGISTERED_ERROR",
+            StatusLoginFailedError: "VALIDATION",
+            UnknownError: "UNKNOWN",
         }
 
     def get_auth_url_and_payload(self):
@@ -129,12 +126,12 @@ class Iceland(BaseAgent):
         try:
             error = data.get("error_codes")
             if error:
-                self.handle_errors(error_code=error[0]["code"], exception_type=JoinError)
-            update_pending_join_account(self.user_info, "success", self.message_uid, identifier=self.identifier)
+                self.handle_error_codes(error_code=error[0]["code"])
+            update_pending_join_account(self.user_info, self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
-        except (AgentException, LoginError, JoinError, AgentError):
+        except BaseError as e:
             consent_status = ConsentStatus.FAILED
-            raise
+            raise e
         finally:
             self.consent_confirmation(self.credentials.get("consents", []), consent_status)
 
@@ -152,12 +149,9 @@ class Iceland(BaseAgent):
         try:
             self._process_join_callback_response(data)
             signal("callback-success").send(self, slug=self.scheme_slug)
-        except AgentError as e:
+        except BaseError as e:
             signal("callback-fail").send(self, slug=self.scheme_slug)
-            update_pending_join_account(self.user_info, e.args[0], self.message_uid, raise_exception=False)
-            raise
-        except (AgentException, LoginError):
-            signal("callback-fail").send(self, slug=self.scheme_slug)
+            update_pending_join_account(self.user_info, self.message_uid, error=e, raise_exception=False)
             raise
 
     def _join(self, payload: dict):
@@ -166,9 +160,9 @@ class Iceland(BaseAgent):
             if response.text == "":
                 return {}
             return response.json()
-        except (JoinError, AgentError) as e:
+        except BaseError:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            self.handle_errors(e.name)
+            raise
 
     def join(self) -> None:
         # Barclays expects only 1 consent for an Iceland join, whereas Iceland expects 2
@@ -192,7 +186,7 @@ class Iceland(BaseAgent):
         if error:
             consent_status = ConsentStatus.FAILED
             self.consent_confirmation(consents, consent_status)
-            self.handle_errors(error[0]["code"], exception_type=JoinError)
+            self.handle_error_codes(error[0]["code"])
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)
@@ -201,9 +195,9 @@ class Iceland(BaseAgent):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
             return response.json()
-        except (LoginError, AgentError) as e:
+        except (BaseError):
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(e.name)
+            raise
 
     def login(self) -> None:
         self.integration_service = "SYNC"
@@ -230,7 +224,7 @@ class Iceland(BaseAgent):
         error = response_json.get("error_codes")
         if error:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            self.handle_errors(error[0]["code"])
+            self.handle_error_codes(error[0]["code"])
         else:
             signal("log-in-success").send(self, slug=self.scheme_slug)
 

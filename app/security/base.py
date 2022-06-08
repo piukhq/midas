@@ -1,6 +1,6 @@
 import time
 
-from app.agents.exceptions import VALIDATION, AgentError
+from app.exceptions import ValidationError
 
 
 class BaseSecurity:
@@ -28,7 +28,7 @@ class BaseSecurity:
     def _validate_timestamp(self, timestamp):
         current_time = time.time()
         if (current_time - int(timestamp)) > self.time_limit:
-            raise AgentError(VALIDATION)
+            raise ValidationError()
 
     @staticmethod
     def _add_timestamp(json_data):
