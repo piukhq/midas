@@ -111,7 +111,7 @@ def update_pending_join_account(
     )
 
     if raise_exception:
-        raise error()
+        raise error
 
 
 def update_pending_link_account(user_info, tid, error=None, message=None, scheme_slug=None, raise_exception=True):
@@ -139,7 +139,8 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
     )
 
     if error and raise_exception:
-        raise error(message=message)
+        error.message = message
+        raise error
 
 
 def remove_pending_consents(consent_ids, headers):

@@ -15,10 +15,20 @@ from app.tasks.resend_consents import ConsentStatus
 class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.post")
     @mock.patch("app.scheme_account.requests.delete")
-    def test_update_pending_link_account(self, mock_intercom_call, mock_requests_delete):
+    def test_update_pending_link_account_error(self, mock_intercom_call, mock_requests_delete):
         user_info = {"scheme_account_id": 1}
         with self.assertRaises(GeneralError):
             update_pending_link_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
+
+        self.assertTrue(mock_intercom_call.called)
+        self.assertTrue(mock_requests_delete.called)
+
+    @mock.patch("app.scheme_account.requests.post")
+    @mock.patch("app.scheme_account.requests.delete")
+    def test_update_pending_link_account_error_with_traceback(self, mock_intercom_call, mock_requests_delete):
+        user_info = {"scheme_account_id": 1}
+        with self.assertRaises(GeneralError):
+            update_pending_link_account(user_info, "tid123", error=GeneralError(), scheme_slug="scheme_slug")
 
         self.assertTrue(mock_intercom_call.called)
         self.assertTrue(mock_requests_delete.called)
@@ -40,6 +50,20 @@ class TestSchemeAccount(TestCase):
         user_info = {"scheme_account_id": 1}
         with self.assertRaises(GeneralError):
             update_pending_join_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
+
+        self.assertFalse(mock_requests_put.called)
+        self.assertTrue(mock_requests_delete.called)
+        self.assertTrue(mock_requests_post.called)
+        status_json = json.loads(mock_requests_post.call_args[1]["data"])
+        self.assertEqual(status_json["status"], SchemeAccountStatus.ENROL_FAILED)
+
+    @mock.patch("app.scheme_account.requests.post")
+    @mock.patch("app.scheme_account.requests.put")
+    @mock.patch("app.scheme_account.requests.delete")
+    def test_update_pending_join_account_error_with_traceback(self, mock_requests_delete, mock_requests_put, mock_requests_post):
+        user_info = {"scheme_account_id": 1}
+        with self.assertRaises(GeneralError):
+            update_pending_join_account(user_info, "tid123", error=GeneralError(), scheme_slug="scheme_slug")
 
         self.assertFalse(mock_requests_put.called)
         self.assertTrue(mock_requests_delete.called)

@@ -558,7 +558,7 @@ class Acteol(BaseAgent):
 
             error_type = validation_error_types.get(validation_msg, StatusLoginFailedError)
             log.error(f"Failed login validation for member number {member_number}: {validation_msg}")
-            raise error_type()
+            raise error_type
 
         ctcid = str(resp_json["CtcID"])
 

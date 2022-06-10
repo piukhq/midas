@@ -249,8 +249,8 @@ class BaseAgent(object):
     def handle_error_codes(self, error_code, unhandled_exception=UnknownError):
         for agent_error, agent_error_codes in self.errors.items():
             if error_code in agent_error_codes:
-                raise agent_error()
-        raise unhandled_exception()
+                raise agent_error
+        raise unhandled_exception
 
     def join(self):
         raise NotImplementedError()
@@ -407,7 +407,7 @@ class MockedMiner(BaseAgent):
         for credential_type, credential in self.credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
-                raise error_to_raise()
+                raise error_to_raise
             except KeyError:
                 pass
 
