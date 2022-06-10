@@ -60,7 +60,9 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.post")
     @mock.patch("app.scheme_account.requests.put")
     @mock.patch("app.scheme_account.requests.delete")
-    def test_update_pending_join_account_error_with_traceback(self, mock_requests_delete, mock_requests_put, mock_requests_post):
+    def test_update_pending_join_account_error_with_traceback(
+        self, mock_requests_delete, mock_requests_put, mock_requests_post
+    ):
         user_info = {"scheme_account_id": 1}
         with self.assertRaises(GeneralError):
             update_pending_join_account(user_info, "tid123", error=GeneralError(), scheme_slug="scheme_slug")
