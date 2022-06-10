@@ -59,6 +59,7 @@ class Bpl(BaseAgent):
             StatusLoginFailedError: ["NO_ACCOUNT_FOUND"],
         }
         self._transactions = None
+        self.transaction_history_quantity = 5
 
     def join(self):
         consents = self.credentials.get("consents", [])
@@ -139,7 +140,8 @@ class Bpl(BaseAgent):
         merchant_id = self.credentials["merchant_identifier"]
         self.headers["bpl-user-channel"] = "com.bink.wallet"
         url = f"{self.base_url}{merchant_id}"
-        resp = self.make_request(url, method="get")
+        params = {"tx_qty": self.transaction_history_quantity}
+        resp = self.make_request(url, method="get", params=params)
         bpl_data = resp.json()
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
