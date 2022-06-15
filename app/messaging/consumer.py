@@ -1,3 +1,4 @@
+import json
 from typing import Any, Type, cast
 
 import kombu
@@ -5,6 +6,7 @@ from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
 
 import settings
+from app.encryption import AESCipher, get_aes_key
 from app.journeys.join import attempt_join
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -31,9 +33,18 @@ class TaskConsumer(ConsumerMixin):
 
     def on_join_application(self, message: Message) -> None:
         message = cast(JoinApplication, message)
+
+        # Temporary check for deploying hermes to midas messaging for join.
+        # Prevents the possibility that we have something on the message queue already and crashing.
+        # Can be removed once hermes-midas messaging has been deployed to prod.
+        try:
+            credentials = message.join_data["encrypted_credentials"]
+        except (KeyError, TypeError):
+            credentials = message.join_data
+
         user_info = {
             "user_set": message.bink_user_id,
-            "credentials": message.join_data,
+            "credentials": decrypt_credentials(credentials),
             "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,  # TODO: check where/how this is used
             "journey_type": JourneyTypes.JOIN.value,
             "scheme_account_id": int(message.request_id),
@@ -41,3 +52,8 @@ class TaskConsumer(ConsumerMixin):
         }
 
         attempt_join(message.loyalty_plan, user_info, message.transaction_id)
+
+
+def decrypt_credentials(credentials):
+    aes = AESCipher(get_aes_key("aes-keys"))
+    return json.loads(aes.decrypt(credentials.replace(" ", "+")))
