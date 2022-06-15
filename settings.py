@@ -6,6 +6,16 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    CardNotRegisteredError,
+    CardNumberError,
+    JoinInProgressError,
+    LinkLimitExceededError,
+    NoSuchRecordError,
+    PreRegisteredCardError,
+    StatusLoginFailedError,
+)
 from app.version import __version__
 
 os.chdir(os.path.dirname(__file__))
@@ -72,7 +82,7 @@ imports = ["app.tasks.resend"]
 
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
-CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
+CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="http://127.0.0.1:8080/config_service")
 ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
@@ -85,16 +95,26 @@ if SENTRY_DSN:
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration(), RedisIntegration()],
         release=__version__,
+        ignore_errors=[
+            AccountAlreadyExistsError,
+            CardNotRegisteredError,
+            CardNumberError,
+            JoinInProgressError,
+            LinkLimitExceededError,
+            NoSuchRecordError,
+            PreRegisteredCardError,
+            StatusLoginFailedError,
+        ],
     )
 
 if getenv("POSTGRES_DSN", required=False):
-    POSTGRES_DSN = getenv("POSTGRES_DSN").format(getenv("POSTGRES_DB", "midas"))
+    POSTGRES_DSN = "http://bullshit"
 else:
-    POSTGRES_HOST = getenv("POSTGRES_HOST")
+    POSTGRES_HOST = getenv("POSTGRES_HOST", default="http//bullshit://")
     POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
-    POSTGRES_USER = getenv("POSTGRES_USER")
+    POSTGRES_USER = getenv("POSTGRES_USER", default="postgres")
     POSTGRES_PASS = getenv("POSTGRES_PASS", required=False)
-    POSTGRES_DB = getenv("POSTGRES_DB")
+    POSTGRES_DB = getenv("POSTGRES_DB", default="GOWNO")
 
     POSTGRES_DSN = "".join(
         [

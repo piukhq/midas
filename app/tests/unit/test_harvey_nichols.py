@@ -8,9 +8,9 @@ import arrow
 import httpretty
 
 import settings
-from app.agents.exceptions import LoginError
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Transaction
+from app.exceptions import BaseError, StatusLoginFailedError
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import try_consents
 
@@ -163,7 +163,7 @@ class TestUserConsents(unittest.TestCase):
         hn.scheme_id = 123
         hn.token_store = MockStore()
 
-        with self.assertRaises(LoginError):
+        with self.assertRaises(StatusLoginFailedError):
             hn.check_loyalty_account_valid()
 
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
@@ -391,7 +391,6 @@ class TestLoginJourneyTypes(unittest.TestCase):
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def setUp(self, mock_base_config, mock_hn_config):
-
         self.user_info = {
             "scheme_account_id": 123,
             "status": "pending",
@@ -477,7 +476,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
         self.hn.scheme_id = 101
         for i, msg in enumerate(["Not found", "User details not authenticated"]):  # Web account only  # Bad credentials
             mock_make_request.side_effect = [MockResponse({"auth_resp": {"message": msg, "status_code": "404"}}, 200)]
-            self.assertRaises(LoginError, self.hn.login)
+            self.assertRaises(StatusLoginFailedError, self.hn.login)
             self.assertEqual("http://hn.test/user/hasloyaltyaccount", mock_make_request.call_args_list[i][0][0])
 
     @mock.patch("app.tasks.resend_consents.send_consents")
@@ -500,7 +499,7 @@ class TestLoginJourneyTypes(unittest.TestCase):
 
         try:
             self.hn.login()
-        except LoginError:
+        except BaseError:
             self.fail("Unexpected LoginError (JourneyType: LINK)")
 
         self.assertEqual(

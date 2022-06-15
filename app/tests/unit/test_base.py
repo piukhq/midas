@@ -6,7 +6,7 @@ import httpretty
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
-from app.agents.exceptions import END_SITE_DOWN, GENERAL_ERROR, IP_BLOCKED, STATUS_LOGIN_FAILED, AgentError, LoginError
+from app.exceptions import EndSiteDownError, GeneralError, IPBlockedError, StatusLoginFailedError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -70,14 +70,14 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=END_SITE_DOWN,
+                error=EndSiteDownError,
                 slug=m.scheme_slug,
             ),
         ]
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            EndSiteDownError,
             m.make_request,
             api_url,
             method="get",
@@ -120,13 +120,13 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=STATUS_LOGIN_FAILED,
+                error=StatusLoginFailedError,
                 slug=m.scheme_slug,
             ),
         ]
 
         # WHEN
-        self.assertRaises(LoginError, m.make_request, api_url, method="get")
+        self.assertRaises(StatusLoginFailedError, m.make_request, api_url, method="get")
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
@@ -169,14 +169,14 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=END_SITE_DOWN,
+                error=EndSiteDownError,
                 slug=m.scheme_slug,
             ),
         ]
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            EndSiteDownError,
             m.make_request,
             api_url,
             method="get",
@@ -223,14 +223,14 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=STATUS_LOGIN_FAILED,
+                error=StatusLoginFailedError,
                 slug=m.scheme_slug,
             ),
         ]
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            StatusLoginFailedError,
             m.make_request,
             api_url,
             method="get",
@@ -269,14 +269,14 @@ class TestBase(TestCase):
             mock.call().send(
                 m,
                 channel=m.channel,
-                error=IP_BLOCKED,
+                error=IPBlockedError,
                 slug=m.scheme_slug,
             ),
         ]
 
         # WHEN
         self.assertRaises(
-            AgentError,
+            IPBlockedError,
             m.make_request,
             api_url,
             method="get",
@@ -298,11 +298,11 @@ class TestBase(TestCase):
             config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
-            GENERAL_ERROR: "GENERAL_ERROR",
+            GeneralError: "GENERAL_ERROR",
         }
-        with self.assertRaises(LoginError) as e:
-            agent.handle_errors(error_code="GENERAL_ERROR")
-        self.assertEqual("General Error", e.exception.name)
+        with self.assertRaises(GeneralError) as e:
+            agent.handle_error_codes(error_code="GENERAL_ERROR")
+        self.assertEqual("General error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
     @mock.patch("app.agents.base.Configuration")
@@ -318,9 +318,9 @@ class TestBase(TestCase):
             config_handler_type=Configuration.JOIN_HANDLER,
         )
         agent.errors = {
-            GENERAL_ERROR: "GENERAL_ERROR",
+            GeneralError: "GENERAL_ERROR",
         }
-        with self.assertRaises(AgentError) as e:
-            agent.handle_errors(error_code="VALIDATION")
-        self.assertEqual("An unknown error has occurred", e.exception.name)
+        with self.assertRaises(UnknownError) as e:
+            agent.handle_error_codes(error_code="VALIDATION")
+        self.assertEqual("Unknown error", e.exception.name)
         self.assertEqual(520, e.exception.code)

@@ -5,7 +5,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA as CRYPTO_RSA
 from Crypto.Signature import pkcs1_15
 
-from app.agents.exceptions import CONFIGURATION_ERROR, VALIDATION, AgentError
+from app.exceptions import ConfigurationError, ValidationError
 from app.security.base import BaseSecurity
 
 
@@ -48,12 +48,12 @@ class RSA(BaseSecurity):
             auth_header = headers["Authorization"]
             timestamp = headers["X-REQ-TIMESTAMP"]
         except KeyError as e:
-            raise AgentError(VALIDATION) from e
+            raise ValidationError(exception=e) from e
 
         prefix, signature = auth_header.split(" ")
 
         if prefix.lower() != "signature":
-            raise AgentError(VALIDATION)
+            raise ValidationError()
 
         self._validate_timestamp(timestamp)
 
@@ -61,7 +61,7 @@ class RSA(BaseSecurity):
         try:
             key = CRYPTO_RSA.importKey(self._get_key("merchant_public_key", self.credentials["inbound"]["credentials"]))
         except KeyError as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
+            raise ConfigurationError(exception=e) from e
 
         digest = SHA256.new(json_data_with_timestamp.encode("utf8"))
         signer = pkcs1_15.new(key)
@@ -70,6 +70,6 @@ class RSA(BaseSecurity):
         try:
             signer.verify(digest, decoded_sig)
         except ValueError as e:
-            raise AgentError(VALIDATION) from e
+            raise ValidationError(exception=e) from e
 
         return json_data

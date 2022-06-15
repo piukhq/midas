@@ -13,19 +13,17 @@ from soteria.configuration import Configuration
 
 import settings
 from app.agents.base import BaseAgent
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    END_SITE_DOWN,
-    JOIN_ERROR,
-    NO_SUCH_RECORD,
-    STATUS_LOGIN_FAILED,
-    VALIDATION,
-    AgentError,
-    JoinError,
-    LoginError,
-)
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import HashSHA1
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    EndSiteDownError,
+    JoinError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    ValidationError,
+)
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents
@@ -85,7 +83,7 @@ class Acteol(BaseAgent):
             # Check if account already exists
             account_already_exists = self._account_already_exists(origin_id=origin_id)
             if account_already_exists:
-                raise JoinError(ACCOUNT_ALREADY_EXISTS)  # The join journey ends
+                raise AccountAlreadyExistsError()  # The join journey ends
 
             # The account does not exist, so we can create one
             ctcid = self._create_account(origin_id=origin_id)
@@ -102,8 +100,8 @@ class Acteol(BaseAgent):
                         f"CurrentMemberNumber, CustomerID for user email: {user_email}"
                     )
                 )
-                raise JoinError(JOIN_ERROR)
-        except (AgentError, LoginError, JoinError):
+                raise JoinError()
+        except BaseError:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
         else:
@@ -147,7 +145,7 @@ class Acteol(BaseAgent):
         try:
             # Get customer details
             customer_details = self._get_customer_details(origin_id=origin_id)
-        except AgentError as ex:
+        except BaseError as ex:
             sentry_issue_id = sentry_sdk.capture_exception(ex)
             log.error(
                 f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
@@ -162,7 +160,7 @@ class Acteol(BaseAgent):
                     f"for user email: {user_email}"
                 )
             )
-            raise AgentError(NO_SUCH_RECORD)
+            raise NoSuchRecordError()
 
         self._check_deleted_user(resp_json=customer_details)
         points = Decimal(customer_details["LoyaltyPointsBalance"])
@@ -336,7 +334,7 @@ class Acteol(BaseAgent):
                     "merchant_identifier": ctcid,
                 }
                 self.credentials.update({"merchant_identifier": ctcid})
-            except (AgentError, LoginError):
+            except BaseError:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
 
@@ -358,7 +356,7 @@ class Acteol(BaseAgent):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while fetching customer details, reason: {resp.status_code} {resp.reason}")
-            raise JoinError(JOIN_ERROR)  # The join journey ends
+            raise JoinError()  # The join journey ends
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
@@ -380,7 +378,7 @@ class Acteol(BaseAgent):
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while checking for existing account, reason: {resp.status_code} {resp.reason}")
-            raise JoinError(JOIN_ERROR)  # The join journey ends
+            raise JoinError()  # The join journey ends
 
         # The API can return a dict if there's an error but a list normally returned.
         resp_json = resp.json()
@@ -415,7 +413,7 @@ class Acteol(BaseAgent):
 
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while creating new account, reason: {resp.status_code} {resp.reason}")
-            raise JoinError(JOIN_ERROR)  # The join journey ends
+            raise JoinError()  # The join journey ends
 
         ctcid = resp_json["CtcID"]
 
@@ -431,7 +429,7 @@ class Acteol(BaseAgent):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
-            raise JoinError(JOIN_ERROR)  # The join journey ends
+            raise JoinError()  # The join journey ends
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
@@ -553,14 +551,14 @@ class Acteol(BaseAgent):
         is_valid = resp_json.get("IsValid")
         if not is_valid:
             validation_error_types = {
-                "Invalid Email": VALIDATION,
-                "Invalid Member Number": VALIDATION,
-                "Email and Member number mismatch": STATUS_LOGIN_FAILED,
+                "Invalid Email": ValidationError,
+                "Invalid Member Number": ValidationError,
+                "Email and Member number mismatch": StatusLoginFailedError,
             }
 
-            error_type = validation_error_types.get(validation_msg, STATUS_LOGIN_FAILED)
+            error_type = validation_error_types.get(validation_msg, StatusLoginFailedError)
             log.error(f"Failed login validation for member number {member_number}: {validation_msg}")
-            raise LoginError(error_type)
+            raise error_type
 
         ctcid = str(resp_json["CtcID"])
 
@@ -780,7 +778,7 @@ class Acteol(BaseAgent):
 
         if error_msg:
             log.error(f"End Site Down Error: {error_msg}")
-            raise AgentError(END_SITE_DOWN)
+            raise EndSiteDownError()
 
     def _check_voucher_response_for_errors(self, resp_json: dict):
         """
@@ -807,7 +805,7 @@ class Acteol(BaseAgent):
 
         if customer_id == "0":
             log.error(f"Acteol card number has been deleted: Card number: {card_number}")
-            raise AgentError(NO_SUCH_RECORD)
+            raise NoSuchRecordError()
 
 
 def agent_consent_response(resp):

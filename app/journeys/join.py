@@ -7,10 +7,9 @@ from retry_tasks_lib.utils.synchronous import retryable_task
 from werkzeug.exceptions import NotFound
 
 from app import publish
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, AgentError, JoinError, LoginError
 from app.agents.schemas import balance_tuple_to_dict
 from app.db import SessionMaker
-from app.exceptions import AgentException, UnknownException
+from app.exceptions import AccountAlreadyExistsError, BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus, update_pending_join_account
@@ -23,9 +22,9 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
     error = None
     try:
         agent_instance.attempt_join()
-    except Exception as e:
-        error = e.args[0]
-        raise AgentException(JoinError(error))
+    except BaseError as e:
+        raise e
+
     return {"agent": agent_instance, "error": error}
 
 
@@ -35,22 +34,21 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
             return True
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug, from_join=True)
         if agent_instance.identifier:
-            update_pending_join_account(user_info, "success", tid, identifier=agent_instance.identifier)
+            update_pending_join_account(user_info, tid, identifier=agent_instance.identifier)
         elif join_result["agent"].identifier:
             update_pending_join_account(
                 user_info,
-                "success",
                 tid,
                 identifier=join_result["agent"].identifier,
             )
-    except (LoginError, AgentError, AgentException) as e:
-        if join_result["error"] == ACCOUNT_ALREADY_EXISTS:
+    except BaseError as e:
+        if join_result["error"] == AccountAlreadyExistsError:
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
             update_pending_join_account(
                 user_info,
-                str(e.args[0]),
                 tid,
+                error=e,
                 scheme_slug=scheme_slug,
                 consent_ids=consent_ids,
             )
@@ -69,7 +67,7 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
         publish_transactions(agent_instance, user_info["scheme_account_id"], user_info["user_set"], tid)
     except Exception as e:
         status = SchemeAccountStatus.UNKNOWN_ERROR
-        raise UnknownException(e)
+        raise UnknownError(exception=e) from e
     finally:
         publish.status(user_info["scheme_account_id"], status, tid, user_info, journey="join")
         return True

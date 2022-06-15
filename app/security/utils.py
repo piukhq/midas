@@ -5,8 +5,7 @@ from flask import request
 from soteria import configuration
 
 import settings
-from app.agents.exceptions import CONFIGURATION_ERROR, UNKNOWN, AgentError
-from app.exceptions import AgentException
+from app.exceptions import ConfigurationError, UnknownError
 from app.security import registry
 
 
@@ -28,7 +27,7 @@ def get_security_agent(security_type, *args, **kwargs):
         agent_instance = agent_class(*args, **kwargs)
 
     except (AttributeError, ImportError) as e:
-        raise AgentError(CONFIGURATION_ERROR) from e
+        raise ConfigurationError(exception=e) from e
 
     return agent_instance
 
@@ -57,10 +56,8 @@ def authorise(handler_type):
                 )
 
                 decoded_data = json.loads(security_agent.decode(request.headers, request.get_data().decode("utf8")))
-            except AgentError as e:
-                raise AgentException(e)
             except Exception as e:
-                raise AgentException(AgentError(UNKNOWN)) from e
+                raise UnknownError(exception=e) from e
 
             return fn(data=decoded_data, config=config, *args, **kwargs)
 

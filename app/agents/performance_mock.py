@@ -6,8 +6,8 @@ from uuid import uuid4
 import arrow
 
 from app.agents.base import MockedMiner
-from app.agents.exceptions import GENERAL_ERROR, PRE_REGISTERED_CARD, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction, Voucher
+from app.exceptions import GeneralError, PreRegisteredCardError
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"
@@ -22,7 +22,7 @@ class MockPerformance(MockedMiner):
             return
 
         if self.credentials["card_number"].startswith(GHOST_CARD_PREFIX):
-            raise LoginError(PRE_REGISTERED_CARD)
+            raise PreRegisteredCardError()
 
         return
 
@@ -65,7 +65,7 @@ class MockPerformance(MockedMiner):
 
     def join(self):
         if "failure" in self.credentials["password"].lower():
-            raise JoinError(GENERAL_ERROR)
+            raise GeneralError()
 
         return {"message": "success"}
 
@@ -77,7 +77,7 @@ class MockPerformanceVoucher(MockedMiner):
             return
 
         if self.credentials.get("card_number", "").startswith(GHOST_CARD_PREFIX):
-            raise LoginError(PRE_REGISTERED_CARD)
+            raise PreRegisteredCardError()
 
         return
 
@@ -119,6 +119,6 @@ class MockPerformanceVoucher(MockedMiner):
 
     def join(self):
         if "failure" in self.credentials["password"].lower():
-            raise JoinError(GENERAL_ERROR)
+            raise GeneralError()
 
         return {"message": "success"}

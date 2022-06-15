@@ -5,8 +5,15 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
-from app.agents.exceptions import AgentError, JoinError, LoginError
 from app.agents.schemas import Balance, Transaction
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    EndSiteDownError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    ValidationError
+)
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
 from app.tasks.resend_consents import ConsentStatus
@@ -28,11 +35,6 @@ class Squaremeal(BaseAgent):
         self.credentials = self.user_info["credentials"]
         self.channel = user_info.get("channel", "Bink")
         self.point_transactions = []
-        self.errors = {
-            "ACCOUNT_ALREADY_EXISTS": [422],
-            "SERVICE_CONNECTION_ERROR": [401],
-            "END_SITE_DOWN": [530],
-        }
 
     @staticmethod
     def hide_sensitive_fields(req_audit_logs):
@@ -72,10 +74,10 @@ class Squaremeal(BaseAgent):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
-        except (AgentError, JoinError) as ex:
+        except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def _update_newsletters(self, user_id, consents):
@@ -86,7 +88,7 @@ class Squaremeal(BaseAgent):
         try:
             self.make_request(url, method="put", json=payload)
             self.consent_confirmation(consents, ConsentStatus.SUCCESS)
-        except (AgentError, JoinError):
+        except BaseError:
             pass
 
     def _login(self):
@@ -100,10 +102,10 @@ class Squaremeal(BaseAgent):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             signal("log-in-success").send(self, slug=self.scheme_slug)
-        except (LoginError, AgentError) as ex:
+        except BaseError as ex:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
-            error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def _get_balance(self):
@@ -112,13 +114,18 @@ class Squaremeal(BaseAgent):
         self.authenticate()
         try:
             resp = self.make_request(url, method="get")
-        except (JoinError, AgentError) as ex:
-            error_code = ex.response.status_code if ex.response is not None else ex.code
-            self.handle_errors(error_code)
+        except BaseError as ex:
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+            self.handle_error_codes(error_code)
         return resp.json()
 
     def join(self):
         consents = self.credentials.get("consents", [])
+        self.errors = {
+            ValidationError: [401],
+            AccountAlreadyExistsError: [422],
+            EndSiteDownError: [530],
+        }
         resp_json = self._join()
         self.identifier = {
             "merchant_identifier": resp_json["UserId"],
@@ -131,8 +138,11 @@ class Squaremeal(BaseAgent):
         # SM is not supposed to use login as part of the JOIN journey
         if self.journey_type == JourneyTypes.JOIN.value:
             return
-
-        self.errors = {"STATUS_LOGIN_FAILED": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
+        self.errors = {
+            ValidationError: [401],
+            StatusLoginFailedError: [422],
+            EndSiteDownError: [530],
+        }
         resp = self._login()
         self.identifier = {
             "merchant_identifier": resp["UserId"],
@@ -159,7 +169,11 @@ class Squaremeal(BaseAgent):
         )
 
     def balance(self):
-        self.errors = {"NO_SUCH_RECORD": [422], "SERVICE_CONNECTION_ERROR": [401], "END_SITE_DOWN": [530]}
+        self.errors = {
+            ServiceConnectionError: [401],
+            NoSuchRecordError: [422],
+            EndSiteDownError: [530],
+        }
         points_data = self._get_balance()
         self.point_transactions = points_data["PointsActivity"]
 

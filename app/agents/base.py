@@ -19,25 +19,22 @@ from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
 import settings
-from app.agents.exceptions import (
-    ACCOUNT_ALREADY_EXISTS,
-    CONFIGURATION_ERROR,
-    END_SITE_DOWN,
-    IP_BLOCKED,
-    JOIN_ERROR,
-    NOT_SENT,
-    PRE_REGISTERED_CARD,
-    RETRY_LIMIT_REACHED,
-    SERVICE_CONNECTION_ERROR,
-    STATUS_LOGIN_FAILED,
-    UNKNOWN,
-    AgentError,
-    JoinError,
-    LoginError,
-    RetryLimitError,
-)
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    ConfigurationError,
+    EndSiteDownError,
+    IPBlockedError,
+    JoinError,
+    NotSentError,
+    PreRegisteredCardError,
+    RetryLimitReachedError,
+    ServiceConnectionError,
+    StatusLoginFailedError,
+    UnknownError,
+)
 from app.mocks.users import USER_STORE
 from app.reporting import get_logger
 from app.requests_retry import requests_retry_session
@@ -92,6 +89,9 @@ class BaseAgent(object):
         self.errors = {}
         self.integration_service: str = ""
         self.outbound_auth_service: int = None
+
+        if settings.SENTRY_DSN:
+            sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
 
     def send_audit_request(self, payload):
         audit_payload = deepcopy(payload)
@@ -166,9 +166,9 @@ class BaseAgent(object):
             response = self.session.post(url, data=payload)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
-            raise AgentError(SERVICE_CONNECTION_ERROR) from e
+            raise ServiceConnectionError(exception=e) from e
         except (KeyError, IndexError) as e:
-            raise AgentError(CONFIGURATION_ERROR) from e
+            raise ConfigurationError(exception=e) from e
 
         return response.json()["access_token"]
 
@@ -182,7 +182,7 @@ class BaseAgent(object):
     def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
         return current_timestamp - token["timestamp"] < self.oauth_token_timeout
 
-    def make_request(self, url, method="get", timeout=20, audit=False, **kwargs):
+    def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
         args = {
@@ -201,18 +201,19 @@ class BaseAgent(object):
                 self.send_audit_request(audit_payload)
 
             resp = self.session.request(method, url=url, **args)
+
             if audit:
                 self.send_audit_response(resp)
 
-        except RetryError as exception:
+        except RetryError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
-            sentry_sdk.capture_exception(exception)
-            raise AgentError(END_SITE_DOWN) from exception
+            sentry_sdk.capture_exception(e)
+            raise EndSiteDownError(exception=e) from e
 
-        except ConnectionError as exception:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RETRY_LIMIT_REACHED)
-            sentry_sdk.capture_exception(exception)
-            raise AgentError(RETRY_LIMIT_REACHED) from exception
+        except ConnectionError as e:
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
+            sentry_sdk.capture_exception(e)
+            raise RetryLimitReachedError(exception=e) from e
 
         signal("record-http-request").send(
             self,
@@ -230,26 +231,26 @@ class BaseAgent(object):
                     self,
                     slug=self.scheme_slug,
                     channel=self.channel,
-                    error=STATUS_LOGIN_FAILED,
+                    error=StatusLoginFailedError,
                 )
-                raise LoginError(STATUS_LOGIN_FAILED, response=e.response)
+                raise StatusLoginFailedError(exception=e)
             elif e.response.status_code == 403:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IP_BLOCKED)
-                raise AgentError(IP_BLOCKED, response=e.response) from e
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
+                raise IPBlockedError(exception=e) from e
             elif e.response.status_code in [503, 504]:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NOT_SENT)
-                raise AgentError(NOT_SENT, response=e.response) from e
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
+                raise NotSentError(exception=e) from e
             else:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=END_SITE_DOWN)
-                raise AgentError(END_SITE_DOWN, response=e.response) from e
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
+                raise EndSiteDownError(exception=e) from e
 
         return resp
 
-    def handle_errors(self, error_code, exception_type=LoginError, unhandled_exception_code=UNKNOWN):
-        for key, values in self.errors.items():
-            if error_code in values:
-                raise exception_type(key)
-        raise AgentError(unhandled_exception_code)
+    def handle_error_codes(self, error_code, unhandled_exception=UnknownError):
+        for agent_error, agent_error_codes in self.errors.items():
+            if error_code in agent_error_codes:
+                raise agent_error
+        raise unhandled_exception
 
     def join(self):
         raise NotImplementedError()
@@ -317,18 +318,18 @@ class BaseAgent(object):
 
     def attempt_login(self):
         if self.retry_limit and self.retry_count >= self.retry_limit:
-            raise RetryLimitError(RETRY_LIMIT_REACHED)
+            raise RetryLimitReachedError()
 
         try:
             self.login()
         except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
+            raise Exception(message=f"missing the credential '{e.args[0]}'")
 
     def attempt_join(self):
         try:
             self.join()
         except KeyError as e:
-            raise Exception("missing the credential '{0}'".format(e.args[0]))
+            raise Exception(message=f"missing the credential '{e.args[0]}'")
 
     @staticmethod
     def consent_confirmation(consents_data: list[dict], status: int) -> None:
@@ -367,8 +368,7 @@ def pluralise(count, plural_suffix):
 
 def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
-        raise AgentError(
-            CONFIGURATION_ERROR,
+        raise ConfigurationError(
             message=f"Agent expecting Security Type(s) "
             f"{[Configuration.SECURITY_TYPE_CHOICES[i][1] for i in allowed_config_auth_types]} but got "
             f"Security Type '{Configuration.SECURITY_TYPE_CHOICES[actual_config_auth_type][1]}' instead",
@@ -382,7 +382,7 @@ def create_error_response(error_code, error_description):
 
 
 class MockedMiner(BaseAgent):
-    add_error_credentials: dict[str, dict[str, str]] = {}
+    add_error_credentials: dict[str, dict[str, type[BaseError]]] = {}
     existing_card_numbers: dict[str, str] = {}
     ghost_card_prefix: Optional[str] = None
     join_fields: set[str] = set()
@@ -407,13 +407,13 @@ class MockedMiner(BaseAgent):
         for credential_type, credential in self.credentials.items():
             try:
                 error_to_raise = self.add_error_credentials[credential_type][credential]
-                raise LoginError(error_to_raise)
+                raise error_to_raise
             except KeyError:
                 pass
 
         card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
         if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
-            raise LoginError(PRE_REGISTERED_CARD)
+            raise PreRegisteredCardError()
 
     @staticmethod
     def _check_email_already_exists(email):
@@ -422,12 +422,12 @@ class MockedMiner(BaseAgent):
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:
             if ghost_card in self.existing_card_numbers:
-                raise JoinError(ACCOUNT_ALREADY_EXISTS)
+                raise AccountAlreadyExistsError()
             if self._check_email_already_exists(email):
-                raise JoinError(JOIN_ERROR)
+                raise JoinError()
         else:
             if self._check_email_already_exists(email):
-                raise JoinError(ACCOUNT_ALREADY_EXISTS)
+                raise AccountAlreadyExistsError()
 
     def _validate_join_credentials(self, data):
         for join_field in self.join_fields:
@@ -439,12 +439,12 @@ class MockedMiner(BaseAgent):
         self._check_existing_join_credentials(email, ghost_card)
 
         if email == "fail@unknown.com":
-            raise JoinError(UNKNOWN)
+            raise UnknownError()
         elif email == "slowjoin@testbink.com":
             time.sleep(60)
 
         title = data.get("title").capitalize()
         if self.titles and title not in self.titles:
-            raise JoinError(JOIN_ERROR)
+            raise JoinError()
 
         return {"message": "success"}

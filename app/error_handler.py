@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 import rq
-import urllib3.exceptions
 from retry_tasks_lib.db.models import RetryTask
 from retry_tasks_lib.enums import RetryTaskStatuses
 from retry_tasks_lib.utils.synchronous import enqueue_retry_task_delay, get_retry_task
@@ -11,7 +10,7 @@ from retry_worker import redis_raw
 from sqlalchemy.orm.session import Session
 
 from app.db import SessionMaker
-from app.exceptions import AgentException
+from app.exceptions import EndSiteDownError, ServiceConnectionError, NotSentError, IPBlockedError, RetryLimitReachedError
 from app.reporting import get_logger
 from app.scheme_account import update_pending_join_account
 
@@ -90,8 +89,6 @@ def handle_request_exception(
     next_attempt_time = None
 
     retry_task = get_retry_task(db_session, job.kwargs["retry_task_id"])
-    if not retryable_exceptions:
-        retryable_exceptions = [urllib3.exceptions.MaxRetryError]
 
     if type(exc_value) in retryable_exceptions:
         response_audit, status, next_attempt_time = _handle_request_exception(
@@ -121,7 +118,7 @@ def handle_request_exception(
         consents = user_info["credentials"].get("consents", [])
         consent_ids = (consent["id"] for consent in consents)
         update_pending_join_account(
-            user_info, exc_value, tid, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
+            user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
         )
 
 
@@ -139,5 +136,5 @@ def handle_retry_task_request_error(
             job=job,
             exc_value=exc_value,
             connection=redis_raw,
-            retryable_exceptions=[urllib3.exceptions.MaxRetryError, AgentException],
+            retryable_exceptions=[EndSiteDownError, ServiceConnectionError, RetryLimitReachedError, NotSentError, IPBlockedError],
         )
