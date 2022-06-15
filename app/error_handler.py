@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -12,6 +13,7 @@ from sqlalchemy.orm.session import Session
 from app.db import SessionMaker
 from app.exceptions import AgentException
 from app.reporting import get_logger
+from app.scheme_account import update_pending_join_account
 
 if TYPE_CHECKING:  # pragma: no cover
     from inspect import Traceback
@@ -111,6 +113,17 @@ def handle_request_exception(
         clear_next_attempt_time=True,
     )
 
+    if status == RetryTaskStatuses.FAILED:
+        join_data = retry_task.get_params()
+        tid = join_data["tid"]
+        scheme_slug = join_data["scheme_slug"]
+        user_info = json.loads(join_data["user_info"])
+        consents = user_info["credentials"].get("consents", [])
+        consent_ids = (consent["id"] for consent in consents)
+        update_pending_join_account(
+            user_info, exc_value, tid, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
+        )
+
 
 def handle_retry_task_request_error(
     job: rq.job.Job, exc_type: type, exc_value: Exception, traceback: "Traceback"
@@ -118,7 +131,6 @@ def handle_retry_task_request_error(
 
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed
-
     with SessionMaker() as db_session:
         handle_request_exception(  # pragma: no cover
             db_session=db_session,

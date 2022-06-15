@@ -1,18 +1,16 @@
 import json
 
-from flask_admin import Admin
 from flask import Markup, url_for
-
+from flask_admin import Admin
 from retry_tasks_lib.admin.views import (
     RetryTaskAdminBase,
     TaskTypeAdminBase,
     TaskTypeKeyAdminBase,
     TaskTypeKeyValueAdminBase,
 )
-
 from retry_tasks_lib.db.models import RetryTask, TaskType, TaskTypeKey, TaskTypeKeyValue
-from app.db import db_session
 
+from app.db import db_session
 from app.redis_retry import redis
 
 admin = Admin(

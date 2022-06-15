@@ -7,7 +7,7 @@ from retry_tasks_lib.utils.synchronous import retryable_task
 from werkzeug.exceptions import NotFound
 
 from app import publish
-from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, AgentError, LoginError
+from app.agents.exceptions import ACCOUNT_ALREADY_EXISTS, AgentError, JoinError, LoginError
 from app.agents.schemas import balance_tuple_to_dict
 from app.db import SessionMaker
 from app.exceptions import AgentException, UnknownException
@@ -25,11 +25,7 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
         agent_instance.attempt_join()
     except Exception as e:
         error = e.args[0]
-
-        consents = user_info["credentials"].get("consents", [])
-        consent_ids = (consent["id"] for consent in consents)
-        update_pending_join_account(user_info, e.args[0], tid, scheme_slug=scheme_slug, consent_ids=consent_ids)
-
+        raise AgentException(JoinError(error))
     return {"agent": agent_instance, "error": error}
 
 
