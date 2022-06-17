@@ -2,11 +2,13 @@ import json
 from typing import Any, Type, cast
 
 import kombu
+import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
 
 import settings
 from app.encryption import AESCipher, get_aes_key
+from app.exceptions import BaseError
 from app.journeys.join import attempt_join
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -51,7 +53,11 @@ class TaskConsumer(ConsumerMixin):
             "channel": message.channel,
         }
 
-        attempt_join(message.loyalty_plan, user_info, message.transaction_id)
+        try:
+            attempt_join(message.loyalty_plan, user_info, message.transaction_id)
+        except BaseError as e:
+            sentry_sdk.capture_exception(e)
+            return
 
 
 def decrypt_credentials(credentials):
