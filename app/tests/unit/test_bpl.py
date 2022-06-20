@@ -248,12 +248,7 @@ class TestBPLAdd(TestCase):
             f"{self.bpl.base_url}getbycredentials",
             responses=[
                 httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "display_message": "Malformed request.",
-                            "code": "MALFORMED_REQUEST"
-                        }
-                    ),
+                    body=json.dumps({"display_message": "Malformed request.", "code": "MALFORMED_REQUEST"}),
                     status=400,
                 )
             ],
@@ -273,12 +268,7 @@ class TestBPLAdd(TestCase):
             f"{self.bpl.base_url}getbycredentials",
             responses=[
                 httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "display_message": "Supplied token is invalid.",
-                            "code": "INVALID_TOKEN"
-                        }
-                    ),
+                    body=json.dumps({"display_message": "Supplied token is invalid.", "code": "INVALID_TOKEN"}),
                     status=401,
                 )
             ],
@@ -298,12 +288,7 @@ class TestBPLAdd(TestCase):
             f"{self.bpl.base_url}getbycredentials",
             responses=[
                 httpretty.Response(
-                    body=json.dumps(
-                        {
-                            "display_message": "Requested retailer is invalid.",
-                            "code": "INVALID_RETAILER"
-                        }
-                    ),
+                    body=json.dumps({"display_message": "Requested retailer is invalid.", "code": "INVALID_RETAILER"}),
                     status=403,
                 )
             ],
@@ -324,10 +309,7 @@ class TestBPLAdd(TestCase):
             responses=[
                 httpretty.Response(
                     body=json.dumps(
-                        {
-                            "display_message": "Account not found for provided credentials.",
-                            "code": "NO_ACCOUNT_FOUND"
-                        }
+                        {"display_message": "Account not found for provided credentials.", "code": "NO_ACCOUNT_FOUND"}
                     ),
                     status=404,
                 )
@@ -352,10 +334,7 @@ class TestBPLAdd(TestCase):
                         {
                             "display_message": "Submitted fields are missing or invalid.",
                             "code": "FIELD_VALIDATION_ERROR",
-                            "fields": [
-                                "email",
-                                "account_number"
-                            ]
+                            "fields": ["email", "account_number"],
                         }
                     ),
                     status=422,
@@ -369,7 +348,6 @@ class TestBPLAdd(TestCase):
         )
         with self.assertRaises(GeneralError):
             self.bpl.login()
-
 
     @httpretty.activate
     def test_login_500_error(self):
