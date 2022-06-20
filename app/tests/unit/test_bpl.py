@@ -12,6 +12,7 @@ from flask_testing import TestCase
 
 import settings
 from app.agents.bpl import Bpl
+from app.exceptions import GeneralError, StatusLoginFailedError
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 
 settings.API_AUTH_ENABLED = False
@@ -197,3 +198,200 @@ class TestBplCallback(TestCase):
             mock_make_request.call_args.args[0],
         )
         self.assertEqual({"method": "post", "audit": True, "json": bpl_payload}, mock_make_request.call_args.kwargs)
+
+
+class TestBPLAdd(TestCase):
+    def create_app(self):
+        return create_app(self)
+
+    def setUp(self) -> None:
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
+            mock_config_object = MagicMock()
+            mock_config_object.security_credentials = {
+                "outbound": {
+                    "credentials": [
+                        {
+                            "value": {
+                                "token": "kasjfaksjha",
+                            }
+                        }
+                    ]
+                }
+            }
+            mock_configuration.return_value = mock_config_object
+
+            self.bpl = Bpl(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": 1,
+                    "user_set": "1,2",
+                    "journey_type": 2,
+                    "credentials": {
+                        "email": "ncostaE@bink.com",
+                        "first_name": "Test",
+                        "last_name": "FatFace",
+                        "join_date": "2021/02/24",
+                        "card_number": "TRNT9276336436",
+                        "consents": [{"slug": "email_marketing", "value": True}],
+                    },
+                    "channel": "com.bink.wallet",
+                },
+                scheme_slug="bpl-trenette",
+            )
+            self.bpl.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
+
+    @httpretty.activate
+    def test_login_400_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "Malformed request.",
+                            "code": "MALFORMED_REQUEST"
+                        }
+                    ),
+                    status=400,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(GeneralError):
+            self.bpl.login()
+
+    @httpretty.activate
+    def test_login_401_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "Supplied token is invalid.",
+                            "code": "INVALID_TOKEN"
+                        }
+                    ),
+                    status=401,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(GeneralError):
+            self.bpl.login()
+
+    @httpretty.activate
+    def test_login_403_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "Requested retailer is invalid.",
+                            "code": "INVALID_RETAILER"
+                        }
+                    ),
+                    status=403,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(GeneralError):
+            self.bpl.login()
+
+    @httpretty.activate
+    def test_login_404_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "Account not found for provided credentials.",
+                            "code": "NO_ACCOUNT_FOUND"
+                        }
+                    ),
+                    status=404,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(StatusLoginFailedError):
+            self.bpl.login()
+
+    @httpretty.activate
+    def test_login_422_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "Submitted fields are missing or invalid.",
+                            "code": "FIELD_VALIDATION_ERROR",
+                            "fields": [
+                                "email",
+                                "account_number"
+                            ]
+                        }
+                    ),
+                    status=422,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(GeneralError):
+            self.bpl.login()
+
+
+    @httpretty.activate
+    def test_login_500_error(self):
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{self.bpl.base_url}getbycredentials",
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "display_message": "An unexpected system error occurred, please try again later.",
+                            "error": "INTERNAL_ERROR",
+                        }
+                    ),
+                    status=500,
+                )
+            ],
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
+        with self.assertRaises(GeneralError):
+            self.bpl.login()
