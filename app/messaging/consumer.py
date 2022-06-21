@@ -2,12 +2,14 @@ import json
 from typing import Any, Type, cast
 
 import kombu
+import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
 from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
 
 import settings
 from app.db import db_session
+from app.exceptions import BaseError
 from app.reporting import get_logger
 from app.retry_worker import redis_raw
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -34,9 +36,18 @@ class TaskConsumer(ConsumerMixin):
 
     def on_join_application(self, message: Message) -> None:
         message = cast(JoinApplication, message)
+
+        # Temporary check for deploying hermes to midas messaging for join.
+        # Prevents the possibility that we have something on the message queue already and crashing.
+        # Can be removed once hermes-midas messaging has been deployed to prod.
+        try:
+            credentials = message.join_data["encrypted_credentials"]
+        except (KeyError, TypeError):
+            credentials = message.join_data
+
         user_info = {
             "user_set": message.bink_user_id,
-            "credentials": message.join_data,
+            "credentials": credentials,
             "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,  # TODO: check where/how this is used
             "journey_type": JourneyTypes.JOIN.value,
             "scheme_account_id": int(message.request_id),
@@ -57,6 +68,6 @@ class TaskConsumer(ConsumerMixin):
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
                 db_session.commit()
 
-        except BaseException as ex:  # we don't want AgentExceptions to go to Sentry
-            log.warning(f"attempt_join raised {repr(ex)}")
+        except BaseError as e:
+            sentry_sdk.capture_exception(e)
             return
