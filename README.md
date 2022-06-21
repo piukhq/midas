@@ -64,17 +64,3 @@ pytest --verbose --cov app --cov-report term-missing app/tests/unit
 ## Deployment
 
 There is a Dockerfile provided in the project root. Build an image from this to get a deployment-ready version of the project.
-
-## (WIP) Setting up retry tasks
-0. Midas needs to be updated to Python 3.10
-1. Create database "midas"
-2. To create the db schema use the new migration (alembic) included as part of this branch - it'll pre-populate the db 
-   with all the data necessary to get the retry mechanism running.
-3. Start Redis in a docker container and make sure the port number matches what's in the settings
-
-## (WIP) To-do for retry tasks
-The main bulk of the work now is error handling (error_handler.py).
-We need to decide which exceptions will be retried on and see what format they reach
-the error handler in, once Carla's work around error handling is merged.
-At the time of writing this, error handling is where the mechanism fails due to certain exceptions (most notably MaxRetryError) 
-bubbling up as completely different exceptions that should not be retried on. 
