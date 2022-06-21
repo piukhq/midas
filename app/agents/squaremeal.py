@@ -12,7 +12,7 @@ from app.exceptions import (
     EndSiteDownError,
     NoSuchRecordError,
     StatusLoginFailedError,
-    ValidationError
+    ValidationError,
 )
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
@@ -170,7 +170,7 @@ class Squaremeal(BaseAgent):
 
     def balance(self):
         self.errors = {
-            ServiceConnectionError: [401],
+            ValidationError: [401],
             NoSuchRecordError: [422],
             EndSiteDownError: [530],
         }

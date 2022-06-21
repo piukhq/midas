@@ -46,6 +46,9 @@ sqlalchemy = "*"
 typer = "*"
 isort = "*"
 flask-admin = "*"
+pytest = "*"
+httpretty = "*"
+flask-testing = "*"
 
 [dev-packages]
 black = "==21.6b0"

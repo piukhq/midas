@@ -108,13 +108,13 @@ if SENTRY_DSN:
     )
 
 if getenv("POSTGRES_DSN", required=False):
-    POSTGRES_DSN = "http://bullshit"
+    POSTGRES_DSN = getenv("POSTGRES_DSN")
 else:
-    POSTGRES_HOST = getenv("POSTGRES_HOST", default="http//bullshit://")
+    POSTGRES_HOST = getenv("POSTGRES_HOST")
     POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
-    POSTGRES_USER = getenv("POSTGRES_USER", default="postgres")
+    POSTGRES_USER = getenv("POSTGRES_USER")
     POSTGRES_PASS = getenv("POSTGRES_PASS", required=False)
-    POSTGRES_DB = getenv("POSTGRES_DB", default="GOWNO")
+    POSTGRES_DB = getenv("POSTGRES_DB")
 
     POSTGRES_DSN = "".join(
         [

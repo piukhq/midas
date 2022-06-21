@@ -10,7 +10,13 @@ from retry_worker import redis_raw
 from sqlalchemy.orm.session import Session
 
 from app.db import SessionMaker
-from app.exceptions import EndSiteDownError, ServiceConnectionError, NotSentError, IPBlockedError, RetryLimitReachedError
+from app.exceptions import (
+    EndSiteDownError,
+    IPBlockedError,
+    NotSentError,
+    RetryLimitReachedError,
+    ServiceConnectionError,
+)
 from app.reporting import get_logger
 from app.scheme_account import update_pending_join_account
 
@@ -136,5 +142,11 @@ def handle_retry_task_request_error(
             job=job,
             exc_value=exc_value,
             connection=redis_raw,
-            retryable_exceptions=[EndSiteDownError, ServiceConnectionError, RetryLimitReachedError, NotSentError, IPBlockedError],
+            retryable_exceptions=[
+                EndSiteDownError,
+                ServiceConnectionError,
+                RetryLimitReachedError,
+                NotSentError,
+                IPBlockedError,
+            ],
         )

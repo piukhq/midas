@@ -123,7 +123,7 @@ class Join(Resource):
             request_id=scheme_account_id,
             loyalty_plan=scheme_slug,
             account_id=scheme_account_id,
-            join_data=decrypt_credentials(data["credentials"]),
+            join_data=data["credentials"],
         )
 
         queue.enqueue_request(message)

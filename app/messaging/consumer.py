@@ -5,6 +5,7 @@ import kombu
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
 from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
+
 import settings
 from app.db import db_session
 from app.reporting import get_logger
@@ -56,8 +57,6 @@ class TaskConsumer(ConsumerMixin):
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
                 db_session.commit()
 
-        except Exception:
-            pass
-        # except AgentException as ex:  # we don't want AgentExceptions to go to Sentry
-        #     log.warning(f"attempt_join raised {repr(ex)}")
-        #     return
+        except BaseException as ex:  # we don't want AgentExceptions to go to Sentry
+            log.warning(f"attempt_join raised {repr(ex)}")
+            return

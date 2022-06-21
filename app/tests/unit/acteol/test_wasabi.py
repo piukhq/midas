@@ -285,7 +285,7 @@ class TestWasabi(unittest.TestCase):
         # Force fast-as-possible retries so we don't have slow running tests
 
         # WHEN
-        with pytest.raises(RetryLimitReachedError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._account_already_exists(origin_id=origin_id)
 
     @httpretty.activate
@@ -1720,6 +1720,7 @@ class TestWasabi(unittest.TestCase):
     def test_validate_member_number_timeout(self, mock_authenticate, mock_send_to_atlas):
         # GIVEN
         self.wasabi.journey_type = JourneyTypes.ADD
+        self.wasabi.credentials = {"card_number": "123", "email": "test@test.com"}
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         # Force fast-as-possible retries so we don't have slow running tests
@@ -1732,7 +1733,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(RetryLimitReachedError):
+        with pytest.raises(EndSiteDownError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
