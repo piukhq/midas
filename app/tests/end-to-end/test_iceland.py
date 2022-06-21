@@ -85,72 +85,8 @@ class TestIcelandAdd(FlaskTestCase):
     @responses.activate
     def test_add_journey_success(self):
         # Mocked endpoints
-        aes_keys_endpoint = responses.add(
-            responses.GET,
-            "https://bink-uksouth-dev-com.vault.azure.net/secrets/aes-keys/?api-version=7.3",
-            body='{"error":{"code":"Unauthorized!","message":"AKV10000: Request is missing a Bearer or PoP token."}}',
-            headers={
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                "Content-Length": "97",
-                "Content-Type": "application/json; charset=utf-8",
-                "Expires": "-1",
-                "WWW-Authenticate": 'Bearer authorization="https://login.windows.net/a6e2367a-92ea-4e5a-b565-723830bcc095", resource="https://vault.azure.net"',
-                "x-ms-keyvault-region": "uksouth",
-                "x-ms-client-request-id": "0dec7bea-ed4b-11ec-b354-acde48001122",
-                "x-ms-request-id": "24fe8632-2389-464e-b78f-254473bde033",
-                "x-ms-keyvault-service-version": "1.9.422.1",
-                "x-ms-keyvault-network-info": "conn_type=Ipv4;addr=20.49.163.188;act_addr_fam=InterNetwork;",
-                "X-Content-Type-Options": "nosniff",
-                "Strict-Transport-Security": "max-age=31536000;includeSubDomains",
-                "Date": "Thu, 16 Jun 2022 08:05:15 GMT",
-            },
-            status=401,
-        )
-        aes_keys_endpoint = responses.add(
-            responses.GET,
-            "https://bink-uksouth-dev-com.vault.azure.net/secrets/aes-keys/?api-version=7.3",
-            body='{"value":"{"LOCAL_AES_KEY":"OLNnJPTcsdBXi1UqMBp2ZibUF3C7vQ", "AES_KEY":"6gZW4ARFINh4DR1uIzn12l7Mh1UF982L"}","id":"https://bink-uksouth-dev-com.vault.azure.net/secrets/aes-keys/68a1b299334340809d7c2d0b6b9ab98a","attributes":{"enabled":true,"created":1652185865,"updated":1652185865,"recoveryLevel":"Purgeable","recoverableDays":0},"tags":{}}',
-            headers={
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                "Content-Type": "application/json; charset=utf-8",
-                "Expires": "-1",
-                "x-ms-keyvault-region": "uksouth",
-                "x-ms-client-request-id": "0dec7bea-ed4b-11ec-b354-acde48001122",
-                "x-ms-request-id": "3e3dccaf-fbf2-4e44-993a-5204db817364",
-                "x-ms-keyvault-service-version": "1.9.422.1",
-                "x-ms-keyvault-network-info": "conn_type=Ipv4;addr=20.49.163.188;act_addr_fam=InterNetwork;",
-                "X-Content-Type-Options": "nosniff",
-                "Strict-Transport-Security": "max-age=31536000;includeSubDomains",
-                "Date": "Thu, 16 Jun 2022 08:06:57 GMT",
-                "Content-Length": "348",
-            },
-            status=200,
-        )
         europa_config_endpoint = responses.add(
             responses.GET, f"{settings.CONFIG_SERVICE_URL}/configuration", json=europa_config_add, status=200
-        )
-        vault_secrets_endpoint = responses.add(
-            responses.GET,
-            "https://bink-uksouth-dev-com.vault.azure.net/secrets/887a96f3cebfa598b459bafc39653c9bc5cd5597a7b00eb55b9011380cc7d719/?api-version=7.3",
-            body=b'{"value":"{\\"data\\": {\\"payload\\": {\\"client_id\\": \\"27e76b84-c087-4a98-8d7c-8f4952f443dc\\", \\"client_secret\\": \\"WtVzP+E9jWu0abA299vN/Zw/EaH4u03xGMXst7lfZCs=\\", \\"grant_type\\": \\"client_credentials\\", \\"resource\\": \\"27e76b84-c087-4a98-8d7c-8f4952f443dc\\"}, \\"prefix\\": \\"Bearer\\", \\"url\\": \\"http://api-reflector/mock/token\\"}}","id":"https://bink-uksouth-dev-com.vault.azure.net/secrets/887a96f3cebfa598b459bafc39653c9bc5cd5597a7b00eb55b9011380cc7d719/cac19a62a4ee424d8728f6782783f258","attributes":{"enabled":true,"created":1652798014,"updated":1652798014,"recoveryLevel":"Purgeable","recoverableDays":0}}',
-            headers={
-                "Cache-Control": "no-cache",
-                "Pragma": "no-cache",
-                "Content-Type": "application/json; charset=utf-8",
-                "Expires": "-1",
-                "x-ms-keyvault-region": "uksouth",
-                "x-ms-client-request-id": "fc801ca2-ed4c-11ec-baac-acde48001122",
-                "x-ms-request-id": "3eddba76-a2d0-4ed4-b6e2-2e7f9c07c897",
-                "x-ms-keyvault-service-version": "1.9.422.1",
-                "x-ms-keyvault-network-info": "conn_type=Ipv4;addr=20.49.163.188;act_addr_fam=InterNetwork;",
-                "X-Content-Type-Options": "nosniff",
-                "Strict-Transport-Security": "max-age=31536000;includeSubDomains",
-                "Date": "Thu, 16 Jun 2022 08:19:06 GMT",
-                "Content-Length": "609",
-            },
-            status=200,
         )
         iceland_token_endpoint = responses.add(
             responses.POST, "http://api-reflector/mock/token", json=iceland_token, status=200
@@ -160,17 +96,18 @@ class TestIcelandAdd(FlaskTestCase):
         )
         hermes_credentials_endpoint = responses.add(
             responses.PUT,
-            "http://localhost:8080/schemes/accounts/159779/credentials",
+            f"{settings.HERMES_URL}/schemes/accounts/159779/credentials",
             json={"updated": ["card_number", "barcode", "merchant_identifier"]},
             status=200,
         )
-        hades_balance_endpoint = responses.add(responses.POST, "http://0.0.0.0:5001/balance")
-        hades_transactions_endpoint = responses.add(responses.POST, "http://0.0.0.0:5001/transactions")
-        hermes_status_endpoint = responses.add(responses.POST, "http://localhost:8080/schemes/accounts/159779/status")
+        hades_balance_endpoint = responses.add(responses.POST, f"{settings.HADES_URL}/balance")
+        hades_transactions_endpoint = responses.add(responses.POST, f"{settings.HADES_URL}/transactions")
+        hermes_status_endpoint = responses.add(responses.POST, f"{settings.HERMES_URL}/schemes/accounts/159779/status")
 
-        # Mock get secrets from vault
+        # Mock get vault secrets
         mock_secret_client = MagicMock()
         mock_secret_client.value = storage_key
+
         # Request from Hermes
         parameters = {
             "scheme_account_id": 159779,
@@ -180,8 +117,9 @@ class TestIcelandAdd(FlaskTestCase):
             "journey_type": 1,
         }
         headers = {"transaction": "ad6d704c-e0c7-11ec-929b-acde48001122", "User-agent": "Hermes on C02DK4ZLMD6M"}
-        # with mock.patch.object(SecretClient, "get_secret", return_value=mock_secret_client):
-        response = self.client.get("/iceland-bonus-card/balance", headers=headers, query_string=parameters)
+        with mock.patch.object(SecretClient, "get_secret", return_value=mock_secret_client):
+            response = self.client.get("/iceland-bonus-card/balance", headers=headers, query_string=parameters)
+
         self.assertEqual(
             {
                 "points": 21.21,
