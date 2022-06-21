@@ -82,7 +82,7 @@ imports = ["app.tasks.resend"]
 
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
-CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="http://127.0.0.1:8080/config_service")
+CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
 ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
@@ -108,7 +108,7 @@ if SENTRY_DSN:
     )
 
 if getenv("POSTGRES_DSN", required=False):
-    POSTGRES_DSN = getenv("POSTGRES_DSN")
+    POSTGRES_DSN = getenv("POSTGRES_DSN").format(getenv("POSTGRES_DB", "midas"))
 else:
     POSTGRES_HOST = getenv("POSTGRES_HOST")
     POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
