@@ -15,7 +15,15 @@ jobs:
     env:
       POSTGRES_USER: postgres
       POSTGRES_HOST: 127.0.0.1
-      POSTGRES_DB: midas
+      POSTGRES_DB: midas_test
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: midas_test
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
