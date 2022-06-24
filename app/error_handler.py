@@ -26,6 +26,17 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = get_logger("retry-queue")
 
 
+def handle_failed_join(task_data, exc_value):
+    tid = task_data["tid"]
+    scheme_slug = task_data["scheme_slug"]
+    user_info = json.loads(task_data["user_info"])
+    consents = user_info["credentials"].get("consents", [])
+    consent_ids = (consent["id"] for consent in consents)
+    update_pending_join_account(
+        user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
+    )
+
+
 def _handle_request_exception(
     *,
     connection: Any,
@@ -55,7 +66,9 @@ def _handle_request_exception(
             "body": request_exception.response.text,
         }
 
-    logger.warning(f"{subject} attempt {retry_task.attempts} failed for task: {retry_task.retry_task_id}")
+    logger.debug(
+        f"{subject} attempt {retry_task.attempts} failed for task: {retry_task.retry_task_id} merchant: {retry_task.get_params()['scheme_slug']}"
+    )
 
     if retry_task.attempts < max_retries:
         if resp is None or 500 <= resp.status_code < 600 or resp.status_code in extra_status_codes_to_retry:
@@ -65,10 +78,10 @@ def _handle_request_exception(
                 delay_seconds=pow(backoff_base, float(retry_task.attempts)) * 60,
             )
             status = RetryTaskStatuses.RETRYING
-            logger.info(f"Next attempt time at {next_attempt_time}")
+            logger.debug(f"Next attempt time at {next_attempt_time}")
         else:
             terminal = True
-            logger.warning(f"Received unhandlable error. Stopping.")
+            logger.debug(f"Received unhandlable error {resp}.  Stopping.")
     else:
         terminal = True
         logger.warning(f"No further retries. Setting status to {RetryTaskStatuses.FAILED}.")
@@ -117,15 +130,9 @@ def handle_request_exception(
     )
 
     if status == RetryTaskStatuses.FAILED:
-        join_data = retry_task.get_params()
-        tid = join_data["tid"]
-        scheme_slug = join_data["scheme_slug"]
-        user_info = json.loads(join_data["user_info"])
-        consents = user_info["credentials"].get("consents", [])
-        consent_ids = (consent["id"] for consent in consents)
-        update_pending_join_account(
-            user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
-        )
+        task_data = retry_task.get_params()
+        if retry_task.task_type == "attempt-join":
+            handle_failed_join(task_data, exc_value)
 
 
 def handle_retry_task_request_error(

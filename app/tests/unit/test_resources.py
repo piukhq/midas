@@ -7,15 +7,20 @@ from unittest.mock import MagicMock
 
 import arrow
 import httpretty
+import sqlalchemy as s
 from flask_testing import TestCase
+from retry_tasks_lib.db.models import TaskType, TaskTypeKey
 from retry_tasks_lib.utils.synchronous import sync_create_task
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
-from app.db import SessionMaker
+from app.db import Base, engine
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -48,7 +53,41 @@ def mocked_hn_configuration(*args, **kwargs):
     return conf
 
 
+def add_table_data(session):
+    task_type = TaskType(
+        name="attempt-join",
+        path="app.journeys.join.attempt_join",
+        error_handler_path="app.error_handler.handle_retry_task_request_error",
+        queue_name="midas-retry",
+    )
+    session.add(task_type)
+    session.commit()
+    task_type_keys = [
+        TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
+        TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
+        TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
+    ]
+    for task_type in task_type_keys:
+        session.add(task_type)
+    session.commit()
+
+
 class TestResources(TestCase):
+    def setUp(self) -> None:
+        if engine.url.database != "midas_test":
+            raise ValueError(f"Unsafe attempt to recreate database: {engine.url.database}")
+        SessionMaker = sessionmaker(bind=engine)
+        if database_exists(engine.url):
+            drop_database(engine.url)
+        create_database(engine.url)
+        Base.metadata.create_all(bind=engine)
+        self.db_session = SessionMaker()
+        add_table_data(self.db_session)
+
+    def tearDown(self) -> None:
+        self.db_session.close()
+        drop_database(engine.url)
+
     TESTING = True
     user_info = {
         "user_set": 1,
@@ -489,14 +528,13 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        db_session = SessionMaker()
         join_task = sync_create_task(
-            db_session,
+            self.db_session,
             task_type_name="attempt-join",
             params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
         )
-        db_session.add(join_task)
-        db_session.commit()
+        self.db_session.add(join_task)
+        self.db_session.commit()
         attempt_join(join_task.retry_task_id)
 
         self.assertTrue(mock_publish_balance.called)
@@ -544,14 +582,13 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        db_session = SessionMaker()
         join_task = sync_create_task(
-            db_session,
+            self.db_session,
             task_type_name="attempt-join",
             params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
         )
-        db_session.add(join_task)
-        db_session.commit()
+        self.db_session.add(join_task)
+        self.db_session.commit()
         attempt_join(join_task.retry_task_id)
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
