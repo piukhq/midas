@@ -6,7 +6,6 @@ import rq
 from retry_tasks_lib.db.models import RetryTask
 from retry_tasks_lib.enums import RetryTaskStatuses
 from retry_tasks_lib.utils.synchronous import enqueue_retry_task_delay, get_retry_task
-from retry_worker import redis_raw
 from sqlalchemy.orm.session import Session
 
 from app.db import SessionMaker
@@ -18,6 +17,7 @@ from app.exceptions import (
     ServiceConnectionError,
 )
 from app.reporting import get_logger
+from app.retry_worker import redis_raw
 from app.scheme_account import update_pending_join_account
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -27,11 +27,13 @@ logger = get_logger("retry-queue")
 
 
 def handle_failed_join(task_data, exc_value):
+    consent_ids = None
     tid = task_data["tid"]
     scheme_slug = task_data["scheme_slug"]
     user_info = json.loads(task_data["user_info"])
     consents = user_info["credentials"].get("consents", [])
-    consent_ids = (consent["id"] for consent in consents)
+    if consents:
+        consent_ids = (consent["id"] for consent in consents)
     update_pending_join_account(
         user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
     )
