@@ -6,6 +6,7 @@ Create Date: 2022-06-07 14:38:50.070464+00:00
 
 """
 from collections import namedtuple
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
