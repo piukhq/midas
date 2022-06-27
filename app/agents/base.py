@@ -14,7 +14,7 @@ import requests
 import sentry_sdk
 from blinker import signal
 from requests import HTTPError
-from requests.exceptions import ConnectionError, RetryError, Timeout
+from requests.exceptions import ConnectionError, RetryError
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 

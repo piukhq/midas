@@ -7,12 +7,10 @@ from unittest.mock import MagicMock
 
 import arrow
 import httpretty
-import sqlalchemy as s
 from flask_testing import TestCase
 from retry_tasks_lib.db.models import TaskType, TaskTypeKey
 from retry_tasks_lib.utils.synchronous import sync_create_task
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app import publish

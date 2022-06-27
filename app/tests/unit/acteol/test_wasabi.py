@@ -19,7 +19,6 @@ from app.exceptions import (
     EndSiteDownError,
     IPBlockedError,
     NoSuchRecordError,
-    RetryLimitReachedError,
     StatusLoginFailedError,
     ValidationError,
 )

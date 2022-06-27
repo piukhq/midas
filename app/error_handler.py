@@ -66,7 +66,9 @@ def _handle_request_exception(
     }
 
     logger.debug(
-        f"{subject} attempt {retry_task.attempts} failed for task: {retry_task.retry_task_id} merchant: {retry_task.get_params()['scheme_slug']}"
+        f"{subject} attempt {retry_task.attempts}"
+        f" failed for task: {retry_task.retry_task_id}"
+        f" merchant: {retry_task.get_params()['scheme_slug']}"
     )
 
     if retry_task.attempts < max_retries:

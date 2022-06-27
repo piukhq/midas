@@ -75,7 +75,7 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
 
 
 @retryable_task(db_session_factory=SessionMaker)
-def attempt_join(retry_task: RetryTask, db_session: "Session"):  # type: ignore
+def attempt_join(retry_task: RetryTask, db_session: "Session"):  # type: ignore  # noqa
     join_data = retry_task.get_params()
     tid = join_data["tid"]
     scheme_slug = join_data["scheme_slug"]

@@ -1,7 +1,7 @@
 import json
 import unittest
 from unittest import mock
-from unittest.mock import MagicMock, Mock, PropertyMock
+from unittest.mock import MagicMock, Mock
 
 from retry_tasks_lib.enums import RetryTaskStatuses
 
