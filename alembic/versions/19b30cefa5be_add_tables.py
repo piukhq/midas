@@ -1,7 +1,7 @@
 """add tables
 
 Revision ID: 19b30cefa5be
-Revises: 
+Revises:
 Create Date: 2022-06-07 14:38:50.070464+00:00
 
 """
