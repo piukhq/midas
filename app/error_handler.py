@@ -10,6 +10,7 @@ from sqlalchemy.orm.session import Session
 
 from app.db import SessionMaker
 from app.exceptions import (
+    BaseError,
     EndSiteDownError,
     IPBlockedError,
     NotSentError,
@@ -45,7 +46,7 @@ def _handle_request_exception(
     backoff_base: int,
     max_retries: int,
     retry_task: RetryTask,
-    request_exception: Exception,
+    request_exception: BaseError,
     extra_status_codes_to_retry: list[int],
 ) -> tuple[dict, RetryTaskStatuses | None, datetime | None]:
     status = None
@@ -57,23 +58,19 @@ def _handle_request_exception(
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
     }
 
-    try:
-        resp = request_exception.response
-    except:
-        resp = None
+    resp = request_exception.generic_message
 
-    if resp is not None:
-        response_audit["response"] = {
-            "status": request_exception.response.status_code,
-            "body": request_exception.response.text,
-        }
+    response_audit["response"] = {
+        "status": request_exception.code,
+        "body": resp,
+    }
 
     logger.debug(
         f"{subject} attempt {retry_task.attempts} failed for task: {retry_task.retry_task_id} merchant: {retry_task.get_params()['scheme_slug']}"
     )
 
     if retry_task.attempts < max_retries:
-        if resp is None or 500 <= resp.status_code < 600 or resp.status_code in extra_status_codes_to_retry:
+        if resp is None or 500 <= request_exception.code < 600 or request_exception.code in extra_status_codes_to_retry:
             next_attempt_time = enqueue_retry_task_delay(
                 connection=connection,
                 retry_task=retry_task,
@@ -101,9 +98,9 @@ def handle_request_exception(
     backoff_base: int,
     max_retries: int,
     job: rq.job.Job,
-    exc_value: Exception,
+    exc_value: BaseError,
     extra_status_codes_to_retry: list[int] | None = None,
-    retryable_exceptions: list[Exception],
+    retryable_exceptions: list[BaseError],
 ):
 
     response_audit = None
@@ -138,7 +135,7 @@ def handle_request_exception(
 
 
 def handle_retry_task_request_error(
-    job: rq.job.Job, exc_type: type, exc_value: Exception, traceback: "Traceback"
+    job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
 ) -> Any:
 
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
@@ -152,10 +149,10 @@ def handle_retry_task_request_error(
             exc_value=exc_value,
             connection=redis_raw,
             retryable_exceptions=[
-                EndSiteDownError,
-                ServiceConnectionError,
-                RetryLimitReachedError,
-                NotSentError,
-                IPBlockedError,
+                EndSiteDownError,  # type: ignore
+                ServiceConnectionError,  # type: ignore
+                RetryLimitReachedError,  # type: ignore
+                NotSentError,  # type: ignore
+                IPBlockedError,  # type: ignore
             ],
         )

@@ -75,7 +75,7 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
 
 
 @retryable_task(db_session_factory=SessionMaker)
-def attempt_join(retry_task: RetryTask, db_session: "Session"):
+def attempt_join(retry_task: RetryTask, db_session: "Session"):  # type: ignore
     join_data = retry_task.get_params()
     tid = join_data["tid"]
     scheme_slug = join_data["scheme_slug"]
@@ -86,7 +86,7 @@ def attempt_join(retry_task: RetryTask, db_session: "Session"):
     except NotFound as e:
         # Update the scheme status on hermes to JOIN(900)
         publish.status(user_info["scheme_account_id"], 900, user_info["tid"], user_info)
-        abort(e.code, message=e.data["message"])
+        abort(e.code, message=e.description)
 
     join_result = agent_join(agent_class, user_info, tid, scheme_slug=scheme_slug)
 
