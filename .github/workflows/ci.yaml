@@ -15,12 +15,20 @@ jobs:
     env:
       POSTGRES_USER: postgres
       POSTGRES_HOST: 127.0.0.1
-      POSTGRES_DB: midas
+      POSTGRES_DB: midas_test
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: midas_test
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.9"
+          python-version: "3.10"
       - run: pip install pipenv
       - run: pipenv install --dev --system --deploy --ignore-pipfile
       - run: pytest --verbose --cov app --cov-report term-missing app/tests/unit

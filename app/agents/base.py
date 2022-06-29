@@ -14,7 +14,7 @@ import requests
 import sentry_sdk
 from blinker import signal
 from requests import HTTPError
-from requests.exceptions import RetryError, Timeout
+from requests.exceptions import ConnectionError, RetryError
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
 
@@ -205,15 +205,15 @@ class BaseAgent(object):
             if audit:
                 self.send_audit_response(resp)
 
-        except Timeout as e:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error="Timeout")
-            sentry_sdk.capture_exception(e)
-            raise EndSiteDownError(exception=e) from e
-
         except RetryError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
             sentry_sdk.capture_exception(e)
             raise RetryLimitReachedError(exception=e) from e
+
+        except ConnectionError as e:
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
+            sentry_sdk.capture_exception(e)
+            raise EndSiteDownError(exception=e) from e
 
         signal("record-http-request").send(
             self,

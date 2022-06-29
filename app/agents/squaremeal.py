@@ -11,8 +11,8 @@ from app.exceptions import (
     BaseError,
     EndSiteDownError,
     NoSuchRecordError,
-    ServiceConnectionError,
     StatusLoginFailedError,
+    ValidationError,
 )
 from app.reporting import get_logger
 from app.scheme_account import JourneyTypes
@@ -122,7 +122,7 @@ class Squaremeal(BaseAgent):
     def join(self):
         consents = self.credentials.get("consents", [])
         self.errors = {
-            ServiceConnectionError: [401],
+            ValidationError: [401],
             AccountAlreadyExistsError: [422],
             EndSiteDownError: [530],
         }
@@ -139,7 +139,7 @@ class Squaremeal(BaseAgent):
         if self.journey_type == JourneyTypes.JOIN.value:
             return
         self.errors = {
-            ServiceConnectionError: [401],
+            ValidationError: [401],
             StatusLoginFailedError: [422],
             EndSiteDownError: [530],
         }
@@ -170,7 +170,7 @@ class Squaremeal(BaseAgent):
 
     def balance(self):
         self.errors = {
-            ServiceConnectionError: [401],
+            ValidationError: [401],
             NoSuchRecordError: [422],
             EndSiteDownError: [530],
         }

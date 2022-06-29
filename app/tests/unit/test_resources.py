@@ -8,12 +8,17 @@ from unittest.mock import MagicMock
 import arrow
 import httpretty
 from flask_testing import TestCase
+from retry_tasks_lib.db.models import TaskType, TaskTypeKey
+from retry_tasks_lib.utils.synchronous import sync_create_task
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
+from app.db import Base, engine
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -46,7 +51,41 @@ def mocked_hn_configuration(*args, **kwargs):
     return conf
 
 
+def add_table_data(session):
+    task_type = TaskType(
+        name="attempt-join",
+        path="app.journeys.join.attempt_join",
+        error_handler_path="app.error_handler.handle_retry_task_request_error",
+        queue_name="midas-retry",
+    )
+    session.add(task_type)
+    session.commit()
+    task_type_keys = [
+        TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
+        TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
+        TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
+    ]
+    for task_type in task_type_keys:
+        session.add(task_type)
+    session.commit()
+
+
 class TestResources(TestCase):
+    def setUp(self) -> None:
+        if engine.url.database != "midas_test":
+            raise ValueError(f"Unsafe attempt to recreate database: {engine.url.database}")
+        SessionMaker = sessionmaker(bind=engine)
+        if database_exists(engine.url):
+            drop_database(engine.url)
+        create_database(engine.url)
+        Base.metadata.create_all(bind=engine)
+        self.db_session = SessionMaker()
+        add_table_data(self.db_session)
+
+    def tearDown(self) -> None:
+        self.db_session.close()
+        drop_database(engine.url)
+
     TESTING = True
     user_info = {
         "user_set": 1,
@@ -407,10 +446,8 @@ class TestResources(TestCase):
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail(self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join):
+    def test_agent_join_fail(self, mock_base_config, mock_hn_config, mock_join):
         mock_join.side_effect = StatusRegistrationFailedError()
-        mock_update_pending_join_account.side_effect = StatusRegistrationFailedError()
         user_info = {
             "metadata": {},
             "scheme_slug": "test slug",
@@ -426,17 +463,11 @@ class TestResources(TestCase):
             agent_join(HarveyNichols, user_info, {}, 1)
 
         self.assertTrue(mock_join.called)
-        self.assertTrue(mock_update_pending_join_account.called)
-        consent_data_sent = list(mock_update_pending_join_account.call_args[1]["consent_ids"])
-        self.assertTrue(consent_data_sent, [1])
 
     @mock.patch.object(HarveyNichols, "join")
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch("app.journeys.join.update_pending_join_account", autospec=False)
-    def test_agent_join_fail_account_exists(
-        self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join
-    ):
+    def test_agent_join_fail_account_exists(self, mock_base_config, mock_hn_config, mock_join):
         mock_join.side_effect = AccountAlreadyExistsError()
         user_info = {
             "credentials": {},
@@ -445,12 +476,12 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.JOIN.value,
         }
-        result = agent_join(HarveyNichols, user_info, {}, "")
+        with self.assertRaises(AccountAlreadyExistsError):
+            result = agent_join(HarveyNichols, user_info, {}, "")
+            self.assertTrue(result["error"])
+            self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
         self.assertTrue(mock_join.called)
-        self.assertTrue(mock_update_pending_join_account.called)
-        self.assertTrue(result["error"])
-        self.assertTrue(isinstance(result["agent"], HarveyNichols))
 
     @mock.patch("app.publish.balance", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
@@ -460,8 +491,10 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.journeys.join.decrypt_credentials", return_value={})
     def test_join(
         self,
+        mock_decrypt_credentials,
         mock_base_config,
         mock_hn_config,
         mock_update_pending_join_account,
@@ -493,8 +526,14 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-
-        result = attempt_join(scheme_slug, user_info, tid=None)
+        join_task = sync_create_task(
+            self.db_session,
+            task_type_name="attempt-join",
+            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
+        )
+        self.db_session.add(join_task)
+        self.db_session.commit()
+        attempt_join(join_task.retry_task_id)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -502,15 +541,21 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
-        self.assertEqual(result, True)
 
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.journeys.join.decrypt_credentials", return_value={})
     def test_join_already_exists_fail(
-        self, mock_base_config, mock_hn_config, mock_agent_login, mock_agent_join, mock_update_pending_join_account
+        self,
+        mock_decrypt_credentials,
+        mock_base_config,
+        mock_hn_config,
+        mock_agent_login,
+        mock_agent_join,
+        mock_update_pending_join_account,
     ):
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
@@ -535,12 +580,17 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-
-        result = attempt_join(scheme_slug, user_info, tid=None)
+        join_task = sync_create_task(
+            self.db_session,
+            task_type_name="attempt-join",
+            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
+        )
+        self.db_session.add(join_task)
+        self.db_session.commit()
+        attempt_join(join_task.retry_task_id)
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
-        self.assertEqual(result, True)
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
     @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)

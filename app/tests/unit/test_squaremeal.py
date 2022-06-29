@@ -16,9 +16,9 @@ from app.api import create_app
 from app.exceptions import (
     AccountAlreadyExistsError,
     NoSuchRecordError,
-    ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
+    ValidationError,
 )
 from app.scheme_account import JourneyTypes
 
@@ -154,11 +154,11 @@ class TestSquaremealJoin(TestCase):
             ],
         )
 
-        with self.assertRaises(ServiceConnectionError) as e:
+        with self.assertRaises(ValidationError) as e:
             self.squaremeal.join()
 
-        self.assertEqual(e.exception.name, "Service connection error")
-        self.assertEqual(e.exception.code, 537)
+        self.assertEqual(e.exception.name, "Failed validation")
+        self.assertEqual(e.exception.code, 401)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -265,11 +265,11 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        with self.assertRaises(ServiceConnectionError) as e:
+        with self.assertRaises(ValidationError) as e:
             self.squaremeal.balance()
 
-        self.assertEqual(e.exception.name, "Service connection error")
-        self.assertEqual(e.exception.code, 537)
+        self.assertEqual(e.exception.name, "Failed validation")
+        self.assertEqual(e.exception.code, 401)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -427,11 +427,10 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(ServiceConnectionError) as e:
+        with self.assertRaises(ValidationError) as e:
             self.squaremeal.login()
-
-        self.assertEqual(e.exception.name, "Service connection error")
-        self.assertEqual(e.exception.code, 537)
+        self.assertEqual(e.exception.name, "Failed validation")
+        self.assertEqual(e.exception.code, 401)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")

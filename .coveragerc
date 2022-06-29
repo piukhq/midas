@@ -11,6 +11,7 @@ omit = *migrations*
        app/constants.py
        app/postgres.py
        app/db.py
+       app/retry_worker.py
 
 branch = True
 

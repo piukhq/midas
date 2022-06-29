@@ -5,12 +5,13 @@ import kombu
 import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
+from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
 
 import settings
-from app.encryption import AESCipher, get_aes_key
+from app.db import db_session
 from app.exceptions import BaseError
-from app.journeys.join import attempt_join
 from app.reporting import get_logger
+from app.retry_worker import redis_raw
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 log = get_logger("task-consumer")
@@ -46,7 +47,7 @@ class TaskConsumer(ConsumerMixin):
 
         user_info = {
             "user_set": message.bink_user_id,
-            "credentials": decrypt_credentials(credentials),
+            "credentials": credentials,
             "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,  # TODO: check where/how this is used
             "journey_type": JourneyTypes.JOIN.value,
             "scheme_account_id": int(message.request_id),
@@ -54,12 +55,19 @@ class TaskConsumer(ConsumerMixin):
         }
 
         try:
-            attempt_join(message.loyalty_plan, user_info, message.transaction_id)
+            task = sync_create_task(
+                db_session=db_session,
+                task_type_name="attempt-join",
+                params={
+                    "scheme_slug": message.loyalty_plan,
+                    "user_info": json.dumps(user_info),
+                    "tid": message.transaction_id,
+                },
+            )
+            with db_session:
+                enqueue_retry_task(connection=redis_raw, retry_task=task)
+                db_session.commit()
+
         except BaseError as e:
             sentry_sdk.capture_exception(e)
             return
-
-
-def decrypt_credentials(credentials):
-    aes = AESCipher(get_aes_key("aes-keys"))
-    return json.loads(aes.decrypt(credentials.replace(" ", "+")))

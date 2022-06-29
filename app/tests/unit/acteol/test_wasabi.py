@@ -1720,6 +1720,7 @@ class TestWasabi(unittest.TestCase):
     def test_validate_member_number_timeout(self, mock_authenticate, mock_send_to_atlas):
         # GIVEN
         self.wasabi.journey_type = JourneyTypes.ADD
+        self.wasabi.credentials = {"card_number": "123", "email": "test@test.com"}
         # Mock us through authentication
         mock_authenticate.return_value = self.mock_token
         # Force fast-as-possible retries so we don't have slow running tests
