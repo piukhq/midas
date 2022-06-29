@@ -11,8 +11,8 @@ import settings
 from app.db import db_session
 from app.exceptions import BaseError
 from app.reporting import get_logger
-from retry_worker import redis_raw
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
+from retry_worker import redis_raw
 
 log = get_logger("task-consumer")
 
