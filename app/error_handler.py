@@ -19,7 +19,7 @@ from app.exceptions import (
 )
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
-from app.retry_worker import redis_raw
+from retry_worker import redis_raw
 from app.scheme_account import update_pending_join_account
 
 if TYPE_CHECKING:  # pragma: no cover
