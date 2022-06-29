@@ -15,9 +15,9 @@ from app.agents.squaremeal import Squaremeal
 from app.api import create_app
 from app.exceptions import (
     AccountAlreadyExistsError,
-    EndSiteDownError,
     NoSuchRecordError,
     StatusLoginFailedError,
+    UnknownError,
     ValidationError,
 )
 from app.scheme_account import JourneyTypes
@@ -448,7 +448,7 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(EndSiteDownError):
+        with self.assertRaises(UnknownError):
             self.squaremeal.login()
 
         self.assertTrue("pAsSw0rD" not in str(mock_requests_session.call_args_list))

@@ -19,6 +19,7 @@ from app.exceptions import (
     EndSiteDownError,
     IPBlockedError,
     NoSuchRecordError,
+    RetryLimitReachedError,
     StatusLoginFailedError,
     ValidationError,
 )
@@ -284,7 +285,7 @@ class TestWasabi(unittest.TestCase):
         # Force fast-as-possible retries so we don't have slow running tests
 
         # WHEN
-        with pytest.raises(EndSiteDownError):
+        with pytest.raises(RetryLimitReachedError):
             self.wasabi._account_already_exists(origin_id=origin_id)
 
     @httpretty.activate
@@ -1732,7 +1733,7 @@ class TestWasabi(unittest.TestCase):
         )
 
         # THEN
-        with pytest.raises(EndSiteDownError):
+        with pytest.raises(RetryLimitReachedError):
             self.wasabi._validate_member_number()
 
     @httpretty.activate
