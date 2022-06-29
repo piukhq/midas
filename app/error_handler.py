@@ -19,8 +19,8 @@ from app.exceptions import (
 )
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
-from retry_worker import redis_raw
 from app.scheme_account import update_pending_join_account
+from retry_worker import redis_raw
 
 if TYPE_CHECKING:  # pragma: no cover
     from inspect import Traceback
