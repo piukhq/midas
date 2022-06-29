@@ -18,6 +18,7 @@ from app.exceptions import (
     ServiceConnectionError,
 )
 from app.reporting import get_logger
+from app.resources import decrypt_credentials
 from app.retry_worker import redis_raw
 from app.scheme_account import update_pending_join_account
 
@@ -32,6 +33,7 @@ def handle_failed_join(task_data, exc_value):
     tid = task_data["tid"]
     scheme_slug = task_data["scheme_slug"]
     user_info = json.loads(task_data["user_info"])
+    user_info["credentials"] = decrypt_credentials(user_info["credentials"])
     consents = user_info["credentials"].get("consents", [])
     if consents:
         consent_ids = (consent["id"] for consent in consents)
@@ -47,7 +49,7 @@ def _handle_request_exception(
     max_retries: int,
     retry_task: RetryTask,
     request_exception: BaseError,
-    extra_status_codes_to_retry: list[int],
+    retryable_status_codes: list[int],
 ) -> tuple[dict, RetryTaskStatuses | None, datetime | None]:
     status = None
     next_attempt_time = None
@@ -72,7 +74,7 @@ def _handle_request_exception(
     )
 
     if retry_task.attempts < max_retries:
-        if resp is None or 500 <= request_exception.code < 600 or request_exception.code in extra_status_codes_to_retry:
+        if resp is None or 500 <= request_exception.code < 600 or request_exception.code in retryable_status_codes:
             next_attempt_time = enqueue_retry_task_delay(
                 connection=connection,
                 retry_task=retry_task,
@@ -101,7 +103,6 @@ def handle_request_exception(
     max_retries: int,
     job: rq.job.Job,
     exc_value: BaseError,
-    extra_status_codes_to_retry: list[int] | None = None,
     retryable_exceptions: list[BaseError],
 ):
 
@@ -109,6 +110,7 @@ def handle_request_exception(
     next_attempt_time = None
 
     retry_task = get_retry_task(db_session, job.kwargs["retry_task_id"])
+    retryable_status_codes = [exception.code for exception in retryable_exceptions]
 
     if type(exc_value) in retryable_exceptions:
         response_audit, status, next_attempt_time = _handle_request_exception(
@@ -117,7 +119,7 @@ def handle_request_exception(
             max_retries=max_retries,
             retry_task=retry_task,
             request_exception=exc_value,
-            extra_status_codes_to_retry=extra_status_codes_to_retry or [],
+            retryable_status_codes=retryable_status_codes or [],
         )
     else:  # otherwise report to sentry and fail the task
         status = RetryTaskStatuses.FAILED
@@ -132,7 +134,7 @@ def handle_request_exception(
 
     if status == RetryTaskStatuses.FAILED:
         task_data = retry_task.get_params()
-        if retry_task.task_type == "attempt-join":
+        if retry_task.task_type.name == "attempt-join":
             handle_failed_join(task_data, exc_value)
 
 
