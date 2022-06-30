@@ -50,6 +50,7 @@ class HermesRequest:
         "journey_type": 1,
     }
     headers = {"transaction": "ad6d704c-e0c7-11ec-929b-acde48001122", "User-agent": "Hermes on C02DK4ZLMD6M"}
+    # Response to Hermes
     response = {
                 "points": 21.21,
                 "value": 21.21,
@@ -124,7 +125,7 @@ class MockedResponses:
     }
 
 
-class MockedEndpoints:
+class AddMockedEndpoints:
     # Europa
     responses.add(responses.GET, EndpointURLS.europa_config, json=MockedResponses.europa_config_add_journey, status=200)
     # Iceland
@@ -323,8 +324,6 @@ class ExpectedEndpointRequestBodies:
 
 
 class TestIcelandAdd(FlaskTestCase):
-    maxDiff = None
-
     def create_app(self):
         app = Flask(__name__)
         app.config["TESTING"] = True
@@ -333,7 +332,7 @@ class TestIcelandAdd(FlaskTestCase):
 
     @responses.activate
     def test_add_journey_success(self):
-        MockedEndpoints()
+        AddMockedEndpoints()
 
         # Clear Redis for scheme account id
         UserTokenStore(settings.REDIS_URL).delete(str(Merchant.scheme_account_id))
