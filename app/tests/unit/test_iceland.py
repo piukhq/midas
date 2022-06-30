@@ -1465,7 +1465,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
 
 
-# This should potentially be moved once end-to-end test suite has been configured
+# This should potentially be moved once end_to_end test suite has been configured
 class TestIcelandEndToEnd(FlaskTestCase):
     TESTING = True
 

@@ -1,7 +1,7 @@
 import json
 import time
 from unittest import mock
-from unittest.mock import MagicMock, ANY
+from unittest.mock import ANY, MagicMock
 
 import responses
 from azure.keyvault.secrets import SecretClient
@@ -160,7 +160,10 @@ class TestIcelandAdd(FlaskTestCase):
             else:
                 endpoint_calls[call.request.url].append(call.request.body)
 
-        expected_merchant_token_endpoint_request_bodies = "grant_type=client_credentials&client_secret=%2A%2A%2A%2A%2A&client_id=%2A%2A%2A%2A%2A&resource=27e76b84-c087-4a98-8d7c-8f4952f443dc"
+        expected_merchant_token_endpoint_request_bodies = (
+            "grant_type=client_credentials&client_secret=%2A%2A%2A%2A%2A&client_id=%2A%2A%2A%2A%2A"
+            "&resource=27e76b84-c087-4a98-8d7c-8f4952f443dc"
+        )
 
         expected_atlas_endpoint_request_bodies = [
             {
@@ -258,82 +261,82 @@ class TestIcelandAdd(FlaskTestCase):
         }
 
         expected_hermes_credentials_endpoint_request_body = {
-                "barcode": "63320400305419272820080",
-                "card_number": "6332040030541927282",
-                "merchant_identifier": "536058122",
-            }
+            "barcode": "63320400305419272820080",
+            "card_number": "6332040030541927282",
+            "merchant_identifier": "536058122",
+        }
 
         expected_hermes_status_endpoint_request_body = {
-                "status": 1,
-                "journey": None,
-                "user_info": {
-                    "credentials": {
-                        "card_number": "6332040030541927282",
-                        "last_name": "Jones",
-                        "postcode": "kt130bm",
-                        "consents": [],
-                        "barcode": "63320400305419272820080",
-                        "merchant_identifier": "536058122",
-                    },
-                    "status": 1001,
-                    "user_set": "40776",
-                    "journey_type": 1,
-                    "scheme_account_id": 159779,
+            "status": 1,
+            "journey": None,
+            "user_info": {
+                "credentials": {
+                    "card_number": "6332040030541927282",
+                    "last_name": "Jones",
+                    "postcode": "kt130bm",
+                    "consents": [],
+                    "barcode": "63320400305419272820080",
+                    "merchant_identifier": "536058122",
                 },
-            }
+                "status": 1001,
+                "user_set": "40776",
+                "journey_type": 1,
+                "scheme_account_id": 159779,
+            },
+        }
 
         expected_hades_balance_endpoint_request_body = {
-                "points": 21.21,
-                "value": 21.21,
-                "value_label": "£21.21",
-                "reward_tier": 0,
-                "scheme_account_id": 159779,
-                "user_set": "40776",
-                "points_label": "21",
-            }
+            "points": 21.21,
+            "value": 21.21,
+            "value_label": "£21.21",
+            "reward_tier": 0,
+            "scheme_account_id": 159779,
+            "user_set": "40776",
+            "points_label": "21",
+        }
 
         expected_hades_transactions_endpoint_request_body = [
-                {
-                    "date": "2021-02-04 13:50:26+00:00",
-                    "description": "CREDIT",
-                    "points": 1.0,
-                    "hash": "22eae37eaed587a0ee4df69a21a8e3a5",
-                    "scheme_account_id": 159779,
-                    "user_set": "40776",
-                },
-                {
-                    "date": "2020-12-14 18:06:56+00:00",
-                    "description": "CREDIT",
-                    "points": 1.0,
-                    "hash": "f4c65a4f7fb4bd13a960a70dd6224043",
-                    "scheme_account_id": 159779,
-                    "user_set": "40776",
-                },
-                {
-                    "date": "2020-07-20 07:44:19+00:00",
-                    "description": "CREDIT",
-                    "points": 1.15,
-                    "hash": "163387a9f0d74e821413f8a82ceecada",
-                    "scheme_account_id": 159779,
-                    "user_set": "40776",
-                },
-                {
-                    "date": "2020-07-18 10:44:18+00:00",
-                    "description": "CREDIT",
-                    "points": 5.0,
-                    "hash": "b071bfdac4e2c2dba674246c15f2258c",
-                    "scheme_account_id": 159779,
-                    "user_set": "40776",
-                },
-                {
-                    "date": "2020-06-03 01:55:29+00:00",
-                    "description": "DEBIT",
-                    "points": -2.0,
-                    "hash": "38f35e95596f8dcc0ab3795a83efade8",
-                    "scheme_account_id": 159779,
-                    "user_set": "40776",
-                },
-            ]
+            {
+                "date": "2021-02-04 13:50:26+00:00",
+                "description": "CREDIT",
+                "points": 1.0,
+                "hash": "22eae37eaed587a0ee4df69a21a8e3a5",
+                "scheme_account_id": 159779,
+                "user_set": "40776",
+            },
+            {
+                "date": "2020-12-14 18:06:56+00:00",
+                "description": "CREDIT",
+                "points": 1.0,
+                "hash": "f4c65a4f7fb4bd13a960a70dd6224043",
+                "scheme_account_id": 159779,
+                "user_set": "40776",
+            },
+            {
+                "date": "2020-07-20 07:44:19+00:00",
+                "description": "CREDIT",
+                "points": 1.15,
+                "hash": "163387a9f0d74e821413f8a82ceecada",
+                "scheme_account_id": 159779,
+                "user_set": "40776",
+            },
+            {
+                "date": "2020-07-18 10:44:18+00:00",
+                "description": "CREDIT",
+                "points": 5.0,
+                "hash": "b071bfdac4e2c2dba674246c15f2258c",
+                "scheme_account_id": 159779,
+                "user_set": "40776",
+            },
+            {
+                "date": "2020-06-03 01:55:29+00:00",
+                "description": "DEBIT",
+                "points": -2.0,
+                "hash": "38f35e95596f8dcc0ab3795a83efade8",
+                "scheme_account_id": 159779,
+                "user_set": "40776",
+            },
+        ]
 
         # Hermes response
         self.assertEqual(
@@ -355,7 +358,10 @@ class TestIcelandAdd(FlaskTestCase):
             expected_merchant_token_endpoint_request_bodies,
             endpoint_calls[merchant_token_endpoint][0],
         )
-        self.assertEqual(expected_atlas_endpoint_request_bodies, [json.loads(body.decode()) for body in endpoint_calls[atlas_endpoint]])
+        self.assertEqual(
+            expected_atlas_endpoint_request_bodies,
+            [json.loads(body.decode()) for body in endpoint_calls[atlas_endpoint]],
+        )
         self.assertEqual(expected_merchant_endpoint_request_body, json.loads(endpoint_calls[merchant_endpoint][0]))
         self.assertEqual(
             expected_hermes_credentials_endpoint_request_body,
