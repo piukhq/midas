@@ -42,6 +42,7 @@ class RetryTaskAdmin(RetryTaskAdminBase):
         "audit_data": lambda v, c, model, n: Markup("<pre>%s</pre>")
         % json.dumps(model.audit_data, indent=4, sort_keys=True),
     }
+    can_view_details = True
 
 
 class TaskTypeAdmin(TaskTypeAdminBase):
