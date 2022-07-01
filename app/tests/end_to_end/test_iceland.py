@@ -20,6 +20,7 @@ class Merchant:
     slug = "iceland-bonus-card"
     scheme_account_id = 159779
 
+
 class EndpointURLS:
     europa_config = f"{settings.CONFIG_SERVICE_URL}/configuration"
     merchant_token = "http://token-endpoint/token"
@@ -52,14 +53,14 @@ class HermesRequest:
     headers = {"transaction": "ad6d704c-e0c7-11ec-929b-acde48001122", "User-agent": "Hermes on C02DK4ZLMD6M"}
     # Response to Hermes
     response = {
-                "points": 21.21,
-                "value": 21.21,
-                "value_label": "£21.21",
-                "reward_tier": 0,
-                "scheme_account_id": Merchant.scheme_account_id,
-                "user_set": "40776",
-                "points_label": "21",
-            }
+        "points": 21.21,
+        "value": 21.21,
+        "value_label": "£21.21",
+        "reward_tier": 0,
+        "scheme_account_id": Merchant.scheme_account_id,
+        "user_set": "40776",
+        "points_label": "21",
+    }
 
 
 class MockedResponses:
