@@ -9,7 +9,6 @@ url = "https://269fdc63-af3d-4eca-8101-8bddc22d6f14:b694b5b1-f97e-49e4-959e-f3c2
 verify_ssl = true
 
 [packages]
-retry-tasks-lib = {version="*", index="pypi-cloud"}
 arrow = "*"
 blinker = "*"
 flask-restplus = "*"
@@ -70,3 +69,4 @@ types-toml = "*"
 ptpython = "*"
 xenon = "*"
 isort = "*"
+responses = "*"
