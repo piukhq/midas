@@ -3,9 +3,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 import rq
-from retry_tasks_lib.db.models import RetryTask
-from retry_tasks_lib.enums import RetryTaskStatuses
-from retry_tasks_lib.utils.synchronous import enqueue_retry_task_delay, get_retry_task
 from sqlalchemy.orm.session import Session
 
 from app.db import SessionMaker
@@ -17,10 +14,12 @@ from app.exceptions import (
     RetryLimitReachedError,
     ServiceConnectionError,
 )
+from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
+from app.retry_util import enqueue_retry_task_delay, get_task
 from app.scheme_account import update_pending_join_account
-from retry_worker import redis_raw
+from settings import MAX_CALLBACK_RETRY_COUNT, MAX_RETRY_COUNT, redis_raw
 
 if TYPE_CHECKING:  # pragma: no cover
     from inspect import Traceback
@@ -28,11 +27,11 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = get_logger("retry-queue")
 
 
-def handle_failed_join(task_data, exc_value):
+def handle_failed_join(retry_task, exc_value):
     consent_ids = None
-    tid = task_data["tid"]
-    scheme_slug = task_data["scheme_slug"]
-    user_info = json.loads(task_data["user_info"])
+    tid = retry_task.message_uid
+    scheme_slug = retry_task.scheme_identifier
+    user_info = json.loads(retry_task.request_data)
     user_info["credentials"] = decrypt_credentials(user_info["credentials"])
     consents = user_info["credentials"].get("consents", [])
     if consents:
@@ -40,6 +39,54 @@ def handle_failed_join(task_data, exc_value):
     update_pending_join_account(
         user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
     )
+
+
+def retry_on_callback(db_session: Session, backoff_base: int, tid: str, error_code: str) -> RetryTask:
+    response_audit: dict[str, Any] = {
+        "error": str(error_code),
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+    }
+    retry_task = get_task(db_session, tid)
+
+    if error_code != "JOIN_ERROR":
+        retry_task.update_task(
+            status=RetryTaskStatuses.FAILED, callback_status=CallbackStatuses.COMPLETE, response_audit=response_audit
+        )
+        return retry_task
+
+    subject = retry_task.journey_type
+    logger.debug(
+        f"{subject} callback attempt {retry_task.attempts}"
+        f" failed for task: {retry_task.retry_task_id}"
+        f" merchant: {retry_task.scheme_identifier}"
+    )
+    next_attempt_time = pow(backoff_base, float(retry_task.callback_retries)) * 60
+    if retry_task.callback_status not in [CallbackStatuses.RETRYING, CallbackStatuses.COMPLETE]:
+        next_attempt_time = enqueue_retry_task_delay(
+            connection=redis_raw, retry_task=retry_task, delay_seconds=next_attempt_time
+        )
+        retry_task.update_task(
+            db_session=db_session,
+            callback_status=CallbackStatuses.RETRYING,
+            next_attempt_time=next_attempt_time,
+            clear_attempts=True,
+            response_audit=response_audit,
+        )
+        logger.debug(f"Next attempt time at {next_attempt_time}")
+    elif retry_task.callback_retries < MAX_CALLBACK_RETRY_COUNT:
+        retry_task.update_task(db_session=db_session, increase_callback_retries=True)
+        enqueue_retry_task_delay(connection=redis_raw, retry_task=retry_task, delay_seconds=next_attempt_time)
+        logger.debug(f"Next attempt time at {next_attempt_time}")
+    elif retry_task.callback_retries == MAX_CALLBACK_RETRY_COUNT:
+        retry_task.update_task(
+            db_session=db_session,
+            status=RetryTaskStatuses.FAILED,
+            callback_status=CallbackStatuses.COMPLETE,
+            response_audit=response_audit,
+        )
+        logger.warning("Max retries for callback task reached.")
+
+    return retry_task
 
 
 def _handle_request_exception(
@@ -53,7 +100,7 @@ def _handle_request_exception(
 ) -> tuple[dict, RetryTaskStatuses | None, datetime | None]:
     status = None
     next_attempt_time = None
-    subject = retry_task.task_type.name
+    subject = retry_task.journey_type
     terminal = False
     response_audit: dict[str, Any] = {
         "error": str(request_exception),
@@ -70,7 +117,7 @@ def _handle_request_exception(
     logger.debug(
         f"{subject} attempt {retry_task.attempts}"
         f" failed for task: {retry_task.retry_task_id}"
-        f" merchant: {retry_task.get_params()['scheme_slug']}"
+        f" merchant: {retry_task.scheme_identifier}"
     )
 
     if retry_task.attempts < max_retries:
@@ -108,8 +155,7 @@ def handle_request_exception(
 
     response_audit = None
     next_attempt_time = None
-
-    retry_task = get_retry_task(db_session, job.kwargs["retry_task_id"])
+    retry_task = get_task(db_session, job.args[0])
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
 
     if type(exc_value) in retryable_exceptions:
@@ -130,16 +176,16 @@ def handle_request_exception(
         response_audit=response_audit,
         status=status,
         clear_next_attempt_time=True,
+        increase_attempts=True,
     )
 
     if status == RetryTaskStatuses.FAILED:
-        task_data = retry_task.get_params()
-        if retry_task.task_type.name == "attempt-join":
-            handle_failed_join(task_data, exc_value)
+        if retry_task.journey_type == "attempt-join":
+            handle_failed_join(retry_task, exc_value)
 
 
 def handle_retry_task_request_error(
-    job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
+    job: rq.job.Job, exc_type: type, exc_value: Exception, traceback: "Traceback"
 ) -> Any:
 
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
@@ -148,7 +194,7 @@ def handle_retry_task_request_error(
         handle_request_exception(  # pragma: no cover
             db_session=db_session,
             backoff_base=3,
-            max_retries=3,
+            max_retries=MAX_RETRY_COUNT,
             job=job,
             exc_value=exc_value,
             connection=redis_raw,

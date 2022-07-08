@@ -9,7 +9,9 @@ from soteria.configuration import Configuration
 from app import publish
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
 from app.agents.schemas import Transaction
+from app.db import db_session
 from app.encryption import hash_ids
+from app.error_handler import retry_on_callback
 from app.exceptions import (
     AccountAlreadyExistsError,
     BaseError,
@@ -25,7 +27,9 @@ from app.exceptions import (
     StatusLoginFailedError,
     UnknownError,
 )
+from app.models import CallbackStatuses, RetryTaskStatuses
 from app.reporting import get_logger
+from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, update_pending_join_account
 from app.tasks.resend_consents import ConsentStatus
 
@@ -126,7 +130,11 @@ class Iceland(BaseAgent):
         try:
             error = data.get("error_codes")
             if error:
-                self.handle_error_codes(error_code=error[0]["code"])
+                retry_task = retry_on_callback(db_session, 3, self.record_uid, error)
+                if retry_task.status == RetryTaskStatuses.FAILED:
+                    self.handle_error_codes(error_code=error[0]["code"])
+                else:
+                    return
             update_pending_join_account(self.user_info, self.message_uid, identifier=self.identifier)
             consent_status = ConsentStatus.SUCCESS
         except BaseError as e:
@@ -135,6 +143,10 @@ class Iceland(BaseAgent):
         finally:
             self.consent_confirmation(self.credentials.get("consents", []), consent_status)
 
+        retry_task = get_task(db_session, self.record_uid)
+        retry_task.update_task(
+            db_session=db_session, status=RetryTaskStatuses.SUCCESS, callback_status=CallbackStatuses.COMPLETE
+        )
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
 

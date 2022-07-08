@@ -1,18 +1,17 @@
 import json
 
 from flask_restful import abort
-from retry_tasks_lib.db.models import RetryTask
-from retry_tasks_lib.enums import RetryTaskStatuses
-from retry_tasks_lib.utils.synchronous import retryable_task
 from werkzeug.exceptions import NotFound
 
 from app import publish
 from app.agents.schemas import balance_tuple_to_dict
-from app.db import SessionMaker
+from app.db import db_session
 from app.exceptions import AccountAlreadyExistsError, BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
+from app.models import CallbackStatuses, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
+from app.retry_util import get_task
 from app.scheme_account import SchemeAccountStatus, update_pending_join_account
 
 log = get_logger("join-journey")
@@ -74,12 +73,8 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
         return True
 
 
-@retryable_task(db_session_factory=SessionMaker)
-def attempt_join(retry_task: RetryTask, db_session: "Session"):  # type: ignore  # noqa
-    join_data = retry_task.get_params()
-    tid = join_data["tid"]
-    scheme_slug = join_data["scheme_slug"]
-    user_info = json.loads(join_data["user_info"])
+def attempt_join(tid, scheme_slug, user_info):  # type: ignore  # noqa
+    user_info = json.loads(user_info)
     user_info["credentials"] = decrypt_credentials(user_info["credentials"])
     try:
         agent_class = get_agent_class(scheme_slug)
@@ -89,9 +84,11 @@ def attempt_join(retry_task: RetryTask, db_session: "Session"):  # type: ignore 
         abort(e.code, message=e.description)
 
     join_result = agent_join(agent_class, user_info, tid, scheme_slug=scheme_slug)
+    retry_task = get_task(db_session, tid)
 
-    retry_task.update_task(
-        db_session, response_audit={}, status=RetryTaskStatuses.SUCCESS, clear_next_attempt_time=True
-    )
+    if retry_task.callback_status in [CallbackStatuses.NO_CALLBACK, CallbackStatuses.COMPLETE]:
+        retry_task.update_task(
+            db_session, response_audit={}, status=RetryTaskStatuses.SUCCESS, clear_next_attempt_time=True
+        )
 
-    login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)
+        login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)

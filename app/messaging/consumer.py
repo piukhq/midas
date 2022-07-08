@@ -5,14 +5,14 @@ import kombu
 import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
-from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
 
 import settings
 from app.db import db_session
 from app.exceptions import BaseError
 from app.reporting import get_logger
+from app.retry_util import create_task, enqueue_retry_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
-from retry_worker import redis_raw
+from settings import redis_raw
 
 log = get_logger("task-consumer")
 
@@ -53,17 +53,15 @@ class TaskConsumer(ConsumerMixin):
             "scheme_account_id": int(message.request_id),
             "channel": message.channel,
         }
-
         try:
-            task = sync_create_task(
+            task = create_task(
                 db_session=db_session,
-                task_type_name="attempt-join",
-                params={
-                    "scheme_slug": message.loyalty_plan,
-                    "user_info": json.dumps(user_info),
-                    "tid": message.transaction_id,
-                },
+                user_info=json.dumps(user_info),
+                journey_type="attempt-join",
+                message_uid=message.transaction_id,
+                scheme_identifier=message.loyalty_plan,
             )
+
             with db_session:
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
                 db_session.commit()
