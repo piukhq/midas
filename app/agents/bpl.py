@@ -184,7 +184,7 @@ class Bpl(BaseAgent):
 
     def parse_transaction(self, transaction: dict):
         return Transaction(
-            date=arrow.Arrow.fromtimestamp(transaction["datetime"]),
+            date=arrow.get(transaction["datetime"]),
             points=Decimal(transaction["loyalty_earned_value"]),
             description=f"{transaction['location']} £{transaction['amount']}",
         )
