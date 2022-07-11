@@ -4,6 +4,7 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 from urllib.parse import urljoin
+from uuid import uuid4
 
 import arrow
 import requests
@@ -426,6 +427,9 @@ class Acteol(BaseAgent):
         :param ctcid: ID returned from Acteol when creating the account
         """
         api_url = urljoin(self.base_url, f"api/Contact/AddMemberNumber?CtcID={ctcid}")
+
+        # Require a new message uuid for recording the add member number request and response in atlas audit
+        self.message_uid = str(uuid4())
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=True)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while adding member number, reason: {resp.status_code} {resp.reason}")
