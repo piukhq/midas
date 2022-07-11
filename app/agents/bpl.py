@@ -3,6 +3,7 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
+import arrow
 from soteria.configuration import Configuration
 
 import settings
@@ -57,6 +58,8 @@ class Bpl(BaseAgent):
             StatusRegistrationFailedError: ["MISSING_FIELDS", "VALIDATION_FAILED"],
             StatusLoginFailedError: ["NO_ACCOUNT_FOUND"],
         }
+        self._transactions = None
+        self.transaction_history_quantity = 5
 
     def join(self):
         consents = self.credentials.get("consents", [])
@@ -97,8 +100,6 @@ class Bpl(BaseAgent):
         except BaseError as ex:
             error_code = ex.exception.response.json()["code"] if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code, unhandled_exception=GeneralError)
-        else:
-            self.expecting_callback = True
 
         membership_data = resp.json()
         self.credentials["merchant_identifier"] = membership_data["UUID"]
@@ -139,7 +140,8 @@ class Bpl(BaseAgent):
         merchant_id = self.credentials["merchant_identifier"]
         self.headers["bpl-user-channel"] = "com.bink.wallet"
         url = f"{self.base_url}{merchant_id}"
-        resp = self.make_request(url, method="get")
+        params = {"tx_qty": self.transaction_history_quantity}
+        resp = self.make_request(url, method="get", params=params)
         bpl_data = resp.json()
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
@@ -149,6 +151,7 @@ class Bpl(BaseAgent):
             return None
 
         balance = Decimal(str(bpl_data["current_balances"][0]["value"]))
+        self._transactions = bpl_data.get("transaction_history")
 
         return Balance(
             points=balance,
@@ -167,6 +170,9 @@ class Bpl(BaseAgent):
         )
 
     def transactions(self) -> list[Transaction]:
+        if self._transactions is None:
+            return []
+
         try:
             return self.hash_transactions(self.transaction_history())
         except Exception as ex:
@@ -174,7 +180,14 @@ class Bpl(BaseAgent):
             return []
 
     def transaction_history(self) -> list[Transaction]:
-        raise NotImplementedError()
+        return [self.parse_transaction(tx) for tx in self._transactions]
+
+    def parse_transaction(self, transaction: dict):
+        return Transaction(
+            date=arrow.get(transaction["datetime"]),
+            points=Decimal(transaction["loyalty_earned_value"]),
+            description=f"{transaction['location']} £{transaction['amount']}",
+        )
 
     def update_async_join(self, data):
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
