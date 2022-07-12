@@ -124,7 +124,7 @@ class Squaremeal(BaseAgent):
         self.errors = {
             ValidationError: [401],
             AccountAlreadyExistsError: [422],
-            EndSiteDownError: [530],
+            EndSiteDownError: [530, 429],
         }
         resp_json = self._join()
         self.identifier = {

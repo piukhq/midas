@@ -12,13 +12,19 @@ CALLBACK_AGENTS = ["iceland-bonus-card"]
 
 
 def create_task(
-    db_session: Session, user_info: str, journey_type: str, message_uid: str, scheme_identifier: str
+    db_session: Session,
+    user_info: str,
+    journey_type: str,
+    message_uid: str,
+    scheme_identifier: str,
+    scheme_account_id: str,
 ) -> RetryTask:
     retry_task = RetryTask(
         request_data=user_info,
         journey_type=journey_type,
         message_uid=message_uid,
         scheme_identifier=scheme_identifier,
+        scheme_account_id=scheme_account_id,
     )
     if scheme_identifier in CALLBACK_AGENTS:
         retry_task.callback_status = CallbackStatuses.PENDING
@@ -27,8 +33,12 @@ def create_task(
     return retry_task
 
 
-def get_task(db_session: Session, uid: str) -> RetryTask:
-    return db_session.execute(select(RetryTask).where(RetryTask.message_uid == uid)).unique().scalar_one()
+def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
+    return (
+        db_session.execute(select(RetryTask).where(RetryTask.scheme_account_id == scheme_account_id))
+        .unique()
+        .scalar_one()
+    )
 
 
 def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_seconds: float):
@@ -37,7 +47,12 @@ def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_se
     q.enqueue_at(
         next_attempt_time,
         "app.journeys.join.attempt_join",
-        args=[retry_task.message_uid, retry_task.scheme_identifier, retry_task.request_data],
+        args=[
+            retry_task.scheme_account_id,
+            retry_task.message_uid,
+            retry_task.scheme_identifier,
+            retry_task.request_data,
+        ],
         failure_ttl=DEFAULT_FAILURE_TTL,
         at_front=False,
     )
@@ -48,7 +63,12 @@ def enqueue_retry_task(*, connection: Any, retry_task: RetryTask):
     q = rq.Queue("midas-retry", connection=connection)
     job = q.enqueue(
         "app.journeys.join.attempt_join",
-        args=[retry_task.message_uid, retry_task.scheme_identifier, retry_task.request_data],
+        args=[
+            retry_task.scheme_account_id,
+            retry_task.message_uid,
+            retry_task.scheme_identifier,
+            retry_task.request_data,
+        ],
         failure_ttl=DEFAULT_FAILURE_TTL,
         at_front=False,
     )

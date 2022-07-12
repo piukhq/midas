@@ -73,7 +73,7 @@ def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, t
         return True
 
 
-def attempt_join(tid, scheme_slug, user_info):  # type: ignore  # noqa
+def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignore  # noqa
     user_info = json.loads(user_info)
     user_info["credentials"] = decrypt_credentials(user_info["credentials"])
     try:
@@ -84,7 +84,7 @@ def attempt_join(tid, scheme_slug, user_info):  # type: ignore  # noqa
         abort(e.code, message=e.description)
 
     join_result = agent_join(agent_class, user_info, tid, scheme_slug=scheme_slug)
-    retry_task = get_task(db_session, tid)
+    retry_task = get_task(db_session, scheme_account_id)
 
     if retry_task.callback_status in [CallbackStatuses.NO_CALLBACK, CallbackStatuses.COMPLETE]:
         retry_task.update_task(

@@ -130,7 +130,7 @@ class Iceland(BaseAgent):
         try:
             error = data.get("error_codes")
             if error:
-                retry_task = retry_on_callback(db_session, 3, self.record_uid, error)
+                retry_task = retry_on_callback(db_session, self.user_info["scheme_account_id"], error)
                 if retry_task.status == RetryTaskStatuses.FAILED:
                     self.handle_error_codes(error_code=error[0]["code"])
                 else:
@@ -143,7 +143,7 @@ class Iceland(BaseAgent):
         finally:
             self.consent_confirmation(self.credentials.get("consents", []), consent_status)
 
-        retry_task = get_task(db_session, self.record_uid)
+        retry_task = get_task(db_session, self.user_info["scheme_account_id"])
         retry_task.update_task(
             db_session=db_session, status=RetryTaskStatuses.SUCCESS, callback_status=CallbackStatuses.COMPLETE
         )

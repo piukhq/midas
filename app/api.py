@@ -2,7 +2,6 @@ from celery import Celery
 from flask import Flask, jsonify
 
 import settings
-from app.admin import admin
 from app.audit import AuditLogger
 from app.exceptions import BaseError
 from app.prometheus import PrometheusManager
@@ -22,7 +21,6 @@ def create_app(config_name="settings"):
     app.config.from_object(config_name)
 
     api.init_app(app)
-    admin.init_app(app)
 
     @app.errorhandler(BaseError)
     def agent_error_request_handler(error):

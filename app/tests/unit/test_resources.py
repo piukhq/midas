@@ -8,8 +8,6 @@ from unittest.mock import MagicMock
 import arrow
 import httpretty
 from flask_testing import TestCase
-from retry_tasks_lib.db.models import TaskType, TaskTypeKey
-from retry_tasks_lib.utils.synchronous import sync_create_task
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
@@ -34,6 +32,7 @@ from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
+from app.retry_util import create_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HADES_URL, HERMES_URL
@@ -51,23 +50,23 @@ def mocked_hn_configuration(*args, **kwargs):
     return conf
 
 
-def add_table_data(session):
-    task_type = TaskType(
-        name="attempt-join",
-        path="app.journeys.join.attempt_join",
-        error_handler_path="app.error_handler.handle_retry_task_request_error",
-        queue_name="midas-retry",
-    )
-    session.add(task_type)
-    session.commit()
-    task_type_keys = [
-        TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
-        TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
-        TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
-    ]
-    for task_type in task_type_keys:
-        session.add(task_type)
-    session.commit()
+# def add_table_data(session):
+#     task_type = TaskType(
+#         name="attempt-join",
+#         path="app.journeys.join.attempt_join",
+#         error_handler_path="app.error_handler.handle_retry_task_request_error",
+#         queue_name="midas-retry",
+#     )
+#     session.add(task_type)
+#     session.commit()
+#     task_type_keys = [
+#         TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
+#         TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
+#         TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
+#     ]
+#     for task_type in task_type_keys:
+#         session.add(retry_task)
+#     session.commit()
 
 
 class TestResources(TestCase):
@@ -80,7 +79,7 @@ class TestResources(TestCase):
         create_database(engine.url)
         Base.metadata.create_all(bind=engine)
         self.db_session = SessionMaker()
-        add_table_data(self.db_session)
+        # add_table_data(self.db_session)
 
     def tearDown(self) -> None:
         self.db_session.close()
@@ -526,14 +525,17 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        join_task = sync_create_task(
-            self.db_session,
-            task_type_name="attempt-join",
-            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
+        join_task = create_task(
+            db_session=self.db_session,
+            user_info=json.dumps(user_info),
+            journey_type="attempt-join",
+            message_uid=user_info["scheme_account_id"],
+            scheme_identifier=scheme_slug,
+            scheme_account_id=123,
         )
         self.db_session.add(join_task)
         self.db_session.commit()
-        attempt_join(join_task.retry_task_id)
+        attempt_join(123, 123, scheme_slug, json.dumps(user_info))
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -580,14 +582,18 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        join_task = sync_create_task(
-            self.db_session,
-            task_type_name="attempt-join",
-            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
+        # here bitch
+        join_task = create_task(
+            db_session=self.db_session,
+            user_info=json.dumps(user_info),
+            journey_type="attempt-join",
+            message_uid=user_info["scheme_account_id"],
+            scheme_identifier=scheme_slug,
+            scheme_account_id=123,
         )
         self.db_session.add(join_task)
         self.db_session.commit()
-        attempt_join(join_task.retry_task_id)
+        attempt_join(123, 123, scheme_slug, json.dumps(user_info))
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)

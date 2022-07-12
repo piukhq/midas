@@ -60,6 +60,7 @@ class TaskConsumer(ConsumerMixin):
                 journey_type="attempt-join",
                 message_uid=message.transaction_id,
                 scheme_identifier=message.loyalty_plan,
+                scheme_account_id=message.request_id,
             )
 
             with db_session:

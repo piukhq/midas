@@ -4,6 +4,7 @@ from enum import Enum
 import sqlalchemy as s
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableList
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.sqltypes import String
 
 from app.db import Base
@@ -14,6 +15,7 @@ class CallbackStatuses(Enum):
     COMPLETE = "complete"
     RETRYING = "retrying"
     PENDING = "pending"
+    FAILED = "failed"
 
 
 class RetryTaskStatuses(Enum):
@@ -34,6 +36,7 @@ class RetryTask(Base):
     request_data = s.Column(String, nullable=False)
     journey_type = s.Column(String, nullable=False)
     message_uid = s.Column(String, nullable=False, unique=True)
+    scheme_account_id = s.Column(s.Integer, nullable=False, unique=True)
     scheme_identifier = s.Column(String, nullable=False)
     next_attempt_time = s.Column(s.DateTime, nullable=True)
     status = s.Column(s.Enum(RetryTaskStatuses), nullable=False, default=RetryTaskStatuses.PENDING, index=True)
@@ -45,7 +48,7 @@ class RetryTask(Base):
 
     def update_task(
         self,
-        db_session: "Session",
+        db_session: Session,
         response_audit: dict = None,
         status: RetryTaskStatuses = None,
         next_attempt_time: datetime = None,
@@ -56,7 +59,7 @@ class RetryTask(Base):
         callback_status: CallbackStatuses = None,
     ):
         if response_audit:
-            self.response_audit.append(response_audit)
+            self.audit_data.append(response_audit)
 
         if status:
             self.status = status

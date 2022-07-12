@@ -1,9 +1,9 @@
 import logging
 import os
 import typing as t
-from redis import Redis
 
 import sentry_sdk
+from redis import Redis
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
@@ -189,6 +189,7 @@ if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
 if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
     AUDIT_SENSITIVE_KEYS += AUDIT_ADDITIONAL_SENSITIVE_KEYS
 
-MAX_RETRY_COUNT = getenv("MAX_RETRY_COUNT", default=3)
-MAX_CALLBACK_RETRY_COUNT = getenv("MAX_CALLBACK_RETRY_COUNT", default=3)
-DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=(60 * 60 * 24 * 7))
+MAX_RETRY_COUNT = getenv("MAX_RETRY_COUNT", default=3, conv=int)
+MAX_CALLBACK_RETRY_COUNT = getenv("MAX_CALLBACK_RETRY_COUNT", default=3, conv=int)
+RETRY_BACKOFF_BASE = getenv("RETRY_BACKOSS_BASE", default=3, conv=int)
+DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=(60 * 60 * 24 * 7), conv=int)
