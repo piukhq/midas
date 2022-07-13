@@ -8,7 +8,7 @@ from app.agents.schemas import balance_tuple_to_dict
 from app.db import db_session
 from app.exceptions import AccountAlreadyExistsError, BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
-from app.models import CallbackStatuses, RetryTaskStatuses
+from app.models import CallbackStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
 from app.retry_util import get_task
@@ -87,8 +87,6 @@ def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignor
     retry_task = get_task(db_session, scheme_account_id)
 
     if retry_task.callback_status in [CallbackStatuses.NO_CALLBACK, CallbackStatuses.COMPLETE]:
-        retry_task.update_task(
-            db_session, response_audit={}, status=RetryTaskStatuses.SUCCESS, clear_next_attempt_time=True
-        )
-
+        db_session.delete(retry_task)
+        db_session.commit()
         login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)

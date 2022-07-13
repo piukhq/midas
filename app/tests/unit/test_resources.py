@@ -50,25 +50,6 @@ def mocked_hn_configuration(*args, **kwargs):
     return conf
 
 
-# def add_table_data(session):
-#     task_type = TaskType(
-#         name="attempt-join",
-#         path="app.journeys.join.attempt_join",
-#         error_handler_path="app.error_handler.handle_retry_task_request_error",
-#         queue_name="midas-retry",
-#     )
-#     session.add(task_type)
-#     session.commit()
-#     task_type_keys = [
-#         TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
-#         TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
-#         TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
-#     ]
-#     for task_type in task_type_keys:
-#         session.add(retry_task)
-#     session.commit()
-
-
 class TestResources(TestCase):
     def setUp(self) -> None:
         if engine.url.database != "midas_test":

@@ -132,6 +132,8 @@ class Iceland(BaseAgent):
             if error:
                 retry_task = retry_on_callback(db_session, self.user_info["scheme_account_id"], error)
                 if retry_task.status == RetryTaskStatuses.FAILED:
+                    db_session.delete(retry_task)
+                    db_session.commit()
                     self.handle_error_codes(error_code=error[0]["code"])
                 else:
                     return
@@ -149,6 +151,8 @@ class Iceland(BaseAgent):
         )
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
+        db_session.delete(retry_task)
+        db_session.commit()
 
     def join_callback(self, data: dict) -> None:
         self.integration_service = "SYNC"
@@ -161,9 +165,8 @@ class Iceland(BaseAgent):
         try:
             self._process_join_callback_response(data)
             signal("callback-success").send(self, slug=self.scheme_slug)
-        except BaseError as e:
+        except BaseError:
             signal("callback-fail").send(self, slug=self.scheme_slug)
-            update_pending_join_account(self.user_info, self.message_uid, error=e, raise_exception=False)
             raise
 
     def _join(self, payload: dict):
