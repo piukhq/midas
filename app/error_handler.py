@@ -109,7 +109,7 @@ def _handle_request_exception(
     retry_task: RetryTask,
     request_exception: BaseError,
     retryable_status_codes: list[int],
-) -> tuple[dict, RetryTaskStatuses | None, datetime | None]:
+) -> tuple[dict, RetryTaskStatuses | None, datetime | None | None, CallbackStatuses]:
     status = None
     next_attempt_time = None
     subject = retry_task.journey_type
