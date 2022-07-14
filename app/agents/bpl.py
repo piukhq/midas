@@ -183,10 +183,11 @@ class Bpl(BaseAgent):
         return [self.parse_transaction(tx) for tx in self._transactions]
 
     def parse_transaction(self, transaction: dict):
+        currency_amount = f"£{transaction['amount']}"
         return Transaction(
             date=arrow.get(transaction["datetime"]),
             points=Decimal(transaction["loyalty_earned_value"]),
-            description=f"{transaction['location']} £{transaction['amount']}",
+            description=f"{transaction['location']} {currency_amount.replace('£-', '-£')}",
         )
 
     def update_async_join(self, data):
