@@ -1,7 +1,7 @@
 """add init tables
 
 Revision ID: f00de45e7e55
-Revises: 
+Revises:
 Create Date: 2022-07-12 15:04:06.544859+00:00
 
 """
