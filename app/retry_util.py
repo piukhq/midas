@@ -41,6 +41,11 @@ def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
     )
 
 
+def delete_task(db_session: Session, retry_task: RetryTask):
+    db_session.delete(retry_task)
+    db_session.commit()
+
+
 def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_seconds: float):
     q = rq.Queue("midas-retry", connection=connection)
     next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=delay_seconds)
@@ -59,7 +64,7 @@ def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_se
     return next_attempt_time
 
 
-def enqueue_retry_task(*, connection: Any, retry_task: RetryTask):
+def enqueue_retry_task(*, connection: Any, retry_task: RetryTask) -> rq.job.Job:
     q = rq.Queue("midas-retry", connection=connection)
     job = q.enqueue(
         "app.journeys.join.attempt_join",

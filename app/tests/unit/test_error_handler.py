@@ -16,12 +16,13 @@ def encrypted_credentials():
 
 
 class TestErrorHandler(unittest.TestCase):
+    @mock.patch("app.error_handler.delete_task")
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("app.error_handler._handle_request_exception", side_effect=[{}, RetryTaskStatuses.FAILED, None])
     @mock.patch("app.error_handler.update_pending_join_account")
     @mock.patch("app.error_handler.decrypt_credentials", return_value={})
     def test_update_pending_join_called_on_failure(
-        self, mock_decrypt, mock_update_pending, mock_handle_exception, mock_retry_task
+        self, mock_decrypt, mock_update_pending, mock_handle_exception, mock_retry_task, mock_delete
     ):
         mock_retry_task.return_value.request_data = json.dumps(
             {

@@ -1001,6 +1001,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1013,6 +1014,7 @@ class TestIcelandJoin(TestCase):
         mock_iceland_signal,
         mock_update_pending_join_account,
         mock_get_task,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1034,11 +1036,12 @@ class TestIcelandJoin(TestCase):
         )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
+    @mock.patch("app.agents.iceland.delete_task")
     @mock.patch("app.error_handler.get_task")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response_with_errors(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_get_task
+        self, mock_consent_confirmation, mock_iceland_signal, mock_get_task, mock_delete
     ):
         self.iceland.errors = {
             CardNumberError: "CARD_NUMBER_ERROR",
@@ -1053,6 +1056,7 @@ class TestIcelandJoin(TestCase):
         with self.assertRaises(CardNumberError):
             self.iceland._process_join_callback_response(data=data)
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("requests.Session.post")
     @mock.patch("app.scheme_account.requests", autospec=True)
@@ -1065,6 +1069,7 @@ class TestIcelandJoin(TestCase):
         mock_scheme_account_requests,
         mock_session_post,
         mock_get_task,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1196,6 +1201,7 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(0, mock_iceland_signal.call_count)
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
@@ -1208,6 +1214,7 @@ class TestIcelandJoin(TestCase):
         mock_scheme_account_requests,
         mock_requests_session,
         mock_get_task,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1242,6 +1249,7 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
@@ -1254,6 +1262,7 @@ class TestIcelandJoin(TestCase):
         mock_scheme_account_requests,
         mock_requests_session,
         mock_get_task,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1293,6 +1302,7 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
@@ -1307,6 +1317,7 @@ class TestIcelandJoin(TestCase):
         mock_requests_session,
         mock_get_task,
         mock_get_task_error_handler,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1341,6 +1352,7 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.agents.iceland.db_session.delete")
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
@@ -1353,6 +1365,7 @@ class TestIcelandJoin(TestCase):
         mock_scheme_account_requests,
         mock_requests_session,
         mock_get_task,
+        mock_delete,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1582,6 +1595,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
         self.config = mock_configuration
 
+    @mock.patch("app.agents.iceland.delete_task")
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1604,6 +1618,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_iceland_signal,
         mock_get_task_error_handler,
         mock_get_task_iceland,
+        mock_delete_task,
     ):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data

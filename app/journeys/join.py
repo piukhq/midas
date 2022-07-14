@@ -11,7 +11,7 @@ from app.journeys.common import agent_login, get_agent_class, publish_transactio
 from app.models import CallbackStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
-from app.retry_util import get_task
+from app.retry_util import delete_task, get_task
 from app.scheme_account import SchemeAccountStatus, update_pending_join_account
 
 log = get_logger("join-journey")
@@ -87,6 +87,5 @@ def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignor
     retry_task = get_task(db_session, scheme_account_id)
 
     if retry_task.callback_status in [CallbackStatuses.NO_CALLBACK, CallbackStatuses.COMPLETE]:
-        db_session.delete(retry_task)
-        db_session.commit()
+        delete_task(db_session, retry_task)
         login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)

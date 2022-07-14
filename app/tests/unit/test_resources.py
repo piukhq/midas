@@ -3,7 +3,7 @@ import time
 from decimal import Decimal
 from typing import Optional
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import arrow
 import httpretty
@@ -30,6 +30,7 @@ from app.http_request import get_headers
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
+from app.models import CallbackStatuses
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
 from app.retry_util import create_task
@@ -51,20 +52,6 @@ def mocked_hn_configuration(*args, **kwargs):
 
 
 class TestResources(TestCase):
-    def setUp(self) -> None:
-        if engine.url.database != "midas_test":
-            raise ValueError(f"Unsafe attempt to recreate database: {engine.url.database}")
-        SessionMaker = sessionmaker(bind=engine)
-        if database_exists(engine.url):
-            drop_database(engine.url)
-        create_database(engine.url)
-        Base.metadata.create_all(bind=engine)
-        self.db_session = SessionMaker()
-        # add_table_data(self.db_session)
-
-    def tearDown(self) -> None:
-        self.db_session.close()
-        drop_database(engine.url)
 
     TESTING = True
     user_info = {
@@ -463,6 +450,8 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_join.called)
 
+    @mock.patch("app.journeys.join.get_task", return_value=Mock())
+    @mock.patch("app.journeys.join.delete_task")
     @mock.patch("app.publish.balance", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.join.publish_transactions", autospec=True)
@@ -483,6 +472,8 @@ class TestResources(TestCase):
         mock_publish_transaction,
         mock_publish_status,
         mock_publish_balance,
+        mock_delete,
+        mock_get_task,
     ):
         scheme_slug = "harvey-nichols"
         mock_agent_join.return_value = {
@@ -506,16 +497,7 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        join_task = create_task(
-            db_session=self.db_session,
-            user_info=json.dumps(user_info),
-            journey_type="attempt-join",
-            message_uid=user_info["scheme_account_id"],
-            scheme_identifier=scheme_slug,
-            scheme_account_id=123,
-        )
-        self.db_session.add(join_task)
-        self.db_session.commit()
+        mock_get_task.return_value.callback_status = CallbackStatuses.NO_CALLBACK
         attempt_join(123, 123, scheme_slug, json.dumps(user_info))
 
         self.assertTrue(mock_publish_balance.called)
@@ -525,6 +507,8 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
 
+    @mock.patch("app.journeys.join.get_task", return_value=Mock())
+    @mock.patch("app.journeys.join.delete_task")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
@@ -539,6 +523,8 @@ class TestResources(TestCase):
         mock_agent_login,
         mock_agent_join,
         mock_update_pending_join_account,
+        mock_delete,
+        mock_get_task,
     ):
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
@@ -563,17 +549,7 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        # here bitch
-        join_task = create_task(
-            db_session=self.db_session,
-            user_info=json.dumps(user_info),
-            journey_type="attempt-join",
-            message_uid=user_info["scheme_account_id"],
-            scheme_identifier=scheme_slug,
-            scheme_account_id=123,
-        )
-        self.db_session.add(join_task)
-        self.db_session.commit()
+        mock_get_task.return_value.callback_status = CallbackStatuses.NO_CALLBACK
         attempt_join(123, 123, scheme_slug, json.dumps(user_info))
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)

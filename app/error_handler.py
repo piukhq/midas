@@ -18,7 +18,7 @@ from app.exceptions import (
 from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
-from app.retry_util import enqueue_retry_task_delay, get_task
+from app.retry_util import delete_task, enqueue_retry_task_delay, get_task
 from app.scheme_account import update_pending_join_account
 from settings import MAX_CALLBACK_RETRY_COUNT, MAX_RETRY_COUNT, RETRY_BACKOFF_BASE, redis_raw
 
@@ -37,8 +37,7 @@ def handle_failed_join(db_session, retry_task, exc_value):
     consents = user_info["credentials"].get("consents", [])
     if consents:
         consent_ids = (consent["id"] for consent in consents)
-    db_session.delete(retry_task)
-    db_session.commit()
+    delete_task(db_session, retry_task)
     update_pending_join_account(
         user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
     )
