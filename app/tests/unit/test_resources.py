@@ -8,15 +8,12 @@ from unittest.mock import MagicMock, Mock
 import arrow
 import httpretty
 from flask_testing import TestCase
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
-from app.db import Base, engine
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -33,7 +30,6 @@ from app.journeys.view import async_get_balance_and_publish, get_balance_and_pub
 from app.models import CallbackStatuses
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
-from app.retry_util import create_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
 from settings import HADES_URL, HERMES_URL
