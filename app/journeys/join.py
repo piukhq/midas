@@ -1,5 +1,3 @@
-import json
-
 from flask_restful import abort
 from werkzeug.exceptions import NotFound
 
@@ -7,7 +5,6 @@ from app import db, publish
 from app.agents.schemas import balance_tuple_to_dict
 from app.exceptions import AccountAlreadyExistsError, BaseError, UnknownError
 from app.journeys.common import agent_login, get_agent_class, publish_transactions
-from app.models import CallbackStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
 from app.retry_util import delete_task, get_task
@@ -84,6 +81,6 @@ def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignor
     join_result = agent_join(agent_class, user_info, tid, scheme_slug=scheme_slug)
     with db.session_scope() as session:
         retry_task = get_task(session, scheme_account_id)
-        if retry_task.callback_status in [CallbackStatuses.NO_CALLBACK, CallbackStatuses.COMPLETE]:
+        if not retry_task.awaiting_callback:
             delete_task(session, retry_task)
             login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)

@@ -6,14 +6,6 @@ from sqlalchemy.sql import func
 from app.db import Base
 
 
-class CallbackStatuses(Enum):
-    NO_CALLBACK = "no_callback"
-    COMPLETE = "complete"
-    RETRYING = "retrying"
-    PENDING = "pending"
-    FAILED = "failed"
-
-
 class RetryTaskStatuses(Enum):
     PENDING = "pending"
     RETRYING = "retrying"
@@ -35,6 +27,4 @@ class RetryTask(Base):
     next_attempt_time = s.Column(s.DateTime, nullable=True)
     status = s.Column(s.Enum(RetryTaskStatuses), nullable=False, default=RetryTaskStatuses.PENDING, index=True)
     callback_retries = s.Column(s.Integer, nullable=False, default=0)
-    callback_status = s.Column(
-        s.Enum(CallbackStatuses), nullable=False, default=CallbackStatuses.NO_CALLBACK, index=True
-    )
+    awaiting_callback = s.Column(s.Boolean, nullable=False, default=False)

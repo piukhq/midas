@@ -3,7 +3,6 @@ import os
 import typing as t
 
 import sentry_sdk
-from redis import Redis
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
@@ -80,12 +79,6 @@ worker_enable_remote_control = False  # Disables pidbox exchanges
 task_serializer = "json"
 beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
 imports = ["app.tasks.resend"]
-redis_raw = Redis.from_url(
-    REDIS_URL,
-    socket_connect_timeout=3,
-    socket_keepalive=True,
-    retry_on_timeout=False,
-)
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
 CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")

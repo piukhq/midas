@@ -16,7 +16,7 @@ from app.exceptions import (
     ServiceConnectionError,
     UnknownError,
 )
-from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
+from app.models import RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
 from app.retry_util import (
@@ -61,7 +61,7 @@ def retry_on_callback(db_session: Session, scheme_account_id: str, error_code: l
         f" failed for task: {retry_task.id}"
         f" merchant: {retry_task.scheme_identifier}"
     )
-    if retry_task.callback_status == CallbackStatuses.PENDING:
+    if retry_task.callback_retries == 0:
         next_attempt_time = enqueue_retry_task_delay(
             connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60
         )
@@ -69,7 +69,6 @@ def retry_on_callback(db_session: Session, scheme_account_id: str, error_code: l
             db_session=db_session,
             retry_task=retry_task,
             retry_status=RetryTaskStatuses.RETRYING,
-            callback_status=CallbackStatuses.RETRYING,
             next_attempt_time=next_attempt_time,
         )
         logger.debug(f"Next attempt time at {next_attempt_time}")
@@ -97,7 +96,7 @@ def _handle_request_exception(
     retry_task: RetryTask,
     request_exception: BaseError,
     retryable_status_codes: list[int],
-) -> tuple[RetryTaskStatuses | None, datetime | None, CallbackStatuses | None]:
+) -> tuple[RetryTaskStatuses | None, datetime | None | None]:
     status = None
     next_attempt_time = None
     subject = retry_task.journey_type
@@ -110,8 +109,6 @@ def _handle_request_exception(
         f" failed for task: {retry_task.id}"
         f" merchant: {retry_task.scheme_identifier}"
     )
-
-    callback_status = retry_task.callback_status
 
     if attempts < max_retries:
         if resp is None or 500 <= request_exception.code < 600 or request_exception.code in retryable_status_codes:
@@ -131,13 +128,8 @@ def _handle_request_exception(
 
     if terminal:
         status = RetryTaskStatuses.FAILED
-        callback_status = (
-            CallbackStatuses.FAILED
-            if retry_task.callback_status != CallbackStatuses.NO_CALLBACK
-            else CallbackStatuses.NO_CALLBACK
-        )
 
-    return status, next_attempt_time, callback_status
+    return status, next_attempt_time
 
 
 def handle_request_exception(
@@ -155,7 +147,7 @@ def handle_request_exception(
     retry_task = get_task(db_session, job.args[0])
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
     if type(exc_value) in retryable_exceptions:
-        status, next_attempt_time, callback_status = _handle_request_exception(
+        status, next_attempt_time = _handle_request_exception(
             connection=connection,
             backoff_base=backoff_base,
             max_retries=max_retries,
@@ -165,17 +157,12 @@ def handle_request_exception(
         )
     else:  # otherwise report to sentry and fail the task
         status = RetryTaskStatuses.FAILED
-        callback_status = (
-            CallbackStatuses.FAILED
-            if retry_task.callback_status != CallbackStatuses.NO_CALLBACK
-            else CallbackStatuses.NO_CALLBACK
-        )
+
     try:
         update_task_for_retry(
             db_session=db_session,
             retry_task=retry_task,
             retry_status=status,
-            callback_status=callback_status,
             next_attempt_time=next_attempt_time,
         )
     except Exception as e:

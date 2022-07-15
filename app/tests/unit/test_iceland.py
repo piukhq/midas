@@ -32,7 +32,7 @@ from app.exceptions import (
 )
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join
-from app.models import CallbackStatuses, RetryTaskStatuses
+from app.models import RetryTaskStatuses
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.security.rsa import RSA

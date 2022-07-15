@@ -5,10 +5,8 @@ import rq
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
-from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
+from app.models import RetryTask, RetryTaskStatuses
 from settings import DEFAULT_FAILURE_TTL
-
-CALLBACK_AGENTS = ["iceland-bonus-card"]
 
 
 def create_task(
@@ -26,8 +24,6 @@ def create_task(
         scheme_identifier=scheme_identifier,
         scheme_account_id=scheme_account_id,
     )
-    if scheme_identifier in CALLBACK_AGENTS:
-        retry_task.callback_status = CallbackStatuses.PENDING
     db_session.add(retry_task)
     db_session.flush()
     return retry_task
@@ -50,12 +46,10 @@ def update_task_for_retry(
     db_session: Session,
     retry_task: RetryTask,
     retry_status: RetryTaskStatuses,
-    callback_status: CallbackStatuses,
     next_attempt_time: datetime,
 ):
     retry_task.attempts += 1
     retry_task.status = retry_status
-    retry_task.callback_status = callback_status
     retry_task.next_attempt_time = next_attempt_time
     db_session.flush()
     db_session.commit()
@@ -64,13 +58,11 @@ def update_task_for_retry(
 def reset_task_for_callback_attempt(
     db_session: Session,
     retry_task: RetryTask,
-    callback_status: CallbackStatuses,
     retry_status: RetryTaskStatuses,
     next_attempt_time: datetime,
 ):
     retry_task.callback_retries += 1
     retry_task.status = retry_status
-    retry_task.callback_status = callback_status
     retry_task.next_attempt_time = (next_attempt_time,)
     db_session.add(retry_task)
     db_session.commit()
@@ -87,7 +79,6 @@ def update_callback_attempt(db_session: Session, retry_task: RetryTask, next_att
 
 def fail_callback_task(db_session: Session, retry_task: RetryTask):
     retry_task.status = RetryTaskStatuses.FAILED
-    retry_task.callback_status = CallbackStatuses.COMPLETE
     db_session.add(retry_task)
     db_session.commit()
     return retry_task

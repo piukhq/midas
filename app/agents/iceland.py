@@ -6,7 +6,7 @@ import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 
-from app import publish
+from app import db, publish
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
@@ -25,7 +25,7 @@ from app.exceptions import (
     StatusLoginFailedError,
     UnknownError,
 )
-from app.models import CallbackStatuses, RetryTaskStatuses
+from app.models import RetryTaskStatuses
 from app.reporting import get_logger
 from app.retry_util import delete_task, get_task
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, update_pending_join_account
@@ -188,6 +188,11 @@ class Iceland(BaseAgent):
             consent_status = ConsentStatus.FAILED
             self.consent_confirmation(consents, consent_status)
             self.handle_error_codes(error[0]["code"])
+
+        with db.session_scope() as session:
+            retry_task = get_task(session, self.user_info["scheme_account_id"])
+            retry_task.awaiting_callback = True
+            session.commit()
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)

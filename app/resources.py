@@ -229,11 +229,6 @@ class AgentQuestions(Resource):
         return agent.update_questions(questions)
 
 
-def encrypt_credentials(credentials):
-    aes = AESCipher(get_aes_key("aes-keys"))
-    return aes.encrypt(json.dumps(credentials)).decode()
-
-
 def decrypt_credentials(credentials):
     aes = AESCipher(get_aes_key("aes-keys"))
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
