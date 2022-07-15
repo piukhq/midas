@@ -3,8 +3,8 @@ import logging
 import typer
 from rq import Worker
 
+from app.db import redis_raw
 from app.error_handler import handle_retry_task_request_error
-from settings import redis_raw
 
 cli = typer.Typer()
 logger = logging.getLogger(__name__)

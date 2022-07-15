@@ -5,7 +5,7 @@ import rq
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
-from app.models import CallbackStatuses, RetryTask
+from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
 from settings import DEFAULT_FAILURE_TTL
 
 CALLBACK_AGENTS = ["iceland-bonus-card"]
@@ -44,6 +44,53 @@ def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
 def delete_task(db_session: Session, retry_task: RetryTask):
     db_session.delete(retry_task)
     db_session.commit()
+
+
+def update_task_for_retry(
+    db_session: Session,
+    retry_task: RetryTask,
+    retry_status: RetryTaskStatuses,
+    callback_status: CallbackStatuses,
+    next_attempt_time: datetime,
+):
+    retry_task.attempts += 1
+    retry_task.status = retry_status
+    retry_task.callback_status = callback_status
+    retry_task.next_attempt_time = next_attempt_time
+    db_session.flush()
+    db_session.commit()
+
+
+def reset_task_for_callback_attempt(
+    db_session: Session,
+    retry_task: RetryTask,
+    callback_status: CallbackStatuses,
+    retry_status: RetryTaskStatuses,
+    next_attempt_time: datetime,
+):
+    retry_task.callback_retries += 1
+    retry_task.status = retry_status
+    retry_task.callback_status = callback_status
+    retry_task.next_attempt_time = (next_attempt_time,)
+    db_session.add(retry_task)
+    db_session.commit()
+    return retry_task
+
+
+def update_callback_attempt(db_session: Session, retry_task: RetryTask, next_attempt_time: datetime):
+    retry_task.callback_retries += 1
+    retry_task.next_attempt_time = next_attempt_time
+    db_session.add(retry_task)
+    db_session.commit()
+    return retry_task
+
+
+def fail_callback_task(db_session: Session, retry_task: RetryTask):
+    retry_task.status = RetryTaskStatuses.FAILED
+    retry_task.callback_status = CallbackStatuses.COMPLETE
+    db_session.add(retry_task)
+    db_session.commit()
+    return retry_task
 
 
 def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_seconds: float):

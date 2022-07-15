@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any
 import rq
 from sqlalchemy.orm.session import Session
 
-from app.db import SessionMaker
+from app import db
+from app.db import redis_raw
 from app.exceptions import (
     BaseError,
     EndSiteDownError,
@@ -18,9 +19,17 @@ from app.exceptions import (
 from app.models import CallbackStatuses, RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
-from app.retry_util import delete_task, enqueue_retry_task_delay, get_task
+from app.retry_util import (
+    delete_task,
+    enqueue_retry_task_delay,
+    fail_callback_task,
+    get_task,
+    reset_task_for_callback_attempt,
+    update_callback_attempt,
+    update_task_for_retry,
+)
 from app.scheme_account import update_pending_join_account
-from settings import MAX_CALLBACK_RETRY_COUNT, MAX_RETRY_COUNT, RETRY_BACKOFF_BASE, redis_raw
+from settings import MAX_CALLBACK_RETRY_COUNT, MAX_RETRY_COUNT, RETRY_BACKOFF_BASE
 
 if TYPE_CHECKING:  # pragma: no cover
     from inspect import Traceback
@@ -32,7 +41,7 @@ def handle_failed_join(db_session, retry_task, exc_value):
     consent_ids = None
     tid = retry_task.message_uid
     scheme_slug = retry_task.scheme_identifier
-    user_info = json.loads(retry_task.request_data)
+    user_info = retry_task.request_data
     user_info["credentials"] = decrypt_credentials(user_info["credentials"])
     consents = user_info["credentials"].get("consents", [])
     if consents:
@@ -44,60 +53,39 @@ def handle_failed_join(db_session, retry_task, exc_value):
 
 
 def retry_on_callback(db_session: Session, scheme_account_id: str, error_code: list) -> RetryTask:
-    response_audit: dict[str, Any] = {
-        "error": error_code,
-        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-    }
     retry_task = get_task(db_session, scheme_account_id)
-
-    if error_code[0]["code"] != "JOIN_ERROR":
-        retry_task.update_task(
-            db_session=db_session,
-            status=RetryTaskStatuses.FAILED,
-            callback_status=CallbackStatuses.COMPLETE,
-            response_audit=response_audit,
-        )
-        return retry_task
-
     subject = retry_task.journey_type
     attempts = retry_task.callback_retries + 1
     logger.debug(
         f"{subject} callback attempt {attempts}"
-        f" failed for task: {retry_task.retry_task_id}"
+        f" failed for task: {retry_task.id}"
         f" merchant: {retry_task.scheme_identifier}"
     )
-    if retry_task.callback_status not in [
-        CallbackStatuses.RETRYING,
-        CallbackStatuses.COMPLETE,
-        CallbackStatuses.FAILED,
-    ]:
+    if retry_task.callback_status == CallbackStatuses.PENDING:
         next_attempt_time = enqueue_retry_task_delay(
             connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60
         )
-        retry_task.update_task(
+        reset_task_for_callback_attempt(
             db_session=db_session,
+            retry_task=retry_task,
+            retry_status=RetryTaskStatuses.RETRYING,
             callback_status=CallbackStatuses.RETRYING,
             next_attempt_time=next_attempt_time,
-            clear_attempts=True,
-            response_audit=response_audit,
-            increase_callback_retries=True,
         )
         logger.debug(f"Next attempt time at {next_attempt_time}")
     elif attempts < MAX_CALLBACK_RETRY_COUNT:
-        retry_task.update_task(db_session=db_session, increase_callback_retries=True)
         next_attempt_time = enqueue_retry_task_delay(
             connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60
         )
+        update_callback_attempt(
+            db_session=db_session,
+            retry_task=retry_task,
+            next_attempt_time=next_attempt_time,
+        )
         logger.debug(f"Next attempt time at {next_attempt_time}")
     elif attempts == MAX_CALLBACK_RETRY_COUNT:
-        retry_task.update_task(
-            db_session=db_session,
-            status=RetryTaskStatuses.FAILED,
-            callback_status=CallbackStatuses.COMPLETE,
-            response_audit=response_audit,
-        )
+        fail_callback_task(db_session=db_session, retry_task=retry_task)
         logger.warning("Max retries for callback task reached.")
-
     return retry_task
 
 
@@ -109,28 +97,17 @@ def _handle_request_exception(
     retry_task: RetryTask,
     request_exception: BaseError,
     retryable_status_codes: list[int],
-) -> tuple[dict, RetryTaskStatuses | None, datetime | None | None, CallbackStatuses]:
+) -> tuple[RetryTaskStatuses | None, datetime | None, CallbackStatuses | None]:
     status = None
     next_attempt_time = None
     subject = retry_task.journey_type
     terminal = False
-    response_audit: dict[str, Any] = {
-        "error": str(request_exception),
-        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-    }
-
     resp = request_exception.generic_message
-
-    response_audit["response"] = {
-        "status": request_exception.code,
-        "body": resp,
-    }
-
     attempts = retry_task.attempts + 1
 
     logger.debug(
         f"{subject} attempt {attempts}"
-        f" failed for task: {retry_task.retry_task_id}"
+        f" failed for task: {retry_task.id}"
         f" merchant: {retry_task.scheme_identifier}"
     )
 
@@ -160,7 +137,7 @@ def _handle_request_exception(
             else CallbackStatuses.NO_CALLBACK
         )
 
-    return response_audit, status, next_attempt_time, callback_status
+    return status, next_attempt_time, callback_status
 
 
 def handle_request_exception(
@@ -174,12 +151,11 @@ def handle_request_exception(
     retryable_exceptions: list[BaseError],
 ):
 
-    response_audit = None
     next_attempt_time = None
     retry_task = get_task(db_session, job.args[0])
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
     if type(exc_value) in retryable_exceptions:
-        response_audit, status, next_attempt_time, callback_status = _handle_request_exception(
+        status, next_attempt_time, callback_status = _handle_request_exception(
             connection=connection,
             backoff_base=backoff_base,
             max_retries=max_retries,
@@ -194,16 +170,16 @@ def handle_request_exception(
             if retry_task.callback_status != CallbackStatuses.NO_CALLBACK
             else CallbackStatuses.NO_CALLBACK
         )
-
-    retry_task.update_task(
-        db_session,
-        next_attempt_time=next_attempt_time,
-        response_audit=response_audit,
-        status=status,
-        clear_next_attempt_time=True,
-        increase_attempts=True,
-        callback_status=callback_status,
-    )
+    try:
+        update_task_for_retry(
+            db_session=db_session,
+            retry_task=retry_task,
+            retry_status=status,
+            callback_status=callback_status,
+            next_attempt_time=next_attempt_time,
+        )
+    except Exception as e:
+        print(e)
 
     if status == RetryTaskStatuses.FAILED:
         if retry_task.journey_type == "attempt-join":
@@ -211,14 +187,14 @@ def handle_request_exception(
 
 
 def handle_retry_task_request_error(
-    job: rq.job.Job, exc_type: type, exc_value: Exception, traceback: "Traceback"
+    job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
 ) -> Any:
 
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed
-    with SessionMaker() as db_session:
+    with db.session_scope() as session:
         handle_request_exception(  # pragma: no cover
-            db_session=db_session,
+            db_session=session,
             backoff_base=RETRY_BACKOFF_BASE,
             max_retries=MAX_RETRY_COUNT,
             job=job,
