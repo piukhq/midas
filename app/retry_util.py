@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 import rq
 from sqlalchemy.future import select
@@ -11,7 +11,7 @@ from settings import DEFAULT_FAILURE_TTL
 
 def create_task(
     db_session: Session,
-    user_info: str,
+    user_info: dict,
     journey_type: str,
     message_uid: str,
     scheme_identifier: str,
@@ -45,7 +45,7 @@ def delete_task(db_session: Session, retry_task: RetryTask):
 def update_task_for_retry(
     db_session: Session,
     retry_task: RetryTask,
-    retry_status: RetryTaskStatuses,
+    retry_status: Optional[RetryTaskStatuses],
     next_attempt_time: datetime,
 ):
     retry_task.attempts += 1
