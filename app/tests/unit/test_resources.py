@@ -27,7 +27,6 @@ from app.http_request import get_headers
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join, attempt_join
 from app.journeys.view import async_get_balance_and_publish, get_balance_and_publish
-from app.models import CallbackStatuses
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -471,6 +470,7 @@ class TestResources(TestCase):
         mock_delete,
         mock_get_task,
     ):
+        mock_get_task.return_value.awaiting_callback = False
         scheme_slug = "harvey-nichols"
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
@@ -493,8 +493,7 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        mock_get_task.return_value.callback_status = CallbackStatuses.NO_CALLBACK
-        attempt_join(123, 123, scheme_slug, json.dumps(user_info))
+        attempt_join(123, 123, scheme_slug, user_info)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -545,8 +544,8 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        mock_get_task.return_value.callback_status = CallbackStatuses.NO_CALLBACK
-        attempt_join(123, 123, scheme_slug, json.dumps(user_info))
+        mock_get_task.return_value.awaiting_callback = False
+        attempt_join(123, 123, scheme_slug, user_info)
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
