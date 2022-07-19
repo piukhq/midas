@@ -1,17 +1,11 @@
-import json
 import unittest
-from datetime import datetime, timedelta, timezone
-from unittest import mock
-from unittest.mock import MagicMock, Mock
+from datetime import datetime
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-import app.exceptions as exc
 from app import db
 from app.db import Base, engine
-from app.encryption import AESCipher
-from app.error_handler import handle_retry_task_request_error
 from app.models import RetryTaskStatuses
 from app.retry_util import (
     create_task,
@@ -21,7 +15,6 @@ from app.retry_util import (
     update_callback_attempt,
     update_task_for_retry,
 )
-from app.tests.unit.test_resources import local_aes_key
 
 
 class TestRetryUtil(unittest.TestCase):

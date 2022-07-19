@@ -25,9 +25,8 @@ from app.exceptions import (
     StatusLoginFailedError,
     UnknownError,
 )
-from app.models import RetryTaskStatuses
 from app.reporting import get_logger
-from app.retry_util import delete_task, get_task
+from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, update_pending_join_account
 from app.tasks.resend_consents import ConsentStatus
 
