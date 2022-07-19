@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, MagicMock, Mock, call
 
 import arrow
 import httpretty
@@ -32,6 +32,7 @@ from app.exceptions import (
 )
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join
+from app.models import RetryTaskStatuses
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.security.rsa import RSA
@@ -856,13 +857,20 @@ class TestIcelandJoin(TestCase):
         self.assertFalse(mock_update_pending_join_account.called)
 
     @httpretty.activate
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_outbound_success(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+        self,
+        mock_consent_confirmation,
+        mock_base_signal,
+        mock_iceland_signal,
+        mock_requests_session,
+        mock_oath,
+        mock_get_task,
     ):
         self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
@@ -933,13 +941,20 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(0, mock_iceland_signal.call_count)
 
     @httpretty.activate
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_outbound_expects_callback(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+        self,
+        mock_consent_confirmation,
+        mock_base_signal,
+        mock_iceland_signal,
+        mock_requests_session,
+        mock_oath,
+        mock_get_task,
     ):
         self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
@@ -955,13 +970,20 @@ class TestIcelandJoin(TestCase):
         self.assertTrue(self.iceland.expecting_callback)
 
     @httpretty.activate
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch("app.agents.base.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_empty_response(
-        self, mock_consent_confirmation, mock_base_signal, mock_iceland_signal, mock_requests_session, mock_oath
+        self,
+        mock_consent_confirmation,
+        mock_base_signal,
+        mock_iceland_signal,
+        mock_requests_session,
+        mock_oath,
+        mock_get_task,
     ):
         self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         httpretty.register_uri(
@@ -1000,12 +1022,18 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(e.exception.code, 403)
         self.assertEqual(e.exception.name, "Invalid credentials")
 
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.update_pending_join_account")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.publish.status")
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response(
-        self, mock_consent_confirmation, mock_publish_status, mock_iceland_signal, mock_update_pending_join_account
+        self,
+        mock_consent_confirmation,
+        mock_publish_status,
+        mock_iceland_signal,
+        mock_update_pending_join_account,
+        mock_get_task,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1027,9 +1055,12 @@ class TestIcelandJoin(TestCase):
         )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
+    @mock.patch("app.error_handler.get_task")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
-    def test_process_join_callback_response_with_errors(self, mock_consent_confirmation, mock_iceland_signal):
+    def test_process_join_callback_response_with_errors(
+        self, mock_consent_confirmation, mock_iceland_signal, mock_get_task
+    ):
         self.iceland.errors = {
             CardNumberError: "CARD_NUMBER_ERROR",
         }
@@ -1039,9 +1070,11 @@ class TestIcelandJoin(TestCase):
             "record_uid": "a_record_uid",
             "merchant_scheme_id1": "a_merchant_scheme_id1",
         }
+        mock_get_task.return_value.status = RetryTaskStatuses.FAILED
         with self.assertRaises(CardNumberError):
             self.iceland._process_join_callback_response(data=data)
 
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("requests.Session.post")
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1052,6 +1085,7 @@ class TestIcelandJoin(TestCase):
         mock_signal,
         mock_scheme_account_requests,
         mock_session_post,
+        mock_get_task,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1183,12 +1217,18 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(3, mock_base_signal.call_count)
         self.assertEqual(0, mock_iceland_signal.call_count)
 
+    @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_join_in_progress_error(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
+        self,
+        mock_consent_confirmation,
+        mock_iceland_signal,
+        mock_scheme_account_requests,
+        mock_requests_session,
+        mock_get_task,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1206,6 +1246,7 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
+        mock_get_task.return_value.status = RetryTaskStatuses.FAILED
 
         with self.assertRaises(JoinInProgressError) as e:
             self.iceland.join_callback(data=data)
@@ -1222,12 +1263,18 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_join_error(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
+        self,
+        mock_consent_confirmation,
+        mock_iceland_signal,
+        mock_scheme_account_requests,
+        mock_requests_session,
+        mock_get_task,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1248,6 +1295,9 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
 
+        mock_get_task.return_value.status = RetryTaskStatuses.FAILED
+        mock_get_task.return_value.callback_retries = 3
+
         with self.assertRaises(JoinError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("General error preventing join", e.exception.name)
@@ -1263,12 +1313,20 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.error_handler.get_task", return_value=Mock())
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_account_already_exists_error(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
+        self,
+        mock_consent_confirmation,
+        mock_iceland_signal,
+        mock_scheme_account_requests,
+        mock_requests_session,
+        mock_get_task,
+        mock_get_task_error_handler,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1286,6 +1344,8 @@ class TestIcelandJoin(TestCase):
             "barcode": "a_barcode",
         }
 
+        mock_get_task_error_handler.return_value.status = RetryTaskStatuses.FAILED
+
         with self.assertRaises(AccountAlreadyExistsError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("Account already exists", e.exception.name)
@@ -1301,12 +1361,18 @@ class TestIcelandJoin(TestCase):
             json.loads(mock_scheme_account_requests.post.call_args[1]["data"])["status"],
         )
 
+    @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal")
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_join_callback_general_error(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_scheme_account_requests, mock_requests_session
+        self,
+        mock_consent_confirmation,
+        mock_iceland_signal,
+        mock_scheme_account_requests,
+        mock_requests_session,
+        mock_get_task,
     ):
         data = {
             "message_uid": "a_message_uid",
@@ -1323,7 +1389,7 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
-
+        mock_get_task.return_value.status = RetryTaskStatuses.FAILED
         with self.assertRaises(GeneralError) as e:
             self.iceland.join_callback(data=data)
         self.assertEqual("General error", e.exception.name)
@@ -1371,10 +1437,13 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(2, len(self.iceland.user_info["credentials"]["consents"]))
         self.assertEqual(call("Too many consents for Iceland scheme."), mock_logger.call_args)
 
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.Iceland.authenticate", return_value="a_token")
     @mock.patch("app.agents.iceland.Iceland._join", return_value={"message_uid": ""})
     @mock.patch.object(BaseAgent, "consent_confirmation")
-    def test_consents_confirmed_as_pending_on_async_join(self, mock_consent_confirmation, mock_join, mock_authenticate):
+    def test_consents_confirmed_as_pending_on_async_join(
+        self, mock_consent_confirmation, mock_join, mock_authenticate, mock_get_task
+    ):
         self.iceland.outbound_auth_service = Configuration.OAUTH_SECURITY
         self.iceland.join()
 
@@ -1536,6 +1605,10 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
         self.config = mock_configuration
 
+    @mock.patch("app.resources_callbacks.delete_task")
+    @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
+    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
+    @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
@@ -1554,6 +1627,10 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_consent_confirmation,
         mock_scheme_account_requests,
         mock_iceland_signal,
+        mock_get_task_error_handler,
+        mock_get_task_iceland,
+        mock_get_task_callback,
+        mock_delete_task_callback,
     ):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data

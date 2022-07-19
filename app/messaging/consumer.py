@@ -1,18 +1,17 @@
-import json
 from typing import Any, Type, cast
 
 import kombu
 import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, Message, MessageDispatcher, build_message
-from retry_tasks_lib.utils.synchronous import enqueue_retry_task, sync_create_task
 
 import settings
-from app.db import db_session
+from app import db
+from app.db import redis_raw
 from app.exceptions import BaseError
 from app.reporting import get_logger
+from app.retry_util import create_task, enqueue_retry_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
-from retry_worker import redis_raw
 
 log = get_logger("task-consumer")
 
@@ -53,20 +52,18 @@ class TaskConsumer(ConsumerMixin):
             "scheme_account_id": int(message.request_id),
             "channel": message.channel,
         }
-
         try:
-            task = sync_create_task(
-                db_session=db_session,
-                task_type_name="attempt-join",
-                params={
-                    "scheme_slug": message.loyalty_plan,
-                    "user_info": json.dumps(user_info),
-                    "tid": message.transaction_id,
-                },
-            )
-            with db_session:
+            with db.session_scope() as session:
+                task = create_task(
+                    db_session=session,
+                    user_info=user_info,
+                    journey_type="attempt-join",
+                    message_uid=message.transaction_id,
+                    scheme_identifier=message.loyalty_plan,
+                    scheme_account_id=message.request_id,
+                )
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
-                db_session.commit()
+                session.commit()
 
         except BaseError as e:
             sentry_sdk.capture_exception(e)

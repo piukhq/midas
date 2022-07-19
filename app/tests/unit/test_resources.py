@@ -3,22 +3,17 @@ import time
 from decimal import Decimal
 from typing import Optional
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import arrow
 import httpretty
 from flask_testing import TestCase
-from retry_tasks_lib.db.models import TaskType, TaskTypeKey
-from retry_tasks_lib.utils.synchronous import sync_create_task
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.harvey_nichols import HarveyNichols
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
-from app.db import Base, engine
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -51,40 +46,7 @@ def mocked_hn_configuration(*args, **kwargs):
     return conf
 
 
-def add_table_data(session):
-    task_type = TaskType(
-        name="attempt-join",
-        path="app.journeys.join.attempt_join",
-        error_handler_path="app.error_handler.handle_retry_task_request_error",
-        queue_name="midas-retry",
-    )
-    session.add(task_type)
-    session.commit()
-    task_type_keys = [
-        TaskTypeKey(name="user_info", type="STRING", task_type_id=task_type.task_type_id),
-        TaskTypeKey(name="tid", type="STRING", task_type_id=task_type.task_type_id),
-        TaskTypeKey(name="scheme_slug", type="STRING", task_type_id=task_type.task_type_id),
-    ]
-    for task_type in task_type_keys:
-        session.add(task_type)
-    session.commit()
-
-
 class TestResources(TestCase):
-    def setUp(self) -> None:
-        if engine.url.database != "midas_test":
-            raise ValueError(f"Unsafe attempt to recreate database: {engine.url.database}")
-        SessionMaker = sessionmaker(bind=engine)
-        if database_exists(engine.url):
-            drop_database(engine.url)
-        create_database(engine.url)
-        Base.metadata.create_all(bind=engine)
-        self.db_session = SessionMaker()
-        add_table_data(self.db_session)
-
-    def tearDown(self) -> None:
-        self.db_session.close()
-        drop_database(engine.url)
 
     TESTING = True
     user_info = {
@@ -483,6 +445,8 @@ class TestResources(TestCase):
 
         self.assertTrue(mock_join.called)
 
+    @mock.patch("app.journeys.join.get_task", return_value=Mock())
+    @mock.patch("app.journeys.join.delete_task")
     @mock.patch("app.publish.balance", autospec=True)
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.join.publish_transactions", autospec=True)
@@ -503,7 +467,10 @@ class TestResources(TestCase):
         mock_publish_transaction,
         mock_publish_status,
         mock_publish_balance,
+        mock_delete,
+        mock_get_task,
     ):
+        mock_get_task.return_value.awaiting_callback = False
         scheme_slug = "harvey-nichols"
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
@@ -526,14 +493,7 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        join_task = sync_create_task(
-            self.db_session,
-            task_type_name="attempt-join",
-            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
-        )
-        self.db_session.add(join_task)
-        self.db_session.commit()
-        attempt_join(join_task.retry_task_id)
+        attempt_join(123, 123, scheme_slug, user_info)
 
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_publish_transaction.called)
@@ -542,6 +502,8 @@ class TestResources(TestCase):
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
 
+    @mock.patch("app.journeys.join.get_task", return_value=Mock())
+    @mock.patch("app.journeys.join.delete_task")
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
@@ -556,6 +518,8 @@ class TestResources(TestCase):
         mock_agent_login,
         mock_agent_join,
         mock_update_pending_join_account,
+        mock_delete,
+        mock_get_task,
     ):
         mock_agent_join.return_value = {
             "agent": HarveyNichols(
@@ -580,14 +544,8 @@ class TestResources(TestCase):
             "status": "",
             "channel": "com.bink.wallet",
         }
-        join_task = sync_create_task(
-            self.db_session,
-            task_type_name="attempt-join",
-            params={"tid": None, "scheme_slug": scheme_slug, "user_info": json.dumps(user_info)},
-        )
-        self.db_session.add(join_task)
-        self.db_session.commit()
-        attempt_join(join_task.retry_task_id)
+        mock_get_task.return_value.awaiting_callback = False
+        attempt_join(123, 123, scheme_slug, user_info)
         self.assertTrue(mock_agent_join.called)
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)

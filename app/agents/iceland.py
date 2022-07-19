@@ -6,7 +6,7 @@ import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 
-from app import publish
+from app import db, publish
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING, Balance, BaseAgent, check_correct_authentication
 from app.agents.schemas import Transaction
 from app.encryption import hash_ids
@@ -26,6 +26,7 @@ from app.exceptions import (
     UnknownError,
 )
 from app.reporting import get_logger
+from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, SchemeAccountStatus, update_pending_join_account
 from app.tasks.resend_consents import ConsentStatus
 
@@ -134,7 +135,6 @@ class Iceland(BaseAgent):
             raise e
         finally:
             self.consent_confirmation(self.credentials.get("consents", []), consent_status)
-
         status = SchemeAccountStatus.ACTIVE
         publish.status(self.scheme_id, status, self.message_uid, self.user_info, journey="join")
 
@@ -187,6 +187,11 @@ class Iceland(BaseAgent):
             consent_status = ConsentStatus.FAILED
             self.consent_confirmation(consents, consent_status)
             self.handle_error_codes(error[0]["code"])
+
+        with db.session_scope() as session:
+            retry_task = get_task(session, self.user_info["scheme_account_id"])
+            retry_task.awaiting_callback = True
+            session.commit()
 
         consent_status = ConsentStatus.PENDING
         self.consent_confirmation(consents, consent_status)

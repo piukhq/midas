@@ -79,7 +79,6 @@ worker_enable_remote_control = False  # Disables pidbox exchanges
 task_serializer = "json"
 beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedule": RETRY_PERIOD, "args": ()}}
 imports = ["app.tasks.resend"]
-
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
 CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
@@ -182,3 +181,8 @@ if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
 
 if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
     AUDIT_SENSITIVE_KEYS += AUDIT_ADDITIONAL_SENSITIVE_KEYS
+
+MAX_RETRY_COUNT = getenv("MAX_RETRY_COUNT", default="3", conv=int)
+MAX_CALLBACK_RETRY_COUNT = getenv("MAX_CALLBACK_RETRY_COUNT", default="3", conv=int)
+RETRY_BACKOFF_BASE = getenv("RETRY_BACKOFF_BASE", default="3", conv=int)
+DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=str((60 * 60 * 24 * 7)), conv=int)

@@ -323,13 +323,13 @@ class BaseAgent(object):
         try:
             self.login()
         except KeyError as e:
-            raise Exception(message=f"missing the credential '{e.args[0]}'")
+            raise Exception(f"missing the credential '{e.args[0]}'")
 
     def attempt_join(self):
         try:
             self.join()
         except KeyError as e:
-            raise Exception(message=f"missing the credential '{e.args[0]}'")
+            raise Exception(f"missing the credential '{e.args[0]}'")
 
     @staticmethod
     def consent_confirmation(consents_data: list[dict], status: int) -> None:
