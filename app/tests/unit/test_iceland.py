@@ -1055,12 +1055,11 @@ class TestIcelandJoin(TestCase):
         )
         self.assertEqual(expected_publish_status_calls, mock_publish_status.mock_calls)
 
-    @mock.patch("app.agents.iceland.delete_task")
     @mock.patch("app.error_handler.get_task")
     @mock.patch("app.agents.iceland.signal", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     def test_process_join_callback_response_with_errors(
-        self, mock_consent_confirmation, mock_iceland_signal, mock_get_task, mock_delete
+        self, mock_consent_confirmation, mock_iceland_signal, mock_get_task
     ):
         self.iceland.errors = {
             CardNumberError: "CARD_NUMBER_ERROR",
@@ -1608,7 +1607,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
     @mock.patch("app.resources_callbacks.delete_task")
     @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
-    @mock.patch("app.agents.iceland.delete_task")
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
     @mock.patch("app.error_handler.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1631,7 +1629,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_iceland_signal,
         mock_get_task_error_handler,
         mock_get_task_iceland,
-        mock_delete_task,
         mock_get_task_callback,
         mock_delete_task_callback,
     ):
