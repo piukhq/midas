@@ -46,7 +46,7 @@ def update_task_for_retry(
     db_session: Session,
     retry_task: RetryTask,
     retry_status: Optional[RetryTaskStatuses],
-    next_attempt_time: datetime,
+    next_attempt_time: Optional[datetime],
 ):
     retry_task.attempts += 1
     retry_task.status = retry_status
