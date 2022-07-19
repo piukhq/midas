@@ -62,6 +62,7 @@ def reset_task_for_callback_attempt(
     next_attempt_time: datetime,
 ):
     retry_task.callback_retries += 1
+    retry_task.attempts = 0
     retry_task.status = retry_status
     retry_task.next_attempt_time = (next_attempt_time,)
     db_session.add(retry_task)
