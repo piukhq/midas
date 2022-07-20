@@ -13,6 +13,7 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 import settings
+from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import HashSHA1
@@ -26,6 +27,7 @@ from app.exceptions import (
     ValidationError,
 )
 from app.reporting import get_logger
+from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents
 from app.vouchers import VoucherState, VoucherType, voucher_state_names
@@ -81,16 +83,24 @@ class Acteol(BaseAgent):
         # These calls may result in various exceptions that mean the join has failed. If so,
         # call the signal event for failure
         try:
-            # Check if account already exists
-            account_already_exists = self._account_already_exists(origin_id=origin_id)
-            if account_already_exists:
-                raise AccountAlreadyExistsError()  # The join journey ends
-
-            # The account does not exist, so we can create one
-            ctcid = self._create_account(origin_id=origin_id)
-
-            # Add the new member number to Acteol
-            member_number = self._add_member_number(ctcid=ctcid)
+            with db.session_scope() as session:
+                task = get_task(session, self.user_info["scheme_account_id"])
+                process_step = task.process_step
+                if process_step is None or process_step != "account_created":
+                    account_already_exists = self._account_already_exists(origin_id=origin_id)
+                    if account_already_exists:
+                        raise AccountAlreadyExistsError()  # The join journey ends
+                    # The account does not exist, so we can create one
+                    ctcid = self._create_account(origin_id=origin_id)
+                    request_data = dict(task.request_data)
+                    request_data["ctcid"] = ctcid
+                    task.request_data = request_data
+                    task.process_step = "account_created"
+                    session.commit()
+                else:
+                    ctcid = task.request_data["ctcid"]
+                # Add the new member number to Acteol
+                member_number = self._add_member_number(ctcid=ctcid)
 
             # Get customer details
             customer_details = self._get_customer_details(origin_id=origin_id)
