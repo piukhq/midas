@@ -85,8 +85,8 @@ class Acteol(BaseAgent):
         try:
             with db.session_scope() as session:
                 task = get_task(session, self.user_info["scheme_account_id"])
-                process_steps = task.process_steps
-                if "account_created" not in process_steps:
+                process_step = task.process_step
+                if process_step is None or process_step != "account_created":
                     account_already_exists = self._account_already_exists(origin_id=origin_id)
                     if account_already_exists:
                         raise AccountAlreadyExistsError()  # The join journey ends
@@ -95,7 +95,7 @@ class Acteol(BaseAgent):
                     request_data = dict(task.request_data)
                     request_data["ctcid"] = ctcid
                     task.request_data = request_data
-                    task.process_steps.append("account_created")
+                    task.process_step = "account_created"
                     session.commit()
                 else:
                     ctcid = task.request_data["ctcid"]

@@ -1868,7 +1868,6 @@ class TestWasabi(unittest.TestCase):
         Test JOIN journey calls signal join fail
         """
         # Mock us through authentication
-        mock_get_task.return_value.process_steps = []
         self.wasabi.credentials = {
             "first_name": "Sarah",
             "last_name": "TestPerson",
@@ -1912,7 +1911,6 @@ class TestWasabi(unittest.TestCase):
         join()
         """
         # Mock us through authentication
-        mock_get_task.return_value.process_steps = []
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         # GIVEN
@@ -1967,7 +1965,6 @@ class TestWasabi(unittest.TestCase):
             "card_number": "1048183413",
             "merchant_identifier": 142163,
         }
-        mock_get_task.return_value.process_steps = []
         mock_get_task.return_value.request_data = {}
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
@@ -2023,7 +2020,6 @@ class TestWasabi(unittest.TestCase):
             "card_number": "1048183413",
             "merchant_identifier": 142163,
         }
-        mock_get_task.return_value.process_steps = []
         mock_get_task.return_value.request_data = {}
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
