@@ -28,4 +28,4 @@ class RetryTask(Base):
     status = s.Column(s.Enum(RetryTaskStatuses), nullable=False, default=RetryTaskStatuses.PENDING, index=True)
     callback_retries = s.Column(s.Integer, nullable=False, default=0)
     awaiting_callback = s.Column(s.Boolean, nullable=False, default=False)
-    process_step = s.Column(s.String, nullable=True)
+    process_step = s.Column(s.String, nullable=True, default=None)
