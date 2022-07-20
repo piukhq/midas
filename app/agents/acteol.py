@@ -83,24 +83,24 @@ class Acteol(BaseAgent):
         # These calls may result in various exceptions that mean the join has failed. If so,
         # call the signal event for failure
         try:
-            account_already_exists = self._account_already_exists(origin_id=origin_id)
-            if account_already_exists:
-                with db.session_scope() as session:
-                    task = get_task(session, self.user_info["scheme_account_id"])
-                    extra_data = task.extra_data.get("account_already_exists", None)
-                    if extra_data is None:
+            with db.session_scope() as session:
+                task = get_task(session, self.user_info["scheme_account_id"])
+                process_steps = task.process_steps
+                if "account_created" not in process_steps:
+                    account_already_exists = self._account_already_exists(origin_id=origin_id)
+                    if account_already_exists:
                         raise AccountAlreadyExistsError()  # The join journey ends
-            else:
-                with db.session_scope() as session:
-                    task = get_task(session, self.user_info["scheme_account_id"])
-                    task.extra_data["account_already_exists"] = account_already_exists
+                    # The account does not exist, so we can create one
+                    ctcid = self._create_account(origin_id=origin_id)
+                    request_data = dict(task.request_data)
+                    request_data["ctcid"] = ctcid
+                    task.request_data = request_data
+                    task.process_steps.append("account_created")
                     session.commit()
-
-            # The account does not exist, so we can create one
-            ctcid = self._create_account(origin_id=origin_id)
-
-            # Add the new member number to Acteol
-            member_number = self._add_member_number(ctcid=ctcid)
+                else:
+                    ctcid = task.request_data["ctcid"]
+                # Add the new member number to Acteol
+                member_number = self._add_member_number(ctcid=ctcid)
 
             # Get customer details
             customer_details = self._get_customer_details(origin_id=origin_id)

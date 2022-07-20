@@ -1,6 +1,7 @@
 from enum import Enum
 
 import sqlalchemy as s
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.sql import func
 
 from app.db import Base
@@ -28,4 +29,4 @@ class RetryTask(Base):
     status = s.Column(s.Enum(RetryTaskStatuses), nullable=False, default=RetryTaskStatuses.PENDING, index=True)
     callback_retries = s.Column(s.Integer, nullable=False, default=0)
     awaiting_callback = s.Column(s.Boolean, nullable=False, default=False)
-    extra_data = s.Column(s.JSON, nullable=True, default={})
+    process_steps = s.Column(MutableList.as_mutable(s.ARRAY(s.String)), default=[])
