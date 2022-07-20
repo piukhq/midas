@@ -15,4 +15,5 @@ AGENTS = {
     "squaremeal": "squaremeal.Squaremeal",
     "bpl-asos": "bpl.Bpl",
     "bpl-cortado": "bpl.Bpl",
+    "bpl-viator": "bpl.Bpl",
 }
