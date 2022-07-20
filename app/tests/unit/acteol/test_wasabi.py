@@ -4,7 +4,7 @@ import unittest
 from decimal import Decimal
 from http import HTTPStatus
 from typing import Dict
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urljoin
 
 import arrow
@@ -1857,14 +1857,26 @@ class TestWasabi(unittest.TestCase):
         # THEN
         assert ctcid == expected_ctcid
 
+    @patch("app.agents.acteol.get_task", return_value=Mock())
     @patch("app.agents.acteol.Acteol._account_already_exists")
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.signal", autospec=True)
-    def test_join_calls_signal_fail_for_join_error(self, mock_signal, mock_authenticate, mock_account_already_exists):
+    def test_join_calls_signal_fail_for_join_error(
+        self, mock_signal, mock_authenticate, mock_account_already_exists, mock_get_task
+    ):
         """
         Test JOIN journey calls signal join fail
         """
         # Mock us through authentication
+        mock_get_task.return_value.extra_data = json.loads(json.dumps({"account_already_exists": None}))
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+            "card_number": "1048183413",
+            "merchant_identifier": 142163,
+        }
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = True
         # GIVEN
@@ -1879,6 +1891,7 @@ class TestWasabi(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
+    @patch("app.agents.acteol.get_task", return_value=Mock())
     @patch(
         "app.agents.acteol.Acteol._create_account",
         side_effect=EndSiteDownError,
@@ -1892,15 +1905,25 @@ class TestWasabi(unittest.TestCase):
         mock_authenticate,
         mock_account_already_exists,
         mock_create_account,
+        mock_get_task,
     ):
         """
         Test JOIN journey calls signal join fail, have to mock through some of the earlier methods called in
         join()
         """
         # Mock us through authentication
+        mock_get_task.return_value.extra_data = {}
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         # GIVEN
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+            "card_number": "1048183413",
+            "merchant_identifier": 142163,
+        }
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
             call().send(self.wasabi, channel=self.wasabi.channel, slug=self.wasabi.scheme_slug),
@@ -1913,6 +1936,7 @@ class TestWasabi(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @patch("app.agents.acteol.get_task", return_value=Mock())
     @patch(
         "app.agents.acteol.Acteol._add_member_number",
         side_effect=StatusLoginFailedError,
@@ -1928,12 +1952,22 @@ class TestWasabi(unittest.TestCase):
         mock_account_already_exists,
         mock_create_account,
         mock_add_member_number,
+        mock_get_task,
     ):
         """
         Test JOIN journey calls signal join fail, have to mock through some of the earlier methods called in
         join()
         """
         # Mock us through authentication
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+            "card_number": "1048183413",
+            "merchant_identifier": 142163,
+        }
+        mock_get_task.return_value.extra_data = {}
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         mock_create_account.return_value = "54321"
@@ -1949,6 +1983,7 @@ class TestWasabi(unittest.TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
+    @patch("app.agents.acteol.get_task", return_value=Mock())
     @patch("app.agents.acteol.Acteol._set_customer_preferences")
     @patch("app.agents.acteol.Acteol._get_email_optin_from_consent")
     @patch("app.agents.acteol.Acteol._customer_fields_are_present")
@@ -1969,14 +2004,25 @@ class TestWasabi(unittest.TestCase):
         mock_add_customer_fields_are_present,
         mock_get_email_optin_from_consent,
         mock_set_customer_preferences,
+        mock_get_task,
     ):
         """
         Test JOIN journey calls signal join success if no exceptions raised. Need to mock several calls
         to result in 'successful' join
         """
+
         ctcid = "54321"
         member_number = "123456789"
         # Mock us through authentication
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+            "card_number": "1048183413",
+            "merchant_identifier": 142163,
+        }
+        mock_get_task.return_value.extra_data = {}
         mock_authenticate.return_value = self.mock_token
         mock_account_already_exists.return_value = False
         mock_create_account.return_value = ctcid

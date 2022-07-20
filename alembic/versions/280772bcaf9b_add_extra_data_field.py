@@ -1,8 +1,8 @@
-"""init tables
+"""add extra data field
 
-Revision ID: c9e4d6c7c629
+Revision ID: 280772bcaf9b
 Revises:
-Create Date: 2022-07-15 14:58:16.703724+00:00
+Create Date: 2022-07-20 14:21:25.008247+00:00
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "c9e4d6c7c629"
+revision = "280772bcaf9b"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,6 +35,7 @@ def upgrade():
         ),
         sa.Column("callback_retries", sa.Integer(), nullable=False),
         sa.Column("awaiting_callback", sa.Boolean(), nullable=False),
+        sa.Column("extra_data", sa.JSON(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("message_uid"),
         sa.UniqueConstraint("scheme_account_id"),
