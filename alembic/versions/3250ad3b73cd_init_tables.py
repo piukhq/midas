@@ -32,7 +32,7 @@ def upgrade():
     sa.Column('status', sa.Enum('PENDING', 'RETRYING', 'FAILED', 'SUCCESS', name='retrytaskstatuses'), nullable=False),
     sa.Column('callback_retries', sa.Integer(), nullable=False),
     sa.Column('awaiting_callback', sa.Boolean(), nullable=False),
-    sa.Column('process_step', sa.String(), nullable=False),
+    sa.Column('process_step', sa.String(), nullable=False, server_default=None),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('message_uid'),
     sa.UniqueConstraint('scheme_account_id')
