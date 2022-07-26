@@ -109,7 +109,7 @@ def _handle_request_exception(
         f" merchant: {retry_task.scheme_identifier}"
     )
 
-    if attempts < max_retries:
+    if attempts <= max_retries:
         if resp is None or 500 <= request_exception.code < 600 or request_exception.code in retryable_status_codes:
             next_attempt_time = enqueue_retry_task_delay(
                 connection=connection,
