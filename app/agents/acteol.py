@@ -1,6 +1,5 @@
 import json
 from decimal import Decimal
-from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 from urllib.parse import urljoin
