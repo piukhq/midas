@@ -24,7 +24,7 @@ from app.exceptions import (
     ValidationError,
 )
 from app.scheme_account import JourneyTypes
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, voucher_state_names
 from settings import HERMES_URL
 
 
@@ -606,7 +606,6 @@ class TestWasabi(unittest.TestCase):
             vouchers=[
                 Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
-                    type=VoucherType.STAMPS.value,
                     target_value=None,
                     value=Decimal(expected_points),
                 )
@@ -1215,7 +1214,6 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = Voucher(
             state=voucher_state_names[VoucherState.REDEEMED],
-            type=VoucherType.STAMPS.value,
             code=voucher["VoucherCode"],
             target_value=None,
             value=None,
@@ -1277,7 +1275,6 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = Voucher(
             state=voucher_state_names[VoucherState.CANCELLED],
-            type=VoucherType.STAMPS.value,
             code=voucher["VoucherCode"],
             target_value=None,
             value=None,
@@ -1348,7 +1345,6 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = Voucher(
             state=voucher_state_names[VoucherState.ISSUED],
-            type=VoucherType.STAMPS.value,
             code=voucher["VoucherCode"],
             target_value=None,
             value=None,
@@ -1417,7 +1413,6 @@ class TestWasabi(unittest.TestCase):
 
         expected_mapped_voucher = Voucher(
             state=voucher_state_names[VoucherState.EXPIRED],
-            type=VoucherType.STAMPS.value,
             code=voucher["VoucherCode"],
             target_value=None,
             value=None,
@@ -1439,13 +1434,12 @@ class TestWasabi(unittest.TestCase):
         points = Decimal(123)
         expected_in_progress_voucher = Voucher(
             state=voucher_state_names[VoucherState.IN_PROGRESS],
-            type=VoucherType.STAMPS.value,
             target_value=None,
             value=points,
         )
 
         # WHEN
-        in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
+        in_progress_voucher = self.wasabi._make_in_progress_voucher(points=points)
 
         # THEN
         assert in_progress_voucher == expected_in_progress_voucher

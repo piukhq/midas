@@ -13,7 +13,7 @@ from flask_testing import TestCase
 import settings
 from app.agents.bpl import Bpl
 from app.exceptions import GeneralError, StatusLoginFailedError
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, voucher_state_names
 
 settings.API_AUTH_ENABLED = False
 from app.api import create_app  # noqa
@@ -94,7 +94,6 @@ class TestBplCallback(TestCase):
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
                     "issued_date": 1629385871,
                     "expiry_date": 1629385871,
                     "code": "somecode",
@@ -140,7 +139,6 @@ class TestBplCallback(TestCase):
             "rewards": [
                 {
                     "status": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
                     "issued_date": 1629385871,
                     "expiry_date": 1629385871,
                     "code": "somecode",

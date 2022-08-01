@@ -30,7 +30,7 @@ from app.journeys.view import async_get_balance_and_publish, get_balance_and_pub
 from app.publish import thread_pool_executor
 from app.resources import get_hades_balance
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, voucher_state_names
 from settings import HADES_URL, HERMES_URL
 
 local_aes_key = "testing1234567898765432345674562"
@@ -72,13 +72,11 @@ class TestResources(TestCase):
             vouchers=[
                 Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
-                    type=VoucherType.STAMPS.value,
                     value=Decimal("10.10"),
                     target_value=Decimal("20.20"),
                 ),
                 Voucher(
                     state=voucher_state_names[VoucherState.EXPIRED],
-                    type=VoucherType.STAMPS.value,
                     issue_date=1234567895,
                     code="test-voucher-2",
                     value=Decimal("20.20"),
@@ -95,13 +93,11 @@ class TestResources(TestCase):
             "vouchers": [
                 {
                     "state": voucher_state_names[VoucherState.IN_PROGRESS],
-                    "type": VoucherType.STAMPS.value,
                     "value": Decimal("10.10"),
                     "target_value": Decimal("20.20"),
                 },
                 {
                     "state": voucher_state_names[VoucherState.EXPIRED],
-                    "type": VoucherType.STAMPS.value,
                     "issue_date": 1234567895,
                     "code": "test-voucher-2",
                     "value": Decimal("20.20"),
@@ -956,13 +952,11 @@ class TestResources(TestCase):
             "vouchers": [
                 {
                     "state": "inprogress",
-                    "type": 1,
                     "value": 123.45,
                     "target_value": None,
                 },
                 {
                     "state": "issued",
-                    "type": 1,
                     "issue_date": "1629385871",
                     "expiry_date": "1893456000",
                     "code": "1qv7lgUyUVMBkxK",

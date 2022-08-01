@@ -15,7 +15,6 @@ class Transaction(NamedTuple):
 
 class Voucher(NamedTuple):
     state: str
-    type: int
     issue_date: Optional[int] = None
     redeem_date: Optional[int] = None
     expiry_date: Optional[int] = None

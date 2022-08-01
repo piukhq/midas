@@ -4,13 +4,6 @@ import arrow
 
 
 @enum.unique
-class VoucherType(enum.Enum):
-    JOIN = 0
-    ACCUMULATOR = 1
-    STAMPS = 2
-
-
-@enum.unique
 class VoucherState(enum.Enum):
     ISSUED = 0
     IN_PROGRESS = 1

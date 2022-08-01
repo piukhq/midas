@@ -8,7 +8,7 @@ import arrow
 from app.agents.base import MockedMiner
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.exceptions import GeneralError, PreRegisteredCardError
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, voucher_state_names
 
 GHOST_CARD_PREFIX = "0"
 
@@ -93,7 +93,6 @@ class MockPerformanceVoucher(MockedMiner):
                     redeem_date=date,
                     expiry_date=date,
                     code=str(uuid4()),
-                    type=VoucherType.ACCUMULATOR.value,
                     value=Decimal(random.randint(1, 50)),
                 )
             )

@@ -30,7 +30,7 @@ from app.reporting import get_logger
 from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES
 from app.tasks.resend_consents import ConsentStatus, send_consents
-from app.vouchers import VoucherState, VoucherType, voucher_state_names
+from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3  # Number of times we should attempt another Acteol API call on failure
 
@@ -192,7 +192,7 @@ class Acteol(BaseAgent):
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
 
         # Create an 'in-progress' voucher - the current, incomplete voucher
-        in_progress_voucher = self._make_in_progress_voucher(points=points, voucher_type=VoucherType.STAMPS)
+        in_progress_voucher = self._make_in_progress_voucher(points=points)
         bink_mapped_vouchers.append(in_progress_voucher)
 
         # Now create the other types of vouchers
@@ -664,7 +664,6 @@ class Acteol(BaseAgent):
         if voucher.get("Redeemed") and voucher.get("RedemptionDate"):
             return Voucher(
                 state=voucher_state_names[VoucherState.REDEEMED],
-                type=VoucherType.STAMPS.value,
                 code=voucher.get("VoucherCode"),
                 target_value=None,  # None == will be set to Earn Target Value in Hermes
                 value=None,  # None == will be set to Earn Target Value in Hermes
@@ -686,7 +685,6 @@ class Acteol(BaseAgent):
         if voucher.get("Disabled"):
             return Voucher(
                 state=voucher_state_names[VoucherState.CANCELLED],
-                type=VoucherType.STAMPS.value,
                 code=voucher.get("VoucherCode"),
                 target_value=None,  # None == will be set to Earn Target Value in Hermes
                 value=None,  # None == will be set to Earn Target Value in Hermes
@@ -715,7 +713,6 @@ class Acteol(BaseAgent):
         ):
             return Voucher(
                 state=voucher_state_names[VoucherState.ISSUED],
-                type=VoucherType.STAMPS.value,
                 code=voucher["VoucherCode"],
                 target_value=None,  # None == will be set to Earn Target Value in Hermes
                 value=None,  # None == will be set to Earn Target Value in Hermes
@@ -738,7 +735,6 @@ class Acteol(BaseAgent):
         if expiry and arrow.get(expiry) < current_datetime:
             return Voucher(
                 state=voucher_state_names[VoucherState.EXPIRED],
-                type=VoucherType.STAMPS.value,
                 code=voucher.get("VoucherCode"),
                 target_value=None,  # None == will be set to Earn Target Value in Hermes
                 value=None,  # None == will be set to Earn Target Value in Hermes
@@ -748,7 +744,7 @@ class Acteol(BaseAgent):
 
         return None
 
-    def _make_in_progress_voucher(self, points: Decimal, voucher_type: Enum) -> Voucher:
+    def _make_in_progress_voucher(self, points: Decimal) -> Voucher:
         """
         Make an in-progress voucher dict
 
@@ -757,7 +753,6 @@ class Acteol(BaseAgent):
         """
         return Voucher(
             state=voucher_state_names[VoucherState.IN_PROGRESS],
-            type=voucher_type.value,
             target_value=None,  # None == will be set to Earn Target Value in Hermes
             value=points,
         )

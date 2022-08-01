@@ -21,25 +21,9 @@ from app.exceptions import (
 from app.reporting import get_logger
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
-from app.vouchers import VoucherState, VoucherType, generate_pending_voucher_code, voucher_state_names
+from app.vouchers import VoucherState, generate_pending_voucher_code, voucher_state_names
 
 log = get_logger("bpl-agent")
-
-
-def voucher_type(scheme_slug: str) -> int:
-    """
-    This function can be removed once hermes has been fixed to use the voucher types set in it's django database.
-    Loyalty jira: https://hellobink.atlassian.net/browse/LOY-2405
-    We should be able to remove the type field where this function is called.
-    3 calls to this function will also need to be removed when the time comes.
-    """
-    stamp_schemes = [
-        "bpl-cortado",
-    ]
-    if scheme_slug in stamp_schemes:
-        return VoucherType.STAMPS.value
-
-    return VoucherType.ACCUMULATOR.value
 
 
 class Bpl(BaseAgent):
@@ -115,7 +99,6 @@ class Bpl(BaseAgent):
                 code=generate_pending_voucher_code(voucher["conversion_date"]),
                 target_value=None,
                 value=None,
-                type=voucher_type(self.scheme_slug),
                 state="issued",
             )
             for voucher in vouchers
@@ -130,7 +113,6 @@ class Bpl(BaseAgent):
                 code=voucher["code"],
                 target_value=None,
                 value=None,
-                type=voucher_type(self.scheme_slug),
                 state=voucher["status"],
             )
             for voucher in vouchers
@@ -160,7 +142,6 @@ class Bpl(BaseAgent):
             vouchers=[
                 Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
-                    type=voucher_type(self.scheme_slug),
                     target_value=None,
                     value=balance,
                 ),
