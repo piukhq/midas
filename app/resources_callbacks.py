@@ -68,6 +68,8 @@ class JoinCallback(Resource):
                             delete_task(db_session=session, retry_task=retry_task)
                         else:
                             return
+                elif error_code[0]["code"] == "JOIN_IN_PROGRESS":
+                    return
                 else:
                     with db.session_scope() as session:
                         retry_task = get_task(session, user_info["scheme_account_id"])
