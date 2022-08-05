@@ -18,6 +18,7 @@ from app.exceptions import (
     AccountAlreadyExistsError,
     EndSiteDownError,
     IPBlockedError,
+    JoinError,
     NoSuchRecordError,
     RetryLimitReachedError,
     StatusLoginFailedError,
@@ -373,6 +374,32 @@ class TestWasabi(unittest.TestCase):
         # WHEN
         assert not mock_send_to_atlas.called
         with self.assertRaises(EndSiteDownError):
+            self.wasabi._create_account(origin_id=origin_id)
+
+    @httpretty.activate
+    def test_create_account_ctcid_equals_zero(self):
+        """
+        Test creating an account with ctcid = 0 returned in response
+        """
+        # GIVEN
+        self.wasabi.journey_type = JourneyTypes.JOIN
+        origin_id = "d232c52c8aea16e454061f2a05e63f60a92445c0"
+        api_url = urljoin(self.wasabi.base_url, "api/Contact/PostContact")
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+        }
+        zero_ctcid = 0
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps({"CtcID": zero_ctcid}))],
+            status=HTTPStatus.OK,
+        )
+        # WHEN
+        with self.assertRaises(JoinError):
             self.wasabi._create_account(origin_id=origin_id)
 
     @httpretty.activate

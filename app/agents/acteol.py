@@ -427,6 +427,11 @@ class Acteol(BaseAgent):
 
         ctcid = resp_json["CtcID"]
 
+        if ctcid == 0:
+            sentry_issue_id = sentry_sdk.capture_exception(Exception("Acteol responded with CTCID = 0"))
+            log.info(f"Acteol returned a CTCID = 0  response for a join, Sentry id: {sentry_issue_id}")
+            raise JoinError()  # The join journey ends
+
         return ctcid
 
     def _add_member_number(self, ctcid: str) -> str:
