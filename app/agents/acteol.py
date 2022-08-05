@@ -427,6 +427,11 @@ class Acteol(BaseAgent):
 
         ctcid = resp_json["CtcID"]
 
+        if ctcid == 0:
+            raise JoinError(
+                message=f"Acteol returned a CTCID = 0 for loyalty account id: {self.user_info['scheme_account_id']}"
+            )
+
         return ctcid
 
     def _add_member_number(self, ctcid: str) -> str:
