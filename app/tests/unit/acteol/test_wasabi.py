@@ -399,8 +399,10 @@ class TestWasabi(unittest.TestCase):
             status=HTTPStatus.OK,
         )
         # WHEN
-        with self.assertRaises(JoinError):
+        with self.assertRaises(JoinError) as captured_exception:
             self.wasabi._create_account(origin_id=origin_id)
+
+        assert captured_exception.exception.message == "Acteol returned a CTCID = 0 for loyalty account id: 1"
 
     @httpretty.activate
     @patch("app.agents.base.signal", autospec=True)
