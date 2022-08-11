@@ -22,6 +22,7 @@ redis_raw = Redis.from_url(
 
 engine = s.create_engine(
     settings.POSTGRES_DSN,
+    connect_args=settings.POSTGRES_CONNECT_ARGS,
     poolclass=NullPool,
     json_serializer=json.dumps,
     json_deserializer=json.loads,
