@@ -129,6 +129,8 @@ else:
         ]
     )
 
+POSTGRES_CONNECT_ARGS = {"application_name": "midas"}
+
 QUERY_TRACE_LEVEL = getenv("QUERY_TRACE_LEVEL", default="0", conv=int)
 
 # These are set automatically based on the above.
