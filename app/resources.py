@@ -57,6 +57,7 @@ class Healthz(Resource):
 
 class Balance(Resource):
     def get(self, scheme_slug):
+        bink_user_id = request.args.get("bink_user_id", type=int)
         status = request.args.get("status")
         journey_type = request.args.get("journey_type")
         user_set = get_user_set_from_request(request.args)
@@ -67,6 +68,7 @@ class Balance(Resource):
             "credentials": decrypt_credentials(request.args["credentials"]),
             "status": int(status) if status else None,
             "user_set": user_set,
+            "bink_user_id": bink_user_id,
             "journey_type": int(journey_type) if journey_type else None,
             "scheme_account_id": int(request.args["scheme_account_id"]),
         }
@@ -83,6 +85,9 @@ class Balance(Resource):
             return create_response(self.handle_async_balance(agent_class, scheme_slug, user_info, tid))
 
         balance = get_balance_and_publish(agent_class, scheme_slug, user_info, tid)
+        # Return the bink_user_id back to hermes. When messaging implemented, this will need reviewing.
+        if balance:
+            balance["bink_user_id"] = bink_user_id
         return create_response(balance)
 
     @staticmethod
@@ -103,6 +108,10 @@ class Balance(Resource):
             prev_balance["pending"] = True
 
         thread_pool_executor.submit(async_get_balance_and_publish, agent_class, scheme_slug, user_info, tid)
+        # Adding the bink_user_id here for completeness, we do not have any async agents, so not used.
+        # Messaging work will probably remove the requirement for this function.
+        if prev_balance:
+            prev_balance["bink_user_id"] = user_info["bink_user_id"]
         # return previous balance from hades so front end has something to display
         return prev_balance
 
