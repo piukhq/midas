@@ -170,17 +170,19 @@ class TestResources(TestCase):
         mock_publish_balance,
         mock_get_aes_key,
     ):
-        mock_publish_balance.return_value = {"user_id": 2, "scheme_account_id": 4}
+        mock_publish_balance.return_value = {"user_id": 2, "scheme_account_id": 4, "bink_user_id": 777}
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}&bink_user_id={3}".format(
+            credentials, 1, 2, 777
+        )
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertTrue(mock_pool.called)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"user_id": 2, "scheme_account_id": 4})
+        self.assertEqual(response.json, {"user_id": 2, "scheme_account_id": 4, "bink_user_id": 777})
         self.assertFalse(mock_async_balance_and_publish.called)
 
     @mock.patch("app.resources.get_aes_key")
@@ -326,6 +328,7 @@ class TestResources(TestCase):
             "credentials": {"username": "NZ57271", "password": "d4Hgvf47"},
             "status": None,
             "user_set": "1",
+            "bink_user_id": None,
             "journey_type": None,
             "scheme_account_id": 1,
         }
@@ -966,6 +969,7 @@ class TestResources(TestCase):
             ],
             "scheme_account_id": 2,
             "user_set": "1",
+            "bink_user_id": 7777777,
             "points_label": "123",
         }
 
@@ -978,7 +982,7 @@ class TestResources(TestCase):
         credentials = aes.encrypt(json.dumps(credentials)).decode()
         url = (
             f"/bpl-trenette/balance?credentials={credentials}&user_set=1"
-            f"&scheme_account_id=2&journey_type={journey_type}"
+            f"&scheme_account_id=2&journey_type={journey_type}&bink_user_id=7777777"
         )
         resp = self.client.get(url)
 
