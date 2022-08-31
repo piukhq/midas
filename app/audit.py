@@ -30,6 +30,7 @@ class RequestAuditLog(NamedTuple):
     timestamp: int
     integration_service: str
     payload: Union[dict, str]
+    request_url: str
 
 
 class ResponseAuditLog(NamedTuple):
@@ -84,6 +85,7 @@ class AuditLogger:
         message_uid: str,
         record_uid: str,
         channel: str,
+        request_url: str,
     ) -> None:
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
@@ -97,6 +99,7 @@ class AuditLogger:
             timestamp=timestamp,
             integration_service=integration_service,
             payload=payload,
+            request_url=request_url,
         )
         self.send_to_atlas(request_audit_log)
 

@@ -93,7 +93,7 @@ class BaseAgent(object):
         if settings.SENTRY_DSN:
             sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
 
-    def send_audit_request(self, payload):
+    def send_audit_request(self, payload, url):
         audit_payload = deepcopy(payload)
         if audit_payload.get("password"):
             audit_payload["password"] = "REDACTED"
@@ -107,6 +107,7 @@ class BaseAgent(object):
             message_uid=self.message_uid,
             record_uid=self.record_uid,
             channel=self.channel,
+            request_url=url,
         )
 
     def send_audit_response(self, response):
@@ -198,7 +199,7 @@ class BaseAgent(object):
         try:
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_request(audit_payload)
+                self.send_audit_request(audit_payload, url)
 
             resp = self.session.request(method, url=url, **args)
 

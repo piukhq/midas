@@ -83,6 +83,7 @@ class TestAudit(unittest.TestCase):
             message_uid=req_message_uid,
             record_uid=record_uid,
             channel="unit tests",
+            request_url="http://test",
         )
         timestamp = arrow.utcnow().int_timestamp
 
@@ -98,6 +99,7 @@ class TestAudit(unittest.TestCase):
                     "payload": {"type": "user", "details": {"username": "testuser", "password": standin}},
                     "record_uid": record_uid,
                     "timestamp": timestamp,
+                    "request_url": "http://test",
                 },
             ]
         }

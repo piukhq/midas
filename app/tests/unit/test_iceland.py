@@ -602,6 +602,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                request_url=self.merchant_url,
             ),
             call("send-audit-response"),
             call().send(
@@ -673,6 +674,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                request_url=self.merchant_url,
             ),
             call("send-audit-response"),
             call().send(
@@ -742,6 +744,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                request_url=self.merchant_url,
             ),
             call("send-audit-response"),
             call().send(
@@ -911,6 +914,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                request_url=self.merchant_url,
             ),
             call("send-audit-response"),
             call().send(
@@ -1183,6 +1187,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                request_url=self.merchant_url,
             ),
             call("send-audit-response"),
             call().send(

@@ -3,6 +3,7 @@ import os
 import typing as t
 
 import sentry_sdk
+from redis import Redis
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
@@ -81,8 +82,8 @@ beat_schedule = {"retry_tasks": {"task": "app.tasks.resend.retry_tasks", "schedu
 imports = ["app.tasks.resend"]
 HADES_URL = getenv("HADES_URL", default="http://local.hades.chingrewards.com:8000")
 HERMES_URL = getenv("HERMES_URL", default="http://local.hermes.chingrewards.com:8000")
-CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="")
-ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:8100")
+CONFIG_SERVICE_URL = getenv("CONFIG_SERVICE_URL", default="http://127.0.0.1:8080/config_service")
+ATLAS_URL = getenv("ATLAS_URL", default="http://localhost:9100")
 
 SERVICE_API_KEY = "F616CE5C88744DD52DB628FAD8B3D"
 
@@ -109,11 +110,11 @@ if SENTRY_DSN:
 if getenv("POSTGRES_DSN", required=False):
     POSTGRES_DSN = getenv("POSTGRES_DSN").format(getenv("POSTGRES_DB", "midas"))
 else:
-    POSTGRES_HOST = getenv("POSTGRES_HOST")
+    POSTGRES_HOST = getenv("POSTGRES_HOST", default="localhost")
     POSTGRES_PORT = getenv("POSTGRES_PORT", default="5432", conv=int)
-    POSTGRES_USER = getenv("POSTGRES_USER")
-    POSTGRES_PASS = getenv("POSTGRES_PASS", required=False)
-    POSTGRES_DB = getenv("POSTGRES_DB")
+    POSTGRES_USER = getenv("POSTGRES_USER", default="postgres")
+    POSTGRES_PASS = getenv("POSTGRES_PASS", default="passpass", required=False)
+    POSTGRES_DB = getenv("POSTGRES_DB", default="midas_test")
 
     POSTGRES_DSN = "".join(
         [
@@ -184,7 +185,7 @@ if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
 if AUDIT_ADDITIONAL_SENSITIVE_KEYS:
     AUDIT_SENSITIVE_KEYS += AUDIT_ADDITIONAL_SENSITIVE_KEYS
 
-MAX_RETRY_COUNT = getenv("MAX_RETRY_COUNT", default="3", conv=int)
+MAX_RETRY_COUNT = getenv("MAX_RETRY_COUNT", default="2", conv=int)
 MAX_CALLBACK_RETRY_COUNT = getenv("MAX_CALLBACK_RETRY_COUNT", default="3", conv=int)
-RETRY_BACKOFF_BASE = getenv("RETRY_BACKOFF_BASE", default="3", conv=int)
+RETRY_BACKOFF_BASE = getenv("RETRY_BACKOFF_BASE", default="1", conv=int)
 DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=str((60 * 60 * 24 * 7)), conv=int)
