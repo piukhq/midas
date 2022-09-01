@@ -13,7 +13,7 @@ import arrow
 import requests
 import sentry_sdk
 from blinker import signal
-from requests import HTTPError
+from requests import HTTPError, Response
 from requests.exceptions import ConnectionError, RetryError
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
@@ -110,7 +110,7 @@ class BaseAgent(object):
             request_url=request_url,
         )
 
-    def send_audit_response(self, response: dict) -> None:
+    def send_audit_response(self, response: Response) -> None:
         signal("send-audit-response").send(
             self,
             response=response,
