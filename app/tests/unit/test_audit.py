@@ -76,14 +76,13 @@ class TestAudit(unittest.TestCase):
         logger = AuditLogger()
         logger.send_request_audit_log(
             sender="test",
-            payload={"type": "user", "details": {"username": "testuser", "password": "testpass"}},
+            payload={"type": "user", "details": {"username": "testuser", "password": "testpass"}, "url": "http://test"},
             scheme_slug="test-scheme",
             handler_type=0,
             integration_service=0,
             message_uid=req_message_uid,
             record_uid=record_uid,
             channel="unit tests",
-            request_url="http://test",
         )
         timestamp = arrow.utcnow().int_timestamp
 
@@ -96,10 +95,13 @@ class TestAudit(unittest.TestCase):
                     "integration_service": 0,
                     "membership_plan_slug": "test-scheme",
                     "message_uid": req_message_uid,
-                    "payload": {"type": "user", "details": {"username": "testuser", "password": standin}},
+                    "payload": {
+                        "type": "user",
+                        "details": {"username": "testuser", "password": standin},
+                        "url": "http://test",
+                    },
                     "record_uid": record_uid,
                     "timestamp": timestamp,
-                    "request_url": "http://test",
                 },
             ]
         }

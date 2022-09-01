@@ -251,6 +251,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -271,6 +272,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -291,6 +293,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -313,6 +316,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -339,6 +343,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -364,6 +369,7 @@ class TestBPLAdd(TestCase):
                 )
             ],
         )
+        self.bpl.config.merchant_url = "http://"
         httpretty.register_uri(
             httpretty.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
