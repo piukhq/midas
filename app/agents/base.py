@@ -13,7 +13,7 @@ import arrow
 import requests
 import sentry_sdk
 from blinker import signal
-from requests import HTTPError
+from requests import HTTPError, Response
 from requests.exceptions import ConnectionError, RetryError
 from soteria.configuration import Configuration
 from user_auth_token import UserTokenStore
@@ -93,11 +93,12 @@ class BaseAgent(object):
         if settings.SENTRY_DSN:
             sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
 
-    def send_audit_request(self, payload):
+    def send_audit_request(self, payload: dict, url: str) -> None:
         audit_payload = deepcopy(payload)
         if audit_payload.get("password"):
             audit_payload["password"] = "REDACTED"
 
+        audit_payload["url"] = url
         signal("send-audit-request").send(
             self,
             payload=audit_payload,
@@ -109,7 +110,7 @@ class BaseAgent(object):
             channel=self.channel,
         )
 
-    def send_audit_response(self, response):
+    def send_audit_response(self, response: Response) -> None:
         signal("send-audit-response").send(
             self,
             response=response,
@@ -198,7 +199,7 @@ class BaseAgent(object):
         try:
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
-                self.send_audit_request(audit_payload)
+                self.send_audit_request(audit_payload, url)
 
             resp = self.session.request(method, url=url, **args)
 
