@@ -1,10 +1,12 @@
+import typing as t
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from functools import wraps
 
 import rq
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
+from app import db
 from app.models import RetryTask, RetryTaskStatuses
 from settings import DEFAULT_FAILURE_TTL
 
@@ -45,8 +47,8 @@ def delete_task(db_session: Session, retry_task: RetryTask):
 def update_task_for_retry(
     db_session: Session,
     retry_task: RetryTask,
-    retry_status: Optional[RetryTaskStatuses],
-    next_attempt_time: Optional[datetime],
+    retry_status: t.Optional[RetryTaskStatuses],
+    next_attempt_time: t.Optional[datetime],
 ):
     retry_task.attempts += 1
     retry_task.status = retry_status
@@ -85,7 +87,7 @@ def fail_callback_task(db_session: Session, retry_task: RetryTask):
     return retry_task
 
 
-def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_seconds: float):
+def enqueue_retry_task_delay(*, connection: t.Any, retry_task: RetryTask, delay_seconds: float):
     q = rq.Queue("midas-retry", connection=connection)
     next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=delay_seconds)
     q.enqueue_at(
@@ -103,7 +105,7 @@ def enqueue_retry_task_delay(*, connection: Any, retry_task: RetryTask, delay_se
     return next_attempt_time
 
 
-def enqueue_retry_task(*, connection: Any, retry_task: RetryTask) -> rq.job.Job:
+def enqueue_retry_task(*, connection: t.Any, retry_task: RetryTask) -> rq.job.Job:
     q = rq.Queue("midas-retry", connection=connection)
     job = q.enqueue(
         "app.journeys.join.attempt_join",
@@ -117,3 +119,14 @@ def enqueue_retry_task(*, connection: Any, retry_task: RetryTask) -> rq.job.Job:
         at_front=False,
     )
     return job
+
+
+def view_session(f: t.Callable) -> t.Callable:
+    """A flask view decorator that creates a database session for use by the wrapped view."""
+
+    @wraps(f)
+    def create_view_session(*args, **kwargs):
+        with db.session_scope() as session:
+            return f(*args, session=session, **kwargs)
+
+    return create_view_session

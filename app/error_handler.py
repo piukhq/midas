@@ -51,8 +51,7 @@ def handle_failed_join(db_session, retry_task, exc_value):
     )
 
 
-def retry_on_callback(db_session: Session, scheme_account_id: str, error_code: list) -> RetryTask:
-    retry_task = get_task(db_session, scheme_account_id)
+def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: list):
     subject = retry_task.journey_type
     attempts = retry_task.callback_retries + 1
     logger.debug(
@@ -84,7 +83,6 @@ def retry_on_callback(db_session: Session, scheme_account_id: str, error_code: l
     elif attempts == MAX_CALLBACK_RETRY_COUNT:
         fail_callback_task(db_session=db_session, retry_task=retry_task)
         logger.warning("Max retries for callback task reached.")
-    return retry_task
 
 
 def _handle_request_exception(

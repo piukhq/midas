@@ -46,6 +46,7 @@ class TaskConsumer(ConsumerMixin):
 
         user_info = {
             "user_set": message.bink_user_id,
+            "bink_user_id": message.bink_user_id,
             "credentials": credentials,
             "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,  # TODO: check where/how this is used
             "journey_type": JourneyTypes.JOIN.value,

@@ -6,7 +6,6 @@ from unittest.mock import ANY, MagicMock, Mock, call
 
 import arrow
 import httpretty
-import requests
 from flask_testing import TestCase as FlaskTestCase
 from requests import Response
 from soteria.configuration import Configuration
@@ -26,13 +25,12 @@ from app.exceptions import (
     LinkLimitExceededError,
     NoSuchRecordError,
     NotSentError,
-    ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
 )
 from app.journeys.common import agent_login
 from app.journeys.join import agent_join
-from app.models import RetryTaskStatuses
+from app.models import RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES, JourneyTypes, SchemeAccountStatus
 from app.security.rsa import RSA
@@ -1570,6 +1568,17 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
     )
 
+    retry_task = RetryTask(
+        request_data={
+            "scheme_account_id": 1234,
+            "user_set": "31719",
+            "bink_user_id": "31719",
+            "credentials": "something",
+        },
+        journey_type=0,
+        message_uid=5555,
+    )
+
     signature = (
         b"BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T"
         b"a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb"
@@ -1610,6 +1619,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
         self.config = mock_configuration
 
+    @mock.patch("app.resources_callbacks.decrypt_credentials", return_value={})
     @mock.patch("app.resources_callbacks.delete_task")
     @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch("app.agents.iceland.get_task", return_value=Mock())
@@ -1618,16 +1628,12 @@ class TestIcelandEndToEnd(FlaskTestCase):
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch.object(BaseAgent, "consent_confirmation")
     @mock.patch("app.publish.status")
-    @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
-    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_async_join_callback_returns_success(
         self,
         mock_config,
         mock_decode,
-        mock_retry,
-        mock_collect_credentials,
         mock_publish_status,
         mock_consent_confirmation,
         mock_scheme_account_requests,
@@ -1636,9 +1642,12 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_get_task_iceland,
         mock_get_task_callback,
         mock_delete_task_callback,
+        mock_decrypt_credentials,
     ):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
+
+        mock_get_task_callback.return_value = self.retry_task
 
         headers = {
             "Authorization": "Signature {}".format(self.signature),
@@ -1648,8 +1657,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_retry.get_key.called)
-        self.assertTrue(mock_collect_credentials.called)
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_consent_confirmation.called)
         self.assertTrue(mock_scheme_account_requests.put.called)
@@ -1657,14 +1664,12 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"success": True}, response.json)
 
-    @mock.patch("app.resources_callbacks.redis_retry", autospec=True)
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_raises_error_with_bad_record_uid(
         self,
         mock_config,
         mock_decode,
-        mock_retry,
     ):
         mock_config.return_value = self.config
         json_data_with_bad_record_uid = json.dumps(
@@ -1684,7 +1689,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertFalse(mock_retry.get_key.called)
 
         self.assertEqual(520, response.status_code)
         self.assertEqual(
@@ -1692,22 +1696,18 @@ class TestIcelandEndToEnd(FlaskTestCase):
             response.json,
         )
 
-    @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
-    @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_specific_error(
         self,
         mock_config,
         mock_RSA_decode,
-        mock_redis_retry_get_key,
-        mock_update_pending_join_account,
-        mock_collect_credentials,
+        mock_get_task,
     ):
-        mock_redis_retry_get_key.side_effect = NoSuchRecordError()
         mock_config.return_value = self.config
         mock_RSA_decode.return_value = self.json_data
+        mock_get_task.side_effect = NoSuchRecordError()
 
         headers = {"Authorization": "Signature {}".format(self.signature)}
 
@@ -1715,21 +1715,14 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_RSA_decode.called)
-        self.assertTrue(mock_redis_retry_get_key.called)
-        self.assertTrue(mock_update_pending_join_account.called)
-        self.assertTrue(mock_collect_credentials.called)
 
-        self.assertEqual(444, response.status_code)
+        self.assertEqual(537, response.status_code)
 
-    @mock.patch("app.resources_callbacks.JoinCallback._collect_credentials")
-    @mock.patch("app.resources_callbacks.update_pending_join_account", autospec=True)
-    @mock.patch("app.resources_callbacks.redis_retry.get_key", autospec=True)
+    @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
-    def test_join_callback_unknown_error(
-        self, mock_config, mock_decode, mock_retry, mock_update_join, mock_credentials
-    ):
-        mock_retry.side_effect = RuntimeError("test exception")
+    def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_get_task):
+        mock_get_task.side_effect = AttributeError("test exception")
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
@@ -1739,58 +1732,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_retry.called)
-        self.assertTrue(mock_update_join.called)
-        self.assertTrue(mock_credentials.called)
+        self.assertTrue(mock_get_task.called)
 
         self.assertEqual(520, response.status_code)
         self.assertEqual({"code": 520, "message": "test exception", "name": "Unknown error"}, response.json)
-
-    @mock.patch("requests.sessions.Session.get")
-    @mock.patch.object(RSA, "decode", autospec=True)
-    @mock.patch("app.security.utils.configuration.Configuration")
-    def test_join_callback_raises_custom_exception_if_collect_credentials_fails(
-        self, mock_config, mock_decode, mock_session_get
-    ):
-        mock_config.return_value = self.config
-        mock_decode.return_value = self.json_data
-
-        mock_response = Response()
-        mock_response.status_code = 404
-
-        # Bad response test
-        mock_session_get.return_value = mock_response
-        headers = {"Authorization": f"Signature {self.signature}"}
-
-        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
-
-        self.assertTrue(mock_config.called)
-        self.assertTrue(mock_decode.called)
-        self.assertEqual(ServiceConnectionError().code, response.status_code)
-        self.assertEqual(
-            {
-                "code": 537,
-                "message": "404 Client Error: None for url: None",
-                "name": "Service connection error",
-            },
-            response.json,
-        )
-
-        # Connection error test
-        mock_session_get.side_effect = requests.ConnectionError
-
-        with mock.patch("app.resources_callbacks.get_agent_class", autospec=True, return_value=Iceland):
-            response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
-
-        self.assertEqual(
-            ServiceConnectionError().code,
-            response.status_code,
-        )
-        self.assertEqual(
-            {
-                "code": 537,
-                "message": "There was in issue connecting to an external service.",
-                "name": "Service connection error",
-            },
-            response.json,
-        )
