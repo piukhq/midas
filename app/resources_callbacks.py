@@ -3,24 +3,23 @@ import sentry_sdk
 from flask_restful import Resource
 from soteria.configuration import Configuration
 
-from app import db, redis_retry
+from app import db
 from app.encryption import hash_ids
 from app.error_handler import retry_on_callback
 from app.exceptions import BaseError, ServiceConnectionError, UnknownError
 from app.models import RetryTaskStatuses
-from app.requests_retry import requests_retry_session
 from app.resources import create_response, decrypt_credentials, get_agent_class
-from app.retry_util import delete_task, get_task
+from app.retry_util import delete_task, get_task, view_session
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 from app.security.utils import authorise
-from settings import HERMES_URL, SERVICE_API_KEY
 
 RETRYABLE_ERRORS = ["JOIN_ERROR"]
 
 
 class JoinCallback(Resource):
     @authorise(Configuration.JOIN_HANDLER)
-    def post(self, scheme_slug, data, config):
+    @view_session
+    def post(self, scheme_slug, data, config, *, session: db.Session):
         def update_failed_scheme_account(exception):
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
@@ -40,11 +39,18 @@ class JoinCallback(Resource):
             if not scheme_account_id:
                 raise ValueError("The record_uid provided is not valid")
 
+            # Get the saved retry task, contains user_info data from original request
+            # and can be used to update the callback retry
+            retry_task = get_task(session, scheme_account_id)
+            request_data = retry_task.request_data
+            decrypted_credentials = decrypt_credentials(request_data["credentials"])
+
             user_info = {
-                "credentials": self._collect_credentials(scheme_account_id[0]),
+                "credentials": decrypted_credentials,
                 "status": SchemeAccountStatus.PENDING,
-                "scheme_account_id": scheme_account_id[0],
+                "scheme_account_id": request_data["scheme_account_id"],
                 "journey_type": JourneyTypes.JOIN.value,
+                "bink_user_id": request_data.get("bink_user_id"),
             }
         except (KeyError, ValueError, AttributeError) as e:
             sentry_sdk.capture_exception()
@@ -56,22 +62,17 @@ class JoinCallback(Resource):
         try:
             agent_class = get_agent_class(scheme_slug)
 
-            key = redis_retry.get_key(agent_class.__name__, user_info["scheme_account_id"])
-            retry_count = redis_retry.get_count(key)
-            agent_instance = agent_class(retry_count, user_info, scheme_slug=scheme_slug, config=config)
+            agent_instance = agent_class(retry_task.attempts, user_info, scheme_slug=scheme_slug, config=config)
             error_code = data.get("error_codes")
             if error_code:
                 if self._is_error_retryable(error_code):
-                    with db.session_scope() as session:
-                        retry_task = retry_on_callback(session, user_info["scheme_account_id"], data["error_codes"])
-                        if retry_task.status == RetryTaskStatuses.FAILED:
-                            delete_task(db_session=session, retry_task=retry_task)
-                        else:
-                            return
+                    retry_on_callback(session, retry_task, data["error_codes"])
+                    if retry_task.status == RetryTaskStatuses.FAILED:
+                        delete_task(db_session=session, retry_task=retry_task)
+                    else:
+                        return
                 else:
-                    with db.session_scope() as session:
-                        retry_task = get_task(session, user_info["scheme_account_id"])
-                        delete_task(session, retry_task=retry_task)
+                    delete_task(session, retry_task=retry_task)
             agent_instance.join_callback(data)
         except BaseError as e:
             update_failed_scheme_account(e)
@@ -80,9 +81,7 @@ class JoinCallback(Resource):
             update_failed_scheme_account(e)
             raise UnknownError(exception=e) from e
 
-        with db.session_scope() as session:
-            retry_task = get_task(session, user_info["scheme_account_id"])
-            delete_task(session, retry_task)
+        delete_task(session, retry_task)
 
         return create_response({"success": True})
 
@@ -91,20 +90,3 @@ class JoinCallback(Resource):
         if error_code[0]["code"] in RETRYABLE_ERRORS:
             return True
         return False
-
-    @staticmethod
-    def _collect_credentials(scheme_account_id):
-        session = requests_retry_session()
-        response = session.get(
-            "{0}/schemes/accounts/{1}/credentials".format(HERMES_URL, scheme_account_id),
-            headers={"Authorization": f"Token {SERVICE_API_KEY}"},
-        )
-
-        try:
-            response.raise_for_status()
-        except Exception as e:
-            raise UnknownError(exception=e) from e
-
-        credentials = decrypt_credentials(response.json()["credentials"])
-
-        return credentials

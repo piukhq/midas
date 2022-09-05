@@ -648,9 +648,12 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
+    @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.view.update_pending_link_account", autospec=True)
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
-    def test_async_errors_correctly(self, mock_balance_and_publish, mock_update_pending_link_account):
+    def test_async_errors_correctly(
+        self, mock_balance_and_publish, mock_update_pending_link_account, mock_publish_status
+    ):
         scheme_slug = "harvey-nichols"
         mock_balance_and_publish.side_effect = UnknownError(message="Linking error")
 
@@ -724,7 +727,7 @@ class TestResources(TestCase):
 
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=False)
     @mock.patch("app.journeys.view.agent_login", autospec=False)
-    @mock.patch("app.publish.status", autospec=False)
+    @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.publish.balance", autospec=False)
     @mock.patch("app.journeys.view.publish_transactions", autospec=True)
     def test_balance_runs_everything_while_async(
@@ -855,10 +858,11 @@ class TestResources(TestCase):
         self.assertEqual(mock_pool.call_args[1]["journey"], "join")
 
     @httpretty.activate
+    @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.resources.get_aes_key")
     @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.journeys.common.redis_retry")
-    def test_balance_response_format(self, mock_retry, mock_configuration, mock_get_aes_key):
+    def test_balance_response_format(self, mock_retry, mock_configuration, mock_get_aes_key, mock_publish_status):
         mock_retry.get_count.return_value = 0
 
         config = mock_configuration.return_value
