@@ -144,6 +144,7 @@ class Iceland(BaseAgent):
             "barcode": data.get("barcode"),  # type:ignore
             "card_number": data.get("card_number"),  # type:ignore
             "merchant_identifier": data.get("merchant_scheme_id2"),  # type:ignore
+            "bink_user_id": self.user_info["bink_user_id"],
         }
         self.message_uid = data["message_uid"]
         try:

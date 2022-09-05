@@ -57,6 +57,7 @@ class TestWasabi(unittest.TestCase):
                 "scheme_account_id": 1,
                 "status": 1,
                 "user_set": "1,2",
+                "bink_user_id": 1,
                 "journey_type": JourneyTypes.JOIN.value,
                 "credentials": {},
                 "channel": "com.bink.wallet",

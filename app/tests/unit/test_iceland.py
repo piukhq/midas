@@ -37,6 +37,17 @@ from app.security.rsa import RSA
 from app.tasks.resend_consents import ConsentStatus
 from app.tests.unit.fixtures.rsa_keys import PRIVATE_KEY, PUBLIC_KEY
 
+retry_task = RetryTask(
+    request_data={
+        "scheme_account_id": 1234,
+        "user_set": "31719",
+        "bink_user_id": "31719",
+        "credentials": "something",
+    },
+    journey_type=0,
+    message_uid=5555,
+)
+
 
 class TestIceland(TestCase):
     def setUp(self) -> None:
@@ -82,6 +93,7 @@ class TestIceland(TestCase):
                     "status": SchemeAccountStatus.WALLET_ONLY,
                     "journey_type": JourneyTypes.LINK.value,
                     "user_set": "1,2",
+                    "bink_user_id": 1,
                     "credentials": self.credentials,
                 },
                 scheme_slug="iceland-bonus-card",
@@ -254,6 +266,7 @@ class TestIcelandAdd(TestCase):
                     "status": SchemeAccountStatus.WALLET_ONLY,
                     "journey_type": JourneyTypes.LINK.value,
                     "user_set": "1,2",
+                    "bink_user_id": 1,
                     "credentials": self.credentials,
                 },
                 scheme_slug="iceland-bonus-card",
@@ -829,6 +842,7 @@ class TestIcelandJoin(TestCase):
                     "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
                     "journey_type": JourneyTypes.JOIN.value,
                     "user_set": "1,2",
+                    "bink_user_id": 1,
                     "credentials": self.credentials,
                 },
                 scheme_slug="iceland-bonus-card",
@@ -1076,7 +1090,7 @@ class TestIcelandJoin(TestCase):
         with self.assertRaises(CardNumberError):
             self.iceland._process_join_callback_response(data=data)
 
-    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
+    @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch("requests.Session.post")
     @mock.patch("app.scheme_account.requests", autospec=True)
     @mock.patch("app.agents.iceland.signal", autospec=True)
@@ -1089,6 +1103,8 @@ class TestIcelandJoin(TestCase):
         mock_session_post,
         mock_get_task,
     ):
+        mock_get_task.return_value = retry_task
+
         data = {
             "message_uid": "a_message_uid",
             "record_uid": "a_record_uid",
@@ -1124,12 +1140,18 @@ class TestIcelandJoin(TestCase):
         self.assertTrue(mock_consent_confirmation.called)
         self.assertEqual(expected_signal_calls, mock_signal.mock_calls)
         self.assertEqual(
-            {"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"},
+            {
+                "barcode": "a_barcode",
+                "card_number": "a_card_number",
+                "merchant_identifier": "a_merchant_scheme_id2",
+                "bink_user_id": 1,
+            },
             self.iceland.identifier,
         )
         self.assertIn("credentials", mock_scheme_account_requests.put.call_args[0][0])
         self.assertEqual(
-            '{"barcode": "a_barcode", "card_number": "a_card_number", "merchant_identifier": "a_merchant_scheme_id2"}',
+            '{"barcode": "a_barcode", "card_number": "a_card_number", '
+            '"merchant_identifier": "a_merchant_scheme_id2", "bink_user_id": 1}',
             mock_scheme_account_requests.put.call_args_list[0][1]["data"],
         )
 
@@ -1346,7 +1368,7 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
-
+        mock_get_task.return_value = retry_task
         mock_get_task_error_handler.return_value.status = RetryTaskStatuses.FAILED
 
         with self.assertRaises(AccountAlreadyExistsError) as e:
@@ -1392,6 +1414,7 @@ class TestIcelandJoin(TestCase):
             "card_number": "a_card_number",
             "barcode": "a_barcode",
         }
+        mock_get_task.return_value = retry_task
         mock_get_task.return_value.status = RetryTaskStatuses.FAILED
         with self.assertRaises(GeneralError) as e:
             self.iceland.join_callback(data=data)
@@ -1568,17 +1591,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
     )
 
-    retry_task = RetryTask(
-        request_data={
-            "scheme_account_id": 1234,
-            "user_set": "31719",
-            "bink_user_id": "31719",
-            "credentials": "something",
-        },
-        journey_type=0,
-        message_uid=5555,
-    )
-
     signature = (
         b"BQCt9fJ25heLp+sm5HRHsMeYfGmjeUb3i/GK5xaxCQwQLa6RX49Pnu/T"
         b"a2b6Mt4DMYV80rd0sP1Ebfw4cW8cSqhRMisQlvRN3fAzytJO0s8jOHyb"
@@ -1647,7 +1659,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
-        mock_get_task_callback.return_value = self.retry_task
+        mock_get_task_callback.return_value = retry_task
 
         headers = {
             "Authorization": "Signature {}".format(self.signature),

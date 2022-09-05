@@ -7,7 +7,7 @@ import arrow
 from soteria.configuration import Configuration
 
 import settings
-from app import publish
+from app import db, publish
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.encryption import hash_ids
@@ -19,6 +19,7 @@ from app.exceptions import (
     StatusRegistrationFailedError,
 )
 from app.reporting import get_logger
+from app.retry_util import get_task
 from app.scheme_account import SchemeAccountStatus
 from app.tasks.resend_consents import ConsentStatus
 from app.vouchers import VoucherState, generate_pending_voucher_code, voucher_state_names
@@ -54,6 +55,7 @@ class Bpl(BaseAgent):
             "marketing_preferences": [{"key": "marketing_pref", "value": marketing_optin}],
             "callback_url": self.callback_url,
             "third_party_identifier": hash_ids.encode(self.user_info["scheme_account_id"]),
+            "bink_user_id": self.user_info["bink_user_id"],
         }
 
         try:
@@ -65,6 +67,12 @@ class Bpl(BaseAgent):
             self.expecting_callback = True
             if consents:
                 self.consent_confirmation(consents, ConsentStatus.SUCCESS)
+
+        # Need to save the task for BPL so that the bink_user_id can be retrieved on the callback
+        with db.session_scope() as session:
+            retry_task = get_task(session, self.user_info["scheme_account_id"])
+            retry_task.awaiting_callback = True
+            session.commit()
 
     def login(self):
         self.integration_service = "SYNC"
@@ -183,6 +191,7 @@ class Bpl(BaseAgent):
         self.identifier = {
             "card_number": customer_details["account_number"],
             "merchant_identifier": customer_details["UUID"],
+            "bink_user_id": self.user_info["bink_user_id"],
         }
         self.credentials.update(self.identifier)
 
