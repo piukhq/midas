@@ -222,6 +222,7 @@ class Acteol(BaseAgent):
         self.identifier = {
             "card_number": card_number,
             "merchant_identifier": ctcid,
+            "bink_user_id": self.user_info["bink_user_id"],
         }
         self.credentials.update(self.identifier)
 

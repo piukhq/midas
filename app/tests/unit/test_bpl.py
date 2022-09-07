@@ -13,6 +13,7 @@ from flask_testing import TestCase
 import settings
 from app.agents.bpl import Bpl
 from app.exceptions import GeneralError, StatusLoginFailedError
+from app.models import RetryTask
 from app.vouchers import VoucherState, voucher_state_names
 
 settings.API_AUTH_ENABLED = False
@@ -55,6 +56,7 @@ class TestBplCallback(TestCase):
                     "scheme_account_id": 1,
                     "status": 1,
                     "user_set": "1,2",
+                    "bink_user_id": 777,
                     "journey_type": 2,
                     "credentials": {
                         "email": "ncostaE@bink.com",
@@ -70,6 +72,17 @@ class TestBplCallback(TestCase):
                 scheme_slug="bpl-trenette",
             )
             self.bpl.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
+
+    retry_task = RetryTask(
+        request_data={
+            "scheme_account_id": 1,
+            "user_set": "1,2",
+            "bink_user_id": "777",
+            "credentials": "something",
+        },
+        journey_type=0,
+        message_uid=5555,
+    )
 
     @mock.patch.object(JoinCallbackBpl, "process_join_callback")
     def test_post(self, mock_process_join_callback):
@@ -161,21 +174,31 @@ class TestBplCallback(TestCase):
         self.assertEqual("Due:16thMar 2021", balance.vouchers[2].code)
         self.assertEqual("Due: 7thMar 2022", balance.vouchers[3].code)
 
+    @mock.patch("app.bpl_callback.decrypt_credentials", return_value={})
+    @mock.patch("app.bpl_callback.delete_task")
+    @mock.patch("app.bpl_callback.get_task", autospec=True)
     @mock.patch("app.bpl_callback.redis_retry.get_count", return_value=0)
     @mock.patch("app.bpl_callback.update_hermes", autospec=True)
-    @mock.patch("app.bpl_callback.collect_credentials", autospec=True)
     @mock.patch("app.agents.base.Configuration")
     def test_requests_retry_session(
-        self, mock_config, mock_collect_credentials, mock_update_hermes, mock_redis_retry_get_count
+        self,
+        mock_config,
+        mock_update_hermes,
+        mock_redis_retry_get_count,
+        mock_get_task,
+        mock_delete_task_callback,
+        mock_decrypt_credentials,
     ):
+        mock_get_task.return_value = self.retry_task
         url = "join/bpl/bpl-trenette"
         self.client.post(url, data=json.dumps(data), headers=headers)
-        self.assertTrue(mock_collect_credentials.called)
         self.assertTrue(mock_update_hermes.called)
 
+    @mock.patch("app.agents.bpl.get_task")
     @mock.patch("app.agents.base.BaseAgent.make_request")
     @mock.patch("app.agents.base.BaseAgent.consent_confirmation")
-    def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request):
+    def test_marketing_prefs(self, mock_consent_confirmation, mock_make_request, mock_get_task):
+        mock_get_task.return_value = self.retry_task
         bpl_payload = {
             "credentials": {
                 "email": "ncostaE@bink.com",
@@ -189,6 +212,7 @@ class TestBplCallback(TestCase):
             "marketing_preferences": [{"key": "marketing_pref", "value": True}],
             "callback_url": self.bpl.callback_url,
             "third_party_identifier": "7gl82g4y5pvzx1wj5noqrj3dke7m9092",
+            "bink_user_id": 777,
         }
         self.bpl.join()
         self.assertEqual(
