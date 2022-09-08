@@ -191,7 +191,6 @@ class Bpl(BaseAgent):
         self.identifier = {
             "card_number": customer_details["account_number"],
             "merchant_identifier": customer_details["UUID"],
-            "bink_user_id": self.user_info["bink_user_id"],
         }
         self.credentials.update(self.identifier)
 

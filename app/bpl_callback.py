@@ -61,7 +61,7 @@ class JoinCallbackBpl(Resource):
         request_data = retry_task.request_data
         decrypted_credentials = decrypt_credentials(request_data["credentials"])
 
-        update_hermes(data, scheme_account_id, request_data.get("bink_user_id"))
+        update_hermes(data, scheme_account_id)
         user_info = {
             "credentials": decrypted_credentials,
             "status": SchemeAccountStatus.PENDING,
@@ -85,11 +85,10 @@ class JoinCallbackBpl(Resource):
         delete_task(session, retry_task)
 
 
-def update_hermes(data, scheme_account_id: int, bink_user_id: int):
+def update_hermes(data, scheme_account_id: int):
     identifier = {
         "card_number": data["account_number"],
         "merchant_identifier": data["UUID"],
-        "bink_user_id": bink_user_id,
     }
     identifier_data = json.dumps(identifier, cls=JsonEncoder)
     headers = get_headers("success")
