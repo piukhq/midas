@@ -1144,14 +1144,13 @@ class TestIcelandJoin(TestCase):
                 "barcode": "a_barcode",
                 "card_number": "a_card_number",
                 "merchant_identifier": "a_merchant_scheme_id2",
-                "bink_user_id": 1,
             },
             self.iceland.identifier,
         )
         self.assertIn("credentials", mock_scheme_account_requests.put.call_args[0][0])
         self.assertEqual(
             '{"barcode": "a_barcode", "card_number": "a_card_number", '
-            '"merchant_identifier": "a_merchant_scheme_id2", "bink_user_id": 1}',
+            '"merchant_identifier": "a_merchant_scheme_id2"}',
             mock_scheme_account_requests.put.call_args_list[0][1]["data"],
         )
 
