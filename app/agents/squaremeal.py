@@ -69,7 +69,7 @@ class Squaremeal(BaseAgent):
             "password": self.credentials["password"],
             "FirstName": self.credentials["first_name"],
             "LastName": self.credentials["last_name"],
-            "Source": "bink",
+            "Source": self.channel,
         }
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
@@ -97,7 +97,7 @@ class Squaremeal(BaseAgent):
         payload = {
             "email": self.credentials["email"],
             "password": self.credentials["password"],
-            "source": "bink",
+            "source": "com.barclays.bmb",
         }
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
