@@ -48,6 +48,7 @@ class HarveyNichols(BaseAgent):
             settings.VAULT_URL,
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
+            settings.AZURE_AAD_TENANT_ID,
         )
         return sso_config.merchant_url
 
