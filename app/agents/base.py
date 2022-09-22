@@ -68,6 +68,7 @@ class BaseAgent(object):
             settings.VAULT_URL,
             settings.VAULT_TOKEN,
             settings.CONFIG_SERVICE_URL,
+            settings.AZURE_AAD_TENANT_ID
         )
         self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.retry_count: int = retry_count
