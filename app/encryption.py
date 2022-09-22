@@ -65,7 +65,7 @@ def connect_to_vault():
         exclude_shared_token_cache_credential=True,
         exclude_visual_studio_code_credential=True,
         exclude_interactive_browser_credential=True,
-        additionally_allowed_tenants=[settings.AZURE_AAD_TENANT_ID]
+        additionally_allowed_tenants=[settings.AZURE_AAD_TENANT_ID],
     )
     return SecretClient(vault_url=settings.VAULT_URL, credential=kv_credential)
 
