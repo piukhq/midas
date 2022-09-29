@@ -61,6 +61,8 @@ def update_pending_join_account(
     scheme_account_id = user_info["scheme_account_id"]
     # for updating user ID credential you get for joining (e.g. getting issued a card number)
     headers = get_headers(tid)
+    headers["bink-user-id"] = str(user_info["bink_user_id"])
+
     if identifier:
         try:
             data = json.dumps(identifier, cls=JsonEncoder)
@@ -119,6 +121,8 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
     scheme_account_id = user_info["scheme_account_id"]
     # error handling for pending scheme accounts waiting for async link to complete
     headers = get_headers(tid)
+    headers["bink-user-id"] = str(user_info["bink_user_id"])
+
     status_data = {
         "status": SchemeAccountStatus.WALLET_ONLY,
         "event_name": "async-link-failed-event",
@@ -149,6 +153,9 @@ def remove_pending_consents(consent_ids, headers):
         requests.put("{}/schemes/user_consent/{}".format(settings.HERMES_URL, consent_id), data=data, headers=headers)
 
 
-def delete_scheme_account(tid, scheme_account_id):
+def delete_scheme_account(tid, scheme_account_id, bink_user_id):
     headers = get_headers(tid)
+    if bink_user_id:
+        headers["bink-user-id"] = str(bink_user_id)
+
     requests.delete("{}/schemes/accounts/{}".format(settings.HERMES_URL, scheme_account_id), headers=headers)

@@ -234,6 +234,7 @@ class Acteol(BaseAgent):
         headers = {
             "Content-type": "application/json",
             "Authorization": "token " + settings.SERVICE_API_KEY,
+            "bink-user-id": str(self.user_info["bink_user_id"]),
         }
         requests.put(  # Don't want to call any signals for internal calls
             api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT

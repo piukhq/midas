@@ -16,7 +16,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.post")
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_link_account_error(self, mock_intercom_call, mock_requests_delete):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         with self.assertRaises(GeneralError):
             update_pending_link_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
@@ -26,7 +26,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.post")
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_link_account_error_with_traceback(self, mock_intercom_call, mock_requests_delete):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         with self.assertRaises(GeneralError):
             update_pending_link_account(user_info, "tid123", error=GeneralError(), scheme_slug="scheme_slug")
 
@@ -37,7 +37,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.put")
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_join_account(self, mock_requests_delete, mock_requests_put, mock_requests_post):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         update_pending_join_account(user_info, "tid123", identifier="12345")
         self.assertTrue(mock_requests_put.called)
         self.assertFalse(mock_requests_delete.called)
@@ -47,7 +47,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.put")
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_join_account_error(self, mock_requests_delete, mock_requests_put, mock_requests_post):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         with self.assertRaises(GeneralError):
             update_pending_join_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
@@ -63,7 +63,7 @@ class TestSchemeAccount(TestCase):
     def test_update_pending_join_account_error_with_traceback(
         self, mock_requests_delete, mock_requests_put, mock_requests_post
     ):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         with self.assertRaises(GeneralError):
             update_pending_join_account(user_info, "tid123", error=GeneralError(), scheme_slug="scheme_slug")
 
@@ -78,7 +78,7 @@ class TestSchemeAccount(TestCase):
     @mock.patch("app.scheme_account.requests.delete")
     def test_update_pending_join_account_with_join(self, mock_requests_delete, mock_requests_put, mock_requests_post):
         credentials_dict = {"card_number": "abc1234"}
-        user_info = {"scheme_account_id": 1, "credentials": credentials_dict}
+        user_info = {"scheme_account_id": 1, "credentials": credentials_dict, "bink_user_id": 2}
         with self.assertRaises(GeneralError):
             update_pending_join_account(user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug")
 
@@ -94,7 +94,7 @@ class TestSchemeAccount(TestCase):
     def test_update_pending_join_account_raise_exception_false(
         self, mock_requests_delete, mock_requests_put, mock_requests_post
     ):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         update_pending_join_account(
             user_info, "tid123", error=GeneralError, scheme_slug="scheme_slug", raise_exception=False
         )
@@ -110,7 +110,7 @@ class TestSchemeAccount(TestCase):
     def test_update_pending_join_account_deletes_consents(
         self, mock_requests_delete, mock_requests_put, mock_requests_post, mock_consents
     ):
-        user_info = {"scheme_account_id": 1}
+        user_info = {"scheme_account_id": 1, "bink_user_id": 2}
         consent_ids = (1, 2)
         with self.assertRaises(GeneralError):
             update_pending_join_account(
@@ -142,7 +142,15 @@ class TestSchemeAccount(TestCase):
 
     @mock.patch("app.scheme_account.requests.delete")
     def test_delete_scheme_account(self, mock_delete):
-        delete_scheme_account("tid", 123)
+        delete_scheme_account("tid", 123, 5)
+
+        self.assertTrue(mock_delete.called)
+        url_called = mock_delete.call_args[0][0]
+        self.assertTrue("123" in url_called)
+
+    @mock.patch("app.scheme_account.requests.delete")
+    def test_delete_scheme_account_bink_user_id_none(self, mock_delete):
+        delete_scheme_account("tid", 123, None)
 
         self.assertTrue(mock_delete.called)
         url_called = mock_delete.call_args[0][0]
