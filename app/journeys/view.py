@@ -61,7 +61,7 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             log.debug(
                 f"Received deleted request from scheme: {scheme_slug}. Deleting scheme account: {scheme_account_id}"
             )
-            delete_scheme_account(tid, scheme_account_id)
+            delete_scheme_account(tid, scheme_account_id, user_info.get("bink_user_id"))
 
 
 def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
