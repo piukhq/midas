@@ -52,14 +52,14 @@ class AESCipher(object):
     reraise=True,
 )
 @lru_cache(128)
-def get_aes_key(secret_name):
+def get_aes_key(secret_name):  # pragma: no cover
     client = connect_to_vault()
     vault_aes_keys = client.get_secret(secret_name).value
     aes_key = json.loads(vault_aes_keys)["AES_KEY"]
     return aes_key.encode()
 
 
-def connect_to_vault():
+def connect_to_vault():  # pragma: no cover
     kv_credential = DefaultAzureCredential(
         exclude_environment_credential=True,
         exclude_shared_token_cache_credential=True,
