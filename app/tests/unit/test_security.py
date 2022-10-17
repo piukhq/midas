@@ -5,10 +5,10 @@ import json
 from unittest import mock
 from app.security.open_auth import OpenAuth
 import arrow
-from app.security.utils import get_security_agent
+from app.security.utils import get_security_agent, authorise
 from app.security.base import BaseSecurity
 from app.security.rsa import RSA
-from app.exceptions import ConfigurationError, ValidationError
+from app.exceptions import ConfigurationError, ValidationError, UnknownError
 from soteria.configuration import Configuration
 
 PRIVATE_KEY = (
@@ -63,16 +63,23 @@ ENCODED_JSON = {
 
 
 class TestUtils(unittest.TestCase):
-    def test_get_security_agent_raises_config_error(self):
-        @get_security_agent(Configuration.RSA_SECURITY)
-        def decorate():
+    @mock.patch("app.security.utils.import_module", side_effect=ImportError)
+    def test_get_security_agent_raises_config_error_when_import_error(self, mock_import_module):
+        with self.assertRaises(ConfigurationError):
+            get_security_agent(Configuration.RSA_SECURITY)
+
+    @mock.patch("app.security.utils.import_module", side_effect=AttributeError)
+    def test_get_security_agent_raises_config_error_when_attribute_error(self, mock_import_module):
+        with self.assertRaises(ConfigurationError):
+            get_security_agent(Configuration.RSA_SECURITY)
+
+    def test_authorise_throws_unknown_error_missing_kwargs(self):
+        @authorise(0)
+        def some_function():
             pass
-        rs = decorate()
-        print(rs)
 
-    def test_authorise_throws_unknown_error(self):
-        pass
-
+        with self.assertRaises(UnknownError):
+            some_function()
 
 
 class TestOpenAuth(unittest.TestCase):
@@ -80,10 +87,10 @@ class TestOpenAuth(unittest.TestCase):
         self.open_auth = OpenAuth()
 
     def test_encode(self):
-        self.assertEqual(self.open_auth.encode(json.dumps({"key":"value"})), {"json": {"key":"value"}})
+        self.assertEqual(self.open_auth.encode(json.dumps({"key": "value"})), {"json": {"key": "value"}})
 
     def test_decode(self):
-        self.assertEqual(self.open_auth.decode("123", {"key":"value"}), {"key":"value"})
+        self.assertEqual(self.open_auth.decode("123", {"key": "value"}), {"key": "value"})
 
     def test_decode_no_data(self):
         self.assertEqual(self.open_auth.decode("", {}), "{}")
@@ -123,9 +130,9 @@ class TestRSA(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.rsa.decode(encoded["headers"], "123")
 
-    def test_decode(self):
-        encoded = self.rsa.encode(json.dumps({"abc": "123"}))
-        self.rsa.decode(encoded["headers"], "123")
+    # def test_decode(self):
+    #     encoded = self.rsa.encode(json.dumps({"abc": "123"}))
+    #     self.rsa.decode(encoded["headers"], "123")
 
 
 class TestBaseSecurity(unittest.TestCase):
