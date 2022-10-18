@@ -10,6 +10,7 @@ from app.security.base import BaseSecurity
 from app.security.rsa import RSA
 from app.exceptions import ConfigurationError, ValidationError, UnknownError
 from soteria.configuration import Configuration
+from Crypto.PublicKey import RSA as RSA_keygen
 
 PRIVATE_KEY = (
     "-----BEGIN RSA PRIVATE KEY-----\n"
@@ -61,6 +62,17 @@ ENCODED_JSON = {
     "json": {"abc": "123"},
 }
 
+RSA_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJwdnw2taLpFnKFXHUhx7SGZC2\nbbnGeV8doxM93Os/1fcyVlaImIjfC/2oD3eAwZyTpS411VjOaWyus9j1VmzJ4hk8\npLmnUSvqemznmI6n+n8gTXcMd9eoFGiB7J3WrRvOPGXd4izb+KT4TcMU0aj16nXw\nYoAvAH/to0kfVi7xUQIDAQAB\n-----END PUBLIC KEY-----\n"
+
+RSA_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQCJwdnw2taLpFnKFXHUhx7SGZC2bbnGeV8doxM93Os/1fcyVlaI\nmIjfC/2oD3eAwZyTpS411VjOaWyus9j1VmzJ4hk8pLmnUSvqemznmI6n+n8gTXcM\nd9eoFGiB7J3WrRvOPGXd4izb+KT4TcMU0aj16nXwYoAvAH/to0kfVi7xUQIDAQAB\nAoGAMAnfvHQz+QJZJXWQ+nIcN1we8N8Wt7W/i5BAt4QArYQp7e3Zw0yd/loqHJ84\nJzhdJ8ekc7VwgJqXAd1JvVRkHwRUONkRsA6k5jMq7NUu9E3OmHcsM+dE0NgATDHO\nOYvHA5LX/zl0Hic71AQRL51oU41M5eh64pnVVggAAwvAVAECQQDrlpeEtPVQnsiI\nYGEfIawJ9q2Mz9FO+wcBwbi0flZyEVbTpTjz8zNAyy/A3wMaxjc1rBWzgZ7PA37d\nvAnqwiixAkEAlbFXnkxq2KQE41FHxFJUiQVMLVK28UtMlOmidfNrPSm0H4WLTr68\n3aUZieXXtMfOQhRl7PmOJYYF0hiqYV96oQJAIP4T9hfJiyLRfpfQwiVbDIIpR+EK\ntP7eulZA4bYXsR3QhQ9MbI2QjfBmnaIdszAzJycUWvE6Jk+dAryEvwW14QJAFuS7\neLtJL/7NvJJGvpC02wvTXa8jyX1xpeihbxaeVQlWwedjqdRkACXq5Psg5UYVlmeW\nOwrjoXuA0mPxUtkOYQJBAKKuCXl2hCbUO48ASX8mErW8miTC0zvJ4a9sWySnGzGH\nH1E9Wc6bFap47q4ZmQFxtuqayQZ+8xvRLUANN69GeHA=\n-----END RSA PRIVATE KEY-----\n"
+
+
+def generate_keys():
+    key = RSA_keygen.generate(1024)
+    private_key = key.exportKey()
+    public_key = key.publickey().exportKey()
+    return private_key, public_key
+
 
 class TestUtils(unittest.TestCase):
     @mock.patch("app.security.utils.import_module", side_effect=ImportError)
@@ -73,7 +85,7 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             get_security_agent(Configuration.RSA_SECURITY)
 
-    def test_authorise_throws_unknown_error_missing_kwargs(self):
+    def test_authorise_throws_unknown_error(self):
         @authorise(0)
         def some_function():
             pass
@@ -98,6 +110,7 @@ class TestOpenAuth(unittest.TestCase):
 
 class TestRSA(unittest.TestCase):
     def setUp(self) -> None:
+        private, public = generate_keys()
         self.rsa = RSA()
         self.rsa.credentials = {
             "outbound": {
@@ -106,7 +119,7 @@ class TestRSA(unittest.TestCase):
                     {
                         "credential_type": "bink_private_key",
                         "storage_key": "a_storage_key",
-                        "value": PRIVATE_KEY,
+                        "value": RSA_PRIVATE_KEY,
                     }
                 ],
             },
@@ -116,7 +129,7 @@ class TestRSA(unittest.TestCase):
                     {
                         "credential_type": "merchant_public_key",
                         "storage_key": "a_storage_key",
-                        "value": PUBLIC_KEY,
+                        "value": RSA_PUBLIC_KEY,
                     }
                 ],
             },
@@ -130,9 +143,15 @@ class TestRSA(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.rsa.decode(encoded["headers"], "123")
 
-    # def test_decode(self):
-    #     encoded = self.rsa.encode(json.dumps({"abc": "123"}))
-    #     self.rsa.decode(encoded["headers"], "123")
+    def test_decode(self):
+        # private, public = generate_keys()
+        json_data = {"abc":"123"}
+
+        # @mock.patch("app.security.rsa.RSA._get_key", return_value=RSA_PRIVATE_KEY)
+        signed = self.rsa.encode(json.dumps(json_data))
+
+        # @mock.patch("app.security.rsa.RSA._get_key", return_value=RSA_PUBLIC_KEY)
+        self.rsa.decode(signed["headers"], json_data)
 
 
 class TestBaseSecurity(unittest.TestCase):
@@ -158,3 +177,14 @@ class TestBaseSecurity(unittest.TestCase):
         with self.assertRaises(KeyError) as e:
             key = self.base_security._get_key("some_type", credentials_list)
         self.assertEqual(e.exception.args[0], "some_type not in credentials")
+
+    def test_get_nonexistent_key_raises_key_error(self):
+        credentials_list = [
+                    {
+                        "credential_type": "compound_key",
+                        "storage_key": "a_storage_key",
+                        "value": {"password": "paSSword", "username": "username@bink.com"},
+                    }
+                ]
+        credential_value = self.base_security._get_key("compound_key", credentials_list)
+        self.assertEqual(credential_value, credentials_list[0]["value"])
