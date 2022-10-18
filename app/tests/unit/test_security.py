@@ -1,16 +1,18 @@
 import datetime
+import json
 import time
 import unittest
-import json
 from unittest import mock
-from app.security.open_auth import OpenAuth
+
 import arrow
-from app.security.utils import get_security_agent, authorise
-from app.security.base import BaseSecurity
-from app.security.rsa import RSA
-from app.exceptions import ConfigurationError, ValidationError, UnknownError
-from soteria.configuration import Configuration
 from Crypto.PublicKey import RSA as RSA_keygen
+from soteria.configuration import Configuration
+
+from app.exceptions import ConfigurationError, UnknownError, ValidationError
+from app.security.base import BaseSecurity
+from app.security.open_auth import OpenAuth
+from app.security.rsa import RSA
+from app.security.utils import authorise, get_security_agent
 
 PRIVATE_KEY = (
     "-----BEGIN RSA PRIVATE KEY-----\n"
