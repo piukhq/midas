@@ -13,13 +13,13 @@ class BaseSecurity:
         """
         self.credentials = credentials
 
-    def encode(self, *args, **kwargs):
+    def encode(self, *args, **kwargs):  # pragma: no cover
         """
         :return: dict of parameters to be unpacked for requests.post()
         """
         raise NotImplementedError()
 
-    def decode(self, *args, **kwargs):
+    def decode(self, *args, **kwargs):  # pragma: no cover
         """
         :return: json string of payload
         """
