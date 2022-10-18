@@ -5,7 +5,6 @@ import unittest
 from unittest import mock
 
 import arrow
-from Crypto.PublicKey import RSA as RSA_keygen
 from soteria.configuration import Configuration
 
 from app.exceptions import ConfigurationError, UnknownError, ValidationError
@@ -58,22 +57,11 @@ PUBLIC_KEY = (
 ENCODED_JSON = {
     "headers": {
         "Authorization": "Signature"
-        "pVHkBohc4zbcqoIpjRnIa4M/xq95/L+tbznvALzhHXCeVD5fvwB9W+ZJTEI3frMkgauxM5EajGhVK+U5QGuVbj1cA9i/hQ0XAlx51O04yHIktQtkzhB4bUbEJziLMsbfwo9/aRAJk8lfmHUo3BB5P93aB/ziWmplaB4/TskC8ru7+ulkyyRAtCJ3I3+IyXgbtO0kgf5i+E+u+GWq38qu2tRP8/SUNVIhVhXt2mtT51NR3sORuJpZuIqnv0bF44kByFp13sL9Y/X/jXbe0wC9KJ1vfhC9G/2VJqc8XHnipsa8Z0SWwktMH9+PtlFuNBvMdG3FE9YJ0H5RgKd2q1ty0A==",
+        "pVHkBohc4zbcqoIpjRnIa4M/xq95/L+tbznvALzhHXCeVD5fvwB9W+ZJTEI3frMkgauxM5EajGhVK+U5QGuVbj1cA9i/hQ0XAlx51O04yHIktQtkzhB4bUbEJziLMsbfwo9/aRAJk8lfmHUo3BB5P93aB/ziWmplaB4/TskC8ru7+ulkyyRAtCJ3I3+IyXgbtO0kgf5i+E+u+GWq38qu2tRP8/SUNVIhVhXt2mtT51NR3sORuJpZuIqnv0bF44kByFp13sL9Y/X/jXbe0wC9KJ1vfhC9G/2VJqc8XHnipsa8Z0SWwktMH9+PtlFuNBvMdG3FE9YJ0H5RgKd2q1ty0A==",  # noqa
         "X-REQ-TIMESTAMP": 1665748627,
     },
     "json": {"abc": "123"},
 }
-
-RSA_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCJwdnw2taLpFnKFXHUhx7SGZC2\nbbnGeV8doxM93Os/1fcyVlaImIjfC/2oD3eAwZyTpS411VjOaWyus9j1VmzJ4hk8\npLmnUSvqemznmI6n+n8gTXcMd9eoFGiB7J3WrRvOPGXd4izb+KT4TcMU0aj16nXw\nYoAvAH/to0kfVi7xUQIDAQAB\n-----END PUBLIC KEY-----\n"
-
-RSA_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQCJwdnw2taLpFnKFXHUhx7SGZC2bbnGeV8doxM93Os/1fcyVlaI\nmIjfC/2oD3eAwZyTpS411VjOaWyus9j1VmzJ4hk8pLmnUSvqemznmI6n+n8gTXcM\nd9eoFGiB7J3WrRvOPGXd4izb+KT4TcMU0aj16nXwYoAvAH/to0kfVi7xUQIDAQAB\nAoGAMAnfvHQz+QJZJXWQ+nIcN1we8N8Wt7W/i5BAt4QArYQp7e3Zw0yd/loqHJ84\nJzhdJ8ekc7VwgJqXAd1JvVRkHwRUONkRsA6k5jMq7NUu9E3OmHcsM+dE0NgATDHO\nOYvHA5LX/zl0Hic71AQRL51oU41M5eh64pnVVggAAwvAVAECQQDrlpeEtPVQnsiI\nYGEfIawJ9q2Mz9FO+wcBwbi0flZyEVbTpTjz8zNAyy/A3wMaxjc1rBWzgZ7PA37d\nvAnqwiixAkEAlbFXnkxq2KQE41FHxFJUiQVMLVK28UtMlOmidfNrPSm0H4WLTr68\n3aUZieXXtMfOQhRl7PmOJYYF0hiqYV96oQJAIP4T9hfJiyLRfpfQwiVbDIIpR+EK\ntP7eulZA4bYXsR3QhQ9MbI2QjfBmnaIdszAzJycUWvE6Jk+dAryEvwW14QJAFuS7\neLtJL/7NvJJGvpC02wvTXa8jyX1xpeihbxaeVQlWwedjqdRkACXq5Psg5UYVlmeW\nOwrjoXuA0mPxUtkOYQJBAKKuCXl2hCbUO48ASX8mErW8miTC0zvJ4a9sWySnGzGH\nH1E9Wc6bFap47q4ZmQFxtuqayQZ+8xvRLUANN69GeHA=\n-----END RSA PRIVATE KEY-----\n"
-
-
-def generate_keys():
-    key = RSA_keygen.generate(1024)
-    private_key = key.exportKey()
-    public_key = key.publickey().exportKey()
-    return private_key, public_key
 
 
 class TestUtils(unittest.TestCase):
@@ -112,7 +100,6 @@ class TestOpenAuth(unittest.TestCase):
 
 class TestRSA(unittest.TestCase):
     def setUp(self) -> None:
-        private, public = generate_keys()
         self.rsa = RSA()
         self.rsa.credentials = {
             "outbound": {
@@ -121,7 +108,7 @@ class TestRSA(unittest.TestCase):
                     {
                         "credential_type": "bink_private_key",
                         "storage_key": "a_storage_key",
-                        "value": RSA_PRIVATE_KEY,
+                        "value": PRIVATE_KEY,
                     }
                 ],
             },
@@ -131,7 +118,7 @@ class TestRSA(unittest.TestCase):
                     {
                         "credential_type": "merchant_public_key",
                         "storage_key": "a_storage_key",
-                        "value": RSA_PUBLIC_KEY,
+                        "value": PUBLIC_KEY,
                     }
                 ],
             },
@@ -146,14 +133,12 @@ class TestRSA(unittest.TestCase):
             self.rsa.decode(encoded["headers"], "123")
 
     def test_decode(self):
-        # private, public = generate_keys()
-        json_data = {"abc":"123"}
+        json_data = json.dumps({"abc": "123"})
+        signed = self.rsa.encode(json_data)
 
-        # @mock.patch("app.security.rsa.RSA._get_key", return_value=RSA_PRIVATE_KEY)
-        signed = self.rsa.encode(json.dumps(json_data))
+        decoded_json = self.rsa.decode(signed["headers"], json_data)
 
-        # @mock.patch("app.security.rsa.RSA._get_key", return_value=RSA_PUBLIC_KEY)
-        self.rsa.decode(signed["headers"], json_data)
+        self.assertEqual(decoded_json, json_data)
 
 
 class TestBaseSecurity(unittest.TestCase):
@@ -182,11 +167,11 @@ class TestBaseSecurity(unittest.TestCase):
 
     def test_get_nonexistent_key_raises_key_error(self):
         credentials_list = [
-                    {
-                        "credential_type": "compound_key",
-                        "storage_key": "a_storage_key",
-                        "value": {"password": "paSSword", "username": "username@bink.com"},
-                    }
-                ]
+            {
+                "credential_type": "compound_key",
+                "storage_key": "a_storage_key",
+                "value": {"password": "paSSword", "username": "username@bink.com"},
+            }
+        ]
         credential_value = self.base_security._get_key("compound_key", credentials_list)
         self.assertEqual(credential_value, credentials_list[0]["value"])
