@@ -1,28 +1,25 @@
+from copy import copy
 from decimal import Decimal
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 from requests.exceptions import RetryError
-from werkzeug.exceptions import NotFound
-
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
+from werkzeug.exceptions import NotFound
 
-from copy import copy
-
-import app.journeys.join
 from app import db
 from app.agents.bpl import Bpl
 from app.agents.schemas import Balance
-from app.exceptions import GeneralError, AccountAlreadyExistsError, UnknownError
+from app.exceptions import AccountAlreadyExistsError, GeneralError
 from app.journeys.join import agent_join, attempt_join, login_and_publish_status
 from app.retry_util import create_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 
 class TestJoin(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         if db.engine.url.database != "midas_test":
             raise ValueError(f"Unsafe attempt to recreate database: {db.engine.url.database}")
         SessionMaker = sessionmaker(bind=db.engine)
@@ -44,7 +41,7 @@ class TestJoin(TestCase):
         "last_name": "Doe",
         "join_date": "2021/02/24",
         "card_number": "TRNT9276336436",
-        "consents": [{"slug": "email_marketing", "value": True}],
+        "consents": [{"id": 1, "slug": "email_optin", "value": True}],
         "merchant_identifier": "54a259f2-3602-4cc8-8f57-1239de7e5700",
     }
     scheme_account_id = 1
@@ -87,7 +84,7 @@ class TestJoin(TestCase):
 
     @mock.patch("app.agents.base.Configuration", return_value=mock_config_object)
     @mock.patch.object(Bpl, "join")
-    def test_agent_join(self, mock_join, mock_config):
+    def test_agent_join(self, mock_join, mock_config) -> None:
         result = agent_join(Bpl, self.user_info, self.tid, self.scheme_slug)
 
         self.assertTrue(isinstance(result["agent"], Bpl))
@@ -96,7 +93,7 @@ class TestJoin(TestCase):
 
     @mock.patch("app.agents.base.Configuration", return_value=mock_config_object)
     @mock.patch("app.agents.bpl.Bpl.make_request", side_effect=GeneralError(exception=RetryError(response=None)))
-    def test_agent_join_throws_exception(self, mock_join, mock_config):
+    def test_agent_join_throws_exception(self, mock_join, mock_config) -> None:
         with self.assertRaises(GeneralError) as e:
             agent_join(Bpl, self.user_info, self.tid, self.scheme_slug)
 
@@ -104,7 +101,7 @@ class TestJoin(TestCase):
         mock_join.assert_called()
         mock_config.assert_called()
 
-    def test_login_and_publish_status_expecting_callback(self):
+    def test_login_and_publish_status_expecting_callback(self) -> None:
         agent = copy(self.bpl)
         agent.expecting_callback = True
         result = login_and_publish_status(
@@ -128,9 +125,9 @@ class TestJoin(TestCase):
         mock_publish_transactions,
         mock_publish_status,
         mock_bpl_balance,
-    ):
+    ) -> None:
         agent = copy(self.bpl)
-        agent.identifier = {"merchant_identifier": uuid4()}
+        agent.identifier = {"merchant_identifier": str(uuid4())}
         mock_agent_login.return_value = agent
         result = login_and_publish_status(
             Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
@@ -171,9 +168,9 @@ class TestJoin(TestCase):
         mock_publish_balance,
         mock_publish_transactions,
         mock_publish_status,
-    ):
+    ) -> None:
         agent = copy(self.bpl)
-        agent.identifier = {"merchant_identifier": uuid4()}
+        agent.identifier = {"merchant_identifier": str(uuid4())}
         result = login_and_publish_status(
             Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
         )
@@ -201,9 +198,9 @@ class TestJoin(TestCase):
         mock_publish_transactions,
         mock_publish_status,
         mock_bpl_balance,
-    ):
+    ) -> None:
         agent = copy(self.bpl)
-        agent.identifier = {"merchant_identifier": uuid4()}
+        agent.identifier = {"merchant_identifier": str(uuid4())}
         mock_agent_login.return_value = agent
         result = login_and_publish_status(
             Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
@@ -229,7 +226,7 @@ class TestJoin(TestCase):
         self,
         mock_agent_login,
         mock_update_pending_join_account,
-    ):
+    ) -> None:
         result = login_and_publish_status(
             Bpl, self.user_info, self.scheme_slug, {"agent": self.bpl, "error": AccountAlreadyExistsError}, self.tid
         )
@@ -238,10 +235,7 @@ class TestJoin(TestCase):
         assert mock_update_pending_join_account.call_args.args == (self.user_info, self.tid)
         assert isinstance(mock_update_pending_join_account.call_args.kwargs["error"], AccountAlreadyExistsError)
         assert mock_update_pending_join_account.call_args.kwargs["scheme_slug"] == self.scheme_slug
-        assert isinstance(
-            mock_update_pending_join_account.call_args.kwargs["consent_ids"],
-            type(consent["id"] for consent in self.user_info["credentials"].get("consents", [])),
-        )
+        assert [i for i in mock_update_pending_join_account.call_args.kwargs["consent_ids"]] == [1]
         assert result is True
 
     @mock.patch("app.publish.zero_balance", autospec=True)
@@ -252,7 +246,7 @@ class TestJoin(TestCase):
         mock_agent_login,
         mock_update_pending_join_account,
         mock_publish_zero_balance,
-    ):
+    ) -> None:
         result = login_and_publish_status(
             Bpl, self.user_info, self.scheme_slug, {"agent": self.bpl, "error": ""}, self.tid
         )
@@ -267,7 +261,7 @@ class TestJoin(TestCase):
     @mock.patch("app.journeys.join.decrypt_credentials", return_value=credentials)
     @mock.patch("app.journeys.join.agent_join", return_value={"agent": bpl, "error": ""})
     @mock.patch("app.journeys.join.login_and_publish_status")
-    def test_attempt_join(self, mock_login_and_publish_status, mock_agent_join, mock_decrypt_credentials):
+    def test_attempt_join(self, mock_login_and_publish_status, mock_agent_join, mock_decrypt_credentials) -> None:
         with db.session_scope() as session:
             create_task(
                 db_session=session,
@@ -285,7 +279,7 @@ class TestJoin(TestCase):
 
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.join.decrypt_credentials", return_value=credentials)
-    def test_attempt_join_agent_not_found(self, mock_decrypt_credentials, mock_publish_status):
+    def test_attempt_join_agent_not_found(self, mock_decrypt_credentials, mock_publish_status) -> None:
         with self.assertRaises(NotFound) as e:
             attempt_join(self.scheme_account_id, self.tid, "not-the-right-slug", self.user_info)
 
@@ -304,7 +298,7 @@ class TestJoin(TestCase):
     @mock.patch("app.journeys.join.login_and_publish_status")
     def test_attempt_join_awaiting_callback(
         self, mock_login_and_publish_status, mock_agent_join, mock_decrypt_credentials
-    ):
+    ) -> None:
         with db.session_scope() as session:
             create_task(
                 db_session=session,
