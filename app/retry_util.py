@@ -18,6 +18,7 @@ def create_task(
     message_uid: str,
     scheme_identifier: str,
     scheme_account_id: str,
+    **kwargs
 ) -> RetryTask:
     retry_task = RetryTask(
         request_data=user_info,
@@ -25,6 +26,7 @@ def create_task(
         message_uid=message_uid,
         scheme_identifier=scheme_identifier,
         scheme_account_id=scheme_account_id,
+        **kwargs,
     )
     db_session.add(retry_task)
     db_session.flush()
