@@ -14,7 +14,7 @@ from app.agents.bpl import Bpl
 from app.agents.schemas import Balance
 from app.exceptions import AccountAlreadyExistsError, GeneralError
 from app.journeys.join import agent_join, attempt_join, login_and_publish_status
-from app.retry_util import create_task
+from app.models import RetryTask
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 
@@ -81,6 +81,28 @@ class TestJoin(TestCase):
             scheme_slug=scheme_slug,
         )
         bpl.base_url = "https://api.dev.gb.bink.com/bpl/loyalty/trenette/accounts/"
+
+    def create_task(
+        self,
+        user_info: dict,
+        journey_type: str,
+        message_uid: str,
+        scheme_identifier: str,
+        scheme_account_id: str,
+        **kwargs,
+    ) -> RetryTask:
+        with db.session_scope() as db_session:
+            retry_task = RetryTask(
+                request_data=user_info,
+                journey_type=journey_type,
+                message_uid=message_uid,
+                scheme_identifier=scheme_identifier,
+                scheme_account_id=scheme_account_id,
+                **kwargs,
+            )
+            db_session.add(retry_task)
+            db_session.flush()
+        return retry_task
 
     @mock.patch("app.agents.base.Configuration", return_value=mock_config_object)
     @mock.patch.object(Bpl, "join")
@@ -262,15 +284,13 @@ class TestJoin(TestCase):
     @mock.patch("app.journeys.join.agent_join", return_value={"agent": bpl, "error": ""})
     @mock.patch("app.journeys.join.login_and_publish_status")
     def test_attempt_join(self, mock_login_and_publish_status, mock_agent_join, mock_decrypt_credentials) -> None:
-        with db.session_scope() as session:
-            create_task(
-                db_session=session,
-                user_info=self.user_info,
-                journey_type=str(self.journey_type),
-                message_uid=str(uuid4()),
-                scheme_identifier="scheme",
-                scheme_account_id=str(self.scheme_account_id),
-            )
+        self.create_task(
+            user_info=self.user_info,
+            journey_type=str(self.journey_type),
+            message_uid=str(uuid4()),
+            scheme_identifier="scheme",
+            scheme_account_id=str(self.scheme_account_id),
+        )
         attempt_join(self.scheme_account_id, self.tid, self.scheme_slug, self.user_info)
 
         self.assertTrue(mock_login_and_publish_status.called)
@@ -299,16 +319,14 @@ class TestJoin(TestCase):
     def test_attempt_join_awaiting_callback(
         self, mock_login_and_publish_status, mock_agent_join, mock_decrypt_credentials
     ) -> None:
-        with db.session_scope() as session:
-            create_task(
-                db_session=session,
-                user_info=self.user_info,
-                journey_type=str(self.journey_type),
-                message_uid=str(uuid4()),
-                scheme_identifier="scheme",
-                scheme_account_id=str(self.scheme_account_id),
-                awaiting_callback=True,
-            )
+        self.create_task(
+            user_info=self.user_info,
+            journey_type=str(self.journey_type),
+            message_uid=str(uuid4()),
+            scheme_identifier="scheme",
+            scheme_account_id=str(self.scheme_account_id),
+            awaiting_callback=True,
+        )
         attempt_join(self.scheme_account_id, self.tid, self.scheme_slug, self.user_info)
 
         self.assertFalse(mock_login_and_publish_status.called)
