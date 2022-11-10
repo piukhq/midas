@@ -11,7 +11,7 @@ from flask_testing import TestCase
 
 from app import publish
 from app.agents.base import BaseAgent
-from app.agents.harvey_nichols import HarveyNichols
+from app.agents.bpl import Bpl
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
 from app.encryption import AESCipher
@@ -337,7 +337,7 @@ class TestResources(TestCase):
         mock_submit.assert_called_with(publish.status, 1, 10, None, user_info)
 
     def test_bad_parameters(self):
-        url = "/harvey-nichols/transactions?credentials=234"
+        url = "/bpl-trenette/transactions?credentials=234"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json, {"message": 'Please provide either "user_set" or "user_id" parameters'})
@@ -347,7 +347,7 @@ class TestResources(TestCase):
     def test_register_view(self, mock_enqueue_request, mock_get_aes_key):
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/harvey-nichols/register"
+        url = "/bpl-trenette/register"
         data = {
             "scheme_account_id": 2,
             "user_id": 4,
@@ -366,7 +366,7 @@ class TestResources(TestCase):
     def test_join_view(self, mock_enqueue_request, mock_get_aes_key):
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/harvey-nichols/join"
+        url = "/bpl-trenette/join"
         data = {
             "scheme_account_id": 2,
             "user_id": 4,
@@ -380,8 +380,8 @@ class TestResources(TestCase):
         self.assertTrue(mock_enqueue_request.called)
         self.assertEqual(response.json, {"message": "success"})
 
-    @mock.patch.object(HarveyNichols, "join")
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch.object(Bpl, "join")
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
     def test_agent_join_success(self, mock_update_pending_join_account, mock_base_config, mock_hn_config, mock_join):
@@ -397,15 +397,15 @@ class TestResources(TestCase):
             "channel": "com.bink.wallet",
         }
 
-        result = agent_join(HarveyNichols, user_info, {}, 1)
+        result = agent_join(Bpl, user_info, {}, 1)
 
         self.assertTrue(mock_join.called)
         self.assertFalse(mock_update_pending_join_account.called)
         self.assertFalse(result["error"])
-        self.assertTrue(isinstance(result["agent"], HarveyNichols))
+        self.assertTrue(isinstance(result["agent"], Bpl))
 
-    @mock.patch.object(HarveyNichols, "join")
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch.object(Bpl, "join")
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def test_agent_join_fail(self, mock_base_config, mock_hn_config, mock_join):
         mock_join.side_effect = StatusRegistrationFailedError()
@@ -421,12 +421,12 @@ class TestResources(TestCase):
         }
 
         with self.assertRaises(StatusRegistrationFailedError):
-            agent_join(HarveyNichols, user_info, {}, 1)
+            agent_join(Bpl, user_info, {}, 1)
 
         self.assertTrue(mock_join.called)
 
-    @mock.patch.object(HarveyNichols, "join")
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch.object(Bpl, "join")
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     def test_agent_join_fail_account_exists(self, mock_base_config, mock_hn_config, mock_join):
         mock_join.side_effect = AccountAlreadyExistsError()
@@ -438,9 +438,9 @@ class TestResources(TestCase):
             "journey_type": JourneyTypes.JOIN.value,
         }
         with self.assertRaises(AccountAlreadyExistsError):
-            result = agent_join(HarveyNichols, user_info, {}, "")
+            result = agent_join(Bpl, user_info, {}, "")
             self.assertTrue(result["error"])
-            self.assertTrue(isinstance(result["agent"], HarveyNichols))
+            self.assertTrue(isinstance(result["agent"], Bpl))
 
         self.assertTrue(mock_join.called)
 
@@ -452,7 +452,7 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.decrypt_credentials", return_value={})
     def test_join(
@@ -470,9 +470,9 @@ class TestResources(TestCase):
         mock_get_task,
     ):
         mock_get_task.return_value.awaiting_callback = False
-        scheme_slug = "harvey-nichols"
+        scheme_slug = "bpl-trenette"
         mock_agent_join.return_value = {
-            "agent": HarveyNichols(
+            "agent": Bpl(
                 0,
                 {
                     "scheme_account_id": "1",
@@ -506,7 +506,7 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.join.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.join.agent_join", autospec=True)
     @mock.patch("app.journeys.join.agent_login", autospec=True)
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.journeys.join.decrypt_credentials", return_value={})
     def test_join_already_exists_fail(
@@ -521,7 +521,7 @@ class TestResources(TestCase):
         mock_get_task,
     ):
         mock_agent_join.return_value = {
-            "agent": HarveyNichols(
+            "agent": Bpl(
                 0,
                 {
                     "scheme_account_id": "1",
@@ -534,7 +534,7 @@ class TestResources(TestCase):
             "error": AccountAlreadyExistsError,
         }
         mock_agent_login.side_effect = StatusLoginFailedError
-        scheme_slug = "harvey-nichols"
+        scheme_slug = "bpl-trenette"
         user_info = {
             "credentials": {"scheme_slug": encrypted_credentials(), "email": "test@email.com"},
             "user_set": "4",
@@ -550,14 +550,14 @@ class TestResources(TestCase):
         self.assertTrue(mock_update_pending_join_account.called)
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch.object(HarveyNichols, "attempt_login")
+    @mock.patch.object(Bpl, "attempt_login")
     def test_agent_login_success(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
         mock_login.return_value = {"message": "success"}
 
         agent_login(
-            HarveyNichols,
+            Bpl,
             {
                 "scheme_account_id": 2,
                 "status": SchemeAccountStatus.ACTIVE,
@@ -565,30 +565,30 @@ class TestResources(TestCase):
                 "credentials": {},
                 "channel": "com.bink.wallet",
             },
-            "harvey-nichols",
+            "bpl-trenette",
         )
         self.assertTrue(mock_login.called)
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch.object(HarveyNichols, "attempt_login")
+    @mock.patch.object(Bpl, "attempt_login")
     def test_agent_login_system_fail_(self, mock_attempt_login, mock_base_config, mock_hn_config, mock_retry):
         mock_attempt_login.side_effect = NoSuchRecordError()
         user_info = {"scheme_account_id": 1, "credentials": {}, "status": "", "channel": "com.bink.wallet"}
         with self.assertRaises(NoSuchRecordError):
-            agent_login(HarveyNichols, user_info, scheme_slug="harvey-nichols", from_join=True)
+            agent_login(Bpl, user_info, scheme_slug="bpl-trenette", from_join=True)
         self.assertTrue(mock_attempt_login.called)
 
     @mock.patch("app.journeys.common.redis_retry", autospec=True)
-    @mock.patch("app.agents.harvey_nichols.Configuration", side_effect=mocked_hn_configuration)
+    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
     @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch.object(HarveyNichols, "attempt_login")
+    @mock.patch.object(Bpl, "attempt_login")
     def test_agent_login_user_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
         mock_login.side_effect = StatusLoginFailedError()
 
         with self.assertRaises(StatusLoginFailedError):
-            agent_login(HarveyNichols, self.user_info, "harvey-nichols")
+            agent_login(Bpl, self.user_info, "bpl-trenette")
         self.assertTrue(mock_login.called)
 
     @mock.patch("app.resources.get_aes_key")
@@ -611,7 +611,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -640,7 +640,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_login.called)
@@ -654,7 +654,7 @@ class TestResources(TestCase):
     def test_async_errors_correctly(
         self, mock_balance_and_publish, mock_update_pending_link_account, mock_publish_status
     ):
-        scheme_slug = "harvey-nichols"
+        scheme_slug = "bpl-trenette"
         mock_balance_and_publish.side_effect = UnknownError(message="Linking error")
 
         with self.assertRaises(BaseError):
@@ -663,7 +663,7 @@ class TestResources(TestCase):
         self.assertTrue(mock_balance_and_publish.called)
         self.assertTrue(mock_update_pending_link_account.called)
         self.assertEqual(
-            "Error with async linking. Scheme: harvey-nichols, Error: UnknownError()",
+            "Error with async linking. Scheme: bpl-trenette, Error: UnknownError()",
             mock_update_pending_link_account.call_args[1]["message"],
         )
 
@@ -698,7 +698,7 @@ class TestResources(TestCase):
     ):
         mock_publish_balance.return_value = {"points": 1}
 
-        get_balance_and_publish(HarveyNichols, "scheme_slug", self.user_info, "tid")
+        get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_transactions.called)
@@ -718,7 +718,7 @@ class TestResources(TestCase):
         user_info["pending"] = False
 
         with self.assertRaises(StatusLoginFailedError):
-            get_balance_and_publish(HarveyNichols, "scheme_slug", user_info, "tid")
+            get_balance_and_publish(Bpl, "scheme_slug", user_info, "tid")
 
         self.assertTrue(mock_login.called)
         self.assertTrue(mock_publish_balance.called)
@@ -740,7 +740,7 @@ class TestResources(TestCase):
         mock_update_pending_join_account.return_value = "test2"
 
         async_balance = thread_pool_executor.submit(
-            async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
+            async_get_balance_and_publish, Bpl, "scheme_slug", self.user_info, "tid"
         )
 
         self.assertEqual(async_balance.result(), mock_publish_balance.return_value)
@@ -765,7 +765,7 @@ class TestResources(TestCase):
         mock_update_pending_join_account.return_value = "test2"
 
         async_balance = thread_pool_executor.submit(
-            async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
+            async_get_balance_and_publish, Bpl, "scheme_slug", self.user_info, "tid"
         )
 
         self.assertEqual(async_balance.result(), mock_publish_balance.return_value)
@@ -789,7 +789,7 @@ class TestResources(TestCase):
         mock_publish_status.return_value = "test"
 
         async_balance = thread_pool_executor.submit(
-            async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
+            async_get_balance_and_publish, Bpl, "scheme_slug", self.user_info, "tid"
         )
 
         with self.assertRaises(StatusLoginFailedError):
@@ -816,7 +816,7 @@ class TestResources(TestCase):
 
         with self.assertRaises(UnknownError):
             async_balance = thread_pool_executor.submit(
-                async_get_balance_and_publish, HarveyNichols, "scheme_slug", self.user_info, "tid"
+                async_get_balance_and_publish, Bpl, "scheme_slug", self.user_info, "tid"
             )
             async_balance.result(timeout=15)
 
@@ -847,7 +847,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/harvey-nichols/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
