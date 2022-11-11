@@ -6,8 +6,6 @@
 AGENTS = {
     "iceland-bonus-card": "iceland.Iceland",
     "iceland-bonus-card-mock": "mock_agents.MockAgentIce",
-    "harvey-nichols-mock": "mock_agents.MockAgentHN",
-    "harvey-nichols": "harvey_nichols.HarveyNichols",
     "performance-mock": "performance_mock.MockPerformance",
     "performance-voucher-mock": "performance_mock.MockPerformanceVoucher",
     "wasabi-club": "acteol.Wasabi",
