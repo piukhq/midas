@@ -157,7 +157,7 @@ class Acteol(BaseAgent):
             customer_details = self._get_customer_details(origin_id=origin_id)
         except BaseError as ex:
             sentry_issue_id = sentry_sdk.capture_exception(ex)
-            log.error(
+            log.debug(
                 f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}"
             )
@@ -576,7 +576,7 @@ class Acteol(BaseAgent):
             }
 
             error_type = validation_error_types.get(validation_msg, StatusLoginFailedError)
-            log.error(f"Failed login validation for member number {member_number}: {validation_msg}")
+            log.debug(f"Failed login validation for member number {member_number}: {validation_msg}")
             raise error_type
 
         ctcid = str(resp_json["CtcID"])
