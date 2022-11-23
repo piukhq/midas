@@ -281,7 +281,7 @@ class Acteol(BaseAgent):
             error_msg = resp_json.get("Error")
             if error_msg:
                 sentry_issue_id = sentry_sdk.capture_exception()
-                log.error(
+                log.debug(
                     f"Scrape Transaction Error: {error_msg},Sentry Issue ID: {sentry_issue_id}"
                     f"Scheme: {self.scheme_slug} ,Scheme Account ID: {self.scheme_id}"
                 )
@@ -791,7 +791,7 @@ class Acteol(BaseAgent):
         error_msg = resp_json.get("Error")
 
         if error_msg:
-            log.error(f"End Site Down Error: {error_msg}")
+            log.debug(f"End Site Down Error: {error_msg}")
             raise EndSiteDownError()
 
     def _check_voucher_response_for_errors(self, resp_json: dict):
@@ -802,7 +802,7 @@ class Acteol(BaseAgent):
 
         if error_list:
             sentry_issue_id = sentry_sdk.capture_exception()
-            log.error(
+            log.debug(
                 f"Voucher Error: {str(error_list)},Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}"
             )
@@ -818,7 +818,7 @@ class Acteol(BaseAgent):
             customer_id = str(resp_json["CtcID"])
 
         if customer_id == "0":
-            log.error(f"Acteol card number has been deleted: Card number: {card_number}")
+            log.debug(f"Acteol card number has been deleted: Card number: {card_number}")
             raise NoSuchRecordError()
 
 
