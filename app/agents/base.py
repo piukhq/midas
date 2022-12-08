@@ -209,12 +209,10 @@ class BaseAgent(object):
 
         except RetryError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
-            sentry_sdk.capture_exception(e)
             raise RetryLimitReachedError(exception=e) from e
 
         except ConnectionError as e:
             signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
-            sentry_sdk.capture_exception(e)
             raise EndSiteDownError(exception=e) from e
 
         signal("record-http-request").send(

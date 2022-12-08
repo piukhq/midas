@@ -53,10 +53,8 @@ class JoinCallback(Resource):
                 "bink_user_id": request_data.get("bink_user_id"),
             }
         except (KeyError, ValueError, AttributeError) as e:
-            sentry_sdk.capture_exception()
             raise UnknownError(exception=e)
         except (requests.ConnectionError, BaseError) as e:
-            sentry_sdk.capture_exception()
             raise ServiceConnectionError(exception=e) from e
 
         try:
