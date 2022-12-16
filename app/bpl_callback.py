@@ -91,7 +91,7 @@ class JoinCallbackBpl(Resource):
 
 
 def update_hermes(data, scheme_account_id: int, bink_user_id: str):
-    log.debug("Updating Hermes")
+    log.debug("Updating scheme account {} in Hermes".format(scheme_account_id))
     identifier = {
         "card_number": data["account_number"],
         "merchant_identifier": data["UUID"],
