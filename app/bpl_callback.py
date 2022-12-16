@@ -12,6 +12,7 @@ from app.encoding import JsonEncoder
 from app.encryption import hash_ids
 from app.exceptions import UnknownError
 from app.http_request import get_headers
+from app.reporting import get_logger
 from app.resources import create_response, decrypt_credentials, get_agent_class
 from app.retry_util import delete_task, get_task, view_session
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -24,6 +25,8 @@ config = OIDCConfig(
 )
 
 _requires_auth = None
+
+log = get_logger("bpl-callback")
 
 
 def _nop_decorator(*args, **kwargs):
@@ -47,11 +50,13 @@ class JoinCallbackBpl(Resource):
     @requires_auth()
     @view_session
     def post(self, scheme_slug, *, session: db.Session):
+        log.debug("Callback POST request received for scheme {}".format(scheme_slug))
         data = json.loads(request.get_data())
         self.process_join_callback(scheme_slug, data, session)
         return create_response({"success": True})
 
     def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session):
+        log.debug("{} received a callback".format(scheme_slug))
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]
 
@@ -86,6 +91,7 @@ class JoinCallbackBpl(Resource):
 
 
 def update_hermes(data, scheme_account_id: int, bink_user_id: str):
+    log.debug("Updating Hermes")
     identifier = {
         "card_number": data["account_number"],
         "merchant_identifier": data["UUID"],
