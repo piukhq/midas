@@ -1,5 +1,6 @@
 import json
 import time
+from copy import deepcopy
 from decimal import Decimal
 from typing import Optional
 from unittest import mock
@@ -654,11 +655,11 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.view.requests.post")
     def test_async_errors_account_not_pending(self, mock_req, mock_get_balance_and_publish):
         scheme_slug = "bpl-trenette"
-        user_info = self.user_info
+        user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         mock_get_balance_and_publish.side_effect = UnknownError(message="Linking error")
         with self.assertRaises(BaseError):
-            async_get_balance_and_publish("agent_class", scheme_slug, self.user_info, "tid")
+            async_get_balance_and_publish("agent_class", scheme_slug, user_info, "tid")
             mock_req.assert_called_with(
                 f"{settings.HERMES_URL}/schemes/accounts/123/status",
                 json.dumps({"status": 520, "user_info": user_info}, cls=JsonEncoder),
@@ -730,10 +731,10 @@ class TestResources(TestCase):
         mock_request_balance,
         mock_delete,
     ):
-        user_info = self.user_info
+        user_info = deepcopy(self.user_info)
         user_info["pending"] = False
-        get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
-        self.assertFalse(mock_delete.called)
+        get_balance_and_publish(Bpl, "scheme_slug", user_info, "tid")
+        self.assertTrue(mock_delete.called)
 
     @mock.patch("app.journeys.view.request_balance", return_value=(443, None, "join"))
     @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
@@ -742,7 +743,7 @@ class TestResources(TestCase):
         mock_request_balance,
         mock_delete,
     ):
-        user_info = self.user_info
+        user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
         self.assertTrue(mock_delete.called)
