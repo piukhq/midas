@@ -64,10 +64,16 @@ def get_balance_and_publish(agent_class, scheme_slug, user_info, tid):
             delete_scheme_account(tid, scheme_account_id, user_info.get("bink_user_id"))
 
 
-def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
-    if scheme_slug == "iceland-bonus-card" and settings.ENABLE_ICELAND_VALIDATE:
+def set_iceland_link(user_info):
+    if settings.ENABLE_ICELAND_VALIDATE:
         if user_info["status"] != SchemeAccountStatus.ACTIVE:
             user_info["journey_type"] = JourneyTypes.LINK.value
+    return user_info
+
+
+def request_balance(agent_class, user_info, scheme_account_id, scheme_slug, tid, threads):
+    if scheme_slug == "iceland-bonus-card":
+        user_info = set_iceland_link(user_info)
 
     agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug)
 
