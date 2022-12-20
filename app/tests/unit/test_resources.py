@@ -9,11 +9,13 @@ import arrow
 import httpretty
 from flask_testing import TestCase
 
+import settings
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.bpl import Bpl
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
+from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -648,6 +650,21 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
+    @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
+    @mock.patch("app.journeys.view.requests.post")
+    def test_async_errors_account_not_pending(self, mock_req, mock_get_balance_and_publish):
+        scheme_slug = "bpl-trenette"
+        user_info = self.user_info
+        user_info["pending"] = False
+        mock_get_balance_and_publish.side_effect = UnknownError(message="Linking error")
+        with self.assertRaises(BaseError):
+            async_get_balance_and_publish("agent_class", scheme_slug, self.user_info, "tid")
+            mock_req.assert_called_with(
+                f"{settings.HERMES_URL}/schemes/accounts/123/status",
+                json.dumps({"status": 520, "user_info": user_info}, cls=JsonEncoder),
+                get_headers(123),
+            )
+
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.view.update_pending_link_account", autospec=True)
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
@@ -705,6 +722,30 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertFalse(mock_delete.called)
+
+    @mock.patch("app.journeys.view.request_balance", return_value=(0, None, "join"))
+    @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
+    def test_get_balance_and_publish_status_is_none(
+        self,
+        mock_request_balance,
+        mock_delete,
+    ):
+        user_info = self.user_info
+        user_info["pending"] = False
+        get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
+        self.assertFalse(mock_delete.called)
+
+    @mock.patch("app.journeys.view.request_balance", return_value=(443, None, "join"))
+    @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
+    def test_get_balance_and_publish_status_is_delete_account(
+        self,
+        mock_request_balance,
+        mock_delete,
+    ):
+        user_info = self.user_info
+        user_info["pending"] = False
+        get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
+        self.assertTrue(mock_delete.called)
 
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.view.agent_login", autospec=True)
