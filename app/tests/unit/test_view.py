@@ -49,7 +49,7 @@ class TestView(unittest.TestCase):
         settings.ENABLE_ICELAND_VALIDATE = True
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
         user_info = set_iceland_link(user_info)
-        self.assertEqual(user_info["journey_type"], JourneyTypes.LINK)
+        self.assertEqual(user_info["journey_type"], JourneyTypes.LINK.value)
         user_info["journey_type"] = "not a link journey"
         settings.ENABLE_ICELAND_VALIDATE = False
         user_info = set_iceland_link(user_info)
