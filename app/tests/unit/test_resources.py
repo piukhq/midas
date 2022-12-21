@@ -728,13 +728,13 @@ class TestResources(TestCase):
     @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
     def test_get_balance_and_publish_status_is_none(
         self,
-        mock_request_balance,
         mock_delete,
+        mock_request_balance,
     ):
         user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         get_balance_and_publish(Bpl, "scheme_slug", user_info, "tid")
-        self.assertTrue(mock_delete.called)
+        self.assertFalse(mock_delete.called)
 
     @mock.patch("app.journeys.view.request_balance", return_value=(None, 447, "join"))
     @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
