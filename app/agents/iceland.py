@@ -91,7 +91,7 @@ class Iceland(BaseAgent):
 
     def _create_join_request_payload(self) -> dict:
         marketing_mapping = {i["slug"]: i["value"] for i in self.credentials["consents"]}
-        return {
+        payload = {
             "town_city": self.credentials["town_city"],
             "county": self.credentials["county"],
             "title": self.credentials["title"],
@@ -111,6 +111,10 @@ class Iceland(BaseAgent):
             "dob": self.credentials["date_of_birth"],
             "phone1": self.credentials["phone"],
         }
+        card_number = self.credentials.get("card_number")
+        if card_number:
+            payload["card_number"] = card_number
+        return payload
 
     def _process_join_callback_response(self, data):
         signal("send-audit-response").send(
