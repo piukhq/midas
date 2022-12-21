@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import settings
 from app.agents.schemas import Balance
-from app.journeys.view import request_balance, set_iceland_link
+from app.journeys.view import request_balance, set_iceland_journey
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 
@@ -17,16 +17,16 @@ class TestView(unittest.TestCase):
         result = request_balance("bpl", {}, 123, "slug", "tid", threads)
         self.assertEqual(result, (None, None, None))
 
-    @mock.patch("app.journeys.view.set_iceland_link")
+    @mock.patch("app.journeys.view.set_iceland_journey")
     @mock.patch("app.publish.balance")
     @mock.patch("app.journeys.view.agent_login", return_value=Mock())
     def test_request_balance_iceland_is_link_if_validate_enabled(
-        self, mock_agent_login, mock_publish_balance, mock_set_iceland_link
+        self, mock_agent_login, mock_publish_balance, mock_set_iceland_journey
     ):
         mock_agent_login.return_value.identifier = None
         mock_agent_login.return_value.create_journey = "join"
         user_info = {"status": SchemeAccountStatus.PENDING, "user_set": "123"}
-        mock_set_iceland_link.return_value = user_info
+        mock_set_iceland_journey.return_value = user_info
         balance = Balance(
             points=0,
             value=0,
@@ -42,15 +42,15 @@ class TestView(unittest.TestCase):
             Mock(),
         )
         mock_publish_balance.assert_called()
-        mock_set_iceland_link.assert_called()
+        mock_set_iceland_journey.assert_called()
         self.assertEqual(status, SchemeAccountStatus.ACTIVE)
 
-    def test_set_iceland_link(self):
+    def test_set_iceland_journey(self):
         settings.ENABLE_ICELAND_VALIDATE = True
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
-        user_info = set_iceland_link(user_info)
+        user_info = set_iceland_journey(user_info)
         self.assertEqual(user_info["journey_type"], JourneyTypes.LINK.value)
         user_info["journey_type"] = "not a link journey"
         settings.ENABLE_ICELAND_VALIDATE = False
-        user_info = set_iceland_link(user_info)
+        user_info = set_iceland_journey(user_info)
         self.assertEqual(user_info["journey_type"], "not a link journey")
