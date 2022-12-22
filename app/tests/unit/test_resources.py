@@ -1,5 +1,6 @@
 import json
 import time
+from copy import deepcopy
 from decimal import Decimal
 from typing import Optional
 from unittest import mock
@@ -9,11 +10,13 @@ import arrow
 import httpretty
 from flask_testing import TestCase
 
+import settings
 from app import publish
 from app.agents.base import BaseAgent
 from app.agents.bpl import Bpl
 from app.agents.schemas import Balance, Transaction, Voucher, balance_tuple_to_dict, transaction_tuple_to_dict
 from app.api import create_app
+from app.encoding import JsonEncoder
 from app.encryption import AESCipher
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -648,10 +651,30 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_balance.called)
         self.assertTrue(mock_pool.called)
 
+    @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
+    @mock.patch("app.journeys.view.requests.post")
+    def test_async_get_balance_and_publish_raises_errors_account_not_pending(
+        self, mock_req, mock_get_balance_and_publish
+    ):
+        scheme_slug = "bpl-trenette"
+        user_info = deepcopy(self.user_info)
+        user_info["pending"] = False
+        mock_get_balance_and_publish.side_effect = UnknownError(message="Linking error")
+
+        with self.assertRaises(BaseError) as e:
+            async_get_balance_and_publish("agent_class", scheme_slug, user_info, "tid")
+
+            mock_req.assert_called_with(
+                f"{settings.HERMES_URL}/schemes/accounts/123/status",
+                json.dumps({"status": 520, "user_info": user_info}, cls=JsonEncoder),
+                get_headers(123),
+            )
+            self.assertEqual(e.exception.name, "Base Error")
+
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.view.update_pending_link_account", autospec=True)
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
-    def test_async_errors_correctly(
+    def test_async_get_balance_and_publish_handles_errors_correctly(
         self, mock_balance_and_publish, mock_update_pending_link_account, mock_publish_status
     ):
         scheme_slug = "bpl-trenette"
@@ -705,6 +728,32 @@ class TestResources(TestCase):
         self.assertTrue(mock_publish_status.called)
         self.assertTrue(mock_update_pending_join_account.called)
         self.assertFalse(mock_delete.called)
+
+    @mock.patch("app.journeys.view.request_balance", return_value=(0, None, "join"))
+    @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
+    def test_get_balance_and_publish_status_is_none(
+        self,
+        mock_delete,
+        mock_request_balance,
+    ):
+        user_info = deepcopy(self.user_info)
+        user_info["pending"] = False
+        get_balance_and_publish(Bpl, "scheme_slug", user_info, "tid")
+
+        self.assertFalse(mock_delete.called)
+
+    @mock.patch("app.journeys.view.request_balance", return_value=(None, 447, "join"))
+    @mock.patch("app.journeys.view.delete_scheme_account", autospec=True)
+    def test_get_balance_and_publish_status_is_delete_account(
+        self,
+        mock_delete,
+        mock_request_balance,
+    ):
+        user_info = deepcopy(self.user_info)
+        user_info["pending"] = False
+        get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
+
+        self.assertTrue(mock_delete.called)
 
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)
     @mock.patch("app.journeys.view.agent_login", autospec=True)
