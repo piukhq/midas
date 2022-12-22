@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
@@ -1557,6 +1558,42 @@ class TestIcelandJoin(TestCase):
         payload = self.iceland._create_join_request_payload()
         self.assertEqual(None, payload["marketing_opt_in"])
         self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
+
+    def test_create_join_request_payload_credentials_contains_card_number(self):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
+            self.iceland = Iceland(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": SchemeAccountStatus.WALLET_ONLY,
+                    "journey_type": JourneyTypes.LINK.value,
+                    "user_set": "1,2",
+                    "bink_user_id": 1,
+                    "credentials": self.credentials,
+                },
+                scheme_slug="iceland-bonus-card",
+            )
+            self.iceland.user_info["credentials"]["card_number"] = 6665
+            returned_payload = self.iceland._create_join_request_payload()
+            self.assertTrue("card_number" in returned_payload.keys())
+            self.assertEqual(returned_payload.get("card_number"), 6665)
+
+    def test_create_join_request_payload_credentials_contains_no_card_number(self):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
+            self.iceland = Iceland(
+                retry_count=1,
+                user_info={
+                    "scheme_account_id": 1,
+                    "status": SchemeAccountStatus.WALLET_ONLY,
+                    "journey_type": JourneyTypes.LINK.value,
+                    "user_set": "1,2",
+                    "bink_user_id": 1,
+                    "credentials": self.credentials,
+                },
+                scheme_slug="iceland-bonus-card",
+            )
+            returned_payload = self.iceland._create_join_request_payload()
+            self.assertTrue("card_number" not in returned_payload.keys())
 
 
 # This should potentially be moved once end_to_end test suite has been configured
