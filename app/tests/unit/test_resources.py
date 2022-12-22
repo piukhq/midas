@@ -660,8 +660,10 @@ class TestResources(TestCase):
         user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         mock_get_balance_and_publish.side_effect = UnknownError(message="Linking error")
+
         with self.assertRaises(BaseError) as e:
             async_get_balance_and_publish("agent_class", scheme_slug, user_info, "tid")
+
             mock_req.assert_called_with(
                 f"{settings.HERMES_URL}/schemes/accounts/123/status",
                 json.dumps({"status": 520, "user_info": user_info}, cls=JsonEncoder),
@@ -737,6 +739,7 @@ class TestResources(TestCase):
         user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         get_balance_and_publish(Bpl, "scheme_slug", user_info, "tid")
+
         self.assertFalse(mock_delete.called)
 
     @mock.patch("app.journeys.view.request_balance", return_value=(None, 447, "join"))
@@ -749,6 +752,7 @@ class TestResources(TestCase):
         user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         get_balance_and_publish(Bpl, "scheme_slug", self.user_info, "tid")
+
         self.assertTrue(mock_delete.called)
 
     @mock.patch("app.journeys.view.update_pending_join_account", autospec=True)

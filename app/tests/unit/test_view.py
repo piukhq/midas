@@ -14,6 +14,7 @@ class TestView(unittest.TestCase):
         mock_agent_login.return_value.identifier = None
         mock_agent_login.return_value.balance.return_value = None
         result = request_balance("bpl", {}, 123, "slug", "tid", Mock())
+
         self.assertEqual(result, (None, None, None))
 
     @mock.patch("app.journeys.view.set_iceland_user_info_status_and_journey_type")
@@ -39,6 +40,7 @@ class TestView(unittest.TestCase):
             "tid",
             Mock(),
         )
+
         mock_publish_balance.assert_called_with(
             {"points": 0, "value": 0, "value_label": "label", "reward_tier": 0}, "123", "123", "tid"
         )
@@ -52,10 +54,12 @@ class TestView(unittest.TestCase):
         settings.ENABLE_ICELAND_VALIDATE = True
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
         user_info = set_iceland_user_info_status_and_journey_type(user_info)
+
         self.assertEqual(user_info["journey_type"], JourneyTypes.LINK.value)
 
     def test_set_iceland_journey_iceland_validate_not_enabled(self):
         settings.ENABLE_ICELAND_VALIDATE = False
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
         user_info = set_iceland_user_info_status_and_journey_type(user_info)
+
         self.assertEqual(user_info["journey_type"], "not a link journey")
