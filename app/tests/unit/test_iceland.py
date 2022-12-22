@@ -1574,6 +1574,7 @@ class TestIcelandJoin(TestCase):
             )
             self.iceland.user_info["credentials"]["card_number"] = 6665
             returned_payload = self.iceland._create_join_request_payload()
+
             self.assertTrue("card_number" in returned_payload.keys())
             self.assertEqual(returned_payload.get("card_number"), 6665)
 
@@ -1592,6 +1593,7 @@ class TestIcelandJoin(TestCase):
                 scheme_slug="iceland-bonus-card",
             )
             returned_payload = self.iceland._create_join_request_payload()
+
             self.assertTrue("card_number" not in returned_payload.keys())
 
 
