@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import settings
 from app.agents.schemas import Balance
-from app.journeys.view import request_balance, set_iceland_journey
+from app.journeys.view import request_balance, set_iceland_user_info_status_and_journey_type
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
 
 
@@ -16,7 +16,7 @@ class TestView(unittest.TestCase):
         result = request_balance("bpl", {}, 123, "slug", "tid", Mock())
         self.assertEqual(result, (None, None, None))
 
-    @mock.patch("app.journeys.view.set_iceland_journey")
+    @mock.patch("app.journeys.view.set_iceland_user_info_status_and_journey_type")
     @mock.patch("app.publish.balance")
     @mock.patch("app.journeys.view.agent_login")
     def test_request_balance_iceland_is_link_if_validate_enabled(
@@ -51,11 +51,11 @@ class TestView(unittest.TestCase):
     def test_set_iceland_journey_iceland_validate_enabled(self):
         settings.ENABLE_ICELAND_VALIDATE = True
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
-        user_info = set_iceland_journey(user_info)
+        user_info = set_iceland_user_info_status_and_journey_type(user_info)
         self.assertEqual(user_info["journey_type"], JourneyTypes.LINK.value)
 
     def test_set_iceland_journey_iceland_validate_not_enabled(self):
         settings.ENABLE_ICELAND_VALIDATE = False
         user_info = {"status": SchemeAccountStatus.PENDING, "journey_type": "not a link journey"}
-        user_info = set_iceland_journey(user_info)
+        user_info = set_iceland_user_info_status_and_journey_type(user_info)
         self.assertEqual(user_info["journey_type"], "not a link journey")
