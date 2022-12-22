@@ -1,5 +1,4 @@
 import json
-from copy import deepcopy
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import TestCase, mock
