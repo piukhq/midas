@@ -653,12 +653,14 @@ class TestResources(TestCase):
 
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
     @mock.patch("app.journeys.view.requests.post")
-    def test_async_errors_account_not_pending(self, mock_req, mock_get_balance_and_publish):
+    def test_async_get_balance_and_publish_raises_errors_account_not_pending(
+        self, mock_req, mock_get_balance_and_publish
+    ):
         scheme_slug = "bpl-trenette"
         user_info = deepcopy(self.user_info)
         user_info["pending"] = False
         mock_get_balance_and_publish.side_effect = UnknownError(message="Linking error")
-        with self.assertRaises(BaseError):
+        with self.assertRaises(BaseError) as e:
             async_get_balance_and_publish("agent_class", scheme_slug, user_info, "tid")
             mock_req.assert_called_with(
                 f"{settings.HERMES_URL}/schemes/accounts/123/status",
@@ -669,7 +671,7 @@ class TestResources(TestCase):
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.view.update_pending_link_account", autospec=True)
     @mock.patch("app.journeys.view.get_balance_and_publish", autospec=False)
-    def test_async_errors_correctly(
+    def test_async_get_balance_and_publish_handles_errors_correctly(
         self, mock_balance_and_publish, mock_update_pending_link_account, mock_publish_status
     ):
         scheme_slug = "bpl-trenette"
