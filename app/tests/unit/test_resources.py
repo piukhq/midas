@@ -667,6 +667,7 @@ class TestResources(TestCase):
                 json.dumps({"status": 520, "user_info": user_info}, cls=JsonEncoder),
                 get_headers(123),
             )
+            self.assertEqual(e.exception.name, "Base Error")
 
     @mock.patch("app.publish.status", autospec=True)
     @mock.patch("app.journeys.view.update_pending_link_account", autospec=True)
