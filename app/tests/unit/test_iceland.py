@@ -1569,6 +1569,7 @@ class TestIcelandJoin(TestCase):
     def test_create_join_request_payload_credentials_contains_no_card_number(self):
         with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
             returned_payload = self.iceland._create_join_request_payload()
+
             self.assertTrue("card_number" not in returned_payload.keys())
 
 
