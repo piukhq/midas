@@ -1558,6 +1558,20 @@ class TestIcelandJoin(TestCase):
         self.assertEqual(None, payload["marketing_opt_in"])
         self.assertEqual(None, payload["marketing_opt_in_thirdparty"])
 
+    def test_create_join_request_payload_credentials_contains_card_number(self):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
+            self.iceland.user_info["credentials"]["card_number"] = 6665
+            returned_payload = self.iceland._create_join_request_payload()
+
+            self.assertTrue("card_number" in returned_payload.keys())
+            self.assertEqual(returned_payload.get("card_number"), 6665)
+
+    def test_create_join_request_payload_credentials_contains_no_card_number(self):
+        with mock.patch("app.agents.base.Configuration", return_value=self.mock_configuration_object):
+            returned_payload = self.iceland._create_join_request_payload()
+
+            self.assertTrue("card_number" not in returned_payload.keys())
+
 
 # This should potentially be moved once end_to_end test suite has been configured
 class TestIcelandEndToEnd(FlaskTestCase):
