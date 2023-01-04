@@ -111,8 +111,7 @@ class Iceland(BaseAgent):
             "dob": self.credentials["date_of_birth"],
             "phone1": self.credentials["phone"],
         }
-        card_number = self.credentials.get("card_number")
-        if card_number:
+        if card_number := self.credentials.get("card_number"):
             payload["card_number"] = card_number
         return payload
 
