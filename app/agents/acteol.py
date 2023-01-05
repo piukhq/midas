@@ -811,14 +811,13 @@ class Acteol(BaseAgent):
     def _check_deleted_user(self, resp_json: dict):
         # When calling a GET Balance set of calls and the response is successful
         # BUT the CustomerID = “0”then this is how Acteol return a deleted account
-        card_number = str(resp_json["CurrentMemberNumber"])
+        card_number = self.credentials["card_number"]
         if "CustomerID" in resp_json:
             customer_id = str(resp_json["CustomerID"])
         elif "CtcID" in resp_json:
             customer_id = str(resp_json["CtcID"])
-
         if customer_id == "0":
-            log.debug("Acteol card number has been deleted: Card number: {}".format(self.credentials["card_number"]))
+            log.debug(f"Acteol card number has been deleted: Card number: {card_number}")
             raise NoSuchRecordError()
 
 
