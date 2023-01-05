@@ -816,6 +816,7 @@ class Acteol(BaseAgent):
             customer_id = str(resp_json["CustomerID"])
         elif "CtcID" in resp_json:
             customer_id = str(resp_json["CtcID"])
+
         if customer_id == "0":
             log.debug(f"Acteol card number has been deleted: Card number: {card_number}")
             raise NoSuchRecordError()
