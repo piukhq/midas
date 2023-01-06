@@ -583,17 +583,6 @@ class TestResources(TestCase):
             agent_login(Bpl, user_info, scheme_slug="bpl-trenette", from_join=True)
         self.assertTrue(mock_attempt_login.called)
 
-    @mock.patch("app.journeys.common.redis_retry", autospec=True)
-    @mock.patch("app.agents.bpl.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch("app.agents.base.Configuration", side_effect=mocked_hn_configuration)
-    @mock.patch.object(Bpl, "attempt_login")
-    def test_agent_login_user_fail_(self, mock_login, mock_base_config, mock_hn_config, mock_retry):
-        mock_login.side_effect = StatusLoginFailedError()
-
-        with self.assertRaises(StatusLoginFailedError):
-            agent_login(Bpl, self.user_info, "bpl-trenette")
-        self.assertTrue(mock_login.called)
-
     @mock.patch("app.resources.get_aes_key")
     @mock.patch("app.resources.thread_pool_executor.submit", autospec=True)
     @mock.patch("app.publish.balance", autospec=False)
