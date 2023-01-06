@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from requests import HTTPError
 
-from app.exceptions import UnknownError, get_message_from_exception
+from app.exceptions import UnknownError, ValidationError, get_message_from_exception
 
 
 class TestExceptions(TestCase):
@@ -21,3 +21,11 @@ class TestExceptions(TestCase):
     def test_get_message_from_empty_exception(self):
         message = get_message_from_exception(UnknownError(exception=Exception()))
         self.assertEqual("An unknown error has occurred.", message)
+
+    def test_default_system_action_required_attribute_is_false(self):
+        error = ValidationError()
+        assert error.system_action_required is False
+
+    def test_default_system_action_required_attribute_is_overridden_to_true(self):
+        error = UnknownError()
+        assert error.system_action_required is True
