@@ -26,6 +26,6 @@ class TestExceptions(TestCase):
         error = ValidationError()
         assert error.system_action_required is False
 
-    def test_defult_system_action_required_attribute_is_overridden_to_true(self):
+    def test_default_system_action_required_attribute_is_overridden_to_true(self):
         error = UnknownError()
         assert error.system_action_required is True

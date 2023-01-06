@@ -38,17 +38,11 @@ class TestCommon(TestCase):
         }
         cls.scheme_slug = "wasabi-club"
 
-    def raise_validation_error(self):
-        raise ValidationError(message="Invalid Member Number")
-
-    def raise_no_such_record_error(self):
-        raise NoSuchRecordError()
-
     @mock.patch("app.redis_retry.get_count", return_value=0)
     @mock.patch("app.redis_retry.get_key", return_value="some_key")
     @mock.patch.object(Wasabi, "attempt_login")
     def test_agent_login_error_system_action_required_is_false(self, mock_attempt_login, mock_get_key, mock_get_count):
-        mock_attempt_login.side_effect = self.raise_validation_error
+        mock_attempt_login.side_effect = ValidationError(message="Invalid Member Number")
         with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
             agent_instance = agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
 
@@ -58,7 +52,7 @@ class TestCommon(TestCase):
     @mock.patch("app.redis_retry.get_key", return_value="some_key")
     @mock.patch.object(Wasabi, "attempt_login")
     def test_agent_login_error_system_action_required_is_true(self, mock_attempt_login, mock_get_key, mock_get_count):
-        mock_attempt_login.side_effect = self.raise_no_such_record_error
+        mock_attempt_login.side_effect = NoSuchRecordError()
         with pytest.raises(NoSuchRecordError) as e:
             with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
                 agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
