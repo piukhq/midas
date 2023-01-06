@@ -25,7 +25,7 @@ class BaseError(Exception):
     code: int
     name: str
     generic_message: str
-    system_action_required: bool
+    system_action_required: bool = False
 
     def __init__(self, exception=None, message=None):
         self.exception = exception
