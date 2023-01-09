@@ -182,7 +182,12 @@ class BaseAgent(object):
         self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
     def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
-        return current_timestamp - token["timestamp"] < self.oauth_token_timeout
+        if isinstance(token["timestamp"], list):
+            token_timestamp = token["timestamp"][0]
+        else:
+            token_timestamp = token["timestamp"]
+
+        return current_timestamp - token_timestamp < self.oauth_token_timeout
 
     def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
