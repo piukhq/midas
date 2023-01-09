@@ -26,7 +26,7 @@ class TestBase(TestCase):
             "journey_type": JourneyTypes.JOIN,
             "credentials": {},
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
 
         m.attempt_join()
         self.assertTrue(mocked_join.called)
@@ -46,7 +46,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -100,7 +100,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -145,7 +145,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -199,7 +199,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -253,7 +253,7 @@ class TestBase(TestCase):
             "channel": "com.bink.wallet",
             "journey_type": JourneyTypes.LINK.value,
         }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER)
+        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -296,6 +296,7 @@ class TestBase(TestCase):
                 "journey_type": JourneyTypes.LINK.value,
             },
             config_handler_type=Configuration.JOIN_HANDLER,
+            scheme_slug="test-agent",
         )
         agent.errors = {
             GeneralError: "GENERAL_ERROR",
@@ -316,6 +317,7 @@ class TestBase(TestCase):
                 "journey_type": JourneyTypes.LINK.value,
             },
             config_handler_type=Configuration.JOIN_HANDLER,
+            scheme_slug="test-agent",
         )
         agent.errors = {
             GeneralError: "GENERAL_ERROR",
