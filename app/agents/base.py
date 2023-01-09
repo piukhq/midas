@@ -61,7 +61,14 @@ class BaseAgent(object):
     is_async = False
     create_journey: Optional[str] = None
 
-    def __init__(self, retry_count, user_info, config_handler_type, scheme_slug=None, config=None):
+    def __init__(
+        self,
+        retry_count: int,
+        user_info: dict,
+        config_handler_type: int,
+        scheme_slug: str,
+        config: Configuration | None = None,
+    ):
         self.config = config or Configuration(
             scheme_slug,
             config_handler_type,
@@ -71,25 +78,25 @@ class BaseAgent(object):
             settings.AZURE_AAD_TENANT_ID,
         )
         self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
-        self.retry_count: int = retry_count
+        self.retry_count = retry_count
         self.user_info = user_info
-        self.scheme_slug: str = scheme_slug
+        self.scheme_slug = scheme_slug
 
         self.scheme_id = self.user_info["scheme_account_id"]
         self.channel = self.user_info.get("channel", "")
         self.journey_type = self.user_info.get("journey_type")
 
         self.record_uid = hash_ids.encode(self.scheme_id)
-        self.message_uid: str = str(uuid4())
-        self.max_retries: int = 3
+        self.message_uid = str(uuid4())
+        self.max_retries = 3
         self.token_store = UserTokenStore(settings.REDIS_URL)
         self.oauth_token_timeout: int = 0
 
         self.session = requests_retry_session(retries=self.max_retries)
-        self.headers = {}
-        self.errors = {}
-        self.integration_service: str = ""
-        self.outbound_auth_service: int = None
+        self.headers: dict[str, str] = {}
+        self.errors: dict[Exception, int] = {}
+        self.integration_service = ""
+        self.outbound_auth_service: int = Configuration.OAUTH_SECURITY
 
         if settings.SENTRY_DSN:
             sentry_sdk.set_tag("scheme_slug", self.scheme_slug)

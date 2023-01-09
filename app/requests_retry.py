@@ -9,7 +9,7 @@ def requests_retry_session(
     retries: int = 3,
     backoff_factor: float = 0.3,
     status_forcelist: t.Tuple = (500, 502, 504),
-    session: requests.Session = None,
+    session: requests.Session | None = None,
 ) -> requests.Session:
     """
     Create a requests session with the given retry policy.

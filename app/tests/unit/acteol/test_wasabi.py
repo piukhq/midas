@@ -3,7 +3,6 @@ import string
 import unittest
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Dict
 from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urljoin
 
@@ -712,7 +711,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
+        rv = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
         assert rv == consents[0]
@@ -740,7 +739,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
+        rv = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
         assert not rv
@@ -756,7 +755,7 @@ class TestWasabi(unittest.TestCase):
         ]
 
         # WHEN
-        rv: Dict = self.wasabi._get_email_optin_from_consent(consents=consents)
+        rv = self.wasabi._get_email_optin_from_consent(consents=consents)
 
         # THEN
         assert not rv
