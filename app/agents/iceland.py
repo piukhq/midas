@@ -178,8 +178,8 @@ class Iceland(BaseAgent):
             self._add_additional_consent()
 
         check_correct_authentication(
-            actual_config_auth_type=self.outbound_auth_service,
             allowed_config_auth_types=[Configuration.OPEN_AUTH_SECURITY, Configuration.OAUTH_SECURITY],
+            actual_config_auth_type=self.outbound_auth_service,
         )
         self.authenticate()
 

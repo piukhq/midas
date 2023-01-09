@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import arrow
 import pytest
 
@@ -28,7 +26,7 @@ class TestWasabi:
         token = wasabi.authenticate()
         token_timestamp = arrow.get(token["timestamp"])
         utc_now = arrow.utcnow()
-        diff: timedelta = utc_now - token_timestamp
+        diff = utc_now - token_timestamp
 
         # THEN
         assert diff.days == 0
