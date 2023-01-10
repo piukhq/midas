@@ -5,7 +5,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urljoin
-import logging
+
 import arrow
 import httpretty
 import pytest
