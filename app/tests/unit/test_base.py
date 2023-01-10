@@ -349,8 +349,7 @@ class TestBase(TestCase):
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
 
-        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij",
-                        "timestamp": [current_timestamp-1000]}
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": [current_timestamp - 1000]}
 
         result = base_agent._token_is_valid(cached_token, current_timestamp)
 
@@ -371,8 +370,7 @@ class TestBase(TestCase):
         )
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
-        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij",
-                        "timestamp": current_timestamp-1000}
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": current_timestamp - 1000}
 
         result = base_agent._token_is_valid(cached_token, current_timestamp)
 
