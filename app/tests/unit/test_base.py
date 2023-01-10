@@ -2,6 +2,7 @@ from http import HTTPStatus
 from unittest import TestCase, mock
 from urllib.parse import urljoin
 
+import arrow
 import httpretty
 from soteria.configuration import Configuration
 
@@ -326,3 +327,53 @@ class TestBase(TestCase):
             agent.handle_error_codes(error_code="VALIDATION")
         self.assertEqual("Unknown error", e.exception.name)
         self.assertEqual(520, e.exception.code)
+
+    @mock.patch("app.agents.base.Configuration")
+    def test_token_store_legacy_token_with_timestamp_as_list(self, mock_config):
+        """
+        Some old Iceland tokens stored in the redis cache contained a timestamp value in a list
+        This test checks that we can obtain the timestamp from the list without raising a TypeError
+        """
+        base_agent = BaseAgent(
+            retry_count=0,
+            user_info={
+                "scheme_account_id": 194,
+                "status": "",
+                "channel": "com.bink.wallet",
+                "journey_type": JourneyTypes.LINK.value,
+            },
+            config_handler_type=Configuration.UPDATE_HANDLER,
+            scheme_slug="test-agent",
+        )
+
+        base_agent.oauth_token_timeout = 3599
+        current_timestamp = arrow.utcnow().int_timestamp
+
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij",
+                        "timestamp": [current_timestamp-1000]}
+
+        result = base_agent._token_is_valid(cached_token, current_timestamp)
+
+        self.assertTrue(result)
+
+    @mock.patch("app.agents.base.Configuration")
+    def test_token_is_valid_success(self, mock_config):
+        base_agent = BaseAgent(
+            retry_count=0,
+            user_info={
+                "scheme_account_id": 194,
+                "status": "",
+                "channel": "com.bink.wallet",
+                "journey_type": JourneyTypes.LINK.value,
+            },
+            config_handler_type=Configuration.UPDATE_HANDLER,
+            scheme_slug="test-agent",
+        )
+        base_agent.oauth_token_timeout = 3599
+        current_timestamp = arrow.utcnow().int_timestamp
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij",
+                        "timestamp": current_timestamp-1000}
+
+        result = base_agent._token_is_valid(cached_token, current_timestamp)
+
+        self.assertTrue(result)
