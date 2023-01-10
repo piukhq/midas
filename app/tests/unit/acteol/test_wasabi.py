@@ -5,7 +5,7 @@ from decimal import Decimal
 from http import HTTPStatus
 from unittest.mock import MagicMock, Mock, call, patch
 from urllib.parse import urljoin
-
+import logging
 import arrow
 import httpretty
 import pytest
@@ -2066,3 +2066,20 @@ class TestWasabi(unittest.TestCase):
 
         # THEN
         mock_signal.assert_has_calls(expected_calls)
+
+    def test_check_deleted_user_displays_correct_log_message(self):
+        self.wasabi.credentials = {
+            "first_name": "Sarah",
+            "last_name": "TestPerson",
+            "email": "testperson@bink.com",
+            "date_of_birth": "1999-01-01",
+            "card_number": "this_is_a_card_number",
+            "merchant_identifier": 142163,
+        }
+        resp_json = {"CustomerID": 0, "CtcID": 456}
+        with self.assertRaises(NoSuchRecordError), self.assertLogs(level="DEBUG") as log:
+            self.wasabi._check_deleted_user(resp_json)
+            self.assertEqual(
+                log.output,
+                ["INFO:acteol-agent: Acteol card number has been deleted: Card number: this_is_a_card_number"],
+            )
