@@ -81,3 +81,4 @@ class TestCommon(TestCase):
             with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
                 agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
                 assert mock_max_out_count.called_with("some_key", 2)
+                assert e.value.name == "Retry limit reached"
