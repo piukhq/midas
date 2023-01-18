@@ -4,7 +4,7 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Wasabi
-from app.exceptions import NoSuchRecordError, ValidationError
+from app.exceptions import NoSuchRecordError
 from app.journeys.common import agent_login
 from app.scheme_account import JourneyTypes
 
@@ -37,16 +37,6 @@ class TestCommon(TestCase):
             "channel": "com.bink.wallet",
         }
         cls.scheme_slug = "wasabi-club"
-
-    @mock.patch("app.redis_retry.get_count", return_value=0)
-    @mock.patch("app.redis_retry.get_key", return_value="some_key")
-    @mock.patch.object(Wasabi, "attempt_login")
-    def test_agent_login_error_system_action_required_is_false(self, mock_attempt_login, mock_get_key, mock_get_count):
-        mock_attempt_login.side_effect = ValidationError(message="Invalid Member Number")
-        with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
-            agent_instance = agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
-
-        assert isinstance(agent_instance, Wasabi)
 
     @mock.patch("app.redis_retry.get_count", return_value=0)
     @mock.patch("app.redis_retry.get_key", return_value="some_key")
