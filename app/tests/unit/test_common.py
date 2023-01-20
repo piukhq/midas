@@ -4,7 +4,7 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Wasabi
-from app.exceptions import NoSuchRecordError
+from app.exceptions import NoSuchRecordError, RetryLimitReachedError, UnknownError
 from app.journeys.common import agent_login
 from app.scheme_account import JourneyTypes
 
@@ -49,3 +49,26 @@ class TestCommon(TestCase):
 
         assert e.value.system_action_required is True
         assert e.value.name == "Account does not exist"
+
+    @mock.patch("app.redis_retry.get_count", return_value=0)
+    @mock.patch("app.redis_retry.get_key", return_value="some_key")
+    @mock.patch.object(Wasabi, "attempt_login")
+    def test_agent_login_raises_unknown_error(self, mock_attempt_login, mock_get_key, mock_get_count):
+        mock_attempt_login.side_effect = Exception
+        with pytest.raises(UnknownError):
+            with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
+                agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
+
+    @mock.patch("app.redis_retry.max_out_count")
+    @mock.patch("app.redis_retry.get_count", return_value=0)
+    @mock.patch("app.redis_retry.get_key", return_value="some_key")
+    @mock.patch.object(Wasabi, "attempt_login")
+    def test_agent_login_raises_retry_limit_reached_error(
+        self, mock_attempt_login, mock_get_key, mock_count, mock_max_out_count
+    ):
+        mock_attempt_login.side_effect = RetryLimitReachedError()
+        with pytest.raises(RetryLimitReachedError) as e:
+            with mock.patch("app.agents.base.Configuration", return_value=self.mock_config):
+                agent_login(Wasabi, self.user_info, self.scheme_slug, from_join=True)
+                assert mock_max_out_count.called_with("some_key", 2)
+                assert e.value.name == "Retry limit reached"
