@@ -22,7 +22,6 @@ def message():
         request_id=123,
         loyalty_plan="1234",
         account_id="456",
-        source_ref="source",
         join_data={"abc": "def"},
     )
 
@@ -51,7 +50,6 @@ def message_encrypted_credentials():
         request_id=123,
         loyalty_plan="1234",
         account_id="456",
-        source_ref="source",
         join_data={"encrypted_credentials": {"abc": "def"}},
     )
 
