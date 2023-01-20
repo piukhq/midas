@@ -1,9 +1,14 @@
 import kombu
 import pytest
 from olympus_messaging import JoinApplication
-from pytest_mock import mocker
+from pytest_mock import mocker  # noqa
 
 from consumer import TaskConsumer
+
+
+@pytest.fixture()
+def mock(mocker):  # noqa
+    return mocker
 
 
 @pytest.fixture()
@@ -27,18 +32,18 @@ def message():
 
 
 @pytest.fixture()
-def mock_db():
-    return mocker.patch("app.messaging.consumer.db")
+def mock_db(mock):
+    return mock.patch("app.messaging.consumer.db")
 
 
 @pytest.fixture()
-def mock_create_task():
-    return mocker.patch("app.messaging.consumer.create_task")
+def mock_create_task(mock):
+    return mock.patch("app.messaging.consumer.create_task")
 
 
 @pytest.fixture()
-def mock_enqueue_task():
-    return mocker.patch("app.messaging.consumer.enqueue_retry_task")
+def mock_enqueue_task(mock):
+    return mock.patch("app.messaging.consumer.enqueue_retry_task")
 
 
 @pytest.fixture()
@@ -63,4 +68,5 @@ def user_info():
         "journey_type": 0,
         "scheme_account_id": 123,
         "status": 442,
+        "user_set": "1234"
     }

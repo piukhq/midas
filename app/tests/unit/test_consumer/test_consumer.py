@@ -34,7 +34,7 @@ def test_on_join_application_join_data_in_encrypted_credentials(
 
 
 def test_on_join_application_raises_base_error(
-    task_consumer, message_encrypted_credentials, mock_db, mock_create_task, mock_enqueue_task, user_info
+    task_consumer, message_encrypted_credentials, mock_db, mock_create_task, mock_enqueue_task, user_info, mocker
 ):
     mock_sentry = mocker.patch("app.messaging.consumer.sentry_sdk.capture_exception")
     mock_create_task.side_effect = IntegrityError(statement="", params=[], orig="")
@@ -53,3 +53,4 @@ def test_on_join_application_raises_base_error(
             is False
         )
         mock_sentry.assert_called_with(e)
+
