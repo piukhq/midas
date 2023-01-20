@@ -1,8 +1,7 @@
 import pytest
-from pytest_mock import mocker
-from sqlalchemy.exc import IntegrityError
 
 from app.db import redis_raw
+from app.exceptions import BaseError
 
 
 def test_on_join_application_success(task_consumer, message, mock_db, mock_create_task, mock_enqueue_task, user_info):
@@ -37,8 +36,8 @@ def test_on_join_application_raises_base_error(
     task_consumer, message_encrypted_credentials, mock_db, mock_create_task, mock_enqueue_task, user_info, mocker
 ):
     mock_sentry = mocker.patch("app.messaging.consumer.sentry_sdk.capture_exception")
-    mock_create_task.side_effect = IntegrityError(statement="", params=[], orig="")
-    with pytest.raises(IntegrityError) as e:
+    mock_create_task.side_effect = BaseError()
+    with pytest.raises(BaseError) as e:
         task_consumer.on_join_application(message_encrypted_credentials)
         mock_create_task.assert_called_with(
             journey_type="attempt-join",
