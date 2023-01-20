@@ -45,6 +45,7 @@ httpretty = "*"
 flask-testing = "*"
 sqlalchemy-utils = "*"
 rq = "*"
+pytest-mock = "*"
 
 [dev-packages]
 black = "==21.6b0"
