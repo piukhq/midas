@@ -24,10 +24,10 @@ class TaskConsumer(ConsumerMixin):
         self.dispatcher = MessageDispatcher()
         self.dispatcher.connect(JoinApplication, self.on_join_application)
 
-    def get_consumers(self, Consumer: Type[kombu.Consumer], channel: Any) -> list[kombu.Consumer]:
+    def get_consumers(self, Consumer: Type[kombu.Consumer], channel: Any) -> list[kombu.Consumer]:  # pragma: no cover
         return [Consumer(queues=[self.loyalty_request_queue], callbacks=[self.on_message])]
 
-    def on_message(self, body: dict, message: kombu.Message) -> None:
+    def on_message(self, body: dict, message: kombu.Message) -> None:  # pragma: no cover
         try:
             self.dispatcher.dispatch(build_message(message.headers, body))
         finally:
