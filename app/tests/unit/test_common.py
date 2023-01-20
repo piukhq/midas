@@ -4,7 +4,7 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Wasabi
-from app.exceptions import NoSuchRecordError, RetryLimitReachedError, UnknownError, ValidationError
+from app.exceptions import NoSuchRecordError, RetryLimitReachedError, UnknownError
 from app.journeys.common import agent_login
 from app.scheme_account import JourneyTypes
 
