@@ -38,7 +38,7 @@ def test_on_join_application_raises_base_error(
     mock_sentry = mocker.patch("app.messaging.consumer.sentry_sdk.capture_exception")
     mock_create_task.side_effect = BaseError()
     with pytest.raises(BaseError) as e:
-        task_consumer.on_join_application(message_encrypted_credentials)
+        assert task_consumer.on_join_application(message_encrypted_credentials) is None
         mock_create_task.assert_called_with(
             journey_type="attempt-join",
             message_uid="123",
