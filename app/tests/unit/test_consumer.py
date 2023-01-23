@@ -29,7 +29,6 @@ class TestConsumer(TestCase):
             loyalty_plan="1234",
             account_id="456",
             join_data={"abc": "def"},
-            source_ref="",
         )
 
     @mock.patch("app.messaging.consumer.db")
@@ -77,7 +76,6 @@ class TestConsumer(TestCase):
             loyalty_plan="1234",
             account_id="456",
             join_data={"encrypted_credentials": {"abc": "def"}},
-            source_ref="",
         )
 
         self.consumer.on_join_application(message)
