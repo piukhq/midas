@@ -213,6 +213,7 @@ class BaseAgent(object):
             if audit:
                 audit_payload = self._get_audit_payload(kwargs, url)
                 self.send_audit_request(audit_payload, url)
+
             resp = self.session.request(method, url=url, **args)
 
             if audit:
