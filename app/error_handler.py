@@ -1,4 +1,4 @@
-from datetime import datetime
+import typing as t
 from typing import TYPE_CHECKING, Any
 
 import rq
@@ -66,7 +66,7 @@ def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: li
         reset_task_for_callback_attempt(
             db_session=db_session,
             retry_task=retry_task,
-            retry_status=RetryTaskStatuses.RETRYING,
+            retry_status=t.cast(str, RetryTaskStatuses.RETRYING),
             next_attempt_time=next_attempt_time,
         )
         logger.debug(f"Next attempt time at {next_attempt_time}")
@@ -93,7 +93,7 @@ def _handle_request_exception(
     retry_task: RetryTask,
     request_exception: BaseError,
     retryable_status_codes: list[int],
-) -> tuple[RetryTaskStatuses | None, datetime | None | None]:
+) -> t.Tuple[t.Optional[RetryTaskStatuses], t.Optional[Any]]:
     status = None
     next_attempt_time = None
     subject = retry_task.journey_type
@@ -159,7 +159,7 @@ def handle_request_exception(
         update_task_for_retry(
             db_session=db_session,
             retry_task=retry_task,
-            retry_status=status,
+            retry_status=t.cast(str, status),
             next_attempt_time=next_attempt_time,
         )
     except Exception as e:
@@ -172,7 +172,7 @@ def handle_request_exception(
 
 def handle_retry_task_request_error(
     job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
-) -> Any:
+) -> None:
 
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed

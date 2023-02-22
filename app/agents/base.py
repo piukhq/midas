@@ -53,7 +53,7 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
 
 
 class BaseAgent(object):
-    retry_limit: Optional[int] = 2
+    retry_limit: Optional[int] = 5
     point_conversion_rate = Decimal("0")
     identifier_type: Optional[list[str]] = None
     identifier: Optional[dict[str, str]] = None
