@@ -18,7 +18,7 @@ def create_task(
     message_uid: str,
     scheme_identifier: str,
     scheme_account_id: str,
-):
+) -> RetryTask:
     retry_task = RetryTask(
         request_data=user_info,
         journey_type=journey_type,
@@ -31,7 +31,7 @@ def create_task(
     return retry_task
 
 
-def get_task(db_session: Session, scheme_account_id: str):
+def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
     return (
         db_session.execute(select(RetryTask).where(RetryTask.scheme_account_id == scheme_account_id))
         .unique()
@@ -105,7 +105,7 @@ def enqueue_retry_task_delay(*, connection: t.Any, retry_task: RetryTask, delay_
     return next_attempt_time
 
 
-def enqueue_retry_task(*, connection: t.Any, retry_task: RetryTask):
+def enqueue_retry_task(*, connection: t.Any, retry_task: RetryTask) -> rq.job.Job:
     q = rq.Queue("midas-retry", connection=connection)
     job = q.enqueue(
         "app.journeys.join.attempt_join",
@@ -121,7 +121,7 @@ def enqueue_retry_task(*, connection: t.Any, retry_task: RetryTask):
     return job
 
 
-def view_session(f: t.Callable):
+def view_session(f: t.Callable) -> t.Callable:
     """A flask view decorator that creates a database session for use by the wrapped view."""
 
     @wraps(f)
