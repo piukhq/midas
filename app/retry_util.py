@@ -81,7 +81,7 @@ def update_callback_attempt(db_session: Session, retry_task: RetryTask, next_att
 
 
 def fail_callback_task(db_session: Session, retry_task: RetryTask):
-    retry_task.status = str(RetryTaskStatuses.FAILED)
+    retry_task.status = t.cast(str, RetryTaskStatuses.FAILED)
     db_session.add(retry_task)
     db_session.commit()
     return retry_task
