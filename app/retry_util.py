@@ -47,8 +47,8 @@ def delete_task(db_session: Session, retry_task: RetryTask):
 def update_task_for_retry(
     db_session: Session,
     retry_task: RetryTask,
-    retry_status: str,
-    next_attempt_time: datetime,
+    retry_status: t.Optional[RetryTaskStatuses],
+    next_attempt_time: t.Optional[datetime],
 ):
     retry_task.attempts += 1
     retry_task.status = retry_status
@@ -60,13 +60,13 @@ def update_task_for_retry(
 def reset_task_for_callback_attempt(
     db_session: Session,
     retry_task: RetryTask,
-    retry_status: str,
+    retry_status: RetryTaskStatuses,
     next_attempt_time: datetime,
 ):
     retry_task.callback_retries += 1
     retry_task.attempts = 0
     retry_task.status = retry_status
-    retry_task.next_attempt_time = next_attempt_time
+    retry_task.next_attempt_time = (next_attempt_time,)
     db_session.add(retry_task)
     db_session.commit()
     return retry_task
@@ -81,7 +81,7 @@ def update_callback_attempt(db_session: Session, retry_task: RetryTask, next_att
 
 
 def fail_callback_task(db_session: Session, retry_task: RetryTask):
-    retry_task.status = t.cast(str, RetryTaskStatuses.FAILED)
+    retry_task.status = RetryTaskStatuses.FAILED
     db_session.add(retry_task)
     db_session.commit()
     return retry_task
