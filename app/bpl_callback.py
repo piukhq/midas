@@ -1,4 +1,5 @@
 import json
+import typing as t
 
 import requests
 from azure_oidc import OIDCConfig
@@ -63,10 +64,10 @@ class JoinCallbackBpl(Resource):
         # Get the saved retry task, contains user_info data from original request
         # and can be used to update the callback retry
         retry_task = get_task(session, scheme_account_id)
-        request_data = retry_task.request_data
+        request_data = t.cast(dict, retry_task.request_data)
         decrypted_credentials = decrypt_credentials(request_data["credentials"])
 
-        update_hermes(data, scheme_account_id, request_data.get("bink_user_id"))
+        update_hermes(data, scheme_account_id, t.cast(str, request_data.get("bink_user_id")))
         user_info = {
             "credentials": decrypted_credentials,
             "status": SchemeAccountStatus.PENDING,

@@ -1,3 +1,5 @@
+import typing as t
+
 import requests
 import sentry_sdk
 from flask_restful import Resource
@@ -42,7 +44,7 @@ class JoinCallback(Resource):
             # Get the saved retry task, contains user_info data from original request
             # and can be used to update the callback retry
             retry_task = get_task(session, scheme_account_id)
-            request_data = retry_task.request_data
+            request_data = t.cast(dict, retry_task.request_data)
             decrypted_credentials = decrypt_credentials(request_data["credentials"])
 
             user_info = {
