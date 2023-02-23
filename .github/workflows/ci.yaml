@@ -46,8 +46,8 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
           severity: HIGH,CRITICAL
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
       - run: pip install pipenv
@@ -64,19 +64,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ tests ]
     steps:
-      - uses: actions/checkout@v2
-      - run: echo "::set-output name=date::$(date +'%FT%H%M%SZ')"
-        id: date
-      - uses: docker/login-action@v1
+      - uses: actions/checkout@v3
+      - run: echo "container_tag=$(date +'%FT%H%M%SZ')" >> $GITHUB_ENV
+      - uses: docker/login-action@v2
         with:
           registry: binkcore.azurecr.io
           username: binkcore
           password: ${{ secrets.ACR_BINKCORE_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v4
         with:
           push: true
           tags: |
-            binkcore.azurecr.io/midas:${{ steps.date.outputs.date }}
+            binkcore.azurecr.io/midas:${{ env.container_tag }}
             binkcore.azurecr.io/midas:latest
   create_tag_release:
     if: github.event_name == 'release' && github.event.action == 'published'
@@ -95,7 +94,7 @@ jobs:
           registry: binkcore.azurecr.io
           username: binkcore
           password: ${{ secrets.ACR_BINKCORE_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v4
         with:
           push: true
           tags: |
