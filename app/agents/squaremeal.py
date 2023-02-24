@@ -11,6 +11,7 @@ from app.exceptions import (
     BaseError,
     EndSiteDownError,
     NoSuchRecordError,
+    ServiceConnectionError,
     StatusLoginFailedError,
     ValidationError,
 )
@@ -139,7 +140,7 @@ class Squaremeal(BaseAgent):
         if self.journey_type == JourneyTypes.JOIN.value:
             return
         self.errors = {
-            ValidationError: [401],
+            ServiceConnectionError: [401],
             StatusLoginFailedError: [422],
             EndSiteDownError: [530],
         }
@@ -170,7 +171,7 @@ class Squaremeal(BaseAgent):
 
     def balance(self):
         self.errors = {
-            ValidationError: [401],
+            ServiceConnectionError: [401],
             NoSuchRecordError: [422],
             EndSiteDownError: [530],
         }

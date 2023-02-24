@@ -16,6 +16,7 @@ from app.api import create_app
 from app.exceptions import (
     AccountAlreadyExistsError,
     NoSuchRecordError,
+    ServiceConnectionError,
     StatusLoginFailedError,
     UnknownError,
     ValidationError,
@@ -265,11 +266,11 @@ class TestSquaremealJoin(TestCase):
                 )
             ],
         )
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.squaremeal.balance()
 
-        self.assertEqual(e.exception.name, "Failed validation")
-        self.assertEqual(e.exception.code, 401)
+        self.assertEqual(e.exception.name, "Service connection error")
+        self.assertEqual(e.exception.code, 537)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
@@ -427,10 +428,10 @@ class TestSquaremealLogin(TestCase):
             ],
         )
 
-        with self.assertRaises(ValidationError) as e:
+        with self.assertRaises(ServiceConnectionError) as e:
             self.squaremeal.login()
-        self.assertEqual(e.exception.name, "Failed validation")
-        self.assertEqual(e.exception.code, 401)
+        self.assertEqual(e.exception.name, "Service connection error")
+        self.assertEqual(e.exception.code, 537)
 
     @httpretty.activate
     @mock.patch("app.agents.squaremeal.Squaremeal.authenticate", return_value="fake-123")
