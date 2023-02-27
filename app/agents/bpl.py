@@ -104,10 +104,11 @@ class Bpl(BaseAgent):
                 issue_date=voucher["created_date"],
                 redeem_date=voucher.get("redeemed_date"),
                 expiry_date=voucher["conversion_date"],
+                conversion_date=voucher["conversion_date"],
                 code=generate_pending_voucher_code(voucher["conversion_date"]),
                 target_value=None,
                 value=None,
-                state="issued",
+                state="pending",
             )
             for voucher in vouchers
         ]

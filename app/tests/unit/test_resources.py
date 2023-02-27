@@ -84,6 +84,7 @@ class TestResources(TestCase):
                     code="test-voucher-2",
                     value=Decimal("20.20"),
                     target_value=Decimal("20.20"),
+                    conversion_date=1234567895,
                 ),
             ],
         )
@@ -105,6 +106,7 @@ class TestResources(TestCase):
                     "code": "test-voucher-2",
                     "value": Decimal("20.20"),
                     "target_value": Decimal("20.20"),
+                    "conversion_date": 1234567895
                 },
             ],
         }
