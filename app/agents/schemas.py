@@ -21,6 +21,7 @@ class Voucher(NamedTuple):
     code: Optional[str] = None
     value: Optional[Decimal] = None
     target_value: Optional[Decimal] = None
+    conversion_date: Optional[int] = None
 
 
 class Balance(NamedTuple):
@@ -40,7 +41,7 @@ def _delete_null_key(item: dict, key: str) -> None:
 def voucher_tuple_to_dict(voucher: Voucher) -> dict:
     result = voucher._asdict()
 
-    for field in ["issue_date", "redeem_date", "expiry_date", "code"]:
+    for field in ["issue_date", "redeem_date", "expiry_date", "code", "conversion_date"]:
         _delete_null_key(result, field)
 
     return result
