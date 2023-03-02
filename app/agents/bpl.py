@@ -108,7 +108,7 @@ class Bpl(BaseAgent):
                 code=generate_pending_voucher_code(voucher["conversion_date"]),
                 target_value=None,
                 value=None,
-                state="pending",
+                state=voucher_state_names[VoucherState.PENDING],
             )
             for voucher in vouchers
         ]
