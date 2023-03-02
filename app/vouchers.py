@@ -10,6 +10,7 @@ class VoucherState(enum.Enum):
     EXPIRED = 2
     REDEEMED = 3
     CANCELLED = 4
+    PENDING = 5
 
 
 voucher_state_names = {
@@ -18,6 +19,7 @@ voucher_state_names = {
     VoucherState.EXPIRED: "expired",
     VoucherState.REDEEMED: "redeemed",
     VoucherState.CANCELLED: "cancelled",
+    VoucherState.PENDING: "pending"
 }
 
 
