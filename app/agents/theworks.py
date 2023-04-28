@@ -1,7 +1,9 @@
 import json
 import uuid
+from decimal import Decimal
 from typing import Any, Optional
 
+import arrow
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
@@ -111,15 +113,15 @@ class TheWorks(BaseAgent):
 
     def parse_transaction(self, transaction: dict) -> Transaction:
         return Transaction(
-            date=0,
-            points=0,
-            description=0,
+            date=arrow.now(),
+            points=Decimal("0"),
+            description="description",
         )
 
     def balance(self) -> Optional[Balance]:
         return Balance(
-            points=0,
-            value=0,
+            points=Decimal("0"),
+            value=Decimal("0"),
             value_label="",
             vouchers=[],
         )
