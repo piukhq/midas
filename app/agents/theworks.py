@@ -11,13 +11,13 @@ from app.agents.schemas import Balance, Transaction
 from app.reporting import get_logger
 
 RETRY_LIMIT = 3
-log = get_logger("theworks")
+log = get_logger("the_works")
 
 
 class TheWorks(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.UPDATE_HANDLER, scheme_slug=scheme_slug)
-        self.source_id = "theworks"
+        self.source_id = "the_works"
         self.base_url = self.config.merchant_url
         self.integration_service = "SYNC"
         self.oauth_token_timeout = 3599
