@@ -17,7 +17,7 @@ log = get_logger("the_works")
 class TheWorks(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.UPDATE_HANDLER, scheme_slug=scheme_slug)
-        self.source_id = "the_works"
+        self.source_id = "givex"
         self.base_url = self.config.merchant_url
         self.integration_service = "SYNC"
         self.oauth_token_timeout = 3599
@@ -45,11 +45,12 @@ class TheWorks(BaseAgent):
                 "customer_reference": result[9],
             }
 
-    def _join_payload(self, first_name: str, last_name: str, email: str, consents: list):
+    def _join_payload(self):
+        consents = self.credentials.get("consents", [])
         marketing_optin = False
         if consents:
             marketing_optin = consents[0]["value"]
-        user_choice = "t" if marketing_optin else "f"
+        consents_user_choice = "t" if marketing_optin else "f"
         new_card_request = "f" if self.credentials.get("card_number") else "t"
         transaction_code = str(uuid.uuid4())
         return {
@@ -63,11 +64,11 @@ class TheWorks(BaseAgent):
                 self.outbound_security_credentials["password"],  # password
                 "",  # givex number
                 "CUSTOMER",  # customer type
-                email,  # customer login
+                self.credentials["email"],  # customer login
                 "",  # customer title
-                first_name,  # customer first name
+                self.credentials["first_name"],  # customer first name
                 "",  # customer middle name
-                last_name,  # customer last name
+                self.credentials["last_name"],  # customer last name
                 "",  # customer gender
                 "",  # customer birthday
                 "",  # customer address
@@ -79,8 +80,8 @@ class TheWorks(BaseAgent):
                 "",  # postal code
                 "",  # phone number
                 "0",  # customer duscount
-                user_choice,  # promotion optin
-                email,  # customer email
+                consents_user_choice,  # promotion optin
+                self.credentials["email"],  # customer email
                 transaction_code,  # customer password
                 "",  # customer mobile
                 "",  # customer company
@@ -90,10 +91,7 @@ class TheWorks(BaseAgent):
         }
 
     def join(self) -> Any:
-        consents = self.credentials.get("consents", [])
-        request_data = self._join_payload(
-            self.credentials["first_name"], self.credentials["last_name"], self.credentials["email"], consents
-        )
+        request_data = self._join_payload()
         resp = self.make_request(url=self.base_url, method="post", json=request_data)
         json_response = self._parse_join_response(resp)
 
