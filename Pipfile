@@ -34,7 +34,7 @@ gunicorn = "*"
 user-token-store = {version="*", index="pypi-cloud"}
 olympus-messaging = {version="*", index="pypi-cloud"}
 urllib3 = "*"
-click = "==8.0.4"
+click = "*"
 alembic = "*"
 sqlalchemy = "*"
 typer = "*"
