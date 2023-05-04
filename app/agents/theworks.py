@@ -8,6 +8,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
+from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError
 from app.reporting import get_logger
 
 RETRY_LIMIT = 3
@@ -16,7 +17,7 @@ log = get_logger("the_works")
 
 class TheWorks(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(retry_count, user_info, Configuration.UPDATE_HANDLER, scheme_slug=scheme_slug)
+        super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
         self.source_id = "givex"
         self.base_url = self.config.merchant_url
         self.integration_service = "SYNC"
@@ -44,6 +45,10 @@ class TheWorks(BaseAgent):
                 "login_token": result[8],
                 "customer_reference": result[9],
             }
+        elif account_status == "182":
+            raise AccountAlreadyExistsError()
+        else:
+            raise JoinError()
 
     def _join_payload(self):
         consents = self.credentials.get("consents", [])
@@ -79,7 +84,7 @@ class TheWorks(BaseAgent):
                 "",  # customer country
                 "",  # postal code
                 "",  # phone number
-                "0",  # customer duscount
+                "0",  # customer discount
                 consents_user_choice,  # promotion optin
                 self.credentials["email"],  # customer email
                 transaction_code,  # customer password
@@ -91,8 +96,12 @@ class TheWorks(BaseAgent):
         }
 
     def join(self) -> Any:
-        request_data = self._join_payload()
-        resp = self.make_request(url=self.base_url, method="post", json=request_data)
+        try:
+            request_data = self._join_payload()
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+        except BaseError:
+            raise
+
         json_response = self._parse_join_response(resp)
 
         self.identifier = {
