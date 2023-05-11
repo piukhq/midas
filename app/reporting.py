@@ -41,7 +41,14 @@ class JSONFormatter(logging.Formatter):
         )
 
 
-def sanitise(data: MutableMapping, sensitive_keys: list):
+def sanitise_rpc(data: dict, sensitive_keys=[]):
+    if data["audit_log_type"] == "REQUEST":
+        for index in sensitive_keys:
+            data["payload"]["params"][index] = settings.SANITISATION_STANDIN
+    return data
+
+
+def sanitise_json(data: MutableMapping, sensitive_keys: list):
     data = deepcopy(data)
     for k, v in data.items():
         # if `k` is a sensitive key, redact the whole thing (even if it's a mapping itself.)
@@ -49,10 +56,10 @@ def sanitise(data: MutableMapping, sensitive_keys: list):
             data[k] = settings.SANITISATION_STANDIN
         # if `k` isn't sensitive but it is a mapping, sanitise that mapping.
         elif isinstance(v, MutableMapping):
-            data[k] = sanitise(v, sensitive_keys)
+            data[k] = sanitise_json(v, sensitive_keys)
         # if `k` isn't sensitive but it is a list, sanitise all mappings in that list.
         elif isinstance(v, list):
-            data[k] = [sanitise(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
+            data[k] = [sanitise_json(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
     return data
 
 
