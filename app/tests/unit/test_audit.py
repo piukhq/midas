@@ -9,12 +9,16 @@ import httpretty
 import requests
 
 import settings
-from app.audit import RequestAuditLog, serialize
+from app.audit import (  # noqa
+    AuditLogger,
+    AuditLogType,
+    RequestAuditLog,
+    ResponseAuditLog,
+    sanitise_json,
+    sanitise_rpc,
+    serialize,
+)
 from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
-
-settings.ATLAS_URL = "http://binktest.com/atlas"
-
-from app.audit import AuditLogger, AuditLogType, ResponseAuditLog, sanitise_json, sanitise_rpc  # noqa
 
 standin = settings.SANITISATION_STANDIN
 
@@ -339,4 +343,3 @@ class TestAudit(unittest.TestCase):
         }
         result = sanitise_rpc(payload, [2, 4])
         assert result == expected
-
