@@ -44,7 +44,7 @@ class JSONFormatter(logging.Formatter):
 def sanitise_rpc(data: dict, sensitive_keys=[]):
     if data["audit_log_type"] == "REQUEST":
         for index in sensitive_keys:
-            data["payload"]["params"][index] = settings.SANITISATION_STANDIN
+            data["payload"]["original_payload"]["params"][index] = settings.SANITISATION_STANDIN
     return data
 
 

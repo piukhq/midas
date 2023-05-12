@@ -27,7 +27,14 @@ class TheWorks(BaseAgent):
         self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
         self.credentials = self.user_info["credentials"]
         self.errors = {}
-        self.audit_config = {"type": "rpc", "audit_sensitive_keys": [3]}
+        self.audit_config = {
+            "type": "rpc",
+            "audit_sensitive_keys": [3],
+            "audit_keys_mapping": {
+                "REQUEST": {6: "email", 8: "first_name", 10: "last_name"},
+                "RESPONSE": {6: "card_number"},
+            },
+        }
 
     @staticmethod
     def _parse_join_response(resp):

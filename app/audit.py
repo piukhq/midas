@@ -78,6 +78,16 @@ class AuditLogger:
         signal("send-audit-request").connect(self.send_request_audit_log)
         signal("send-audit-response").connect(self.send_response_audit_log)
 
+    @staticmethod
+    def get_rpc_mapped_payload(rpc_mapping, params, audit_log_type):
+        mapped_payload = {}
+        for key, val in rpc_mapping[audit_log_type.value].items():
+            try:
+                mapped_payload[val] = params[key]
+            except IndexError:
+                pass
+        return mapped_payload
+
     def send_request_audit_log(
         self,
         sender: Union[object, str],
@@ -90,6 +100,13 @@ class AuditLogger:
         channel: str,
         audit_config: dict,
     ) -> None:
+        if payload.get("jsonrpc"):
+            payload = {
+                "original_payload": payload,
+                "audit_translated_payload": self.get_rpc_mapped_payload(
+                    audit_config["audit_keys_mapping"], payload["params"], AuditLogType.REQUEST
+                ),
+            }
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
         request_audit_log = RequestAuditLog(
@@ -126,6 +143,14 @@ class AuditLogger:
             data = response
         except (json.decoder.JSONDecodeError, TypeError):
             data = response.text
+
+        if isinstance(data, dict) and data.get("jsonrpc"):
+            data = {
+                "original_payload": data,
+                "audit_translated_payload": self.get_rpc_mapped_payload(
+                    audit_config["audit_keys_mapping"], data["result"], AuditLogType.RESPONSE
+                ),
+            }
 
         response_audit_log = ResponseAuditLog(
             audit_log_type=AuditLogType.RESPONSE,
