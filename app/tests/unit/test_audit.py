@@ -24,79 +24,6 @@ def raise_exception(request, uri, headers):
 
 
 class TestAudit(unittest.TestCase):
-    @patch("app.audit.sanitise_rpc")
-    @patch("app.audit.sanitise_json")
-    def test_correct_sanitise_method_called_when_rpc(self, mock_sanitise_json, mock_sanitise_rpc):
-        audit_log = RequestAuditLog(
-            audit_log_type=AuditLogType.REQUEST,
-            channel="",
-            membership_plan_slug="slug",
-            handler_type=0,
-            record_uid="123",
-            timestamp="",
-            message_uid="",
-            integration_service="",
-            payload={
-                "original_payload": {
-                    "jsonrpc": "2.0",
-                    "params": [
-                        "this is fine",
-                        "this is fine",
-                        "oh no",
-                        "this is fine",
-                        "oh no!",
-                        "this is fine",
-                        "this is fine",
-                    ],
-                },
-                "audit_translated_payload": {"key": "val", "key": "val"},
-            },
-        )
-        audit_config = {"type": "rpc", "audit_sensitive_keys": [2, 4]}
-        serialize(audit_log, audit_config)
-        assert mock_sanitise_rpc.called
-        assert mock_sanitise_json.called is False
-
-    def test_sanitise_sensitive_audit_fields(self):
-        payload = {
-            "audit_log_type": "REQUEST",
-            "payload": {
-                "original_payload": {
-                    "jsonrpc": "2.0",
-                    "params": [
-                        "this is fine",
-                        "this is fine",
-                        "oh no",
-                        "this is fine",
-                        "oh no!",
-                        "this is fine",
-                        "this is fine",
-                    ],
-                },
-                "audit_translated_payload": {"key": "val", "key": "val"},
-            },
-        }
-        expected = {
-            "audit_log_type": "REQUEST",
-            "payload": {
-                "original_payload": {
-                    "jsonrpc": "2.0",
-                    "params": [
-                        "this is fine",
-                        "this is fine",
-                        standin,
-                        "this is fine",
-                        standin,
-                        "this is fine",
-                        "this is fine",
-                    ],
-                },
-                "audit_translated_payload": {"key": "val", "key": "val"},
-            },
-        }
-        result = sanitise_rpc(payload, [2, 4])
-        assert result == expected
-
     def test_sanitise_sensitive_fields(self):
         payload = {
             "safe data": "this is fine",
@@ -339,3 +266,77 @@ class TestAudit(unittest.TestCase):
             audit_logger.send_to_atlas(response_audit_log, {})
 
         assert "Error sending audit logs to Atlas" in captured.records[1].getMessage()
+
+    @patch("app.audit.sanitise_rpc")
+    @patch("app.audit.sanitise_json")
+    def test_correct_sanitise_method_called_when_rpc(self, mock_sanitise_json, mock_sanitise_rpc):
+        audit_log = RequestAuditLog(
+            audit_log_type=AuditLogType.REQUEST,
+            channel="",
+            membership_plan_slug="slug",
+            handler_type=0,
+            record_uid="123",
+            timestamp="",
+            message_uid="",
+            integration_service="",
+            payload={
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        "oh no",
+                        "this is fine",
+                        "oh no!",
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        )
+        audit_config = {"type": "rpc", "audit_sensitive_keys": [2, 4]}
+        serialize(audit_log, audit_config)
+        assert mock_sanitise_rpc.called
+        assert mock_sanitise_json.called is False
+
+    def test_sanitise_sensitive_audit_fields(self):
+        payload = {
+            "audit_log_type": "REQUEST",
+            "payload": {
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        "oh no",
+                        "this is fine",
+                        "oh no!",
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        }
+        expected = {
+            "audit_log_type": "REQUEST",
+            "payload": {
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        standin,
+                        "this is fine",
+                        standin,
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        }
+        result = sanitise_rpc(payload, [2, 4])
+        assert result == expected
+
