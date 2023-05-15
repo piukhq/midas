@@ -251,7 +251,7 @@ class BaseAgent(object):
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
                 raise IPBlockedError(exception=e) from e
             elif e.response.status_code == 404:
-                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=ResourceNotFoundError)
                 raise ResourceNotFoundError(exception=e) from e
             elif e.response.status_code in [503, 504]:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
