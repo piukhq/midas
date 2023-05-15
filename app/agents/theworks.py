@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 import arrow
+from blinker import signal
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
@@ -26,6 +27,15 @@ class TheWorks(BaseAgent):
         self.outbound_auth_service = self.config.security_credentials["outbound"]["service"]
         self.credentials = self.user_info["credentials"]
         self.errors = {}
+        self.audit_config = {
+            "type": "jsonrpc",
+            "audit_sensitive_keys": [3],  # positions containing sensitive fields sanitised for audit (passwords etc.)
+            "audit_keys_mapping": {
+                # key: positions containing searchable fields for atlas - value: atlas-readable field names
+                "REQUEST": {6: "email", 8: "first_name", 10: "last_name"},
+                "RESPONSE": {6: "card_number"},
+            },
+        }
 
     @staticmethod
     def _parse_join_response(resp):
@@ -98,8 +108,10 @@ class TheWorks(BaseAgent):
     def join(self) -> Any:
         try:
             request_data = self._join_payload()
-            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+            resp = self.make_request(url=self.base_url, method="post", json=request_data, audit=True)
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
 
         json_response = self._parse_join_response(resp)

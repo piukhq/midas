@@ -614,6 +614,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("send-audit-response"),
             call().send(
@@ -626,6 +627,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("record-http-request"),
             call().send(
@@ -686,6 +688,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("send-audit-response"),
             call().send(
@@ -698,6 +701,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("record-http-request"),
             call().send(
@@ -756,6 +760,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("send-audit-response"),
             call().send(
@@ -768,6 +773,7 @@ class TestIcelandAdd(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("record-http-request"),
             call().send(
@@ -927,6 +933,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("send-audit-response"),
             call().send(
@@ -939,6 +946,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("record-http-request"),
             call().send(
@@ -1207,6 +1215,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("send-audit-response"),
             call().send(
@@ -1219,6 +1228,7 @@ class TestIcelandJoin(TestCase):
                 message_uid=ANY,
                 record_uid=ANY,
                 channel="",
+                audit_config={},
             ),
             call("record-http-request"),
             call().send(

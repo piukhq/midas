@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Iterable, NamedTuple, Union
+from typing import Iterable, NamedTuple, Union
 from uuid import uuid4
 
 import arrow
@@ -10,7 +10,7 @@ from requests import Response
 from soteria.configuration import Configuration
 
 from app.http_request import get_headers
-from app.reporting import LOGGING_SENSITIVE_KEYS, get_logger, sanitise
+from app.reporting import get_logger, sanitise_json, sanitise_rpc
 from app.requests_retry import requests_retry_session
 from settings import ATLAS_URL, AUDIT_SENSITIVE_KEYS
 
@@ -48,10 +48,14 @@ class ResponseAuditLog(NamedTuple):
 AuditLog = Union[RequestAuditLog, ResponseAuditLog]
 
 
-def serialize(audit_log: AuditLog) -> dict:
+def serialize(audit_log: AuditLog, audit_config: dict) -> dict:
     data = audit_log._asdict()
     data["audit_log_type"] = data["audit_log_type"].value
-    data = sanitise(data, AUDIT_SENSITIVE_KEYS)
+    if audit_config.get("type") == "jsonrpc":
+        data = sanitise_rpc(data, sensitive_keys=audit_config["audit_sensitive_keys"])
+    else:
+        data = sanitise_json(data, AUDIT_SENSITIVE_KEYS)
+
     return data
 
 
@@ -74,17 +78,35 @@ class AuditLogger:
         signal("send-audit-request").connect(self.send_request_audit_log)
         signal("send-audit-response").connect(self.send_response_audit_log)
 
+    @staticmethod
+    def get_rpc_mapped_payload(rpc_mapping, params, audit_log_type):
+        mapped_payload = {}
+        for key, val in rpc_mapping[audit_log_type.value].items():
+            try:
+                mapped_payload[val] = params[key]
+            except IndexError:
+                pass
+        return mapped_payload
+
     def send_request_audit_log(
         self,
         sender: Union[object, str],
-        payload: Union[dict[Any, Any], str],
+        payload: dict,
         scheme_slug: str,
         handler_type: int,
         integration_service: str,
         message_uid: str,
         record_uid: str,
         channel: str,
+        audit_config: dict,
     ) -> None:
+        if payload.get("jsonrpc"):
+            payload = {
+                "original_payload": payload,
+                "audit_translated_payload": self.get_rpc_mapped_payload(
+                    audit_config["audit_keys_mapping"], payload["params"], AuditLogType.REQUEST
+                ),
+            }
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
         request_audit_log = RequestAuditLog(
@@ -98,7 +120,7 @@ class AuditLogger:
             integration_service=integration_service,
             payload=payload,
         )
-        self.send_to_atlas(request_audit_log)
+        self.send_to_atlas(request_audit_log, audit_config)
 
     def send_response_audit_log(
         self,
@@ -111,6 +133,7 @@ class AuditLogger:
         message_uid: str,
         record_uid: str,
         channel: str,
+        audit_config: dict,
     ):
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
@@ -120,6 +143,14 @@ class AuditLogger:
             data = response
         except (json.decoder.JSONDecodeError, TypeError):
             data = response.text
+
+        if isinstance(data, dict) and data.get("jsonrpc"):
+            data = {
+                "original_payload": data,
+                "audit_translated_payload": self.get_rpc_mapped_payload(
+                    audit_config["audit_keys_mapping"], data["result"], AuditLogType.RESPONSE
+                ),
+            }
 
         response_audit_log = ResponseAuditLog(
             audit_log_type=AuditLogType.RESPONSE,
@@ -133,16 +164,15 @@ class AuditLogger:
             payload=data,
             status_code=status_code,
         )
-        self.send_to_atlas(response_audit_log)
+        self.send_to_atlas(response_audit_log, audit_config)
 
-    def send_to_atlas(self, audit_log):
+    def send_to_atlas(self, audit_log, audit_config):
         if not audit_log:
             log.debug("No request or response data to send to Atlas.")
             return
-
         headers = get_headers(tid=str(uuid4()))
-        payload = {"audit_logs": [serialize(audit_log)]}
-        log.info(f"Sending payload to atlas: {sanitise(payload, LOGGING_SENSITIVE_KEYS)}")
+        payload = {"audit_logs": [serialize(audit_log, audit_config)]}
+        log.info(f"Sending payload to atlas: {payload}")
 
         try:
             resp = self.session.post(f"{ATLAS_URL}/audit/membership/", headers=headers, json=payload)

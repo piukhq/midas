@@ -9,11 +9,16 @@ import httpretty
 import requests
 
 import settings
+from app.audit import (  # noqa
+    AuditLogger,
+    AuditLogType,
+    RequestAuditLog,
+    ResponseAuditLog,
+    sanitise_json,
+    sanitise_rpc,
+    serialize,
+)
 from settings import AUDIT_DEFAULT_SENSITIVE_KEYS
-
-settings.ATLAS_URL = "http://binktest.com/atlas"
-
-from app.audit import AuditLogger, AuditLogType, ResponseAuditLog, sanitise  # noqa
 
 standin = settings.SANITISATION_STANDIN
 
@@ -61,7 +66,7 @@ class TestAudit(unittest.TestCase):
             ],
         }
 
-        result = sanitise(payload, AUDIT_DEFAULT_SENSITIVE_KEYS)
+        result = sanitise_json(payload, AUDIT_DEFAULT_SENSITIVE_KEYS)
         assert result == expected, "new payload should be sanitised"
         assert payload != result, "original payload should not be changed"
 
@@ -83,6 +88,7 @@ class TestAudit(unittest.TestCase):
             message_uid=req_message_uid,
             record_uid=record_uid,
             channel="unit tests",
+            audit_config={},
         )
         timestamp = arrow.utcnow().int_timestamp
 
@@ -118,6 +124,7 @@ class TestAudit(unittest.TestCase):
             message_uid=resp_message_uid,
             record_uid=record_uid,
             channel="unit tests",
+            audit_config={},
         )
 
         expected = {
@@ -165,6 +172,7 @@ class TestAudit(unittest.TestCase):
             message_uid=resp_message_uid,
             record_uid=record_uid,
             channel="unit tests",
+            audit_config={},
         )
 
         assert mock_send_to_atlas.called
@@ -195,6 +203,7 @@ class TestAudit(unittest.TestCase):
             message_uid=resp_message_uid,
             record_uid=record_uid,
             channel="unit tests",
+            audit_config={},
         )
 
         assert mock_send_to_atlas.called
@@ -205,7 +214,7 @@ class TestAudit(unittest.TestCase):
         audit_logger = AuditLogger()
         log_logger = logging.getLogger("audit")
         with self.assertLogs(logger=log_logger, level="DEBUG") as captured:
-            result = audit_logger.send_to_atlas(None)
+            result = audit_logger.send_to_atlas(None, {})
 
         assert captured.records[0].getMessage() == "No request or response data to send to Atlas."
 
@@ -233,7 +242,7 @@ class TestAudit(unittest.TestCase):
         )
 
         with self.assertLogs(logger=log_logger, level="DEBUG") as captured:
-            audit_logger.send_to_atlas(response_audit_log)
+            audit_logger.send_to_atlas(response_audit_log, {})
 
         assert "Error response from Atlas when sending audit logs" in captured.records[1].getMessage()
 
@@ -258,6 +267,79 @@ class TestAudit(unittest.TestCase):
         )
 
         with self.assertLogs(logger=log_logger) as captured:
-            audit_logger.send_to_atlas(response_audit_log)
+            audit_logger.send_to_atlas(response_audit_log, {})
 
         assert "Error sending audit logs to Atlas" in captured.records[1].getMessage()
+
+    @patch("app.audit.sanitise_rpc")
+    @patch("app.audit.sanitise_json")
+    def test_correct_sanitise_method_called_when_rpc(self, mock_sanitise_json, mock_sanitise_rpc):
+        audit_log = RequestAuditLog(
+            audit_log_type=AuditLogType.REQUEST,
+            channel="",
+            membership_plan_slug="slug",
+            handler_type=0,
+            record_uid="123",
+            timestamp="",
+            message_uid="",
+            integration_service="",
+            payload={
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        "oh no",
+                        "this is fine",
+                        "oh no!",
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        )
+        audit_config = {"type": "jsonrpc", "audit_sensitive_keys": [2, 4]}
+        serialize(audit_log, audit_config)
+        assert mock_sanitise_rpc.called
+        assert mock_sanitise_json.called is False
+
+    def test_sanitise_sensitive_audit_fields(self):
+        payload = {
+            "audit_log_type": "REQUEST",
+            "payload": {
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        "oh no",
+                        "this is fine",
+                        "oh no!",
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        }
+        expected = {
+            "audit_log_type": "REQUEST",
+            "payload": {
+                "original_payload": {
+                    "jsonrpc": "2.0",
+                    "params": [
+                        "this is fine",
+                        "this is fine",
+                        standin,
+                        "this is fine",
+                        standin,
+                        "this is fine",
+                        "this is fine",
+                    ],
+                },
+                "audit_translated_payload": {"key": "val", "key": "val"},
+            },
+        }
+        result = sanitise_rpc(payload, [2, 4])
+        assert result == expected
