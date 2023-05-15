@@ -236,6 +236,10 @@ class BaseAgent(object):
             response_code=resp.status_code,
         )
 
+        resp = self.check_response_for_errors(resp)
+        return resp
+
+    def check_response_for_errors(self, resp):
         try:
             resp.raise_for_status()
         except HTTPError as e:
