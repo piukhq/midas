@@ -30,6 +30,7 @@ from app.exceptions import (
     JoinError,
     NotSentError,
     PreRegisteredCardError,
+    ResourceNotFoundError,
     RetryLimitReachedError,
     ServiceConnectionError,
     StatusLoginFailedError,
@@ -249,6 +250,9 @@ class BaseAgent(object):
             elif e.response.status_code == 403:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
                 raise IPBlockedError(exception=e) from e
+            elif e.response.status_code == 404:
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
+                raise ResourceNotFoundError(exception=e) from e
             elif e.response.status_code in [503, 504]:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
                 raise NotSentError(exception=e) from e
