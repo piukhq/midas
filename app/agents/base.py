@@ -97,7 +97,7 @@ class BaseAgent(object):
         self.errors: dict[Exception, int] = {}
         self.integration_service = ""
         self.outbound_auth_service: int = Configuration.OAUTH_SECURITY
-        self.audit_config = {}
+        self.audit_config: dict[str, str] = {}
 
         if settings.SENTRY_DSN:
             sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
