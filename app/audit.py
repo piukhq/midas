@@ -51,7 +51,7 @@ AuditLog = Union[RequestAuditLog, ResponseAuditLog]
 def serialize(audit_log: AuditLog, audit_config: dict) -> dict:
     data = audit_log._asdict()
     data["audit_log_type"] = data["audit_log_type"].value
-    if audit_config.get("type") == "rpc":
+    if audit_config.get("type") == "jsonrpc":
         data = sanitise_rpc(data, sensitive_keys=audit_config["audit_sensitive_keys"])
     else:
         data = sanitise_json(data, AUDIT_SENSITIVE_KEYS)

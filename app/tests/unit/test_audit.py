@@ -299,7 +299,7 @@ class TestAudit(unittest.TestCase):
                 "audit_translated_payload": {"key": "val", "key": "val"},
             },
         )
-        audit_config = {"type": "rpc", "audit_sensitive_keys": [2, 4]}
+        audit_config = {"type": "jsonrpc", "audit_sensitive_keys": [2, 4]}
         serialize(audit_log, audit_config)
         assert mock_sanitise_rpc.called
         assert mock_sanitise_json.called is False
