@@ -125,6 +125,7 @@ class Iceland(BaseAgent):
             integration_service=self.integration_service,
             status_code=0,  # Doesn't have a status code since this is an async response
             channel=self.channel,
+            audit_config={},
         )
         consent_status = ConsentStatus.PENDING
         try:
