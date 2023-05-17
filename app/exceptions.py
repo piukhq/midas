@@ -196,3 +196,9 @@ class JoinError(BaseError):
     name = "General error preventing join"
     generic_message = "A system error occurred during join."
     system_action_required = True
+
+
+class ResourceNotFoundError(BaseError):
+    code = 530
+    name = "Resource not found"
+    generic_message = "Requested resource was not found at the given endpoint."

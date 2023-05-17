@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.theworks import TheWorks
 from app.api import create_app
-from app.exceptions import AccountAlreadyExistsError, JoinError
+from app.exceptions import AccountAlreadyExistsError, JoinError, ResourceNotFoundError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -143,3 +143,24 @@ class TestTheWorksJoin(TestCase):
 
         self.assertEqual(e.exception.name, "General error preventing join")
         self.assertEqual(e.exception.code, 538)
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_join_notfound_error(self, mock_requests_session):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body="Resource not found",
+                    status=404,
+                )
+            ],
+        )
+
+        with self.assertRaises(ResourceNotFoundError) as e:
+            self.the_works.join()
+
+        self.assertEqual(e.exception.name, "Resource not found")
+        self.assertEqual(e.exception.code, 530)
