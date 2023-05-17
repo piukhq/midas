@@ -1135,6 +1135,7 @@ class TestIcelandJoin(TestCase):
                 integration_service="SYNC",
                 status_code=0,
                 channel="",
+                audit_config={}
             ),
             call("callback-success"),
             call().send(
