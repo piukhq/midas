@@ -29,7 +29,7 @@ class TheWorks(BaseAgent):
         self.errors = {}
         self.audit_config = {
             "type": "jsonrpc",
-            "audit_sensitive_keys": [3],  # positions containing sensitive fields sanitised for audit (passwords etc.)
+            "audit_sensitive_keys": [2, 3],  # positions containing sensitive fields sanitised for audit
             "audit_keys_mapping": {
                 # key: positions containing searchable fields for atlas - value: atlas-readable field names
                 "REQUEST": {6: "email", 8: "first_name", 10: "last_name"},
