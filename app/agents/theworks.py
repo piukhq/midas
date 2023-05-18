@@ -9,7 +9,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.reporting import get_logger
 
 RETRY_LIMIT = 3
@@ -55,8 +55,10 @@ class TheWorks(BaseAgent):
                 "login_token": result[8],
                 "customer_reference": result[9],
             }
-        elif account_status == "182":
+        elif account_status in ("182", "67"):
             raise AccountAlreadyExistsError()
+        elif account_status == "2":
+            raise CardNumberError()
         else:
             raise JoinError()
 
@@ -77,7 +79,7 @@ class TheWorks(BaseAgent):
                 transaction_code,  # transaction code
                 self.outbound_security_credentials["user_id"],  # user id
                 self.outbound_security_credentials["password"],  # password
-                "",  # givex number
+                self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
                 "CUSTOMER",  # customer type
                 self.credentials["email"],  # customer login
                 "",  # customer title
@@ -107,17 +109,19 @@ class TheWorks(BaseAgent):
 
     def join(self) -> Any:
         try:
+            if self.credentials.get("card_number"):
+                self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
             request_data = self._join_payload()
             resp = self.make_request(url=self.base_url, method="post", json=request_data, audit=True)
+            json_response = self._parse_join_response(resp)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
 
-        json_response = self._parse_join_response(resp)
-
         self.identifier = {
             "card_number": json_response["iso_serial"],
+            "barcode": json_response["iso_serial"],
         }
         self.credentials.update(self.identifier)
 
