@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import httpretty
 from flask_testing import TestCase
@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.theworks import TheWorks
 from app.api import create_app
-from app.exceptions import AccountAlreadyExistsError, JoinError
+from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -85,9 +85,107 @@ class TestTheWorksJoin(TestCase):
             self.the_works.base_url = "https://fake.url/"
             self.the_works.max_retries = 0
 
+    @mock.patch("app.agents.theworks.uuid.uuid4", return_value="uid")
+    def test_join_payload_with_join_vars(self, mock_uid):
+        self.the_works.credentials = {
+            "first_name": "Fake",
+            "last_name": "Name",
+            "email": "email@domain.com",
+            "consents": [{"id": 11738, "slug": "email_marketing", "value": True, "created_on": "1996-09-26T00:00:00"}],
+        }
+        payload = self.the_works._join_payload()
+        expected = {
+            "jsonrpc": "2.0",
+            "method": "dc_946",  # request method
+            "id": 1,
+            "params": [
+                "en",  # language code
+                "uid",  # transaction code
+                "1234",  # user id
+                "pass",  # password
+                "",  # givex number
+                "CUSTOMER",  # customer type
+                "email@domain.com",  # customer login
+                "",  # customer title
+                "Fake",  # customer first name
+                "",  # customer middle name
+                "Name",  # customer last name
+                "",  # customer gender
+                "",  # customer birthday
+                "",  # customer address
+                "",  # customer address 2
+                "",  # customer city
+                "",  # customer province
+                "",  # customer county
+                "",  # customer country
+                "",  # postal code
+                "",  # phone number
+                "0",  # customer discount
+                "t",  # promotion optin
+                "email@domain.com",  # customer email
+                "uid",  # customer password
+                "",  # customer mobile
+                "",  # customer company
+                "",  # security code
+                "t",  # new card request
+            ],
+        }
+
+        self.assertEqual(payload, expected)
+
+    @mock.patch("app.agents.theworks.uuid.uuid4", return_value="uid")
+    def test_join_payload_with_register_vars(self, mock_uid):
+        self.the_works.credentials = {
+            "first_name": "Fake",
+            "last_name": "Name",
+            "email": "email@domain.com",
+            "card_number": "5556",
+            "consents": [{"id": 11738, "slug": "email_marketing", "value": False, "created_on": "1996-09-26T00:00:00"}],
+        }
+        payload = self.the_works._join_payload()
+        expected = {
+            "jsonrpc": "2.0",
+            "method": "dc_946",  # request method
+            "id": 1,
+            "params": [
+                "en",  # language code
+                "uid",  # transaction code
+                "1234",  # user id
+                "pass",  # password
+                "5556",  # givex number
+                "CUSTOMER",  # customer type
+                "email@domain.com",  # customer login
+                "",  # customer title
+                "Fake",  # customer first name
+                "",  # customer middle name
+                "Name",  # customer last name
+                "",  # customer gender
+                "",  # customer birthday
+                "",  # customer address
+                "",  # customer address 2
+                "",  # customer city
+                "",  # customer province
+                "",  # customer county
+                "",  # customer country
+                "",  # postal code
+                "",  # phone number
+                "0",  # customer discount
+                "f",  # promotion optin
+                "email@domain.com",  # customer email
+                "uid",  # customer password
+                "",  # customer mobile
+                "",  # customer company
+                "",  # security code
+                "f",  # new card request
+            ],
+        }
+
+        self.assertEqual(payload, expected)
+
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
-    def test_create_account_200(self, mock_requests_session):
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_create_account_200(self, mock_signal, mock_requests_session):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -99,12 +197,18 @@ class TestTheWorksJoin(TestCase):
                 )
             ],
         )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-success"),
+            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+        ]
         self.the_works.join()
+        mock_signal.assert_has_calls(expected_calls)
         self.assertEqual(self.the_works.credentials["card_number"], RESPONSE_JSON_200["result"][6])
 
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
-    def test_join_account_exists(self, mock_requests_session):
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_join_account_exists(self, mock_signal, mock_requests_session):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -118,14 +222,70 @@ class TestTheWorksJoin(TestCase):
         )
 
         with self.assertRaises(AccountAlreadyExistsError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("join-fail"),
+                call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+            ]
             self.the_works.join()
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Account already exists")
+        self.assertEqual(e.exception.code, 445)
 
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {"jsonrpc": "2.0", "id": 1, "result": ["1234", "67", "This member is already enrolled"]}
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(AccountAlreadyExistsError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("join-fail"),
+                call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.join()
+        mock_signal.assert_has_calls(expected_calls)
         self.assertEqual(e.exception.name, "Account already exists")
         self.assertEqual(e.exception.code, 445)
 
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
-    def test_join_unknown_error(self, mock_requests_session):
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_join_unknown_error(self, mock_signal, mock_requests_session):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps({"jsonrpc": "2.0", "id": 1, "result": ["1234", "19", "Operation not permitted"]}),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(JoinError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("join-fail"),
+                call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.join()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "General error preventing join")
+        self.assertEqual(e.exception.code, 538)
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_join_cardnumber_error(self, mock_signal, mock_requests_session):
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -138,8 +298,13 @@ class TestTheWorksJoin(TestCase):
             ],
         )
 
-        with self.assertRaises(JoinError) as e:
+        with self.assertRaises(CardNumberError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("join-fail"),
+                call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+            ]
             self.the_works.join()
 
-        self.assertEqual(e.exception.name, "General error preventing join")
-        self.assertEqual(e.exception.code, 538)
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Card not registered or Unknown")
+        self.assertEqual(e.exception.code, 436)
