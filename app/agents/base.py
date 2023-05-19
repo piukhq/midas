@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from copy import deepcopy
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
@@ -98,7 +98,7 @@ class BaseAgent(object):
         self.errors: dict[Exception, int] = {}
         self.integration_service = ""
         self.outbound_auth_service: int = Configuration.OAUTH_SECURITY
-        self.audit_config: dict[str, str] = {}
+        self.audit_config: dict[str, Any] = {}
 
         if settings.SENTRY_DSN:
             sentry_sdk.set_tag("scheme_slug", self.scheme_slug)
