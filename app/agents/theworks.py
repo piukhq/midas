@@ -7,10 +7,14 @@ import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 
+import settings
+from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.reporting import get_logger
+from app.retry_util import get_task
+from app.scheme_account import JourneyTypes
 
 RETRY_LIMIT = 3
 log = get_logger("the_works")
@@ -36,6 +40,19 @@ class TheWorks(BaseAgent):
                 "RESPONSE": {6: "card_number"},
             },
         }
+        if self.user_info["journey_type"] == JourneyTypes.JOIN:
+            with db.session_scope() as session:
+                task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
+                if task.attempts >= 1:
+                    self.config = Configuration(
+                        f"{scheme_slug}-failover",
+                        Configuration.JOIN_HANDLER,
+                        settings.VAULT_URL,
+                        settings.VAULT_TOKEN,
+                        settings.CONFIG_SERVICE_URL,
+                        settings.AZURE_AAD_TENANT_ID,
+                    )
+                    self.base_url = self.config.merchant_url
 
     @staticmethod
     def _parse_join_response(resp):
