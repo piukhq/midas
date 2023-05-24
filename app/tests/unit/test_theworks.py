@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 from unittest import mock
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, call
 
 import httpretty
 from flask_testing import TestCase
