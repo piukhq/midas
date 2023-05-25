@@ -1,6 +1,6 @@
 import json
 import uuid
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 from typing import Any, Optional
 
 import arrow
@@ -9,6 +9,7 @@ from soteria.configuration import Configuration
 
 import settings
 from app import db
+from app.scheme_account import TWO_PLACES
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
@@ -17,6 +18,8 @@ from app.retry_util import get_task
 from app.scheme_account import JourneyTypes
 
 RETRY_LIMIT = 3
+NO_PLACES = Decimal('1.')
+
 log = get_logger("the_works")
 
 
@@ -40,6 +43,11 @@ class TheWorks(BaseAgent):
                 "RESPONSE": {6: "card_number"},
             },
         }
+        self.points_balance = None
+        self.balance_expiry = None
+        self.money_balance = None
+        self.balance_error = None
+        self.login_called = False
         if self.user_info["journey_type"] == JourneyTypes.JOIN:
             with db.session_scope() as session:
                 task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
@@ -146,26 +154,114 @@ class TheWorks(BaseAgent):
         }
         self.credentials.update(self.identifier)
 
+    def _balance_result(self, error_or_balance) -> None:
+        try:
+            self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
+        except DecimalException:
+            self.balance_error = error_or_balance
+            raise
+
+    def _parse_balance_response(self, resp: BaseAgent.make_request):
+        result = give_x_response(resp)
+        self._balance_result(result[2])
+        self.balance_expiry = result[4]
+        self.points_balance = Decimal(result[3]).quantize(NO_PLACES)
+
+    def _get_balance(self):
+        request_data = give_x_payload(self, 994, [self.credentials.get("card_number")])
+        try:
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+        except BaseError:
+            raise
+        self._parse_balance_response(resp)
+
     def login(self) -> Any:
+        self.login_called = True
+        try:
+            self._get_balance()
+        except BaseError:
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            raise
+        signal("log-in-success").send(self, slug=self.scheme_slug)
         return
 
     def transactions(self) -> list[Transaction]:
-        return []
+        try:
+            return self.hash_transactions(self.transaction_history())
+        except Exception as ex:
+            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            return []
 
     def transaction_history(self) -> list[Transaction]:
-        return []
+        request_data = give_x_payload(self, 995, [
+            self.credentials.get("card_number"),
+            "",
+            "",
+            "Points"
+        ])
+        try:
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+        except BaseError:
+            raise
 
-    def parse_transaction(self, transaction: dict) -> Transaction:
+        return self._parse_transactions(resp)
+
+    def _parse_transactions(self, resp: BaseAgent.make_request) -> [Transaction]:
+        result = give_x_response(resp)
+        self._balance_result(result[2])
+        self.points_balance = Decimal(result[4]).quantize(NO_PLACES)
+        return [self._parse_transaction(tx) for tx in result[5]]
+
+    @staticmethod
+    def _parse_transaction(transaction: list) -> Transaction:
+        date = arrow.get(f"{transaction[0]} {transaction[1]}", 'YYYY-MM-DD HH:mm:ss')
         return Transaction(
-            date=arrow.now(),
-            points=Decimal("0"),
+            date=date,
+            points=Decimal(transaction[3]).quantize(TWO_PLACES),
             description="description",
         )
 
     def balance(self) -> Optional[Balance]:
-        return Balance(
-            points=Decimal("0"),
-            value=Decimal("0"),
-            value_label="",
-            vouchers=[],
-        )
+        if not self.login_called:
+            try:
+                self._get_balance()
+            except BaseError:
+                raise
+        if self.points_balance is not None and self.balance_error is None:
+            return Balance(
+                points=self.points_balance,
+                value=self.money_balance,
+                value_label=f"£{self.money_balance}",
+            )
+        else:
+            return None
+
+def give_x_payload(agent: TheWorks, method: int, add_params: list) -> dict:
+    return {
+        "jsonrpc": "2.0",
+        "method": f"dc_{method}",  # request method
+        "id": 1,
+        "params": [
+            "en",  # language code
+            str(uuid.uuid4()),  # transaction code
+            agent.outbound_security_credentials["user_id"],  # user id
+            agent.outbound_security_credentials["password"], # password
+        ] + add_params
+    }
+
+
+def give_x_response(resp: BaseAgent.make_request) -> list:
+    json_resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
+    result = json_resp["result"]
+    id = json_resp["id"]
+    if id != 1:
+        log.warning(f"The works: response had message id = {id} should be 1")
+        raise BaseError()
+    account_status = result[1]
+
+    if account_status == "0":
+        return result
+    else:
+        raise BaseError()
+
+
