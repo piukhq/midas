@@ -47,6 +47,7 @@ class TheWorks(BaseAgent):
         self.balance_expiry = None
         self.money_balance = None
         self.balance_error = None
+        self.parsed_transactions = None
         self.login_called = False
         if self.user_info["journey_type"] == JourneyTypes.JOIN:
             with db.session_scope() as session:
@@ -177,19 +178,45 @@ class TheWorks(BaseAgent):
 
     def login(self) -> Any:
         self.login_called = True
+        failed = False
         try:
-            self._get_balance()
+            self._get_transaction_history()
         except BaseError:
+            failed = True
+
+        if failed or self.balance_error is not None:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
-        signal("log-in-success").send(self, slug=self.scheme_slug)
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug)
         return
 
-    def transactions(self) -> list[Transaction]:
+    def _get_transaction_history(self):
+        request_data = give_x_payload(self, 995, [
+            self.credentials.get("card_number"),
+            "",
+            "",
+            "Points"
+        ])
         try:
-            return self.hash_transactions(self.transaction_history())
-        except Exception as ex:
-            log.warning(f"{self} failed to get transactions: {repr(ex)}")
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+        except BaseError:
+            raise
+        self.parsed_transactions = self._parse_transactions(resp)
+
+    def transactions(self) -> list[Transaction]:
+        if not self.login_called:
+            try:
+                self._get_transaction_history()
+            except BaseError:
+                raise
+        if self.parsed_transactions is not None and self.balance_error is None:
+            try:
+                return self.hash_transactions(self.parsed_transactions)
+            except Exception as ex:
+                log.warning(f"{self} failed to get transactions: {repr(ex)}")
+                return []
+        else:
             return []
 
     def transaction_history(self) -> list[Transaction]:
@@ -212,13 +239,12 @@ class TheWorks(BaseAgent):
         self.points_balance = Decimal(result[4]).quantize(NO_PLACES)
         return [self._parse_transaction(tx) for tx in result[5]]
 
-    @staticmethod
-    def _parse_transaction(transaction: list) -> Transaction:
+    def _parse_transaction(self,transaction: list) -> Transaction:
         date = arrow.get(f"{transaction[0]} {transaction[1]}", 'YYYY-MM-DD HH:mm:ss')
         return Transaction(
             date=date,
+            description=f"£{self.money_balance}",
             points=Decimal(transaction[3]).quantize(TWO_PLACES),
-            description="description",
         )
 
     def balance(self) -> Optional[Balance]:
@@ -230,11 +256,12 @@ class TheWorks(BaseAgent):
         if self.points_balance is not None and self.balance_error is None:
             return Balance(
                 points=self.points_balance,
-                value=self.money_balance,
-                value_label=f"£{self.money_balance}",
+                value=Decimal(0),
+                value_label=f"",
             )
         else:
             return None
+
 
 def give_x_payload(agent: TheWorks, method: int, add_params: list) -> dict:
     return {
@@ -263,5 +290,3 @@ def give_x_response(resp: BaseAgent.make_request) -> list:
         return result
     else:
         raise BaseError()
-
-
