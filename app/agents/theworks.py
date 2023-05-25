@@ -46,31 +46,34 @@ class TheWorks(BaseAgent):
         self.balance_error = None
         self.parsed_transactions = None
         self.login_called = False
+        # in order to make it easier for test cases the uuids are updated when the response is processed
+        # test cases can use the rpc_id and transaction_uuid when making mock requests and preparing expected results
+        # before the call to the works method
+        self.rpc_id = str(uuid.uuid4())
+        self.transaction_uuid = str(uuid.uuid4())
 
-    @staticmethod
-    def _parse_join_response(resp):
-        resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
-        result = resp["result"]
-        account_status = result[1]
+    def _parse_join_response(self, resp):
+        result, account_status = self.give_x_response(resp)
         if account_status == "0":
             return {
-                "transaction_code": result[0],
-                "result": account_status,
-                "customer_id": result[2],
-                "customer_first_name": result[3],
-                "customer_last_name": result[4],
-                "customer_reg_date": result[5],
-                "iso_serial": result[6],
-                "loyalty_enroll_id": result[7],
-                "login_token": result[8],
-                "customer_reference": result[9],
-            }
+            "transaction_code": result[0],
+            "result": account_status,
+            "customer_id": result[2],
+            "customer_first_name": result[3],
+            "customer_last_name": result[4],
+            "customer_reg_date": result[5],
+            "iso_serial": result[6],
+            "loyalty_enroll_id": result[7],
+            "login_token": result[8],
+            "customer_reference": result[9],
+        }
         elif account_status in ("182", "67"):
             raise AccountAlreadyExistsError()
         elif account_status == "2":
             raise CardNumberError()
         else:
             raise JoinError()
+
 
     def _join_payload(self):
         consents = self.credentials.get("consents", [])
@@ -79,43 +82,33 @@ class TheWorks(BaseAgent):
             marketing_optin = consents[0]["value"]
         consents_user_choice = "t" if marketing_optin else "f"
         new_card_request = "f" if self.credentials.get("card_number") else "t"
-        transaction_code = str(uuid.uuid4())
-        return {
-            "jsonrpc": "2.0",
-            "method": "dc_946",  # request method
-            "id": 1,
-            "params": [
-                "en",  # language code
-                transaction_code,  # transaction code
-                self.outbound_security_credentials["user_id"],  # user id
-                self.outbound_security_credentials["password"],  # password
-                self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
-                "CUSTOMER",  # customer type
-                self.credentials["email"],  # customer login
-                "",  # customer title
-                self.credentials["first_name"],  # customer first name
-                "",  # customer middle name
-                self.credentials["last_name"],  # customer last name
-                "",  # customer gender
-                "",  # customer birthday
-                "",  # customer address
-                "",  # customer address 2
-                "",  # customer city
-                "",  # customer province
-                "",  # customer county
-                "",  # customer country
-                "",  # postal code
-                "",  # phone number
-                "0",  # customer discount
-                consents_user_choice,  # promotion optin
-                self.credentials["email"],  # customer email
-                transaction_code,  # customer password
-                "",  # customer mobile
-                "",  # customer company
-                "",  # security code
-                new_card_request,  # new card request
-            ],
-        }
+        return self.give_x_payload(946, [
+            self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
+            "CUSTOMER",  # customer type
+            self.credentials["email"],  # customer login
+            "",  # customer title
+            self.credentials["first_name"],  # customer first name
+            "",  # customer middle name
+            self.credentials["last_name"],  # customer last name
+            "",  # customer gender
+            "",  # customer birthday
+            "",  # customer address
+            "",  # customer address 2
+            "",  # customer city
+            "",  # customer province
+            "",  # customer county
+            "",  # customer country
+            "",  # postal code
+            "",  # phone number
+            "0",  # customer discount
+            consents_user_choice,  # promotion optin
+            self.credentials["email"],  # customer email
+            str(uuid.uuid4()),  # customer password
+            "",  # customer mobile
+            "",  # customer company
+            "",  # security code
+            new_card_request,  # new card request
+        ])
 
     def join(self) -> Any:
         try:
@@ -143,13 +136,16 @@ class TheWorks(BaseAgent):
             raise
 
     def _parse_balance_response(self, resp: BaseAgent.make_request):
-        result = give_x_response(resp)
-        self._balance_result(result[2])
-        self.balance_expiry = result[4]
-        self.points_balance = Decimal(result[3]).quantize(NO_PLACES)
+        result, account_status = self.give_x_response(resp)
+        if account_status == "0":
+            self._balance_result(result[2])
+            self.balance_expiry = result[4]
+            self.points_balance = Decimal(result[3]).quantize(NO_PLACES)
+        else:
+            raise BaseError
 
     def _get_balance(self):
-        request_data = give_x_payload(self, 994, [self.credentials.get("card_number")])
+        request_data = self.give_x_payload(994, [self.credentials.get("card_number")])
         try:
             resp = self.make_request(url=self.base_url, method="post", json=request_data)
         except BaseError:
@@ -172,7 +168,7 @@ class TheWorks(BaseAgent):
         return
 
     def _get_transaction_history(self):
-        request_data = give_x_payload(self, 995, [
+        request_data = self.give_x_payload(995, [
             self.credentials.get("card_number"),
             "",
             "",
@@ -200,7 +196,7 @@ class TheWorks(BaseAgent):
             return []
 
     def transaction_history(self) -> list[Transaction]:
-        request_data = give_x_payload(self, 995, [
+        request_data = self.give_x_payload(995, [
             self.credentials.get("card_number"),
             "",
             "",
@@ -214,17 +210,20 @@ class TheWorks(BaseAgent):
         return self._parse_transactions(resp)
 
     def _parse_transactions(self, resp: BaseAgent.make_request) -> [Transaction]:
-        result = give_x_response(resp)
-        self._balance_result(result[2])
-        self.points_balance = Decimal(result[4]).quantize(NO_PLACES)
-        return [self._parse_transaction(tx) for tx in result[5]]
+        result, account_status = self.give_x_response(resp)
+        if account_status == "0":
+            self._balance_result(result[2])
+            self.points_balance = Decimal(result[4]).quantize(NO_PLACES)
+            return [self._parse_transaction(tx) for tx in result[5]]
+        else:
+            raise BaseError
 
     def _parse_transaction(self,transaction: list) -> Transaction:
         date = arrow.get(f"{transaction[0]} {transaction[1]}", 'YYYY-MM-DD HH:mm:ss')
         return Transaction(
             date=date,
             description=f"£{self.money_balance}",
-            points=Decimal(transaction[3]).quantize(TWO_PLACES),
+            points=Decimal(transaction[3]).quantize(NO_PLACES),
         )
 
     def balance(self) -> Optional[Balance]:
@@ -237,36 +236,42 @@ class TheWorks(BaseAgent):
             return Balance(
                 points=self.points_balance,
                 value=Decimal(0),
-                value_label=f"",
+                value_label="",
             )
         else:
             return None
 
+    def give_x_payload(self, method: int, add_params: list) -> dict:
+        return {
+            "jsonrpc": "2.0",
+            "method": f"dc_{method}",  # request method
+            "id": self.rpc_id,
+            "params": [
+                "en",  # language code
+                self.transaction_uuid,  # transaction code
+                self.outbound_security_credentials["user_id"],  # user id
+                self.outbound_security_credentials["password"], # password
+            ] + add_params
+        }
 
-def give_x_payload(agent: TheWorks, method: int, add_params: list) -> dict:
-    return {
-        "jsonrpc": "2.0",
-        "method": f"dc_{method}",  # request method
-        "id": 1,
-        "params": [
-            "en",  # language code
-            str(uuid.uuid4()),  # transaction code
-            agent.outbound_security_credentials["user_id"],  # user id
-            agent.outbound_security_credentials["password"], # password
-        ] + add_params
-    }
+    def give_x_response(self, resp: BaseAgent.make_request) -> (list, str):
+        json_resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
+        result = json_resp["result"]
+        id = json_resp["id"]
+        account_status = result[1]
+        if id != self.rpc_id:
+            log.warning(f"The works: response had message id = {id} should be {self.rpc_id}")
+            account_status = -1
 
+        if result[0] != self.transaction_uuid:
+            log.warning(f"The works: response had wrong transaction id = {result[1]}"
+                        f" should be {self.transaction_uuid}")
+            account_status = -2
 
-def give_x_response(resp: BaseAgent.make_request) -> list:
-    json_resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
-    result = json_resp["result"]
-    id = json_resp["id"]
-    if id != 1:
-        log.warning(f"The works: response had message id = {id} should be 1")
-        raise BaseError()
-    account_status = result[1]
+        # We update the id and transaction code after the request as this makes testing easier
+        # Test cases can refer to these value when preparing request and response
+        self.rpc_id = str(uuid.uuid4())
+        self.transaction_uuid = str(uuid.uuid4())
+        return result, account_status
+        # @todo could look as parsing common error codes here when doing the add error journey
 
-    if account_status == "0":
-        return result
-    else:
-        raise BaseError()
