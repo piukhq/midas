@@ -43,7 +43,7 @@ class TheWorks(BaseAgent):
         if self.user_info["journey_type"] == JourneyTypes.JOIN:
             with db.session_scope() as session:
                 task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
-                if task.attempts >= 1:
+                if task.attempts >= 2:
                     self.config = Configuration(
                         f"{scheme_slug}-failover",
                         Configuration.JOIN_HANDLER,
