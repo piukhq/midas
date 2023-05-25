@@ -212,6 +212,50 @@ class TestTheWorksJoin(TestCase):
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_create_account_200_register_credentials(self, mock_signal, mock_requests_session):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "result": [
+                                "nonsense",
+                                "0",
+                                "12809967",
+                                "Michal",
+                                "Jozwiak",
+                                "2023-05-03",
+                                "123-890",
+                                "",
+                                "",
+                                "",
+                                "",
+                                "",
+                                "",
+                            ],
+                        }
+                    ),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.the_works.credentials["card_number"] = "12345"
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-success"),
+            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+        ]
+        self.the_works.join()
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(self.the_works.identifier, {"barcode": "12345", "card_number": "12345"})
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_join_account_exists(self, mock_signal, mock_requests_session):
         httpretty.register_uri(
             httpretty.POST,
