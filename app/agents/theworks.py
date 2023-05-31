@@ -136,9 +136,13 @@ class TheWorks(BaseAgent):
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
 
+        card_number = (
+            self.credentials["card_number"] if self.credentials.get("card_number") else json_response["iso_serial"]
+        )
+
         self.identifier = {
-            "card_number": json_response["iso_serial"],
-            "barcode": json_response["iso_serial"],
+            "card_number": card_number,
+            "barcode": card_number,
         }
         self.credentials.update(self.identifier)
 
