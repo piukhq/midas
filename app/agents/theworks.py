@@ -7,11 +7,18 @@ import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 
+
 from app.scheme_account import TWO_PLACES
+
+import settings
+from app import db
+
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.reporting import get_logger
+from app.retry_util import get_task
+from app.scheme_account import JourneyTypes
 
 
 RETRY_LIMIT = 3
@@ -51,6 +58,21 @@ class TheWorks(BaseAgent):
         # before the call to the works method
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
+
+        if self.user_info["journey_type"] == JourneyTypes.JOIN:
+            with db.session_scope() as session:
+                task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
+                if task.attempts >= 2:
+                    self.config = Configuration(
+                        f"{scheme_slug}-failover",
+                        Configuration.JOIN_HANDLER,
+                        settings.VAULT_URL,
+                        settings.VAULT_TOKEN,
+                        settings.CONFIG_SERVICE_URL,
+                        settings.AZURE_AAD_TENANT_ID,
+                    )
+                    self.base_url = self.config.merchant_url
+
 
     def _parse_join_response(self, resp):
         result, account_status = self.give_x_response(resp)
@@ -122,9 +144,13 @@ class TheWorks(BaseAgent):
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
 
+        card_number = (
+            self.credentials["card_number"] if self.credentials.get("card_number") else json_response["iso_serial"]
+        )
+
         self.identifier = {
-            "card_number": json_response["iso_serial"],
-            "barcode": json_response["iso_serial"],
+            "card_number": card_number,
+            "barcode": card_number,
         }
         self.credentials.update(self.identifier)
 
