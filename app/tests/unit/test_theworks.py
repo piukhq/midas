@@ -1,18 +1,17 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
-
-import arrow
-from app.agents.schemas import Transaction
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock, Mock, call
 
+import arrow
 import httpretty
 from flask_testing import TestCase
 from soteria.configuration import Configuration
 
 import settings
+from app.agents.schemas import Balance, Transaction
 from app.agents.theworks import TheWorks
 from app.api import create_app
 from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError, ResourceNotFoundError
@@ -473,7 +472,7 @@ class TestTheWorksJoin(TestCase):
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
-    def test_login_success(self, mock_signal, _):
+    def test_add_and_auth_success(self, mock_signal, _):
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.the_works.base_url,
@@ -486,6 +485,7 @@ class TestTheWorksJoin(TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-success"),
+            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
         ]
         self.the_works.login()
         mock_signal.assert_has_calls(expected_calls)
@@ -536,3 +536,11 @@ class TestTheWorksJoin(TestCase):
         ]
 
         self.assertEqual(self.the_works.parsed_transactions, expected_transactions)
+
+        expected_balance = Balance(
+            points=Decimal("525"), value=Decimal("0"), value_label="", reward_tier=0, balance=None, vouchers=None
+        )
+        self.assertEqual(self.the_works.balance(), expected_balance)
+
+        transactions = self.the_works.transactions()
+        self.assertEqual(len(transactions), 5)

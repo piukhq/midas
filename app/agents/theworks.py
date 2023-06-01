@@ -171,10 +171,10 @@ class TheWorks(BaseAgent):
                 raise BaseError(message=f"{self}: login Account status = {account_status}")
 
         except BaseError:
-            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            signal("log-in-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise
         else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
+            signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
         return
 
     def transactions(self) -> list[Transaction]:
