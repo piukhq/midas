@@ -5,7 +5,6 @@ JSON_RPC_AGENTS = ["the-works"]
 
 class SentryScrubber(EventScrubber):
     def scrub_event(self, event):
-        del event["tags"]
         if (
             event.get("tags")
             and isinstance(event["tags"], dict)
