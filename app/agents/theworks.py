@@ -16,8 +16,7 @@ from app.reporting import get_logger
 from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, JourneyTypes
 
-if TYPE_CHECKING:
-    from requests import Response
+from requests import Response
 
 RETRY_LIMIT = 3
 NO_PLACES = Decimal("1.")
