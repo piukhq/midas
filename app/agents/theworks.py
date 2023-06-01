@@ -53,9 +53,8 @@ class TheWorks(BaseAgent):
         self.balance_error = None
         self.parsed_transactions = None
         self.login_called = False
-        # in order to make it easier for test cases the uuids are updated when the response is processed
-        # test cases can use the rpc_id and transaction_uuid when making mock requests and preparing expected results
-        # before the call to the works method
+        # in order to make test cases work these are set once assuming only one call to give x
+        # per instance.  We may want to revise test cases to allow these to be reset
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
 
@@ -294,8 +293,6 @@ class TheWorks(BaseAgent):
                         f" should be {self.transaction_uuid}")
             account_status = -2
 
-        # We update the id and transaction code after the request as this makes testing easier
-        # Test cases can refer to these value when preparing request and response
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
         return result, account_status

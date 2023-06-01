@@ -352,9 +352,9 @@ class TestTheWorksJoin(TestCase):
                     body=json.dumps(
                         {
                             "jsonrpc": "2.0",
-                            "id": 1,
+                            "id": self.the_works.rpc_id,
                             "result": [
-                                "nonsense",
+                                self.the_works.transaction_uuid,  # transaction code
                                 "0",
                                 "12809967",
                                 "Michal",
