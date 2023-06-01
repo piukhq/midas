@@ -3,7 +3,7 @@ from copy import deepcopy
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, Mock, call
 
 import httpretty
 from flask_testing import TestCase
@@ -189,7 +189,11 @@ class TestTheWorksJoin(TestCase):
         self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
 
-        with mock.patch("app.agents.base.Configuration") as mock_configuration:
+        with (
+            mock.patch("app.agents.base.Configuration") as mock_configuration,
+            mock.patch("app.agents.theworks.get_task") as mock_get_task,
+        ):
+            mock_get_task.return_value = Mock(attempts=0)
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = self.outbound_security_credentials
             mock_config_object.integration_service = "SYNC"
@@ -334,6 +338,50 @@ class TestTheWorksJoin(TestCase):
         self.the_works.join()
         mock_signal.assert_has_calls(expected_calls)
         self.assertEqual(self.the_works.credentials["card_number"], RESPONSE_JSON_200["result"][6])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_create_account_200_register_credentials(self, mock_signal, mock_requests_session):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "result": [
+                                "nonsense",
+                                "0",
+                                "12809967",
+                                "Michal",
+                                "Jozwiak",
+                                "2023-05-03",
+                                "123-890",
+                                "",
+                                "",
+                                "",
+                                "",
+                                "",
+                                "",
+                            ],
+                        }
+                    ),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.the_works.credentials["card_number"] = "12345"
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-success"),
+            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+        ]
+        self.the_works.join()
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(self.the_works.identifier, {"barcode": "12345", "card_number": "12345"})
 
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)

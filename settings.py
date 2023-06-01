@@ -5,6 +5,7 @@ import typing as t
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.scrubber import DEFAULT_DENYLIST
 
 from app.exceptions import (
     AccountAlreadyExistsError,
@@ -17,6 +18,7 @@ from app.exceptions import (
     StatusLoginFailedError,
 )
 from app.version import __version__
+from sentry_utils import SentryScrubber
 
 os.chdir(os.path.dirname(__file__))
 
@@ -104,6 +106,7 @@ if SENTRY_DSN:
             PreRegisteredCardError,
             StatusLoginFailedError,
         ],
+        event_scrubber=SentryScrubber(denylist=DEFAULT_DENYLIST),
     )
 
 if getenv("POSTGRES_DSN", required=False):
