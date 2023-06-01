@@ -1,28 +1,26 @@
 import json
 import uuid
 from decimal import Decimal, DecimalException
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import arrow
 from blinker import signal
 from soteria.configuration import Configuration
 
-
-from app.scheme_account import TWO_PLACES
-
 import settings
 from app import db
-
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.reporting import get_logger
 from app.retry_util import get_task
-from app.scheme_account import JourneyTypes
+from app.scheme_account import TWO_PLACES, JourneyTypes
 
+if TYPE_CHECKING:
+    from requests import Response
 
 RETRY_LIMIT = 3
-NO_PLACES = Decimal('1.')
+NO_PLACES = Decimal("1.")
 
 log = get_logger("the_works")
 
@@ -72,29 +70,27 @@ class TheWorks(BaseAgent):
                     )
                     self.base_url = self.config.merchant_url
 
-
-    def _parse_join_response(self, resp):
+    def _parse_join_response(self, resp: Response):
         result, account_status = self.give_x_response(resp)
         if account_status == "0":
             return {
-            "transaction_code": result[0],
-            "result": account_status,
-            "customer_id": result[2],
-            "customer_first_name": result[3],
-            "customer_last_name": result[4],
-            "customer_reg_date": result[5],
-            "iso_serial": result[6],
-            "loyalty_enroll_id": result[7],
-            "login_token": result[8],
-            "customer_reference": result[9],
-        }
+                "transaction_code": result[0],
+                "result": account_status,
+                "customer_id": result[2],
+                "customer_first_name": result[3],
+                "customer_last_name": result[4],
+                "customer_reg_date": result[5],
+                "iso_serial": result[6],
+                "loyalty_enroll_id": result[7],
+                "login_token": result[8],
+                "customer_reference": result[9],
+            }
         elif account_status in ("182", "67"):
             raise AccountAlreadyExistsError()
         elif account_status == "2":
             raise CardNumberError()
         else:
             raise JoinError()
-
 
     def _join_payload(self):
         consents = self.credentials.get("consents", [])
@@ -103,33 +99,36 @@ class TheWorks(BaseAgent):
             marketing_optin = consents[0]["value"]
         consents_user_choice = "t" if marketing_optin else "f"
         new_card_request = "f" if self.credentials.get("card_number") else "t"
-        return self.give_x_payload(946, [
-            self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
-            "CUSTOMER",  # customer type
-            self.credentials["email"],  # customer login
-            "",  # customer title
-            self.credentials["first_name"],  # customer first name
-            "",  # customer middle name
-            self.credentials["last_name"],  # customer last name
-            "",  # customer gender
-            "",  # customer birthday
-            "",  # customer address
-            "",  # customer address 2
-            "",  # customer city
-            "",  # customer province
-            "",  # customer county
-            "",  # customer country
-            "",  # postal code
-            "",  # phone number
-            "0",  # customer discount
-            consents_user_choice,  # promotion optin
-            self.credentials["email"],  # customer email
-            str(uuid.uuid4()),  # customer password
-            "",  # customer mobile
-            "",  # customer company
-            "",  # security code
-            new_card_request,  # new card request
-        ])
+        return self.give_x_payload(
+            946,
+            [
+                self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
+                "CUSTOMER",  # customer type
+                self.credentials["email"],  # customer login
+                "",  # customer title
+                self.credentials["first_name"],  # customer first name
+                "",  # customer middle name
+                self.credentials["last_name"],  # customer last name
+                "",  # customer gender
+                "",  # customer birthday
+                "",  # customer address
+                "",  # customer address 2
+                "",  # customer city
+                "",  # customer province
+                "",  # customer county
+                "",  # customer country
+                "",  # postal code
+                "",  # phone number
+                "0",  # customer discount
+                consents_user_choice,  # promotion optin
+                self.credentials["email"],  # customer email
+                str(uuid.uuid4()),  # customer password
+                "",  # customer mobile
+                "",  # customer company
+                "",  # security code
+                new_card_request,  # new card request
+            ],
+        )
 
     def join(self) -> Any:
         try:
@@ -153,14 +152,14 @@ class TheWorks(BaseAgent):
         }
         self.credentials.update(self.identifier)
 
-    def _balance_result(self, error_or_balance) -> None:
+    def _balance_result(self, error_or_balance: str) -> None:
         try:
             self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
         except DecimalException:
             self.balance_error = error_or_balance
             raise
 
-    def _parse_balance_response(self, resp: BaseAgent.make_request):
+    def _parse_balance_response(self, resp: Response) -> None:
         result, account_status = self.give_x_response(resp)
         if account_status == "0":
             self._balance_result(result[2])
@@ -169,7 +168,7 @@ class TheWorks(BaseAgent):
         else:
             raise BaseError
 
-    def _get_balance(self):
+    def _get_balance(self) -> None:
         request_data = self.give_x_payload(994, [self.credentials.get("card_number")])
         try:
             resp = self.make_request(url=self.base_url, method="post", json=request_data)
@@ -192,13 +191,8 @@ class TheWorks(BaseAgent):
             signal("log-in-success").send(self, slug=self.scheme_slug)
         return
 
-    def _get_transaction_history(self):
-        request_data = self.give_x_payload(995, [
-            self.credentials.get("card_number"),
-            "",
-            "",
-            "Points"
-        ])
+    def _get_transaction_history(self) -> None:
+        request_data = self.give_x_payload(995, [self.credentials.get("card_number"), "", "", "Points"])
         try:
             resp = self.make_request(url=self.base_url, method="post", json=request_data)
         except BaseError:
@@ -221,12 +215,7 @@ class TheWorks(BaseAgent):
             return []
 
     def transaction_history(self) -> list[Transaction]:
-        request_data = self.give_x_payload(995, [
-            self.credentials.get("card_number"),
-            "",
-            "",
-            "Points"
-        ])
+        request_data = self.give_x_payload(995, [self.credentials.get("card_number"), "", "", "Points"])
         try:
             resp = self.make_request(url=self.base_url, method="post", json=request_data)
         except BaseError:
@@ -234,7 +223,7 @@ class TheWorks(BaseAgent):
 
         return self._parse_transactions(resp)
 
-    def _parse_transactions(self, resp: BaseAgent.make_request) -> [Transaction]:
+    def _parse_transactions(self, resp: Response) -> list[Transaction]:
         result, account_status = self.give_x_response(resp)
         if account_status == "0":
             self._balance_result(result[2])
@@ -243,8 +232,8 @@ class TheWorks(BaseAgent):
         else:
             raise BaseError
 
-    def _parse_transaction(self,transaction: list) -> Transaction:
-        date = arrow.get(f"{transaction[0]} {transaction[1]}", 'YYYY-MM-DD HH:mm:ss')
+    def _parse_transaction(self, transaction: list) -> Transaction:
+        date = arrow.get(f"{transaction[0]} {transaction[1]}", "YYYY-MM-DD HH:mm:ss")
         return Transaction(
             date=date,
             description=f"£{self.money_balance}",
@@ -275,11 +264,12 @@ class TheWorks(BaseAgent):
                 "en",  # language code
                 self.transaction_uuid,  # transaction code
                 self.outbound_security_credentials["user_id"],  # user id
-                self.outbound_security_credentials["password"], # password
-            ] + add_params
+                self.outbound_security_credentials["password"],  # password
+            ]
+            + add_params,
         }
 
-    def give_x_response(self, resp: BaseAgent.make_request) -> (list, str):
+    def give_x_response(self, resp: Response) -> tuple[list, str]:
         json_resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
         result = json_resp["result"]
         id = json_resp["id"]
@@ -289,12 +279,12 @@ class TheWorks(BaseAgent):
             account_status = -1
 
         if result[0] != self.transaction_uuid:
-            log.warning(f"The works: response had wrong transaction id = {result[1]}"
-                        f" should be {self.transaction_uuid}")
+            log.warning(
+                f"The works: response had wrong transaction id = {result[1]}" f" should be {self.transaction_uuid}"
+            )
             account_status = -2
 
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
         return result, account_status
         # @todo could look as parsing common error codes here when doing the add error journey
-

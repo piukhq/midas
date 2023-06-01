@@ -87,50 +87,10 @@ RESPONSE_995_JSON_200 = {
                 "",
                 "",
                 "",
-                ""
+                "",
             ],
-            [
-                "2023-03-15",
-                "10:31:09",
-                "Increment",
-                "55.0",
-                "",
-                "",
-                [],
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            ],
-            [
-                "2023-03-02",
-                "17:59:34",
-                "Increment",
-                "45.0",
-                "",
-                "",
-                [],
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            ],
+            ["2023-03-15", "10:31:09", "Increment", "55.0", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
+            ["2023-03-02", "17:59:34", "Increment", "45.0", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
             [
                 "2023-02-09",
                 "12:41:41",
@@ -150,36 +110,17 @@ RESPONSE_995_JSON_200 = {
                 "",
                 "",
                 "",
-                ""
+                "",
             ],
-            [
-                "2023-01-12",
-                "11:33:34",
-                "Increment",
-                "250",
-                "",
-                "",
-                [],
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            ]
+            ["2023-01-12", "11:33:34", "Increment", "250", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
         ],
         "",
         "",
         "",
-        ""
-    ]
+        "",
+    ],
 }
+
 
 class TestTheWorksJoin(TestCase):
     def create_app(self):
@@ -393,8 +334,13 @@ class TestTheWorksJoin(TestCase):
             status=HTTPStatus.OK,
             responses=[
                 httpretty.Response(
-                    body=json.dumps({"jsonrpc": "2.0", "id": self.the_works.rpc_id,
-                                     "result": [self.the_works.transaction_uuid, "182", "Account already exists"]}),
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "182", "Account already exists"],
+                        }
+                    ),
                     status=200,
                 )
             ],
@@ -417,8 +363,11 @@ class TestTheWorksJoin(TestCase):
             responses=[
                 httpretty.Response(
                     body=json.dumps(
-                        {"jsonrpc": "2.0", "id": self.the_works.rpc_id,
-                         "result": [self.the_works.transaction_uuid, "67", "This member is already enrolled"]}
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "67", "This member is already enrolled"],
+                        }
                     ),
                     status=200,
                 )
@@ -472,8 +421,13 @@ class TestTheWorksJoin(TestCase):
             status=HTTPStatus.OK,
             responses=[
                 httpretty.Response(
-                    body=json.dumps({"jsonrpc": "2.0", "id": self.the_works.rpc_id,
-                                     "result": [self.the_works.transaction_uuid, "2", "Cert not exist"]}),
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "2", "Cert not exist"],
+                        }
+                    ),
                     status=200,
                 )
             ],
@@ -531,5 +485,5 @@ class TestTheWorksJoin(TestCase):
         self.the_works.login()
         mock_signal.assert_has_calls(expected_calls)
         self.assertEqual(self.the_works.balance_error, None)
-        self.assertEqual(self.the_works.points_balance, Decimal('525'))
-        self.assertEqual(self.the_works.money_balance, Decimal('10.25'))
+        self.assertEqual(self.the_works.points_balance, Decimal("525"))
+        self.assertEqual(self.the_works.money_balance, Decimal("10.25"))
