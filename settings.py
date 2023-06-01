@@ -18,6 +18,7 @@ from app.exceptions import (
     StatusLoginFailedError,
 )
 from app.version import __version__
+from sentry_utils import SentryScrubber
 
 os.chdir(os.path.dirname(__file__))
 
@@ -105,7 +106,7 @@ if SENTRY_DSN:
             PreRegisteredCardError,
             StatusLoginFailedError,
         ],
-        event_scrubber=EventScrubber(denylist=DEFAULT_DENYLIST + ["body", "args", "kwargs", "request_data"])
+        event_scrubber=SentryScrubber(denylist=DEFAULT_DENYLIST),
     )
 
 if getenv("POSTGRES_DSN", required=False):
