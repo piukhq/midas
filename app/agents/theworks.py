@@ -1,10 +1,11 @@
 import json
 import uuid
 from decimal import Decimal, DecimalException
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
 import arrow
 from blinker import signal
+from requests import Response
 from soteria.configuration import Configuration
 
 import settings
@@ -15,8 +16,6 @@ from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError
 from app.reporting import get_logger
 from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, JourneyTypes
-
-from requests import Response
 
 RETRY_LIMIT = 3
 NO_PLACES = Decimal("1.")
