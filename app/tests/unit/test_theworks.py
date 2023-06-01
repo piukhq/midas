@@ -1,6 +1,9 @@
 import json
 from copy import deepcopy
 from decimal import Decimal
+
+import arrow
+from app.agents.schemas import Transaction
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock, Mock, call
@@ -16,6 +19,8 @@ from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
+
+TIME_FORMAT = "YYYY-MM-DD HH:mm:ss"
 
 OUTBOUND_SECURITY_CREDENTIALS = {
     "outbound": {
@@ -198,7 +203,7 @@ class TestTheWorksJoin(TestCase):
                 "0",  # customer discount
                 "t",  # promotion optin
                 "email@domain.com",  # customer email
-                "uid",  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
@@ -247,7 +252,7 @@ class TestTheWorksJoin(TestCase):
                 "0",  # customer discount
                 "f",  # promotion optin
                 "email@domain.com",  # customer email
-                "uid",  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
@@ -484,6 +489,50 @@ class TestTheWorksJoin(TestCase):
         ]
         self.the_works.login()
         mock_signal.assert_has_calls(expected_calls)
-        self.assertEqual(self.the_works.balance_error, None)
         self.assertEqual(self.the_works.points_balance, Decimal("525"))
         self.assertEqual(self.the_works.money_balance, Decimal("10.25"))
+
+        expected_transactions = [
+            Transaction(
+                date=arrow.get("2023-04-06 14:51:11", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("200"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-03-15 10:31:09", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("55"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-03-02 17:59:34", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("45"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-02-09 12:41:41", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("-25"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-01-12 11:33:34", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("250"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+        ]
+
+        self.assertEqual(self.the_works.parsed_transactions, expected_transactions)

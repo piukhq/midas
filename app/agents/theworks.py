@@ -18,7 +18,6 @@ from app.retry_util import get_task
 from app.scheme_account import TWO_PLACES, JourneyTypes
 
 RETRY_LIMIT = 3
-NO_PLACES = Decimal("1.")
 
 log = get_logger("the_works")
 
@@ -44,13 +43,10 @@ class TheWorks(BaseAgent):
             },
         }
         self.points_balance = None
-        self.balance_expiry = None
         self.money_balance = None
-        self.balance_error = None
         self.parsed_transactions = None
-        self.login_called = False
-        # in order to make test cases work these are set once assuming only one call to give x
-        # per instance.  We may want to revise test cases to allow these to be reset
+        # So the expected transaction code and rpc message id can be used in unit tests they are set in the class
+        # instance for use in the first call to Give X and reset for the next call.
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
 
@@ -98,7 +94,7 @@ class TheWorks(BaseAgent):
         consents_user_choice = "t" if marketing_optin else "f"
         new_card_request = "f" if self.credentials.get("card_number") else "t"
         return self.give_x_payload(
-            946,
+            "dc_946",
             [
                 self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
                 "CUSTOMER",  # customer type
@@ -120,7 +116,7 @@ class TheWorks(BaseAgent):
                 "0",  # customer discount
                 consents_user_choice,  # promotion optin
                 self.credentials["email"],  # customer email
-                str(uuid.uuid4()),  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
@@ -150,60 +146,39 @@ class TheWorks(BaseAgent):
         }
         self.credentials.update(self.identifier)
 
-    def _balance_result(self, error_or_balance: str) -> None:
-        try:
-            self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
-        except DecimalException:
-            self.balance_error = error_or_balance
-            raise
-
-    def _parse_balance_response(self, resp: Response) -> None:
-        result, account_status = self.give_x_response(resp)
-        if account_status == "0":
-            self._balance_result(result[2])
-            self.balance_expiry = result[4]
-            self.points_balance = Decimal(result[3]).quantize(NO_PLACES)
-        else:
-            raise BaseError
-
-    def _get_balance(self) -> None:
-        request_data = self.give_x_payload(994, [self.credentials.get("card_number")])
-        try:
-            resp = self.make_request(url=self.base_url, method="post", json=request_data)
-        except BaseError:
-            raise
-        self._parse_balance_response(resp)
-
     def login(self) -> Any:
-        self.login_called = True
-        failed = False
         try:
-            self._get_transaction_history()
-        except BaseError:
-            failed = True
+            # GiveX has no login but transaction dc_995 returns the balance or error status so can verify the account.
+            # The one call also gets the transactions and balance which is saved for later and avoids multiple requests
+            # Our apps don't allow the display of 2 Give X balances i.e. Points are periodically converted to money so
+            # there is a money balance as well as a points balance
+            # This code is based on the proposed solution of returning current money balance on every transaction with
+            # the running points balance.
+            # Only points is given in Balance response
+            request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+            result, account_status = self.give_x_response(resp)
 
-        if failed or self.balance_error is not None:
+            if account_status == "0":
+                error_or_balance = result[2]
+                try:
+                    self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
+                    self.points_balance = Decimal(result[4]).quantize(Decimal("1."))
+                    self.parsed_transactions = [self._parse_transaction(tx) for tx in result[5]]
+                except DecimalException:
+                    raise BaseError(message=f"{self}:transaction history dc_995 returned error: {error_or_balance}")
+            else:
+                raise BaseError(message=f"{self}: login Account status = {account_status}")
+
+        except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
         else:
             signal("log-in-success").send(self, slug=self.scheme_slug)
         return
 
-    def _get_transaction_history(self) -> None:
-        request_data = self.give_x_payload(995, [self.credentials.get("card_number"), "", "", "Points"])
-        try:
-            resp = self.make_request(url=self.base_url, method="post", json=request_data)
-        except BaseError:
-            raise
-        self.parsed_transactions = self._parse_transactions(resp)
-
     def transactions(self) -> list[Transaction]:
-        if not self.login_called:
-            try:
-                self._get_transaction_history()
-            except BaseError:
-                raise
-        if self.parsed_transactions is not None and self.balance_error is None:
+        if self.parsed_transactions is not None:
             try:
                 return self.hash_transactions(self.parsed_transactions)
             except Exception as ex:
@@ -212,39 +187,16 @@ class TheWorks(BaseAgent):
         else:
             return []
 
-    def transaction_history(self) -> list[Transaction]:
-        request_data = self.give_x_payload(995, [self.credentials.get("card_number"), "", "", "Points"])
-        try:
-            resp = self.make_request(url=self.base_url, method="post", json=request_data)
-        except BaseError:
-            raise
-
-        return self._parse_transactions(resp)
-
-    def _parse_transactions(self, resp: Response) -> list[Transaction]:
-        result, account_status = self.give_x_response(resp)
-        if account_status == "0":
-            self._balance_result(result[2])
-            self.points_balance = Decimal(result[4]).quantize(NO_PLACES)
-            return [self._parse_transaction(tx) for tx in result[5]]
-        else:
-            raise BaseError
-
     def _parse_transaction(self, transaction: list) -> Transaction:
         date = arrow.get(f"{transaction[0]} {transaction[1]}", "YYYY-MM-DD HH:mm:ss")
         return Transaction(
             date=date,
             description=f"£{self.money_balance}",
-            points=Decimal(transaction[3]).quantize(NO_PLACES),
+            points=Decimal(transaction[3]).quantize(Decimal("1.")),
         )
 
     def balance(self) -> Optional[Balance]:
-        if not self.login_called:
-            try:
-                self._get_balance()
-            except BaseError:
-                raise
-        if self.points_balance is not None and self.balance_error is None:
+        if self.points_balance is not None:
             return Balance(
                 points=self.points_balance,
                 value=Decimal(0),
@@ -253,10 +205,10 @@ class TheWorks(BaseAgent):
         else:
             return None
 
-    def give_x_payload(self, method: int, add_params: list) -> dict:
+    def give_x_payload(self, method: str, add_params: list) -> dict:
         return {
             "jsonrpc": "2.0",
-            "method": f"dc_{method}",  # request method
+            "method": method,  # request method
             "id": self.rpc_id,
             "params": [
                 "en",  # language code
