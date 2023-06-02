@@ -10,7 +10,7 @@ class SentryScrubber(EventScrubber):
             and isinstance(event["tags"], dict)
             and event["tags"].get("scheme_slug") in JSON_RPC_AGENTS
         ):
-            self.denylist += ["args", "kwargs", "request_data"]
+            self.denylist += ["args", "kwargs", "request_data", "audit_payload"]
         self.scrub_request(event)
         self.scrub_extra(event)
         self.scrub_user(event)
