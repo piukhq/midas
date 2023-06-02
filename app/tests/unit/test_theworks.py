@@ -485,7 +485,7 @@ class TestTheWorksJoin(TestCase):
         )
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-success"),
-            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+            call().send(self.the_works, slug=self.the_works.scheme_slug),
         ]
         self.the_works.login()
         mock_signal.assert_has_calls(expected_calls)
