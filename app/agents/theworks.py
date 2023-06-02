@@ -1,10 +1,11 @@
 import json
 import uuid
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 from typing import Any, Optional
 
 import arrow
 from blinker import signal
+from requests import Response
 from soteria.configuration import Configuration
 
 import settings
@@ -14,9 +15,10 @@ from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.reporting import get_logger
 from app.retry_util import get_task
-from app.scheme_account import JourneyTypes
+from app.scheme_account import TWO_PLACES, JourneyTypes
 
 RETRY_LIMIT = 3
+
 log = get_logger("the_works")
 
 
@@ -40,6 +42,14 @@ class TheWorks(BaseAgent):
                 "RESPONSE": {6: "card_number"},
             },
         }
+        self.points_balance = None
+        self.money_balance = None
+        self.parsed_transactions = None
+        # So the expected transaction code and rpc message id can be used in unit tests they are set in the class
+        # instance for use in the first call to Give X and reset for the next call.
+        self.rpc_id = str(uuid.uuid4())
+        self.transaction_uuid = str(uuid.uuid4())
+
         if self.user_info["journey_type"] == JourneyTypes.JOIN:
             with db.session_scope() as session:
                 task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
@@ -54,11 +64,8 @@ class TheWorks(BaseAgent):
                     )
                     self.base_url = self.config.merchant_url
 
-    @staticmethod
-    def _parse_join_response(resp):
-        resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
-        result = resp["result"]
-        account_status = result[1]
+    def _parse_join_response(self, resp: Response):
+        result, account_status = self.give_x_response(resp)
         if account_status == "0":
             return {
                 "transaction_code": result[0],
@@ -86,16 +93,9 @@ class TheWorks(BaseAgent):
             marketing_optin = consents[0]["value"]
         consents_user_choice = "t" if marketing_optin else "f"
         new_card_request = "f" if self.credentials.get("card_number") else "t"
-        transaction_code = str(uuid.uuid4())
-        return {
-            "jsonrpc": "2.0",
-            "method": "dc_946",  # request method
-            "id": 1,
-            "params": [
-                "en",  # language code
-                transaction_code,  # transaction code
-                self.outbound_security_credentials["user_id"],  # user id
-                self.outbound_security_credentials["password"],  # password
+        return self.give_x_payload(
+            "dc_946",
+            [
                 self.credentials["card_number"] if self.credentials.get("card_number") else "",  # givex number
                 "CUSTOMER",  # customer type
                 self.credentials["email"],  # customer login
@@ -116,13 +116,13 @@ class TheWorks(BaseAgent):
                 "0",  # customer discount
                 consents_user_choice,  # promotion optin
                 self.credentials["email"],  # customer email
-                transaction_code,  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
                 new_card_request,  # new card request
             ],
-        }
+        )
 
     def join(self) -> Any:
         try:
@@ -147,25 +147,94 @@ class TheWorks(BaseAgent):
         self.credentials.update(self.identifier)
 
     def login(self) -> Any:
+        try:
+            # GiveX has no login but transaction dc_995 returns the balance or error status so can verify the account.
+            # The one call also gets the transactions and balance which is saved for later and avoids multiple requests
+            # Our apps don't allow the display of 2 Give X balances i.e. Points are periodically converted to money so
+            # there is a money balance as well as a points balance
+            # This code is based on the proposed solution of returning current money balance on every transaction with
+            # the running points balance.
+            # Only points is given in Balance response
+            request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
+            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+            result, account_status = self.give_x_response(resp)
+
+            if account_status == "0":
+                error_or_balance = result[2]
+                try:
+                    self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
+                    self.points_balance = Decimal(result[4]).quantize(Decimal("1."))
+                    self.parsed_transactions = [self._parse_transaction(tx) for tx in result[5]]
+                except DecimalException:
+                    raise BaseError(message=f"{self}:transaction history dc_995 returned error: {error_or_balance}")
+            else:
+                raise BaseError(message=f"{self}: login Account status = {account_status}")
+
+        except BaseError:
+            signal("log-in-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+            raise
+        else:
+            signal("log-in-success").send(self, slug=self.scheme_slug, channel=self.channel)
         return
 
     def transactions(self) -> list[Transaction]:
-        return []
+        if self.parsed_transactions is not None:
+            try:
+                return self.hash_transactions(self.parsed_transactions)
+            except Exception as ex:
+                log.warning(f"{self} failed to get transactions: {repr(ex)}")
+                return []
+        else:
+            return []
 
-    def transaction_history(self) -> list[Transaction]:
-        return []
-
-    def parse_transaction(self, transaction: dict) -> Transaction:
+    def _parse_transaction(self, transaction: list) -> Transaction:
+        date = arrow.get(f"{transaction[0]} {transaction[1]}", "YYYY-MM-DD HH:mm:ss")
         return Transaction(
-            date=arrow.now(),
-            points=Decimal("0"),
-            description="description",
+            date=date,
+            description=f"£{self.money_balance}",
+            points=Decimal(transaction[3]).quantize(Decimal("1.")),
         )
 
     def balance(self) -> Optional[Balance]:
-        return Balance(
-            points=Decimal("0"),
-            value=Decimal("0"),
-            value_label="",
-            vouchers=[],
-        )
+        if self.points_balance is not None:
+            return Balance(
+                points=self.points_balance,
+                value=Decimal(0),
+                value_label="",
+            )
+        else:
+            return None
+
+    def give_x_payload(self, method: str, add_params: list) -> dict:
+        return {
+            "jsonrpc": "2.0",
+            "method": method,  # request method
+            "id": self.rpc_id,
+            "params": [
+                "en",  # language code
+                self.transaction_uuid,  # transaction code
+                self.outbound_security_credentials["user_id"],  # user id
+                self.outbound_security_credentials["password"],  # password
+            ]
+            + add_params,
+        }
+
+    def give_x_response(self, resp: Response) -> tuple[list, str]:
+        json_resp = json.loads(resp.content.decode("utf-8").replace("'", '"'))
+        result = json_resp["result"]
+        id = json_resp["id"]
+        account_status = result[1]
+        if id != self.rpc_id:
+            log.warning(f"The works: response had message id = {id} should be {self.rpc_id}")
+            account_status = -1
+
+        if result[0] != self.transaction_uuid:
+            log.warning(
+                f"The works: response had wrong transaction id = {result[1]}" f" should be {self.transaction_uuid}"
+            )
+            account_status = -2
+
+        self.rpc_id = str(uuid.uuid4())
+        self.transaction_uuid = str(uuid.uuid4())
+        return result, account_status
+        # @todo could look as parsing common error codes here when doing the add error journey

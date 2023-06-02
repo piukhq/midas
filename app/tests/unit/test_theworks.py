@@ -1,19 +1,25 @@
 import json
+from copy import deepcopy
+from decimal import Decimal
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock, Mock, call
 
+import arrow
 import httpretty
 from flask_testing import TestCase
 from soteria.configuration import Configuration
 
 import settings
+from app.agents.schemas import Balance, Transaction
 from app.agents.theworks import TheWorks
 from app.api import create_app
 from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError, ResourceNotFoundError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
+
+TIME_FORMAT = "YYYY-MM-DD HH:mm:ss"
 
 OUTBOUND_SECURITY_CREDENTIALS = {
     "outbound": {
@@ -56,6 +62,69 @@ RESPONSE_JSON_200 = {
     ],
 }
 
+RESPONSE_995_JSON_200 = {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": [
+        "ID1234567890",
+        "0",
+        "10.25",
+        "GBP",
+        "525",
+        [
+            [
+                "2023-04-06",
+                "14:51:11",
+                "Increment",
+                "200.0",
+                "",
+                "",
+                [],
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            ["2023-03-15", "10:31:09", "Increment", "55.0", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
+            ["2023-03-02", "17:59:34", "Increment", "45.0", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
+            [
+                "2023-02-09",
+                "12:41:41",
+                "Reduction",
+                "-25.0",
+                "",
+                "",
+                [],
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            ["2023-01-12", "11:33:34", "Increment", "250", "", "", [], "", "", "", "", "", "", "", "", "", "", "", ""],
+        ],
+        "",
+        "",
+        "",
+        "",
+    ],
+}
+
 
 class TestTheWorksJoin(TestCase):
     def create_app(self):
@@ -89,6 +158,12 @@ class TestTheWorksJoin(TestCase):
             self.the_works.base_url = "https://fake.url/"
             self.the_works.max_retries = 0
 
+    def get_current_response(self, const_resp):
+        resp = deepcopy(const_resp)
+        resp["id"] = self.the_works.rpc_id
+        resp["result"][0] = self.the_works.transaction_uuid
+        return resp
+
     @mock.patch("app.agents.theworks.uuid.uuid4", return_value="uid")
     def test_join_payload_with_join_vars(self, mock_uid):
         self.the_works.credentials = {
@@ -101,10 +176,10 @@ class TestTheWorksJoin(TestCase):
         expected = {
             "jsonrpc": "2.0",
             "method": "dc_946",  # request method
-            "id": 1,
+            "id": self.the_works.rpc_id,
             "params": [
                 "en",  # language code
-                "uid",  # transaction code
+                self.the_works.transaction_uuid,  # transaction code
                 "1234",  # user id
                 "pass",  # password
                 "",  # givex number
@@ -127,7 +202,7 @@ class TestTheWorksJoin(TestCase):
                 "0",  # customer discount
                 "t",  # promotion optin
                 "email@domain.com",  # customer email
-                "uid",  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
@@ -150,10 +225,10 @@ class TestTheWorksJoin(TestCase):
         expected = {
             "jsonrpc": "2.0",
             "method": "dc_946",  # request method
-            "id": 1,
+            "id": self.the_works.rpc_id,
             "params": [
                 "en",  # language code
-                "uid",  # transaction code
+                self.the_works.transaction_uuid,  # transaction code
                 "1234",  # user id
                 "pass",  # password
                 "5556",  # givex number
@@ -176,7 +251,7 @@ class TestTheWorksJoin(TestCase):
                 "0",  # customer discount
                 "f",  # promotion optin
                 "email@domain.com",  # customer email
-                "uid",  # customer password
+                "",  # customer password
                 "",  # customer mobile
                 "",  # customer company
                 "",  # security code
@@ -196,7 +271,7 @@ class TestTheWorksJoin(TestCase):
             status=HTTPStatus.OK,
             responses=[
                 httpretty.Response(
-                    body=json.dumps(RESPONSE_JSON_200),
+                    body=json.dumps(self.get_current_response(RESPONSE_JSON_200)),
                     status=HTTPStatus.OK,
                 )
             ],
@@ -222,9 +297,9 @@ class TestTheWorksJoin(TestCase):
                     body=json.dumps(
                         {
                             "jsonrpc": "2.0",
-                            "id": 1,
+                            "id": self.the_works.rpc_id,
                             "result": [
-                                "nonsense",
+                                self.the_works.transaction_uuid,  # transaction code
                                 "0",
                                 "12809967",
                                 "Michal",
@@ -263,7 +338,13 @@ class TestTheWorksJoin(TestCase):
             status=HTTPStatus.OK,
             responses=[
                 httpretty.Response(
-                    body=json.dumps({"jsonrpc": "2.0", "id": 1, "result": ["1234", "182", "Account already exists"]}),
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "182", "Account already exists"],
+                        }
+                    ),
                     status=200,
                 )
             ],
@@ -286,7 +367,11 @@ class TestTheWorksJoin(TestCase):
             responses=[
                 httpretty.Response(
                     body=json.dumps(
-                        {"jsonrpc": "2.0", "id": 1, "result": ["1234", "67", "This member is already enrolled"]}
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "67", "This member is already enrolled"],
+                        }
                     ),
                     status=200,
                 )
@@ -340,7 +425,13 @@ class TestTheWorksJoin(TestCase):
             status=HTTPStatus.OK,
             responses=[
                 httpretty.Response(
-                    body=json.dumps({"jsonrpc": "2.0", "id": 1, "result": ["1234", "2", "Cert not exist"]}),
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "2", "Cert not exist"],
+                        }
+                    ),
                     status=200,
                 )
             ],
@@ -377,3 +468,79 @@ class TestTheWorksJoin(TestCase):
 
         self.assertEqual(e.exception.name, "Resource not found")
         self.assertEqual(e.exception.code, 530)
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_and_auth_success(self, mock_signal, _):
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.the_works.base_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(self.get_current_response(RESPONSE_995_JSON_200)),
+                    status=200,
+                )
+            ],
+        )
+        expected_calls = [  # The expected call stack for signal, in order
+            call("log-in-success"),
+            call().send(self.the_works, channel=self.the_works.channel, slug=self.the_works.scheme_slug),
+        ]
+        self.the_works.login()
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(self.the_works.points_balance, Decimal("525"))
+        self.assertEqual(self.the_works.money_balance, Decimal("10.25"))
+
+        expected_transactions = [
+            Transaction(
+                date=arrow.get("2023-04-06 14:51:11", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("200"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-03-15 10:31:09", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("55"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-03-02 17:59:34", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("45"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-02-09 12:41:41", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("-25"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+            Transaction(
+                date=arrow.get("2023-01-12 11:33:34", TIME_FORMAT),
+                description="£10.25",
+                points=Decimal("250"),
+                location=None,
+                value=None,
+                hash=None,
+            ),
+        ]
+
+        self.assertEqual(self.the_works.parsed_transactions, expected_transactions)
+
+        expected_balance = Balance(
+            points=Decimal("525"), value=Decimal("0"), value_label="", reward_tier=0, balance=None, vouchers=None
+        )
+        self.assertEqual(self.the_works.balance(), expected_balance)
+
+        transactions = self.the_works.transactions()
+        self.assertEqual(len(transactions), 5)
