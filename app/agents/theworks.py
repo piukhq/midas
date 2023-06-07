@@ -62,7 +62,7 @@ class TheWorks(BaseAgent):
             resp = self.make_request(url=self.base_url, method=method, json=request_data, audit=audit)
         except (RetryLimitReachedError, EndSiteDownError, NotSentError):
             try:
-                resp = self.make_request(url=self.base_url_failover, method="post", json=request_data, audit=True)
+                resp = self.make_request(url=self.base_url_failover, method="post", json=request_data, audit=audit)
             except (RetryLimitReachedError, EndSiteDownError, NotSentError) as e:
                 raise e
 
