@@ -3,7 +3,7 @@ from copy import deepcopy
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import mock
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import MagicMock, call
 
 import arrow
 import httpretty
