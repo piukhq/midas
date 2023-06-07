@@ -8,14 +8,19 @@ from blinker import signal
 from requests import Response
 from soteria.configuration import Configuration
 
-import settings
-from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    CardNumberError,
+    EndSiteDownError,
+    JoinError,
+    NotSentError,
+    RetryLimitReachedError,
+)
 from app.reporting import get_logger
-from app.retry_util import get_task
-from app.scheme_account import TWO_PLACES, JourneyTypes
+from app.scheme_account import TWO_PLACES
 
 RETRY_LIMIT = 3
 
@@ -25,8 +30,10 @@ log = get_logger("the_works")
 class TheWorks(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
+        urls = self.config.merchant_url.split(",")
+        self.base_url = urls[0]
+        self.base_url_failover = urls[1]
         self.source_id = "givex"
-        self.base_url = self.config.merchant_url
         self.integration_service = "SYNC"
         self.oauth_token_timeout = 3599
         self.outbound_security_credentials = self.config.security_credentials["outbound"]["credentials"][0]["value"]
@@ -50,19 +57,16 @@ class TheWorks(BaseAgent):
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
 
-        if self.user_info["journey_type"] == JourneyTypes.JOIN:
-            with db.session_scope() as session:
-                task = get_task(db_session=session, scheme_account_id=self.user_info["scheme_account_id"])
-                if task.attempts >= 2:
-                    self.config = Configuration(
-                        f"{scheme_slug}-failover",
-                        Configuration.JOIN_HANDLER,
-                        settings.VAULT_URL,
-                        settings.VAULT_TOKEN,
-                        settings.CONFIG_SERVICE_URL,
-                        settings.AZURE_AAD_TENANT_ID,
-                    )
-                    self.base_url = self.config.merchant_url
+    def _make_request(self, method, request_data, audit=False):
+        try:
+            resp = self.make_request(url=self.base_url, method=method, json=request_data, audit=audit)
+        except (RetryLimitReachedError, EndSiteDownError, NotSentError):
+            try:
+                resp = self.make_request(url=self.base_url_failover, method="post", json=request_data, audit=audit)
+            except (RetryLimitReachedError, EndSiteDownError, NotSentError) as e:
+                raise e
+
+        return resp
 
     def _parse_join_response(self, resp: Response):
         result, account_status = self.give_x_response(resp)
@@ -129,7 +133,7 @@ class TheWorks(BaseAgent):
             if self.credentials.get("card_number"):
                 self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
             request_data = self._join_payload()
-            resp = self.make_request(url=self.base_url, method="post", json=request_data, audit=True)
+            resp = self._make_request(method="post", request_data=request_data, audit=True)
             json_response = self._parse_join_response(resp)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError:
@@ -156,7 +160,7 @@ class TheWorks(BaseAgent):
             # the running points balance.
             # Only points is given in Balance response
             request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
-            resp = self.make_request(url=self.base_url, method="post", json=request_data)
+            resp = self._make_request(method="post", request_data=request_data)
             result, account_status = self.give_x_response(resp)
 
             if account_status == "0":

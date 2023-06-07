@@ -3,7 +3,7 @@ from copy import deepcopy
 from decimal import Decimal
 from http import HTTPStatus
 from unittest import mock
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import MagicMock, call
 
 import arrow
 import httpretty
@@ -134,11 +134,7 @@ class TestTheWorksJoin(TestCase):
         self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
 
-        with (
-            mock.patch("app.agents.base.Configuration") as mock_configuration,
-            mock.patch("app.agents.theworks.get_task") as mock_get_task,
-        ):
-            mock_get_task.return_value = Mock(attempts=0)
+        with mock.patch("app.agents.base.Configuration") as mock_configuration:
             mock_config_object = MagicMock()
             mock_config_object.security_credentials = self.outbound_security_credentials
             mock_config_object.integration_service = "SYNC"
