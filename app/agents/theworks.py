@@ -165,6 +165,7 @@ class TheWorks(BaseAgent):
             if not card_number:
                 raise CardNumberError()
             self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
+            self.audit_config["audit_keys_mapping"]["RESPONSE"].update({})
             request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
             resp = self._make_request(method="post", request_data=request_data, audit=True)
             result, account_status = self.give_x_response(resp)
