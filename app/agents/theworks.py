@@ -171,6 +171,7 @@ class TheWorks(BaseAgent):
                     self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
                     self.points_balance = Decimal(result[4]).quantize(Decimal("1."))
                     self.parsed_transactions = [self._parse_transaction(tx) for tx in result[5]]
+                    signal("log-in-success").send(self, slug=self.scheme_slug)
                 except DecimalException:
                     log.warning(
                         f"{self}:transaction history dc_995 returned"
@@ -188,9 +189,6 @@ class TheWorks(BaseAgent):
         except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
-        return
 
     def transactions(self) -> list[Transaction]:
         if self.parsed_transactions is not None:
