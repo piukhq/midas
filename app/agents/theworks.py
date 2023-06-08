@@ -13,11 +13,13 @@ from app.agents.schemas import Balance, Transaction
 from app.exceptions import (
     AccountAlreadyExistsError,
     BaseError,
+    CardNotRegisteredError,
     CardNumberError,
     EndSiteDownError,
     JoinError,
     NotSentError,
     RetryLimitReachedError,
+    UnknownError,
 )
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
@@ -170,9 +172,18 @@ class TheWorks(BaseAgent):
                     self.points_balance = Decimal(result[4]).quantize(Decimal("1."))
                     self.parsed_transactions = [self._parse_transaction(tx) for tx in result[5]]
                 except DecimalException:
-                    raise BaseError(message=f"{self}:transaction history dc_995 returned error: {error_or_balance}")
+                    log.warning(
+                        f"{self}:transaction history dc_995 returned"
+                        f" 0 account status but with an error message: {error_or_balance}"
+                    )
+                    raise UnknownError()
+            elif account_status == "285":
+                raise CardNotRegisteredError()
+            elif account_status == "2":
+                raise CardNumberError()
             else:
-                raise BaseError(message=f"{self}: login Account status = {account_status}")
+                log.warning(f"{self}: login to Account failed with status = {account_status}")
+                raise UnknownError()
 
         except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
@@ -195,7 +206,7 @@ class TheWorks(BaseAgent):
         date = arrow.get(f"{transaction[0]} {transaction[1]}", "YYYY-MM-DD HH:mm:ss")
         return Transaction(
             date=date,
-            description=f"£{self.money_balance}",
+            description=f"Available balance: £{self.money_balance}",
             points=Decimal(transaction[3]).quantize(Decimal("1.")),
         )
 
@@ -241,4 +252,3 @@ class TheWorks(BaseAgent):
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
         return result, account_status
-        # @todo could look as parsing common error codes here when doing the add error journey
