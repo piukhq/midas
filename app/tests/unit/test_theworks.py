@@ -478,6 +478,7 @@ class TestTheWorks(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_and_auth_success(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.the_works.base_url,
@@ -553,7 +554,45 @@ class TestTheWorks(TestCase):
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
-    def test_add_card_number_error(self, mock_signal, _):
+    def test_add_returned_card_number_error(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "2", "Cert not exist"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(CardNumberError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Card not registered or Unknown")
+        self.assertEqual(e.exception.code, 436)
+
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_no_card_number_error(self, mock_signal, _):
+        # card number credential not set
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -590,6 +629,7 @@ class TestTheWorks(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_card_not_registered_error(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -626,6 +666,7 @@ class TestTheWorks(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_other_error_code(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -664,6 +705,7 @@ class TestTheWorks(TestCase):
         """
         This will probably never happen from give X
         """
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             httpretty.POST,
             uri=self.the_works.base_url,
@@ -699,6 +741,7 @@ class TestTheWorks(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_and_auth_bad_id(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.the_works.base_url,
@@ -726,6 +769,7 @@ class TestTheWorks(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_and_auth_bad_transaction_id(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.the_works.base_url,

@@ -161,8 +161,12 @@ class TheWorks(BaseAgent):
             # This code is based on the proposed solution of returning current money balance on every transaction with
             # the running points balance.
             # Only points is given in Balance response
+            card_number = self.credentials.get("card_number")
+            if not card_number:
+                raise CardNumberError()
+            self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
             request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
-            resp = self._make_request(method="post", request_data=request_data)
+            resp = self._make_request(method="post", request_data=request_data, audit=True)
             result, account_status = self.give_x_response(resp)
 
             if account_status == "0":
