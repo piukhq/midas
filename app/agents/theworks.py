@@ -13,11 +13,13 @@ from app.agents.schemas import Balance, Transaction
 from app.exceptions import (
     AccountAlreadyExistsError,
     BaseError,
+    CardNotRegisteredError,
     CardNumberError,
     EndSiteDownError,
     JoinError,
     NotSentError,
     RetryLimitReachedError,
+    UnknownError,
 )
 from app.reporting import get_logger
 from app.scheme_account import TWO_PLACES
@@ -159,8 +161,13 @@ class TheWorks(BaseAgent):
             # This code is based on the proposed solution of returning current money balance on every transaction with
             # the running points balance.
             # Only points is given in Balance response
+            card_number = self.credentials.get("card_number")
+            if not card_number:
+                raise CardNumberError()
+            self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
+            self.audit_config["audit_keys_mapping"]["RESPONSE"].update({})
             request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
-            resp = self._make_request(method="post", request_data=request_data)
+            resp = self._make_request(method="post", request_data=request_data, audit=True)
             result, account_status = self.give_x_response(resp)
 
             if account_status == "0":
@@ -169,17 +176,24 @@ class TheWorks(BaseAgent):
                     self.money_balance = Decimal(error_or_balance).quantize(TWO_PLACES)
                     self.points_balance = Decimal(result[4]).quantize(Decimal("1."))
                     self.parsed_transactions = [self._parse_transaction(tx) for tx in result[5]]
+                    signal("log-in-success").send(self, slug=self.scheme_slug)
                 except DecimalException:
-                    raise BaseError(message=f"{self}:transaction history dc_995 returned error: {error_or_balance}")
+                    log.warning(
+                        f"{self}:transaction history dc_995 returned"
+                        f" 0 account status but with an error message: {error_or_balance}"
+                    )
+                    raise UnknownError()
+            elif account_status == "285":
+                raise CardNotRegisteredError()
+            elif account_status == "2":
+                raise CardNumberError()
             else:
-                raise BaseError(message=f"{self}: login Account status = {account_status}")
+                log.warning(f"{self}: login to Account failed with status = {account_status}")
+                raise UnknownError()
 
         except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
-        else:
-            signal("log-in-success").send(self, slug=self.scheme_slug)
-        return
 
     def transactions(self) -> list[Transaction]:
         if self.parsed_transactions is not None:
@@ -195,7 +209,7 @@ class TheWorks(BaseAgent):
         date = arrow.get(f"{transaction[0]} {transaction[1]}", "YYYY-MM-DD HH:mm:ss")
         return Transaction(
             date=date,
-            description=f"£{self.money_balance}",
+            description=f"Available balance: £{self.money_balance}",
             points=Decimal(transaction[3]).quantize(Decimal("1.")),
         )
 
@@ -241,4 +255,3 @@ class TheWorks(BaseAgent):
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
         return result, account_status
-        # @todo could look as parsing common error codes here when doing the add error journey

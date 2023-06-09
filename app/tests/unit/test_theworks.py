@@ -14,7 +14,14 @@ import settings
 from app.agents.schemas import Balance, Transaction
 from app.agents.theworks import TheWorks
 from app.api import create_app
-from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError, ResourceNotFoundError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    CardNotRegisteredError,
+    CardNumberError,
+    JoinError,
+    ResourceNotFoundError,
+    UnknownError,
+)
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -126,7 +133,7 @@ RESPONSE_995_JSON_200 = {
 }
 
 
-class TestTheWorksJoin(TestCase):
+class TestTheWorks(TestCase):
     def create_app(self):
         return create_app(self)
 
@@ -154,10 +161,12 @@ class TestTheWorksJoin(TestCase):
             self.the_works.base_url = "https://fake.url/"
             self.the_works.max_retries = 0
 
-    def get_current_response(self, const_resp):
+    def get_current_response(self, const_resp, replace_id=True, replace_transaction=True):
         resp = deepcopy(const_resp)
-        resp["id"] = self.the_works.rpc_id
-        resp["result"][0] = self.the_works.transaction_uuid
+        if replace_id:
+            resp["id"] = self.the_works.rpc_id
+        if replace_transaction:
+            resp["result"][0] = self.the_works.transaction_uuid
         return resp
 
     @mock.patch("app.agents.theworks.uuid.uuid4", return_value="uid")
@@ -469,6 +478,7 @@ class TestTheWorksJoin(TestCase):
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.theworks.signal", autospec=True)
     def test_add_and_auth_success(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
         httpretty.register_uri(
             method=httpretty.POST,
             uri=self.the_works.base_url,
@@ -491,7 +501,7 @@ class TestTheWorksJoin(TestCase):
         expected_transactions = [
             Transaction(
                 date=arrow.get("2023-04-06 14:51:11", TIME_FORMAT),
-                description="£10.25",
+                description="Available balance: £10.25",
                 points=Decimal("200"),
                 location=None,
                 value=None,
@@ -499,7 +509,7 @@ class TestTheWorksJoin(TestCase):
             ),
             Transaction(
                 date=arrow.get("2023-03-15 10:31:09", TIME_FORMAT),
-                description="£10.25",
+                description="Available balance: £10.25",
                 points=Decimal("55"),
                 location=None,
                 value=None,
@@ -507,7 +517,7 @@ class TestTheWorksJoin(TestCase):
             ),
             Transaction(
                 date=arrow.get("2023-03-02 17:59:34", TIME_FORMAT),
-                description="£10.25",
+                description="Available balance: £10.25",
                 points=Decimal("45"),
                 location=None,
                 value=None,
@@ -515,7 +525,7 @@ class TestTheWorksJoin(TestCase):
             ),
             Transaction(
                 date=arrow.get("2023-02-09 12:41:41", TIME_FORMAT),
-                description="£10.25",
+                description="Available balance: £10.25",
                 points=Decimal("-25"),
                 location=None,
                 value=None,
@@ -523,7 +533,7 @@ class TestTheWorksJoin(TestCase):
             ),
             Transaction(
                 date=arrow.get("2023-01-12 11:33:34", TIME_FORMAT),
-                description="£10.25",
+                description="Available balance: £10.25",
                 points=Decimal("250"),
                 location=None,
                 value=None,
@@ -540,3 +550,245 @@ class TestTheWorksJoin(TestCase):
 
         transactions = self.the_works.transactions()
         self.assertEqual(len(transactions), 5)
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_returned_card_number_error(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "2", "Cert not exist"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(CardNumberError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Card not registered or Unknown")
+        self.assertEqual(e.exception.code, 436)
+
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_no_card_number_error(self, mock_signal, _):
+        # card number credential not set
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "2", "Cert not exist"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(CardNumberError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Card not registered or Unknown")
+        self.assertEqual(e.exception.code, 436)
+
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_card_not_registered_error(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "285", "Card Not Registered"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(CardNotRegisteredError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Card not registered or Unknown")
+        self.assertEqual(e.exception.code, 438)
+
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_other_error_code(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "5", "10.2"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(UnknownError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Unknown error")
+        self.assertEqual(e.exception.code, 520)
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_error_message_with_ok_result(self, mock_signal, _):
+        """
+        This will probably never happen from give X
+        """
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=self.the_works.base_url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": self.the_works.rpc_id,
+                            "result": [self.the_works.transaction_uuid, "0", "An error message"],
+                        }
+                    ),
+                    status=200,
+                )
+            ],
+        )
+
+        with self.assertRaises(UnknownError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Unknown error")
+        self.assertEqual(e.exception.code, 520)
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_and_auth_bad_id(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.the_works.base_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(self.get_current_response(RESPONSE_995_JSON_200, replace_id=False)),
+                    status=200,
+                )
+            ],
+        )
+        with self.assertRaises(UnknownError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Unknown error")
+        self.assertEqual(e.exception.code, 520)
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
+
+    @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.theworks.signal", autospec=True)
+    def test_add_and_auth_bad_transaction_id(self, mock_signal, _):
+        self.the_works.credentials["card_number"] = "603628452152593745761"
+        httpretty.register_uri(
+            method=httpretty.POST,
+            uri=self.the_works.base_url,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(self.get_current_response(RESPONSE_995_JSON_200, replace_transaction=False)),
+                    status=200,
+                )
+            ],
+        )
+        with self.assertRaises(UnknownError) as e:
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.the_works, slug=self.the_works.scheme_slug),
+            ]
+            self.the_works.login()
+
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Unknown error")
+        self.assertEqual(e.exception.code, 520)
+        self.assertEqual(self.the_works.balance(), None)
+        self.assertEqual(self.the_works.transactions(), [])
