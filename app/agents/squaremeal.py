@@ -87,7 +87,7 @@ class Squaremeal(BaseAgent):
         url = "{}update/newsletters/{}".format(self.base_url, user_id)
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
-            self.make_request(url, method="put", json=payload)
+            self.make_request(url, unique_data=user_id, method="put", json=payload)
             self.consent_confirmation(consents, ConsentStatus.SUCCESS)
         except BaseError:
             pass
@@ -114,7 +114,7 @@ class Squaremeal(BaseAgent):
         url = f"{self.base_url}points/{merchant_id}"
         self.authenticate()
         try:
-            resp = self.make_request(url, method="get")
+            resp = self.make_request(url, unique_data=merchant_id, method="get")
         except BaseError as ex:
             error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
