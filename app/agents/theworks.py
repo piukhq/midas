@@ -189,7 +189,7 @@ class TheWorks(BaseAgent):
                 raise CardNumberError()
             else:
                 log.warning(f"{self}: login to Account failed with status = {account_status}")
-                raise UnknownError()
+                raise Exception()
 
         except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
