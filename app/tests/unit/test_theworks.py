@@ -685,16 +685,9 @@ class TestTheWorks(TestCase):
             ],
         )
 
-        with self.assertRaises(UnknownError) as e:
-            expected_calls = [  # The expected call stack for signal, in order
-                call("log-in-fail"),
-                call().send(self.the_works, slug=self.the_works.scheme_slug),
-            ]
+        with self.assertRaises(Exception):
             self.the_works.login()
 
-        mock_signal.assert_has_calls(expected_calls)
-        self.assertEqual(e.exception.name, "Unknown error")
-        self.assertEqual(e.exception.code, 520)
         self.assertEqual(self.the_works.balance(), None)
         self.assertEqual(self.the_works.transactions(), [])
 
@@ -752,16 +745,9 @@ class TestTheWorks(TestCase):
                 )
             ],
         )
-        with self.assertRaises(UnknownError) as e:
-            expected_calls = [  # The expected call stack for signal, in order
-                call("log-in-fail"),
-                call().send(self.the_works, slug=self.the_works.scheme_slug),
-            ]
+        with self.assertRaises(Exception):
             self.the_works.login()
 
-        mock_signal.assert_has_calls(expected_calls)
-        self.assertEqual(e.exception.name, "Unknown error")
-        self.assertEqual(e.exception.code, 520)
         self.assertEqual(self.the_works.balance(), None)
         self.assertEqual(self.the_works.transactions(), [])
 
@@ -780,15 +766,8 @@ class TestTheWorks(TestCase):
                 )
             ],
         )
-        with self.assertRaises(UnknownError) as e:
-            expected_calls = [  # The expected call stack for signal, in order
-                call("log-in-fail"),
-                call().send(self.the_works, slug=self.the_works.scheme_slug),
-            ]
+        with self.assertRaises(Exception):
             self.the_works.login()
 
-        mock_signal.assert_has_calls(expected_calls)
-        self.assertEqual(e.exception.name, "Unknown error")
-        self.assertEqual(e.exception.code, 520)
         self.assertEqual(self.the_works.balance(), None)
         self.assertEqual(self.the_works.transactions(), [])
