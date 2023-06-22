@@ -1702,7 +1702,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
 
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
-    def test_join_callback_raises_error_with_bad_record_uid(
+    def test_join_callback_returns_200_with_bad_record_uid(
         self,
         mock_config,
         mock_decode,
@@ -1726,16 +1726,12 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_decode.called)
 
-        self.assertEqual(520, response.status_code)
-        self.assertEqual(
-            {"code": 520, "message": "The record_uid provided is not valid", "name": "Unknown error"},
-            response.json,
-        )
+        self.assertEqual(200, response.status_code)
 
     @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
-    def test_join_callback_specific_error(
+    def test_join_callback_specific_error_returns_200(
         self,
         mock_config,
         mock_RSA_decode,
@@ -1752,12 +1748,12 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_config.called)
         self.assertTrue(mock_RSA_decode.called)
 
-        self.assertEqual(537, response.status_code)
+        self.assertEqual(200, response.status_code)
 
     @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
-    def test_join_callback_unknown_error(self, mock_config, mock_decode, mock_get_task):
+    def test_join_callback_unknown_error_returns_200(self, mock_config, mock_decode, mock_get_task):
         mock_get_task.side_effect = AttributeError("test exception")
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
@@ -1770,5 +1766,4 @@ class TestIcelandEndToEnd(FlaskTestCase):
         self.assertTrue(mock_decode.called)
         self.assertTrue(mock_get_task.called)
 
-        self.assertEqual(520, response.status_code)
-        self.assertEqual({"code": 520, "message": "test exception", "name": "Unknown error"}, response.json)
+        self.assertEqual(200, response.status_code)
