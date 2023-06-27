@@ -132,7 +132,7 @@ class Bpl(BaseAgent):
         self.headers["bpl-user-channel"] = "com.bink.wallet"
         url = f"{self.base_url}{merchant_id}"
         params = {"tx_qty": self.transaction_history_quantity}
-        resp = self.make_request(url, method="get", params=params)
+        resp = self.make_request(url, unique_data=merchant_id, method="get", params=params)
         bpl_data = resp.json()
         scheme_account_id = self.user_info["scheme_account_id"]
         self.update_hermes_credentials(bpl_data, scheme_account_id)
@@ -205,10 +205,9 @@ class Bpl(BaseAgent):
             "Authorization": "token " + settings.SERVICE_API_KEY,
             "bink-user-id": str(self.user_info["bink_user_id"]),
         }
-        super().make_request(  # Don't want to call any signals for internal calls
-            api_url,
-            method="put",
-            timeout=10,
-            json=self.identifier,
-            headers=headers,
-        )
+        args = {
+            "headers": headers,
+            "timeout": 10,
+            "json": self.identifier,
+        }
+        self.session.request(method="put", url=api_url, **args)

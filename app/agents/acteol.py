@@ -316,7 +316,7 @@ class Acteol(BaseAgent):
         self.authenticate()
 
         api_url = urljoin(self.base_url, f"api/Contact/DeleteContact/{ctcid}")
-        resp = self.make_request(api_url, method="delete", timeout=self.API_TIMEOUT)
+        resp = self.make_request(api_url, unique_data=ctcid, method="delete", timeout=self.API_TIMEOUT)
 
         return resp
 
