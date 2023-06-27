@@ -375,3 +375,24 @@ class TestBase(TestCase):
         result = base_agent._token_is_valid(cached_token, current_timestamp)
 
         self.assertTrue(result)
+
+    @mock.patch("app.agents.base.Configuration")
+    def test_remove_unique_data_from_endpoint(self, endpoint):
+        base_agent = BaseAgent(
+            retry_count=0,
+            user_info={
+                "scheme_account_id": 194,
+                "status": "",
+                "channel": "com.bink.wallet",
+                "journey_type": JourneyTypes.LINK.value,
+            },
+            config_handler_type=Configuration.UPDATE_HANDLER,
+            scheme_slug="test-agent",
+        )
+        unique_data = "1234567"
+        endpoint = f"/loyalty/viator/accounts/{unique_data}"
+        expected = "/loyalty/viator/accounts/unique-data"
+
+        result = base_agent._remove_unique_data_in_path(endpoint, unique_data)
+
+        self.assertEqual(result, expected)

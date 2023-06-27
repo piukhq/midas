@@ -200,7 +200,16 @@ class BaseAgent(object):
 
         return current_timestamp - token_timestamp < self.oauth_token_timeout
 
-    def make_request(self, url, method="get", timeout=5, audit=False, **kwargs):
+    def _remove_unique_data_in_path(self, endpoint: str, unique_data: str) -> str:
+        path_list = endpoint.split("/")
+
+        for i in range(len(path_list)):
+            if path_list[i] == unique_data:
+                path_list[i] = "unique-data"
+
+        return "/".join(path_list)
+
+    def make_request(self, url, unique_data=None, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
         args = {
@@ -234,7 +243,7 @@ class BaseAgent(object):
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
-            endpoint=path,
+            endpoint=self._remove_unique_data_in_path(path, unique_data) if unique_data else path,
             latency=resp.elapsed.total_seconds(),
             response_code=resp.status_code,
         )
