@@ -117,7 +117,6 @@ def update_pending_join_account(
 
 
 def update_pending_link_account(user_info, tid, error=None, message=None, scheme_slug=None, raise_exception=True):
-
     scheme_account_id = user_info["scheme_account_id"]
     # error handling for pending scheme accounts waiting for async link to complete
     headers = get_headers(tid)

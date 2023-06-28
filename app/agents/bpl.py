@@ -188,7 +188,6 @@ class Bpl(BaseAgent):
         publish.status(scheme_account_id, status, uuid4(), self.user_info, journey="join")
 
     def update_hermes_credentials(self, customer_details, scheme_account_id):
-
         self.identifier = {
             "card_number": customer_details["account_number"],
             "merchant_identifier": customer_details["UUID"],

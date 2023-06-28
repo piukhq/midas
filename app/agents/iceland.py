@@ -204,7 +204,7 @@ class Iceland(BaseAgent):
         try:
             response = self.make_request(url=self.config.merchant_url, method="post", audit=True, json=payload)
             return response.json()
-        except (BaseError):
+        except BaseError:
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             raise
 
