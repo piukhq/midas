@@ -63,6 +63,10 @@ class TheWorks(BaseAgent):
         try:
             resp = self.make_request(url=self.base_url, method=method, json=request_data, audit=audit)
         except (RetryLimitReachedError, EndSiteDownError, NotSentError):
+            log.warning(
+                f"The Works request to the primary server failed, calling failover server."
+                f"Scheme account id: {self.user_info['scheme_account_id']}"
+            )
             try:
                 failover_config = self._get_failover_config()
                 secrets_config = failover_config.security_credentials["outbound"]["credentials"][0]["value"]
