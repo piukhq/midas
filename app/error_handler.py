@@ -139,7 +139,6 @@ def handle_request_exception(
     exc_value: BaseError,
     retryable_exceptions: list[BaseError],
 ):
-
     next_attempt_time = None
     retry_task = get_task(db_session, job.args[0])
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
@@ -173,7 +172,6 @@ def handle_request_exception(
 def handle_retry_task_request_error(
     job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
 ) -> None:
-
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed
     with db.session_scope() as session:

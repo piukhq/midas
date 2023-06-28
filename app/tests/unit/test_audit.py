@@ -222,7 +222,6 @@ class TestAudit(unittest.TestCase):
 
     @httpretty.activate
     def test_send_to_atlas_resp_not_ok(self):
-
         httpretty.register_uri("POST", settings.ATLAS_URL + "/audit/membership/", status=404)
 
         audit_logger = AuditLogger()

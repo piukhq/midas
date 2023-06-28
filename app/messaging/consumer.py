@@ -88,7 +88,7 @@ class TaskConsumer(ConsumerMixin):
             "account_id": message.account_id,  # merchant's main answer from hermes eg card number
             "message_uid": message.transaction_id,
             "credentials": {},
-            "journey_type": JourneyTypes.JOIN.value   # maybe we need another type? Decide on 1st implementation
+            "journey_type": JourneyTypes.JOIN.value,  # maybe we need another type? Decide on 1st implementation
         }
 
         try:
