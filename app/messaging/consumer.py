@@ -5,14 +5,15 @@ import sentry_sdk
 from kombu.mixins import ConsumerMixin
 from olympus_messaging import JoinApplication, LoyaltyCardRemovedBink, Message, MessageDispatcher, build_message
 from werkzeug.exceptions import NotFound
+
 import settings
 from app import db
 from app.db import redis_raw
 from app.exceptions import BaseError
+from app.journeys.common import get_agent_class
 from app.reporting import get_logger
 from app.retry_util import create_task, enqueue_retry_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
-from app.journeys.common import get_agent_class
 
 log = get_logger("task-consumer")
 
