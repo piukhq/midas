@@ -8,6 +8,7 @@ from blinker import signal
 from requests import Response
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import (
@@ -15,6 +16,7 @@ from app.exceptions import (
     BaseError,
     CardNotRegisteredError,
     CardNumberError,
+    ConfigurationError,
     EndSiteDownError,
     JoinError,
     NotSentError,
@@ -32,9 +34,7 @@ log = get_logger("the_works")
 class TheWorks(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
-        urls = self.config.merchant_url.split(",")
-        self.base_url = urls[0]
-        self.base_url_failover = urls[1]
+        self.base_url = self.config.merchant_url
         self.source_id = "givex"
         self.integration_service = "SYNC"
         self.oauth_token_timeout = 3599
@@ -59,16 +59,38 @@ class TheWorks(BaseAgent):
         self.rpc_id = str(uuid.uuid4())
         self.transaction_uuid = str(uuid.uuid4())
 
-    def _make_request(self, method, request_data, audit=False):
+    def _make_request(self, method: str, request_data: dict, audit=False):
         try:
             resp = self.make_request(url=self.base_url, method=method, json=request_data, audit=audit)
         except (RetryLimitReachedError, EndSiteDownError, NotSentError):
+            log.warning(
+                f"The Works request to the primary server failed, calling failover server."
+                f"Scheme account id: {self.user_info['scheme_account_id']}"
+            )
             try:
-                resp = self.make_request(url=self.base_url_failover, method="post", json=request_data, audit=audit)
-            except (RetryLimitReachedError, EndSiteDownError, NotSentError) as e:
-                raise e
+                failover_config = self._get_failover_config()
+                secrets_config = failover_config.security_credentials["outbound"]["credentials"][0]["value"]
+                # Update the username and password in the request to send to the failover server
+                request_data["params"][2] = secrets_config["user_id"]
+                request_data["params"][3] = secrets_config["password"]
+                resp = self.make_request(
+                    url=failover_config.merchant_url, method="post", json=request_data, audit=audit
+                )
+            except (KeyError, IndexError) as e:
+                raise ConfigurationError(exception=e) from e
 
         return resp
+
+    def _get_failover_config(self):
+        failover_config = Configuration(
+            "the-works-failover",
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+            settings.AZURE_AAD_TENANT_ID,
+        )
+        return failover_config
 
     def _parse_join_response(self, resp: Response):
         result, account_status = self.give_x_response(resp)
