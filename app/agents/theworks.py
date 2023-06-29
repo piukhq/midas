@@ -2,6 +2,7 @@ import json
 import uuid
 from decimal import Decimal, DecimalException
 from typing import Any, Optional
+from uuid import uuid4
 
 import arrow
 from blinker import signal
@@ -73,6 +74,8 @@ class TheWorks(BaseAgent):
                 # Update the username and password in the request to send to the failover server
                 request_data["params"][2] = secrets_config["user_id"]
                 request_data["params"][3] = secrets_config["password"]
+                # Set a new message uid since atlas will have recorded the original request that failed.
+                self.message_uid = str(uuid4())
                 resp = self.make_request(
                     url=failover_config.merchant_url, method="post", json=request_data, audit=audit
                 )
