@@ -176,7 +176,7 @@ class BaseAgent(object):
     def _refresh_token(self) -> str:
         url, payload = self.get_auth_url_and_payload()
         try:
-            response = self.session.post(url, data=payload)
+            response = self.session.post(url, data=payload, headers=self.headers)
         except requests.RequestException as e:
             sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
             raise ServiceConnectionError(exception=e) from e
