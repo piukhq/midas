@@ -50,6 +50,7 @@ JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING = {
     JourneyTypes.LINK: Configuration.VALIDATE_HANDLER,
     JourneyTypes.ADD: Configuration.VALIDATE_HANDLER,
     JourneyTypes.UPDATE: Configuration.UPDATE_HANDLER,
+    JourneyTypes.REMOVED: Configuration.REMOVED_HANDLER,
 }
 
 
@@ -299,6 +300,15 @@ class BaseAgent(object):
         raise NotImplementedError()
 
     def calculate_label(self, points: Decimal) -> str:
+        raise NotImplementedError()
+
+    def loyalty_card_removed_bink(self) -> None:
+        """
+        When a card is removed from bink and the agent must report it override this function
+        - requires the JourneyTypes.REMOVED will be passed in user info and the agent must pass
+        the journey types to the base class init and not pre-set it. Europa must be configured
+        for Configuration.REMOVED_HANDLER
+        """
         raise NotImplementedError()
 
     def hash_transactions(self, transactions: list[Transaction]) -> list[Transaction]:

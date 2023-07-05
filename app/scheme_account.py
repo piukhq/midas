@@ -53,6 +53,7 @@ class JourneyTypes(IntEnum):
     LINK = 1
     ADD = 2
     UPDATE = 3
+    REMOVED = 4
 
 
 def update_pending_join_account(
