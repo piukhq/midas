@@ -35,7 +35,7 @@ class Itsu(Acteol):
         payload = {
             "grant_type": "password",
             "username": self.outbound_security_credentials["username"],
-            "password": "MBX1pmb2uxh5vzc@ucp",
+            "password": self.outbound_security_credentials["password"],
         }
         payload = urlencode(payload)
         return url, payload
