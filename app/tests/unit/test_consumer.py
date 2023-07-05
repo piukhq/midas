@@ -1,7 +1,7 @@
 from unittest import TestCase, mock
 
 import kombu
-from olympus_messaging import JoinApplication
+from olympus_messaging import JoinApplication, LoyaltyCardRemovedBink
 
 from app.db import redis_raw
 from app.exceptions import UnknownError
@@ -21,7 +21,7 @@ class TestConsumer(TestCase):
             "status": 442,
             "user_set": "1234",
         }
-        self.message = JoinApplication(
+        self.join_application_message = JoinApplication(
             channel="test",
             transaction_id="123",
             bink_user_id="1234",
@@ -31,11 +31,22 @@ class TestConsumer(TestCase):
             join_data={"abc": "def"},
         )
 
+        self.loyalty_card_removed_bink_message = LoyaltyCardRemovedBink(
+            channel="test.com",
+            transaction_id="123",
+            bink_user_id="99999",
+            request_id="1223232",
+            account_id="12345678989",
+            loyalty_plan="10",
+            # message body data
+            message_data={"status": "1"},
+        )
+
     @mock.patch("app.messaging.consumer.db")
     @mock.patch("app.messaging.consumer.create_task")
     @mock.patch("app.messaging.consumer.enqueue_retry_task")
     def test_join_on_application_success(self, mock_enqueue_task, mock_create_task, mock_db):
-        self.consumer.on_join_application(self.message)
+        self.consumer.on_join_application(self.join_application_message)
         mock_create_task.assert_called_with(
             journey_type="attempt-join",
             message_uid="123",
@@ -52,7 +63,7 @@ class TestConsumer(TestCase):
     @mock.patch("app.messaging.consumer.enqueue_retry_task")
     def test_on_join_application_raises_base_error(self, mock_enqueue_task, mock_create_task, mock_db, mock_sentry):
         mock_create_task.side_effect = UnknownError()
-        self.assertEqual(self.consumer.on_join_application(self.message), None)
+        self.assertEqual(self.consumer.on_join_application(self.join_application_message), None)
         mock_create_task.assert_called_with(
             journey_type="attempt-join",
             message_uid="123",
@@ -88,3 +99,44 @@ class TestConsumer(TestCase):
             db_session=mock_db.session_scope().__enter__(),
         )
         mock_enqueue_task.assert_called_with(connection=redis_raw, retry_task=mock_create_task.return_value)
+
+    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed_from_bink")
+    def test_loyalty_card_removed_bink_success(self, mock_removed_task):
+        self.consumer.on_loyalty_card_removed_bink(self.loyalty_card_removed_bink_message)
+        mock_removed_task.assert_called_with(
+            "10",
+            {
+                "user_set": "99999",
+                "bink_user_id": "99999",
+                "scheme_account_id": 1223232,
+                "channel": "test.com",
+                "status": 1,
+                "account_id": "12345678989",
+                "message_uid": "123",
+                "credentials": {},
+                "journey_type": 4,
+            },
+        )
+
+    @mock.patch("app.messaging.consumer.sentry_sdk.capture_exception")
+    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed_from_bink")
+    def test_loyalty_card_removed_bink_raises_base_error(self, mock_removed_task, mock_sentry):
+        mock_removed_task.side_effect = UnknownError()
+        self.assertEqual(self.consumer.on_loyalty_card_removed_bink(self.loyalty_card_removed_bink_message), None)
+        mock_removed_task.assert_called_with(
+            "10",
+            {
+                "user_set": "99999",
+                "bink_user_id": "99999",
+                "scheme_account_id": 1223232,
+                "channel": "test.com",
+                "status": 1,
+                "account_id": "12345678989",
+                "message_uid": "123",
+                "credentials": {},
+                "journey_type": 4,
+            },
+        )
+        # Sentry error should be raised if message has errors but the called removed journey will not raise a
+        # sentry error if the agent has not been configured for removed handler
+        self.assertTrue(mock_sentry.called)

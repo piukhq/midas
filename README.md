@@ -15,6 +15,8 @@
     - [Virtual Environment](#virtual-environment)
     - [Unit Tests](#unit-tests)
   - [Deployment](#deployment)
+  - [Implementation/Design notes](#implementationdesign-notes)
+
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -64,3 +66,33 @@ pytest --verbose --cov app --cov-report term-missing app/tests/unit
 ## Deployment
 
 There is a Dockerfile provided in the project root. Build an image from this to get a deployment-ready version of the project.
+
+## [Implementation/Design Notes]()
+
+### New journey and handler type added for removed - 05/07/2023
+
+Originally intended for Costa who require a report of when the last card is removed
+from a wallet. Details need to be worked out; it is believed this is for marketing purposes
+not to inform the retailer to remove/delete the card.  We intend to report the card if Hermes
+sends the loyalty_card_removed_bink message
+
+In the agent class override the base method:
+
+  ```loyalty_card_removed_bink(self) -> None:```
+
+This method will only be called if:
+1. Europa must be configured for the REMOVED_HANDLER
+2. The agent __init__ must implement journey types by sending the handler to super().__init__:
+```python
+
+       def __init__(self, retry_count, user_info, scheme_slug=None, config=None):
+           super().__init__(
+               retry_count,
+               user_info,
+               config_handler_type=JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]],
+               scheme_slug=scheme_slug,
+               config=config,
+           )
+```
+
+        
