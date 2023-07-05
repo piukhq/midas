@@ -38,7 +38,6 @@ class Itsu(Acteol):
             "password": "MBX1pmb2uxh5vzc@ucp",
         }
         payload = urlencode(payload)
-        self.headers = {}
         return url, payload
 
     def _find_customer_details(self) -> list:
