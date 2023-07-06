@@ -99,7 +99,7 @@ class Itsu(Acteol):
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while fetching customer details, reason: {resp.status_code} {resp.reason}")
-            raise Exception  # The join journey ends
+            raise Exception  # The journey ends
 
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
