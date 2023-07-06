@@ -9,7 +9,7 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
-from app.exceptions import BaseError, NoSuchRecordError
+from app.exceptions import BaseError, CardNumberError, NoSuchRecordError, UnknownError
 
 
 class Itsu(Acteol):
@@ -44,6 +44,18 @@ class Itsu(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
+    def _check_response_for_error(self, resp_json: dict):
+        """
+        Handle response error
+        """
+        errors = resp_json.get("Errors")
+        if not errors:
+            return
+        if errors[0]["ErrorCode"] == 4:
+            raise CardNumberError()
+        else:
+            raise UnknownError()
+
     def _find_customer_details(self) -> Tuple[str, str]:
         self.authenticate()
         api_url = urljoin(self.base_url, "/api/Customer/FindCustomerDetails")
@@ -65,10 +77,6 @@ class Itsu(Acteol):
         api_url = urljoin(self.base_url, "/api/Customer/Patch")
         payload = {"CtcID": ctcid, "SupInfo": [{"FieldName": "BinkActive", "FieldContent": "true"}]}
         resp = self.make_request(api_url, method="patch", timeout=self.API_TIMEOUT, json=payload)
-        if resp.status_code != HTTPStatus.OK:
-            log.debug(f"Error while patching customer details, reason: {resp.status_code} {resp.reason}")
-            raise Exception
-
         self._check_response_for_error(resp.json())
 
     def login(self) -> None:
@@ -122,7 +130,7 @@ class Itsu(Acteol):
                 f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
                 f"Scheme Account ID: {self.scheme_id}"
             )
-            return None
+            raise
 
         if not self._customer_fields_are_present(customer_details=customer_details):
             log.debug(
