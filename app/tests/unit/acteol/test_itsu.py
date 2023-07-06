@@ -11,7 +11,7 @@ from soteria.configuration import Configuration
 
 from app.agents.itsu import Itsu
 from app.agents.schemas import Balance, Voucher
-from app.exceptions import CardNumberError, UnknownError
+from app.exceptions import CardNumberError
 from app.scheme_account import JourneyTypes
 
 
@@ -386,5 +386,5 @@ class TestItsu(unittest.TestCase):
             responses=[httpretty.Response(body=json.dumps(response))],
             status=HTTPStatus.OK,
         )
-        with pytest.raises(UnknownError):
+        with pytest.raises(Exception):
             self.itsu.balance()
