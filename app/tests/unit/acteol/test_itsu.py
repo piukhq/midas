@@ -152,7 +152,7 @@ class TestItsu(unittest.TestCase):
         self.itsu.credentials = {"card_number": "12345"}
         api_url = urljoin(
             self.itsu.base_url,
-            f"api/Customer/FindCustomerDetails",
+            "api/Customer/FindCustomerDetails",
         )
         response = {
             "ResponseData": [
