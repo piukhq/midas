@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import urlencode, urljoin
 
 import sentry_sdk
@@ -44,7 +44,7 @@ class Itsu(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
-    def _find_customer_details(self) -> list:
+    def _find_customer_details(self) -> Tuple[str, str]:
         self.authenticate()
         api_url = urljoin(self.base_url, "/api/Customer/FindCustomerDetails")
         payload = {
