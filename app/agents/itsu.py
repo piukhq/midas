@@ -54,7 +54,7 @@ class Itsu(Acteol):
         if errors[0]["ErrorCode"] == 4:
             raise CardNumberError()
         else:
-            raise UnknownError()
+            raise Exception()
 
     def _find_customer_details(self) -> Tuple[str, str]:
         self.authenticate()
