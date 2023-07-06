@@ -6,10 +6,12 @@ from unittest.mock import MagicMock, call, patch
 from urllib.parse import urljoin
 
 import httpretty
+import pytest
 from soteria.configuration import Configuration
 
 from app.agents.itsu import Itsu
 from app.agents.schemas import Balance, Voucher
+from app.exceptions import CardNumberError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -144,6 +146,37 @@ class TestItsu(unittest.TestCase):
             call().send(self.itsu, slug=self.itsu.scheme_slug),
         ]
         mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @patch("app.agents.itsu.Itsu._patch_customer_details")
+    @patch("app.agents.itsu.signal", autospec=True)
+    @patch("app.agents.itsu.Itsu.authenticate")
+    def test_login_invalid_card_number(self, mock_authenticate, mock_signal, mock_patch_customer_details):
+        mock_authenticate.return_value = self.mock_token
+        self.itsu.credentials = {"card_number": "12345"}
+        api_url = urljoin(
+            self.itsu.base_url,
+            "api/Customer/FindCustomerDetails",
+        )
+        response = {
+            "ResponseData": None,
+            "ResponseStatus": False,
+            "Errors": [{"ErrorCode": 4, "ErrorDescription": "No Data found"}],
+        }
+        httpretty.register_uri(
+            httpretty.POST,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response))],
+            status=HTTPStatus.OK,
+        )
+        with pytest.raises(CardNumberError):
+            self.itsu.login()
+            expected_calls = [  # The expected call stack for signal, in order
+                call("log-in-fail"),
+                call().send(self.itsu, slug=self.itsu.scheme_slug),
+            ]
+            mock_signal.assert_has_calls(expected_calls)
+            mock_patch_customer_details.assert_not_called
 
     @httpretty.activate
     @patch("app.agents.itsu.Itsu.authenticate")
@@ -330,3 +363,28 @@ class TestItsu(unittest.TestCase):
         )
         mock_find_customer_details.assert_called
         mock_update_credentials.assert_called_with("67890", mock_get_customer_details.return_value)
+
+    @httpretty.activate
+    @patch("app.agents.itsu.signal", autospec=True)
+    @patch("app.agents.itsu.Itsu.authenticate")
+    def test_balance_unknown_error_occured_when_getting_customer_details(self, mock_authenticate, mock_signal):
+        mock_authenticate.return_value = self.mock_token
+        ctcid = "7778888"
+        self.itsu.credentials = {"card_number": "12345", "ctcid": ctcid}
+        api_url = urljoin(
+            self.itsu.base_url,
+            f"api/Loyalty/GetCustomerDetails?customerid={ctcid}",
+        )
+        response = {
+            "ResponseData": None,
+            "ResponseStatus": False,
+            "Errors": [{"ErrorCode": 8, "ErrorDescription": "Unknown Error"}],
+        }
+        httpretty.register_uri(
+            httpretty.GET,
+            api_url,
+            responses=[httpretty.Response(body=json.dumps(response))],
+            status=HTTPStatus.OK,
+        )
+        with pytest.raises(UnknownError):
+            self.itsu.balance()
