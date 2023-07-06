@@ -9,7 +9,7 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
-from app.exceptions import BaseError, CardNumberError, NoSuchRecordError, UnknownError
+from app.exceptions import BaseError, CardNumberError, NoSuchRecordError
 
 
 class Itsu(Acteol):
