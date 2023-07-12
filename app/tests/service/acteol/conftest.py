@@ -10,7 +10,6 @@ from app.tests.service.logins import AGENT_CLASS_ARGUMENTS
 @pytest.fixture(scope="function")
 def wasabi():
     with patch("app.agents.acteol.Configuration") as mock_config:
-
         mock_config_object = MagicMock()
         mock_config_object.merchant_url = "https://wasabiuat.wasabiworld.co.uk/"
         mock_config_object.security_credentials = {

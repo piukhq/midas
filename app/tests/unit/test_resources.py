@@ -50,7 +50,6 @@ def mocked_hn_configuration(*args, **kwargs):
 
 
 class TestResources(TestCase):
-
     TESTING = True
     user_info = {
         "user_set": 1,
@@ -773,7 +772,6 @@ class TestResources(TestCase):
     def test_balance_runs_everything_while_async(
         self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_join_account
     ):
-
         mock_publish_balance.return_value = {"points": 1}
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
@@ -798,7 +796,6 @@ class TestResources(TestCase):
     def test_balance_runs_everything_while_async_with_identifier(
         self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_join_account
     ):
-
         mock_publish_balance.return_value = {"points": 1}
         mock_login.return_value = self.Agent("test card number")
         mock_publish_status.return_value = "test"
@@ -823,7 +820,6 @@ class TestResources(TestCase):
     def test_balance_runs_everything_while_async_raises_errors(
         self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_link_account
     ):
-
         mock_publish_balance.side_effect = StatusLoginFailedError()
         mock_login.return_value = self.Agent(None)
         mock_publish_status.return_value = "test"
@@ -848,7 +844,6 @@ class TestResources(TestCase):
     def test_balance_runs_everything_while_async_raises_unexpected_error(
         self, mock_transactions, mock_publish_balance, mock_publish_status, mock_login, mock_update_pending_link_account
     ):
-
         mock_publish_balance.side_effect = KeyError("test not handled agent error")
         mock_update_pending_link_account.side_effect = UnknownError(message="test not handled agent error")
         mock_login.return_value = self.Agent(None)
@@ -873,7 +868,6 @@ class TestResources(TestCase):
     def test_balance_sets_create_journey_on_status_call(
         self, mock_update_pending_join_account, mock_login, mock_publish_balance, mock_pool, mock_get_aes_key
     ):
-
         mock_publish_balance.return_value = {"points": 1}
         mock_agent = self.Agent(None)
         mock_agent.identifier = True
