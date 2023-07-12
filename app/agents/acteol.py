@@ -588,7 +588,6 @@ class Acteol(BaseAgent):
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
 
         :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
-                :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
         :param offer_id: Optional voucher OfferID to return all vouchers with the given ID
         :return: list of vouchers
         """
