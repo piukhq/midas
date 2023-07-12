@@ -7,6 +7,7 @@ from _decimal import Decimal
 from blinker import signal
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
 from app.exceptions import BaseError, CardNumberError, NoSuchRecordError
@@ -147,7 +148,7 @@ class Itsu(Acteol):
         self.update_hermes_credentials(pepper_id, customer_details)
 
         # Get all vouchers for this customer
-        vouchers = self._get_vouchers(ctcid=ctcid)
+        vouchers = self._get_vouchers(ctcid=ctcid, offer_id=settings.ITSU_VOUCHER_OFFER_ID)
 
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
 

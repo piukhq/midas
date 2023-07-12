@@ -583,19 +583,26 @@ class Acteol(BaseAgent):
 
         return ctcid
 
-    def _get_vouchers(self, ctcid: str) -> list[dict]:
+    def _get_vouchers(self, ctcid: str, offer_id: int = None) -> list[dict]:
         """
         Get all vouchers for a CustomerID (aka CtcID) from Acteol
 
         :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
+                :param ctcid: CustomerID in Acteol and merchant_identifier in Bink
+        :param offer_id: Optional voucher OfferID to return all vouchers with the given ID
         :return: list of vouchers
         """
         # Ensure a valid API token
         self.authenticate()
-
-        api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
-        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-        resp_json = resp.json()
+        if not offer_id:
+            api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
+            resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
+            resp_json = resp.json()
+        else:
+            body = {"CustomerID": ctcid, "OfferID": offer_id}
+            api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
+            resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
+            resp_json = resp.json()
 
         # The API can return a list if there's an error.
         self._check_voucher_response_for_errors(resp_json)
