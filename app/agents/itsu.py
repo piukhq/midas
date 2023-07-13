@@ -114,7 +114,7 @@ class Itsu(Acteol):
         self._check_response_for_error(resp_json)
         return resp_json
 
-    def _get_vouchers(self, ctcid: str, offer_id: int) -> list[dict]:
+    def _get_vouchers_by_offer_id(self, ctcid: str, offer_id: int) -> list[dict]:
         if offer_id < 1:
             raise Exception(
                 f"Invalid value {offer_id} in environment variable "
@@ -168,7 +168,7 @@ class Itsu(Acteol):
         self.update_hermes_credentials(pepper_id, customer_details)
 
         # Get all vouchers for this customer
-        vouchers = self._get_vouchers(ctcid=ctcid, offer_id=settings.ITSU_VOUCHER_OFFER_ID)
+        vouchers = self._get_vouchers_by_offer_id(ctcid=ctcid, offer_id=settings.ITSU_VOUCHER_OFFER_ID)
 
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
 
