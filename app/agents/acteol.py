@@ -592,7 +592,7 @@ class Acteol(BaseAgent):
         """
         # Ensure a valid API token
         self.authenticate()
-        
+
         api_url = urljoin(self.base_url, f"api/Voucher/GetAllByCustomerID?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         resp_json = resp.json()
