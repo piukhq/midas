@@ -104,7 +104,7 @@ class Itsu(Acteol):
                 raise
 
     def _get_customer_details(self, ctcid: str) -> dict:
-        api_url = urljoin(self.base_url, f"api/Loyalty/GetCustomerDetails?customerid={ctcid}")
+        api_url = urljoin(self.base_url, f"/api/Loyalty/GetCustomerDetails?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
             log.debug(f"Error while fetching customer details, reason: {resp.status_code} {resp.reason}")
@@ -123,7 +123,7 @@ class Itsu(Acteol):
         # Ensure a valid API token
         self.authenticate()
         body = {"CustomerID": ctcid, "OfferID": offer_id}
-        api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
+        api_url = urljoin(self.base_url, "/api/Voucher/GetAllByCustomerIDByParams")
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
         resp_json = resp.json()
 
