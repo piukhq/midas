@@ -115,6 +115,11 @@ class Itsu(Acteol):
         return resp_json
 
     def _get_vouchers(self, ctcid: str, offer_id: int) -> list[dict]:
+        if offer_id < 1:
+            raise Exception(
+                f"Invalid value {offer_id} in environment variable "
+                f"ITSU_VOUCHER_OFFER_ID. Needs to be bigger than {offer_id}"
+            )
         # Ensure a valid API token
         self.authenticate()
         body = {"CustomerID": ctcid, "OfferID": offer_id}
