@@ -114,6 +114,21 @@ class Itsu(Acteol):
         self._check_response_for_error(resp_json)
         return resp_json
 
+    def _get_vouchers(self, ctcid: str, offer_id: int) -> list[dict]:
+        # Ensure a valid API token
+        self.authenticate()
+        body = {"CustomerID": ctcid, "OfferID": offer_id}
+        api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
+        resp_json = resp.json()
+
+        # The API can return a list if there's an error.
+        self._check_voucher_response_for_errors(resp_json)
+
+        vouchers = resp_json["voucher"]
+
+        return vouchers
+
     def balance(self) -> Optional[Balance]:
         # Ensure a valid API token
         self.authenticate()
