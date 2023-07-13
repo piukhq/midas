@@ -7,6 +7,7 @@ from _decimal import Decimal
 from blinker import signal
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
 from app.exceptions import BaseError, CardNumberError, NoSuchRecordError
@@ -113,6 +114,26 @@ class Itsu(Acteol):
         self._check_response_for_error(resp_json)
         return resp_json
 
+    def _get_vouchers_by_offer_id(self, ctcid: str, offer_id: int) -> list[dict]:
+        if offer_id < 1:
+            raise Exception(
+                f"Invalid value {offer_id} in environment variable "
+                f"ITSU_VOUCHER_OFFER_ID. Needs to be bigger than {offer_id}"
+            )
+        # Ensure a valid API token
+        self.authenticate()
+        body = {"CustomerID": ctcid, "OfferID": offer_id}
+        api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
+        resp_json = resp.json()
+
+        # The API can return a list if there's an error.
+        self._check_voucher_response_for_errors(resp_json)
+
+        vouchers = resp_json["voucher"]
+
+        return vouchers
+
     def balance(self) -> Optional[Balance]:
         # Ensure a valid API token
         self.authenticate()
@@ -147,7 +168,7 @@ class Itsu(Acteol):
         self.update_hermes_credentials(pepper_id, customer_details)
 
         # Get all vouchers for this customer
-        vouchers = self._get_vouchers(ctcid=ctcid)
+        vouchers = self._get_vouchers_by_offer_id(ctcid=ctcid, offer_id=settings.ITSU_VOUCHER_OFFER_ID)
 
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
 

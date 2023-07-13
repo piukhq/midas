@@ -9,10 +9,13 @@ import httpretty
 import pytest
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.itsu import Itsu
 from app.agents.schemas import Balance, Voucher
 from app.exceptions import CardNumberError
 from app.scheme_account import JourneyTypes
+
+settings.ITSU_VOUCHER_OFFER_ID = 23
 
 
 class TestItsu(unittest.TestCase):
@@ -260,7 +263,7 @@ class TestItsu(unittest.TestCase):
     @patch("app.agents.itsu.Itsu._find_customer_details")
     @patch("app.agents.itsu.Itsu._get_customer_details")
     @patch("app.agents.itsu.Itsu.update_hermes_credentials")
-    @patch("app.agents.itsu.Itsu._get_vouchers")
+    @patch("app.agents.itsu.Itsu._get_vouchers_by_offer_id")
     def test_balance_from_login_happy_path(
         self,
         mock_get_vouchers,
@@ -314,7 +317,7 @@ class TestItsu(unittest.TestCase):
     @patch("app.agents.itsu.Itsu._find_customer_details")
     @patch("app.agents.itsu.Itsu._get_customer_details")
     @patch("app.agents.itsu.Itsu.update_hermes_credentials")
-    @patch("app.agents.itsu.Itsu._get_vouchers")
+    @patch("app.agents.itsu.Itsu._get_vouchers_by_offer_id")
     def test_balance_from_view_happy_path(
         self,
         mock_get_vouchers,
