@@ -104,6 +104,7 @@ class Itsu(Acteol):
                 raise
 
     def _get_customer_details(self, ctcid: str) -> dict:
+        self.headers["Content-Type"] = ""
         api_url = urljoin(self.base_url, f"api/Loyalty/GetCustomerDetails?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
