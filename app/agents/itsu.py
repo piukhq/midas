@@ -57,7 +57,7 @@ class Itsu(Acteol):
         else:
             raise Exception()
 
-    def _find_customer_details(self) -> Tuple[str, str]:
+    def _find_customer_details(self, send_audit: bool = False) -> Tuple[str, str]:
         self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {
@@ -65,7 +65,7 @@ class Itsu(Acteol):
             "ResponseFilters": {"SupInfo": "true"},
         }
 
-        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=send_audit, json=payload)
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
         resp_data = resp_json["ResponseData"][0]
@@ -87,7 +87,7 @@ class Itsu(Acteol):
             and not self.credentials.get("merchant_identifier")
         ):
             try:
-                ctcid, pepper_id = self._find_customer_details()
+                ctcid, pepper_id = self._find_customer_details(send_audit=True)
                 self._patch_customer_details(ctcid)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
                 self.identifier_type = [
