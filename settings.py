@@ -193,4 +193,4 @@ RETRY_BACKOFF_BASE = getenv("RETRY_BACKOFF_BASE", default="3", conv=int)
 DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=str((60 * 60 * 24 * 7)), conv=int)
 AZURE_AAD_TENANT_ID = getenv("AZURE_AAD_TENANT_ID")
 
-ITSU_VOUCHER_OFFER_ID = getenv("ITSU_VOUCHER_OFFER_ID", default="23", conv=int)
+ITSU_VOUCHER_OFFER_ID = getenv("ITSU_VOUCHER_OFFER_ID", required=True, conv=int)
