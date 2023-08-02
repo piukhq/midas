@@ -12,8 +12,9 @@ AGENTS = {
     "bpl-trenette": "bpl.Bpl",
     "squaremeal": "squaremeal.Squaremeal",
     "the-works": "theworks.TheWorks",
+    "itsu": "itsu.Itsu",
+    "slim-chickens": "slimchickens.SlimChickens",
     "bpl-asos": "bpl.Bpl",
     "bpl-cortado": "bpl.Bpl",
     "bpl-viator": "bpl.Bpl",
-    "itsu": "itsu.Itsu",
 }
