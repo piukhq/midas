@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
-from app.exceptions import BaseError, CardNumberError, NoSuchRecordError
+from app.exceptions import BaseError, CardNumberError, ConfigurationError, JoinError, NoSuchRecordError
 
 
 class Itsu(Acteol):
@@ -191,3 +191,117 @@ class Itsu(Acteol):
             value_label="",
             vouchers=bink_mapped_vouchers,
         )
+
+    def call_pepper_for_card_number(self, pepper_id: str, pepper_base_url: str):
+        api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
+        payload: dict = {}
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=False, json=payload)
+        resp_json = resp.json()
+
+        card_number = resp_json.get("externalLoyaltyMemberNumber", None)
+
+        if card_number:
+            self.identifier_type = [
+                "card_number",  # Not sure this is needed but the base class has one
+            ]
+            # Set up attributes needed for the creation of an active membership card
+            self.identifier = {
+                "card_number": card_number,
+                "merchant_identifier": pepper_id,
+            }
+            self.credentials["card_number"] = card_number
+            self.credentials["merchant_identifier"] = pepper_id
+        else:
+            signal("request-fail").send(
+                self,
+                slug=self.scheme_slug,
+                channel=self.channel,
+                error=JoinError,
+            )
+            raise JoinError()
+
+    def pepper_get_by_id(self, email: str, pepper_base_url: str) -> str:
+        pepper_id = ""
+        api_url = f"{pepper_base_url}/users?credentialId={email}&limit=3"
+        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT, audit=False)
+        resp_json = resp.json()
+        resp_items = resp_json.get("items", [])
+        if len(resp_items) == 1:
+            pepper_id = resp_items[0].get(id, "")
+        return pepper_id
+
+    def pepper_add_user_payload(self) -> dict:
+        consents = self.credentials.get("consents", [])
+        marketing_optin = False
+        if consents:
+            marketing_optin = consents[0]["value"]
+
+        return {
+            "firstName": self.credentials["first_name"],
+            "lastName": self.credentials["last_name"],
+            "credentials": {
+                "provider": "EMAIL",
+                "id": self.credentials["email"],
+                "token": self.credentials["password"],
+            },
+            "hasAgreedToShareData": True,
+            "hasAgreedToReceiveMarketing": marketing_optin,
+        }
+
+    def pepper_join(self, pepper_base_url):
+        api_url = f"{pepper_base_url}/users?autoActivate=true"
+        payload = self.pepper_add_user_payload()
+        try:
+            resp = self.make_request(api_url, method="post", timeout=20, audit=False, json=payload)
+            resp_json = resp.json(resp)
+            pepper_id = resp_json.get("id", None)
+        except BaseError as ex:
+            if ex.exception.response.status_code == 422:
+                resp_json = ex.exception.response.json()
+                code = resp_json.get("code", "")
+                message = resp_json.get("message", "")
+                if code == "Validation" and "already associated" in message:
+                    pepper_id = self.pepper_get_by_id(self.credentials["email"], pepper_base_url)
+                else:
+                    signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=JoinError)
+                    raise JoinError(exception=ex) from ex
+            else:
+                raise ex from ex
+
+        if pepper_id:
+            self.call_pepper_for_card_number(pepper_id, pepper_base_url)
+        else:
+            signal("request-fail").send(
+                self,
+                slug=self.scheme_slug,
+                channel=self.channel,
+                error=ConfigurationError,
+            )
+            raise ConfigurationError()
+
+    def join(self):
+        """join uses Pepper and not Acteol. Watch out for conflicts with the base class
+        We will set up configuration for pepper but not overwrite Aceteol europa credentials in case we need
+        to call Acteol as well.
+        """
+        config = Configuration(
+            "itsu-pepper",
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+            settings.AZURE_AAD_TENANT_ID,
+        )
+        # The join task instantiates the class with Acteol config; in case we need them, will not overwrite with pepper
+        pepper_base_url = config.merchant_url
+        pepper_outbound_security_credentials = config.security_credentials["outbound"]["credentials"][0]["value"]
+
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": pepper_outbound_security_credentials["authorization"],
+            "x-api-version": 10,
+            "x-application-id": pepper_outbound_security_credentials["application-id"],
+            "x-client-platform": "BINK",
+        }
+
+        self.pepper_join(pepper_base_url)
