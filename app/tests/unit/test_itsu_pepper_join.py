@@ -1,12 +1,12 @@
 import json
 from http import HTTPStatus
-from unittest.mock import patch
+# from unittest.mock import patch
 
 import httpretty
 from soteria.configuration import Configuration
 
 import settings
-from app.agents.itsu import Itsu
+# from app.agents.itsu import Itsu
 
 SECRET_ITSU_ACTEOL_JOIN = [{"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.itsu.test@bink.com"}}]
 
