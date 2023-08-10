@@ -7,9 +7,6 @@ from soteria.configuration import Configuration
 import settings
 
 # from unittest.mock import patch
-
-
-
 # from app.agents.itsu import Itsu
 
 SECRET_ITSU_ACTEOL_JOIN = [{"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.itsu.test@bink.com"}}]
