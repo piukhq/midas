@@ -211,7 +211,6 @@ class Itsu(Acteol):
             }
             self.credentials["card_number"] = card_number
             self.credentials["merchant_identifier"] = pepper_id
-            ok = True
         else:
             signal("request-fail").send(
                 self,
@@ -220,7 +219,7 @@ class Itsu(Acteol):
                 error=JoinError,
             )
             raise JoinError()
-        return ok
+        return card_number
 
     def pepper_get_by_id(self, email: str, pepper_base_url: str) -> str:
         pepper_id = ""
