@@ -266,8 +266,6 @@ class BaseAgent(object):
                     error=StatusLoginFailedError,
                 )
                 raise StatusLoginFailedError(exception=e)
-            elif self.scheme_slug == "slim-chickens" and "Password is required" in resp.text:
-                pass
             elif e.response.status_code == 403:
                 signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
                 raise IPBlockedError(exception=e) from e

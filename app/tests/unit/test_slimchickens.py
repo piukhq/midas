@@ -1,15 +1,15 @@
 import json
+import unittest
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock, call
 
 import httpretty
-from flask_testing import TestCase
 from soteria.configuration import Configuration
 
 import settings
 from app.agents.slimchickens import SlimChickens
-from app.api import create_app
+from app.exceptions import AccountAlreadyExistsError, BaseError, WeakPassword
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -148,10 +148,7 @@ RESPONSE_JSON_200 = {
 }
 
 
-class TestSlimChicken(TestCase):
-    def create_app(self):
-        return create_app(self)
-
+class TestSlimChicken(unittest.TestCase):
     def setUp(self):
         self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
@@ -186,12 +183,12 @@ class TestSlimChicken(TestCase):
             "dob": "1979-05-10T00:00:00Z",
             "attributes": {"optin2": "true"},
         }
-        self.slim_chickens._authenticate()
+        self.slim_chickens._authenticate(username="testeruser", password="test-pass")
         auth_header = self.slim_chickens.headers["Authorization"]
         self.assertTrue(auth_header.startswith("Basic "))
 
     @httpretty.activate
-    def test_join_verify_user_account(self):
+    def test_join_account_already_exists(self):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
         httpretty.register_uri(
             httpretty.POST,
@@ -217,9 +214,41 @@ class TestSlimChicken(TestCase):
             "dob": "1979-05-10T00:00:00Z",
             "attributes": {"optin2": "true"},
         }
-        resp = self.slim_chickens._verify_user_account()
+        self.slim_chickens.outbound_security["channel_key"] = "testing-key"
+        resp = self.slim_chickens._account_already_exists()
 
         self.assertEqual(resp, False)
+
+    @httpretty.activate
+    def test_join_account_already_exists_error(self):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(RESPONSE_JSON_200),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.slim_chickens.username = "testuser"
+        self.slim_chickens.password = "password1"
+        self.slim_chickens.channel_key = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.url = url
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "email": "janedoe@test.com",
+            "password": "fakepass?",
+            "dob": "1979-05-10T00:00:00Z",
+            "attributes": {"optin2": "true"},
+        }
+        self.slim_chickens.outbound_security["channel_key"] = "testing-key"
+        resp = self.slim_chickens._account_already_exists()
+        self.assertEqual(resp, True)
 
     @httpretty.activate
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
@@ -236,10 +265,10 @@ class TestSlimChicken(TestCase):
         custom_response.counter = 0
 
         httpretty.register_uri(httpretty.POST, uri=url, body=custom_response)
-        self.slim_chickens.username = "testuser"
-        self.slim_chickens.password = "password1"
-        self.slim_chickens.channel_key = "1eceec2173454776b7d9a0f4a307c94b"
-        self.slim_chickens.account_key = "123"
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
         self.slim_chickens.credentials = {
             "username": "janedoe123@test.com",
             "first_name": "Jane",
@@ -247,7 +276,7 @@ class TestSlimChicken(TestCase):
             "email": "janedoe@test.com",
             "password": "bink7171?",
             "date_of_birth": "1979-05-10T00:00:00Z",
-            "marketing_consent": "true",
+            "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
         }
         resp = self.slim_chickens.join()
         self.assertEqual(resp, None)
@@ -257,3 +286,148 @@ class TestSlimChicken(TestCase):
             call().send(self.slim_chickens, channel=self.slim_chickens.channel, slug=self.slim_chickens.scheme_slug),
         ]
         mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    def test_create_account_error_account_holder_exists(self):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(RESPONSE_JSON_200),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "janedoe@test.com",
+            "password": "bink7171?",
+            "date_of_birth": "1979-05-10T00:00:00Z",
+            "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
+        }
+        with self.assertRaises(AccountAlreadyExistsError) as e:
+            self.slim_chickens.join()
+
+        self.assertEqual(e.exception.name, "Account already exists")
+        self.assertEqual(e.exception.code, 445)
+
+    @httpretty.activate
+    @mock.patch("app.agents.slimchickens.signal", autospec=True)
+    def test_create_account_unknown_error(self, mock_signal):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+
+        def custom_response(request, uri, headers):
+            if custom_response.counter == 0:
+                custom_response.counter += 1
+                return (HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1055": "Password is required"}}))
+            else:
+                return (HTTPStatus.BAD_REQUEST, headers, json.dumps({"errors": {"0003": "Invalid JSON"}}))
+
+        custom_response.counter = 0
+
+        httpretty.register_uri(httpretty.POST, uri=url, body=custom_response)
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "janedoe@test.com",
+            "password": "bink7171?",
+            "date_of_birth": "1979-05-10T00:00:00Z",
+            "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
+        }
+        with self.assertRaises(BaseError):
+            self.slim_chickens.join()
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-fail"),
+            call().send(self.slim_chickens, channel=self.slim_chickens.channel, slug=self.slim_chickens.scheme_slug),
+        ]
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.slimchickens.signal", autospec=True)
+    def test_create_account_eror_checking_if_account_exists(self, mock_signal):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.BAD_REQUEST,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps({"errors": {"0003": "Invalid JSON"}}),
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+            ],
+        )
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "janedoe@test.com",
+            "password": "bink7171?",
+            "date_of_birth": "1979-05-10T00:00:00Z",
+            "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
+        }
+        with self.assertRaises(BaseError):
+            self.slim_chickens.join()
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-fail"),
+            call().send(self.slim_chickens, channel=self.slim_chickens.channel, slug=self.slim_chickens.scheme_slug),
+        ]
+        mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.slimchickens.signal", autospec=True)
+    def test_create_account_weak_password_error(self, mock_signal):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+
+        def custom_response(request, uri, headers):
+            if custom_response.counter == 0:
+                custom_response.counter += 1
+                return (HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1055": "Password is required"}}))
+            else:
+                return (HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1154": "Password is too weak"}}))
+
+        custom_response.counter = 0
+
+        httpretty.register_uri(httpretty.POST, uri=url, body=custom_response)
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "janedoe@test.com",
+            "password": "bink7171?",
+            "date_of_birth": "1979-05-10T00:00:00Z",
+            "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
+        }
+        with self.assertRaises(WeakPassword) as e:
+            self.slim_chickens.join()
+        expected_calls = [  # The expected call stack for signal, in order
+            call("join-fail"),
+            call().send(self.slim_chickens, channel=self.slim_chickens.channel, slug=self.slim_chickens.scheme_slug),
+        ]
+        mock_signal.assert_has_calls(expected_calls)
+        self.assertEqual(e.exception.name, "Join password too weak")
+        self.assertEqual(e.exception.code, 905)
