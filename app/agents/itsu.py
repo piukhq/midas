@@ -192,7 +192,7 @@ class Itsu(Acteol):
             vouchers=bink_mapped_vouchers,
         )
 
-    def call_pepper_for_card_number(self, pepper_id: str, pepper_base_url: str):
+    def call_pepper_for_card_number(self, pepper_id: str, pepper_base_url: str) -> str:
         api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
         payload: dict = {}
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=False, json=payload)
@@ -211,6 +211,7 @@ class Itsu(Acteol):
             }
             self.credentials["card_number"] = card_number
             self.credentials["merchant_identifier"] = pepper_id
+            ok = True
         else:
             signal("request-fail").send(
                 self,
@@ -219,6 +220,7 @@ class Itsu(Acteol):
                 error=JoinError,
             )
             raise JoinError()
+        return ok
 
     def pepper_get_by_id(self, email: str, pepper_base_url: str) -> str:
         pepper_id = ""
@@ -227,7 +229,7 @@ class Itsu(Acteol):
         resp_json = resp.json()
         resp_items = resp_json.get("items", [])
         if len(resp_items) == 1:
-            pepper_id = resp_items[0].get(id, "")
+            pepper_id = resp_items[0].get("id", "")
         return pepper_id
 
     def pepper_add_user_payload(self) -> dict:
@@ -239,21 +241,30 @@ class Itsu(Acteol):
         return {
             "firstName": self.credentials["first_name"],
             "lastName": self.credentials["last_name"],
-            "credentials": {
-                "provider": "EMAIL",
-                "id": self.credentials["email"],
-                "token": self.credentials["password"],
-            },
+            "credentials": [
+                {
+                    "provider": "EMAIL",
+                    "id": self.credentials["email"],
+                    "token": self.credentials["password"],
+                }
+            ],
             "hasAgreedToShareData": True,
             "hasAgreedToReceiveMarketing": marketing_optin,
         }
 
-    def pepper_join(self, pepper_base_url):
+    def pepper_add_user(self, pepper_base_url) -> str:
+        """
+        Calls pepper and adds a new user returning the user id
+        The add user call only works once if it returns a Validation error saying already associated
+        then we try to get the user id calling pepper_get_by_id which try to find users by their email
+        :param pepper_base_url: pepper service base url
+        :return: pepper_id the id returned by pepper when user is added
+        """
         api_url = f"{pepper_base_url}/users?autoActivate=true"
         payload = self.pepper_add_user_payload()
         try:
             resp = self.make_request(api_url, method="post", timeout=20, audit=False, json=payload)
-            resp_json = resp.json(resp)
+            resp_json = resp.json()
             pepper_id = resp_json.get("id", None)
         except BaseError as ex:
             if ex.exception.response.status_code == 422:
@@ -267,22 +278,16 @@ class Itsu(Acteol):
                     raise JoinError(exception=ex) from ex
             else:
                 raise ex from ex
+        return pepper_id
 
-        if pepper_id:
-            self.call_pepper_for_card_number(pepper_id, pepper_base_url)
-        else:
-            signal("request-fail").send(
-                self,
-                slug=self.scheme_slug,
-                channel=self.channel,
-                error=ConfigurationError,
-            )
-            raise ConfigurationError()
+    def set_pepper_config(self) -> str:
+        """
+        Gets config for itsu-pepper from Europa
+        Overwrites the base self.headers from ITSU Acteol to Pepper config
 
-    def join(self):
-        """join uses Pepper and not Acteol. Watch out for conflicts with the base class
-        We will set up configuration for pepper but not overwrite Aceteol europa credentials in case we need
-        to call Acteol as well.
+        - we will need to add code to save and restore the Acteol headers if we need to call Acteol after Pepper
+
+        :return: url of pepper service
         """
         config = Configuration(
             "itsu-pepper",
@@ -298,10 +303,27 @@ class Itsu(Acteol):
 
         self.headers = {
             "Content-Type": "application/json",
-            "Authorization": pepper_outbound_security_credentials["authorization"],
-            "x-api-version": 10,
+            "Authorization": f"Token {pepper_outbound_security_credentials['authorization']}",
+            "x-api-version": "10",
             "x-application-id": pepper_outbound_security_credentials["application-id"],
             "x-client-platform": "BINK",
         }
+        return pepper_base_url
 
-        self.pepper_join(pepper_base_url)
+    def join(self):
+        """join uses Pepper and not Acteol. Watch out for conflicts with the base class
+        We will set up configuration for pepper but not overwrite Aceteol europa credentials in case we need
+        to call Acteol as well.
+        """
+        pepper_base_url = self.set_pepper_config()
+        pepper_id = self.pepper_add_user(pepper_base_url)
+        if pepper_id:
+            self.call_pepper_for_card_number(pepper_id, pepper_base_url)
+        else:
+            signal("request-fail").send(
+                self,
+                slug=self.scheme_slug,
+                channel=self.channel,
+                error=ConfigurationError,
+            )
+            raise ConfigurationError()
