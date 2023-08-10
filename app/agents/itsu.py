@@ -10,7 +10,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
-from app.exceptions import BaseError, CardNumberError, ConfigurationError, JoinError, NoSuchRecordError
+from app.exceptions import BaseError, CardNumberError, JoinError, NoSuchRecordError
 
 
 class Itsu(Acteol):
@@ -323,6 +323,6 @@ class Itsu(Acteol):
                 self,
                 slug=self.scheme_slug,
                 channel=self.channel,
-                error=ConfigurationError,
+                error=JoinError,
             )
-            raise ConfigurationError()
+            raise JoinError()
