@@ -4,6 +4,8 @@ from urllib.parse import urljoin
 
 from blinker import signal
 from soteria.configuration import Configuration
+from app.agents.schemas import Balance, Voucher
+from app.vouchers import VoucherState, voucher_state_names
 
 from app.agents.base import BaseAgent
 from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
@@ -45,6 +47,38 @@ class SlimChickens(BaseAgent):
         else:
             return True
 
+    def login(self) -> None:
+        self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
+
+    def balance(self) -> Balance | None:
+        resp = self.make_request(
+            urljoin(self.base_url, "/search"),
+            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+        )
+        vouchers = resp.json()["wallet"]
+        in_progress = None
+        issued = []
+
+        for voucher in vouchers:
+            if "cardPoints" in voucher:
+                in_progress = Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    code=voucher["voucherCode"],
+                    issue_date=voucher["start"],
+                    expiry_date=voucher["voucherExpiry"],
+                )
+            else:
+                issued.append(
+                    Voucher(
+                        state=voucher_state_names[VoucherState.ISSUED],
+                        code="----------",
+                        issue_date=voucher["start"],
+                        expiry_date=voucher["voucherExpiry"]
+                    )
+                )
+
+        return Balance(vouchers=[in_progress, *issued])
+
     def join(self) -> Any:
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
         marketing_mapping = {i["slug"]: i["value"] for i in self.credentials["consents"]}
@@ -85,6 +119,3 @@ class SlimChickens(BaseAgent):
         if not resp.ok and ("Password is required" in resp.text or "Password is too weak" in resp.text):
             return resp
         return super().check_response_for_errors(resp)
-
-    def login(self) -> None:
-        self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
