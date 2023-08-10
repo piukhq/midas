@@ -1,15 +1,15 @@
 import json
+import unittest
 from http import HTTPStatus
 from unittest import mock
 from unittest.mock import MagicMock, call
 
 import httpretty
-from flask_testing import TestCase
 from soteria.configuration import Configuration
 
 import settings
 from app.agents.slimchickens import SlimChickens
-from app.api import create_app
+from app.exceptions import AccountAlreadyExistsError, WeakPassword
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -148,10 +148,7 @@ RESPONSE_JSON_200 = {
 }
 
 
-class TestSlimChicken(TestCase):
-    def create_app(self):
-        return create_app(self)
-
+class TestSlimChicken(unittest.TestCase):
     def setUp(self):
         self.outbound_security_credentials = OUTBOUND_SECURITY_CREDENTIALS
         self.credentials = CREDENTIALS
@@ -191,7 +188,7 @@ class TestSlimChicken(TestCase):
         self.assertTrue(auth_header.startswith("Basic "))
 
     @httpretty.activate
-    def test_join_verify_user_account(self):
+    def test_join_verify_new_user_account(self):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
         httpretty.register_uri(
             httpretty.POST,
@@ -217,9 +214,74 @@ class TestSlimChicken(TestCase):
             "dob": "1979-05-10T00:00:00Z",
             "attributes": {"optin2": "true"},
         }
-        resp = self.slim_chickens._verify_user_account()
+        resp = self.slim_chickens._verify_new_user_account()
 
-        self.assertEqual(resp, False)
+        self.assertEqual(resp, True)
+
+    @httpretty.activate
+    def test_join_verify_new_user_account_account_exists(self):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(RESPONSE_JSON_200),
+                    status=HTTPStatus.OK,
+                )
+            ],
+        )
+        self.slim_chickens.username = "testuser"
+        self.slim_chickens.password = "password1"
+        self.slim_chickens.channel_key = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.url = url
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "email": "janedoe@test.com",
+            "password": "fakepass?",
+            "dob": "1979-05-10T00:00:00Z",
+            "attributes": {"optin2": "true"},
+        }
+        with self.assertRaises(AccountAlreadyExistsError) as e:
+            self.slim_chickens._verify_new_user_account()
+
+        self.assertEqual(e.exception.name, "Account already exists")
+        self.assertEqual(e.exception.code, 445)
+
+    @httpretty.activate
+    def test_join_verify_new_user_account_error(self):
+        url = f"{self.slim_chickens.base_url}core/account/123/consumer"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.BAD_REQUEST,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps({"errors": {"0003": "Invalid JSON"}}),
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+            ],
+        )
+        self.slim_chickens.username = "testuser"
+        self.slim_chickens.password = "password1"
+        self.slim_chickens.channel_key = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.url = url
+        self.slim_chickens.credentials = {
+            "username": "janedoe123@test.com",
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "email": "janedoe@test.com",
+            "password": "fakepass?",
+            "dob": "1979-05-10T00:00:00Z",
+            "attributes": {"optin2": "true"},
+        }
+        with self.assertRaises(Exception) as e:
+            self.slim_chickens._verify_new_user_account()
+
+        self.assertEqual(e.exception.name, "End site down")
 
     @httpretty.activate
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
