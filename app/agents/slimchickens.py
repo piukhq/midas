@@ -21,19 +21,14 @@ class SlimChickens(BaseAgent):
         self.integration_service = "SYNC"
         self.credentials = self.user_info["credentials"]
         self.base_url = self.config.merchant_url
-        # self.username = credentials["username"]
         self.outbound_security = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        # self.username = settings.SLIM_CHICKENS_USERNAME
-        # self.password = settings.SLIM_CHICKENS_PASSWORD
-        # self.channel_key = settings.SLIM_CHICKENS_CHANNEL_KEY
-        # self.account_key = settings.SLIM_CHICKENS_ACCOUNT_KEY
 
     def _authenticate(self):
         if self.outbound_auth_service == Configuration.OPEN_AUTH_SECURITY:
             return
         else:
             try:
-                auth_credentials = f"{self.username}:{self.password}"
+                auth_credentials = f"{self.outbound_security['username']}:{self.outbound_security['password']}"
                 auth_header_value = base64.b64encode(auth_credentials.encode()).decode()
                 self.headers["Authorization"] = f"Basic {auth_header_value}"
             except (KeyError, TypeError) as e:
@@ -43,7 +38,7 @@ class SlimChickens(BaseAgent):
         self._authenticate()
         payload = {
             "username": self.credentials["email"],
-            "channels": [{"channelKey": self.channel_key}],
+            "channels": [{"channelKey": self.outbound_security["channel_key"]}],
         }
         resp = self.make_request(self.url, method="post", audit=True, json=payload)
         if resp.status_code == HTTPStatus.OK:
@@ -55,7 +50,7 @@ class SlimChickens(BaseAgent):
             raise Exception("Error while checking if user exists")
 
     def join(self) -> Any:
-        self.url = urljoin(self.base_url, f"core/account/{self.account_key}/consumer")
+        self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
         if self._verify_new_user_account():
             payload = {
                 "firstName": self.credentials["first_name"],
@@ -63,8 +58,8 @@ class SlimChickens(BaseAgent):
                 "username": self.credentials["email"],
                 "password": self.credentials["password"],
                 "dob": self.credentials["date_of_birth"],
-                "attributes": {"optin2": self.credentials["marketing_consent"]},
-                "channels": [{"channelKey": self.channel_key}],
+                "attributes": {"optin2": self.credentials.get("consents", [])},
+                "channels": [{"channelKey": self.outbound_security["username"]}],
             }
             try:
                 resp = self.make_request(self.url, method="post", audit=True, json=payload)
