@@ -138,8 +138,10 @@ class BaseAgent(object):
 
     @staticmethod
     def _get_audit_payload(kwargs, url):
-        if "json" in kwargs or "data" in kwargs:
-            return kwargs["json"] if kwargs.get("json") else kwargs["data"]
+        if "json" in kwargs:
+            return kwargs["json"]
+        elif "data" in kwargs:
+            return kwargs["data"]
         else:
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
