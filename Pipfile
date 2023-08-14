@@ -46,6 +46,8 @@ flask-testing = "*"
 sqlalchemy-utils = "*"
 rq = "!=1.14.0"
 sqlalchemy-stubs = "*"
+toml = "*"
+marshmallow = "*"
 
 [dev-packages]
 black = "*"

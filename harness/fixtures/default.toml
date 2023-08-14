@@ -1,0 +1,7 @@
+# base fixture data
+
+slug = "iceland-bonus-card"
+type = "join"
+firstname = "Amos"
+lastname = "Burton"
+postcode = "RC1 9TE"
