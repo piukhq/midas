@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Optional, Tuple
 from urllib.parse import urlencode, urljoin
+from uuid import uuid4
 
 import sentry_sdk
 from _decimal import Decimal
@@ -193,9 +194,10 @@ class Itsu(Acteol):
         )
 
     def call_pepper_for_card_number(self, pepper_id: str, pepper_base_url: str) -> str:
+        self.message_uid = str(uuid4())
         api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
         payload: dict = {}
-        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=False, json=payload)
+        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
         resp_json = resp.json()
 
         card_number = resp_json.get("externalLoyaltyMemberNumber", None)
@@ -262,7 +264,7 @@ class Itsu(Acteol):
         api_url = f"{pepper_base_url}/users?autoActivate=true"
         payload = self.pepper_add_user_payload()
         try:
-            resp = self.make_request(api_url, method="post", timeout=20, audit=False, json=payload)
+            resp = self.make_request(api_url, method="post", timeout=20, audit=True, json=payload)
             resp_json = resp.json()
             pepper_id = resp_json.get("id", None)
         except BaseError as ex:
