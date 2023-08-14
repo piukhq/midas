@@ -1,10 +1,11 @@
 import base64
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urljoin
 
 from blinker import signal
 from soteria.configuration import Configuration
+from app.agents.schemas import Balance
 
 import settings
 from app.agents.base import BaseAgent
@@ -48,6 +49,17 @@ class SlimChickens(BaseAgent):
         else:
             log.debug(f"Error while checking if user exists, reason: {resp.status_code} {resp.reason}")
             raise Exception("Error while checking if user exists")
+
+    def login(self) -> None:
+        pass
+
+    def balance(self) -> Optional[Balance]:
+        resp = self.make_request(
+            urljoin(self.base_url, "/search"),
+            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+        )
+
+        return Balance()
 
     def join(self) -> Any:
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
