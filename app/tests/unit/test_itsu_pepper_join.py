@@ -6,8 +6,8 @@ from soteria.configuration import Configuration
 
 import settings
 
-# from unittest.mock import patch
-# from app.agents.itsu import Itsu
+from unittest.mock import patch
+from app.agents.itsu import Itsu
 
 SECRET_ITSU_ACTEOL_JOIN = [{"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.itsu.test@bink.com"}}]
 
@@ -87,6 +87,7 @@ EXPECTED_PEPPER_PAYLOAD = {
 
 def mock_itsu_config():
     uri = f"{settings.CONFIG_SERVICE_URL}/configuration"
+    print(uri)
     httpretty.register_uri(
         httpretty.GET,
         uri=uri,
@@ -98,6 +99,7 @@ def mock_itsu_config():
 
 def mock_pepper_config():
     uri = f"{settings.CONFIG_SERVICE_URL}/configuration"
+    print(uri)
     httpretty.register_uri(
         httpretty.GET,
         uri=uri,
@@ -125,17 +127,20 @@ def test_itsu_pepper_get_by_id():
     mock_itsu_config()
     with patch("app.agents.base.Configuration.get_security_credentials", return_value=SECRET_ITSU_ACTEOL_JOIN):
         itsu = Itsu(5, user_info, scheme_slug="itsu")
+        print("itsu set up")
         payload = itsu.pepper_add_user_payload()
         assert payload == EXPECTED_PEPPER_PAYLOAD
         mock_pepper_config()
         with patch("app.agents.base.Configuration.get_security_credentials", return_value=SECRET_ITSU_PEPPER_JOIN):
             pepper_base_url = itsu.set_pepper_config()
+            print("pepper set up")
             assert pepper_base_url == "https://beta-api.pepperhq.com"
             httpretty.disable()
 
             pepper_id = itsu.pepper_add_user(pepper_base_url)
             assert pepper_id == "64d498865e2b5f4d03c2a70e"
-            # itsu.pepper_get_by_id(EXPECTED_PEPPER_PAYLOAD['credentials']['id'], pepper_base_url)
 
+            card_number = itsu.call_pepper_for_card_number(pepper_id, pepper_base_url)
+            assert card_number == "1105763052"
 
     assert True
