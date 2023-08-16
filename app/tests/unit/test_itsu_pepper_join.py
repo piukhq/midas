@@ -1,12 +1,11 @@
 import json
 from http import HTTPStatus
+from unittest.mock import patch
 
 import httpretty
 from soteria.configuration import Configuration
 
 import settings
-
-from unittest.mock import patch
 from app.agents.itsu import Itsu
 
 SECRET_ITSU_ACTEOL_JOIN = [{"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.itsu.test@bink.com"}}]
@@ -110,7 +109,7 @@ def mock_pepper_config():
 
 
 @httpretty.activate
-@patch('settings.CONFIG_SERVICE_URL', "http://mock_europa.com")
+@patch("settings.CONFIG_SERVICE_URL", "http://mock_europa.com")
 def test_itsu_pepper_get_by_id():
     user_info = {
         "scheme_account_id": 1235,
