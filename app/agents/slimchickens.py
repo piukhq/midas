@@ -1,4 +1,5 @@
 import base64
+from decimal import Decimal
 from typing import Any
 from urllib.parse import urljoin
 
@@ -6,8 +7,10 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
+from app.agents.schemas import Balance, Voucher
 from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
+from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
 log = get_logger("slim-chickens")
@@ -44,6 +47,40 @@ class SlimChickens(BaseAgent):
             return False
         else:
             return True
+
+    def login(self) -> None:
+        self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
+
+    def balance(self) -> Balance | None:
+        resp = self.make_request(
+            urljoin(self.base_url, "/search"),
+            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+        )
+        vouchers = resp.json()["wallet"]
+        in_progress = None
+        issued = []
+
+        for voucher in vouchers:
+            if "cardPoints" in voucher:
+                in_progress = Voucher(
+                    state=voucher_state_names[VoucherState.IN_PROGRESS],
+                    code=voucher["voucherCode"],
+                    issue_date=voucher["start"],
+                    expiry_date=voucher["voucherExpiry"],
+                )
+            else:
+                issued.append(
+                    Voucher(
+                        state=voucher_state_names[VoucherState.ISSUED],
+                        code="----------",
+                        issue_date=voucher["start"],
+                        expiry_date=voucher["voucherExpiry"],
+                    )
+                )
+        if in_progress is None:
+            raise BaseError
+
+        return Balance(points=Decimal(0), value=Decimal(0), value_label="", vouchers=[in_progress, *issued])
 
     def join(self) -> Any:
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
@@ -85,6 +122,3 @@ class SlimChickens(BaseAgent):
         if not resp.ok and ("Password is required" in resp.text or "Password is too weak" in resp.text):
             return resp
         return super().check_response_for_errors(resp)
-
-    def login(self) -> None:
-        self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
