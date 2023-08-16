@@ -110,8 +110,8 @@ def mock_pepper_config():
 
 
 @httpretty.activate
+@patch('settings.CONFIG_SERVICE_URL', "http://mock_europa.com")
 def test_itsu_pepper_get_by_id():
-
     user_info = {
         "scheme_account_id": 1235,
         "channel": "test",
