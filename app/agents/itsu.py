@@ -9,9 +9,12 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 import settings
+from app import db
 from app.agents.acteol import Acteol, log
 from app.agents.schemas import Balance
-from app.exceptions import BaseError, CardNumberError, JoinError, NoSuchRecordError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, NoSuchRecordError
+from app.models import RetryTaskStatuses
+from app.retry_util import get_task
 
 
 class Itsu(Acteol):
@@ -253,6 +256,29 @@ class Itsu(Acteol):
             "hasAgreedToReceiveMarketing": marketing_optin,
         }
 
+    def handle_join_account_exists(self, resp: dict, pepper_base_url: str) -> str:
+        """
+        Checking if this is a first time join, or we are in a retry process.
+        If in retry, and pepper returns the account already associated, this mean the pepper id
+        was not retrieved on the earlier attempt. We can get the pepper id for the join currently in a retry.
+        If a new join, and the account already exists, then we raise the AccountAlreadyExistsError, no retrying.
+        If something else fails during any of this process and we can't retry, fail this join.
+        """
+        with db.session_scope() as session:
+            task = get_task(session, self.user_info["scheme_account_id"])
+            retry_status = task.status
+
+        code = resp.get("code", "")
+        message = resp.get("message", "")
+        if retry_status == RetryTaskStatuses.RETRYING and code == "Validation" and "already associated" in message:
+            pepper_id = self.pepper_get_by_id(self.credentials["email"], pepper_base_url)
+        elif code == "Validation" and "already associated" in message:
+            raise AccountAlreadyExistsError()
+        else:
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=JoinError)
+            raise JoinError()
+        return pepper_id
+
     def pepper_add_user(self, pepper_base_url) -> str:
         """
         Calls pepper and adds a new user returning the user id
@@ -269,14 +295,7 @@ class Itsu(Acteol):
             pepper_id = resp_json.get("id", None)
         except BaseError as ex:
             if ex.exception.response.status_code == 422:
-                resp_json = ex.exception.response.json()
-                code = resp_json.get("code", "")
-                message = resp_json.get("message", "")
-                if code == "Validation" and "already associated" in message:
-                    pepper_id = self.pepper_get_by_id(self.credentials["email"], pepper_base_url)
-                else:
-                    signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=JoinError)
-                    raise JoinError(exception=ex) from ex
+                pepper_id = self.handle_join_account_exists(ex.exception.response.json(), pepper_base_url)
             else:
                 raise ex from ex
         return pepper_id
@@ -320,6 +339,7 @@ class Itsu(Acteol):
         pepper_id = self.pepper_add_user(pepper_base_url)
         if pepper_id:
             self.call_pepper_for_card_number(pepper_id, pepper_base_url)
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         else:
             signal("request-fail").send(
                 self,
