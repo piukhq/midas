@@ -194,3 +194,7 @@ DEFAULT_FAILURE_TTL = getenv("DEFAULT_FAILURE_TTL", default=str((60 * 60 * 24 * 
 AZURE_AAD_TENANT_ID = getenv("AZURE_AAD_TENANT_ID")
 
 ITSU_VOUCHER_OFFER_ID = getenv("ITSU_VOUCHER_OFFER_ID", required=True, conv=int)
+SLIM_CHICKENS_CHANNEL_KEY = getenv("SLIM_CHICKENS_CHANNEL_KEY", default="test-channel")
+SLIM_CHICKENS_ACCOUNT_KEY = getenv("SLIM_CHICKENS_ACCOUNT_KEY", default="test-account-key")
+SLIM_CHICKENS_USERNAME = getenv("SLIM_CHICKENS_USERNAME", default="test-user")
+SLIM_CHICKENS_PASSWORD = getenv("SLIM_CHICKENS_PASSWORD", default="testpassword")
