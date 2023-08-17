@@ -42,9 +42,12 @@ CONFIG_JSON_ITSU_BODY = {
     },
 }
 
+PEPPER_MERCHANT_URL = "https://beta-api.xxxpepperhq.com"
+EXPECTED_PEPPER_ID = "64d498865e2b5f4d03c2a70e"
+EXPECTED_CARD_NUMBER = "1105763052"
 
 CONFIG_JSON_PEPPER_BODY = {
-    "merchant_url": "https://beta-api.pepperhq.com",
+    "merchant_url": PEPPER_MERCHANT_URL,
     "retry_limit": 3,
     "log_level": 0,
     "callback_url": "",
@@ -142,6 +145,21 @@ def pepper_base_url(itsu):
             return pepper_base_url
 
 
+@pytest.fixture
+@httpretty.activate
+def pepper_id(pepper_base_url, itsu):
+    api_url = f"{pepper_base_url}/users?autoActivate=true"
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=api_url,
+        status=HTTPStatus.OK,
+        body=json.dumps({"id": EXPECTED_PEPPER_ID}),
+        content_type="text/json",
+    )
+    returned_pepper_id = itsu.pepper_add_user(pepper_base_url)
+    return returned_pepper_id
+
+
 def test_itsu_pepper_get_by_id(itsu):
     payload = itsu.pepper_add_user_payload()
     assert payload == EXPECTED_PEPPER_PAYLOAD
@@ -149,24 +167,37 @@ def test_itsu_pepper_get_by_id(itsu):
 
 
 def test_itsu_set_pepper_config(pepper_base_url, itsu):
-    assert pepper_base_url == "https://beta-api.pepperhq.com"
+    assert pepper_base_url == PEPPER_MERCHANT_URL
     payload = itsu.pepper_add_user_payload()
     assert payload == EXPECTED_PEPPER_PAYLOAD
     assert itsu.scheme_slug == "itsu"
     assert itsu.headers == EXPECTED_ITSU_PEPPER_HEADERS
 
 
-"""
-    mock_pepper_config()
-    with patch("app.agents.base.Configuration.get_security_credentials", return_value=SECRET_ITSU_PEPPER_JOIN):
-        pepper_base_url = itsu.set_pepper_config()
-        print("pepper set up")
-        assert pepper_base_url == "https://beta-api.pepperhq.com"
-        httpretty.disable()
+@httpretty.activate
+def test_itsu_pepper_add_user(pepper_base_url, itsu):
+    api_url = f"{pepper_base_url}/users?autoActivate=true"
+    pepper_id = "64d498865e2b5f4d03c2a70e"
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=api_url,
+        status=HTTPStatus.OK,
+        body=json.dumps({"id": pepper_id}),
+        content_type="text/json",
+    )
+    returned_pepper_id = itsu.pepper_add_user(pepper_base_url)
+    assert returned_pepper_id == pepper_id
 
-        pepper_id = itsu.pepper_add_user(pepper_base_url)
-        assert pepper_id == "64d498865e2b5f4d03c2a70e"
 
-        card_number = itsu.call_pepper_for_card_number(pepper_id, pepper_base_url)
-        assert card_number == "1105763052"
-"""
+@httpretty.activate
+def test_itsu_call_pepper_for_card_number(pepper_id, pepper_base_url, itsu):
+    api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=api_url,
+        status=HTTPStatus.OK,
+        body=json.dumps({"externalLoyaltyMemberNumber": EXPECTED_CARD_NUMBER}),
+        content_type="text/json",
+    )
+    card_number = itsu.call_pepper_for_card_number(pepper_id, pepper_base_url)
+    assert card_number == EXPECTED_CARD_NUMBER
