@@ -11,7 +11,7 @@ from soteria.configuration import Configuration
 import settings
 from app import db
 from app.agents.acteol import Acteol, log
-from app.agents.schemas import Balance
+from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, NoSuchRecordError
 from app.models import RetryTaskStatuses
 from app.retry_util import get_task
@@ -275,7 +275,7 @@ class Itsu(Acteol):
         elif code == "Validation" and "already associated" in message:
             raise AccountAlreadyExistsError()
         else:
-            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=JoinError)
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=JoinError)
             raise JoinError()
         return pepper_id
 
@@ -341,10 +341,14 @@ class Itsu(Acteol):
             self.call_pepper_for_card_number(pepper_id, pepper_base_url)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         else:
-            signal("request-fail").send(
+            signal("join-fail").send(
                 self,
                 slug=self.scheme_slug,
                 channel=self.channel,
                 error=JoinError,
             )
             raise JoinError()
+
+    def transactions(self) -> list[Transaction]:
+        # No transactions available for Itsu, return empty list to prevent exception being raised.
+        return []
