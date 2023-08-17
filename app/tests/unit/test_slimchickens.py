@@ -188,7 +188,8 @@ class TestSlimChicken(unittest.TestCase):
         self.assertTrue(auth_header.startswith("Basic "))
 
     @httpretty.activate
-    def test_join_account_already_exists(self):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_join_account_already_exists(self, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
         httpretty.register_uri(
             httpretty.POST,
@@ -220,7 +221,8 @@ class TestSlimChicken(unittest.TestCase):
         self.assertEqual(resp, False)
 
     @httpretty.activate
-    def test_join_account_already_exists_error(self):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_join_account_already_exists_error(self, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
         httpretty.register_uri(
             httpretty.POST,
@@ -251,8 +253,9 @@ class TestSlimChicken(unittest.TestCase):
         self.assertEqual(resp, True)
 
     @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
-    def test_create_account_happy_path(self, mock_signal):
+    def test_create_account_happy_path(self, mock_signal, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         def custom_response(request, uri, headers):
@@ -288,7 +291,8 @@ class TestSlimChicken(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    def test_create_account_error_account_holder_exists(self):
+    @mock.patch("requests.Session.post", autospec=True)
+    def test_create_account_error_account_holder_exists(self, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         httpretty.register_uri(
@@ -322,8 +326,9 @@ class TestSlimChicken(unittest.TestCase):
         self.assertEqual(e.exception.code, 445)
 
     @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
-    def test_create_account_unknown_error(self, mock_signal):
+    def test_create_account_unknown_error(self, mock_signal, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         def custom_response(request, uri, headers):
@@ -358,8 +363,9 @@ class TestSlimChicken(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
-    def test_create_account_eror_checking_if_account_exists(self, mock_signal):
+    def test_create_account_eror_checking_if_account_exists(self, mock_signal, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         httpretty.register_uri(
@@ -395,8 +401,9 @@ class TestSlimChicken(unittest.TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
+    @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
-    def test_create_account_weak_password_error(self, mock_signal):
+    def test_create_account_weak_password_error(self, mock_signal, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         def custom_response(request, uri, headers):
