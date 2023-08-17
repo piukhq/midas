@@ -160,44 +160,63 @@ def pepper_id(pepper_base_url, itsu):
     return returned_pepper_id
 
 
-def test_itsu_pepper_get_by_id(itsu):
-    payload = itsu.pepper_add_user_payload()
-    assert payload == EXPECTED_PEPPER_PAYLOAD
-    assert itsu.headers == {}
+class TestItsuPepperHappyPath:
+    def mock_set_pepper_base_url(self):
+        return PEPPER_MERCHANT_URL
 
+    def mock_pepper_add_user(self, _):
+        return EXPECTED_PEPPER_ID
 
-def test_itsu_set_pepper_config(pepper_base_url, itsu):
-    assert pepper_base_url == PEPPER_MERCHANT_URL
-    payload = itsu.pepper_add_user_payload()
-    assert payload == EXPECTED_PEPPER_PAYLOAD
-    assert itsu.scheme_slug == "itsu"
-    assert itsu.headers == EXPECTED_ITSU_PEPPER_HEADERS
+    def test_get_by_id(self, itsu):
+        payload = itsu.pepper_add_user_payload()
+        assert payload == EXPECTED_PEPPER_PAYLOAD
+        assert itsu.headers == {}
 
+    def test_overlay_pepper_config(self, pepper_base_url, itsu):
+        assert pepper_base_url == PEPPER_MERCHANT_URL
+        payload = itsu.pepper_add_user_payload()
+        assert payload == EXPECTED_PEPPER_PAYLOAD
+        assert itsu.scheme_slug == "itsu"
+        assert itsu.headers == EXPECTED_ITSU_PEPPER_HEADERS
 
-@httpretty.activate
-def test_itsu_pepper_add_user(pepper_base_url, itsu):
-    api_url = f"{pepper_base_url}/users?autoActivate=true"
-    pepper_id = "64d498865e2b5f4d03c2a70e"
-    httpretty.register_uri(
-        httpretty.POST,
-        uri=api_url,
-        status=HTTPStatus.OK,
-        body=json.dumps({"id": pepper_id}),
-        content_type="text/json",
-    )
-    returned_pepper_id = itsu.pepper_add_user(pepper_base_url)
-    assert returned_pepper_id == pepper_id
+    @httpretty.activate
+    def test_pepper_add_user(self, itsu):
+        api_url = f"{PEPPER_MERCHANT_URL}/users?autoActivate=true"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=api_url,
+            status=HTTPStatus.OK,
+            body=json.dumps({"id": EXPECTED_PEPPER_ID}),
+            content_type="text/json",
+        )
+        returned_pepper_id = itsu.pepper_add_user(PEPPER_MERCHANT_URL)
+        assert returned_pepper_id == EXPECTED_PEPPER_ID
 
+    @httpretty.activate
+    def test_call_pepper_for_card_number(self, pepper_id, pepper_base_url, itsu):
+        api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=api_url,
+            status=HTTPStatus.OK,
+            body=json.dumps({"externalLoyaltyMemberNumber": EXPECTED_CARD_NUMBER}),
+            content_type="text/json",
+        )
+        card_number = itsu.call_pepper_for_card_number(pepper_id, pepper_base_url)
+        assert card_number == EXPECTED_CARD_NUMBER
 
-@httpretty.activate
-def test_itsu_call_pepper_for_card_number(pepper_id, pepper_base_url, itsu):
-    api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
-    httpretty.register_uri(
-        httpretty.POST,
-        uri=api_url,
-        status=HTTPStatus.OK,
-        body=json.dumps({"externalLoyaltyMemberNumber": EXPECTED_CARD_NUMBER}),
-        content_type="text/json",
-    )
-    card_number = itsu.call_pepper_for_card_number(pepper_id, pepper_base_url)
-    assert card_number == EXPECTED_CARD_NUMBER
+    @httpretty.activate
+    def test_join(self, pepper_id, pepper_base_url, itsu):
+        with patch("app.agents.itsu.Itsu.set_pepper_config", self.mock_set_pepper_base_url):
+            with patch("app.agents.itsu.Itsu.pepper_add_user", self.mock_pepper_add_user):
+                api_url = f"{pepper_base_url}/users/{pepper_id}/loyalty"
+                httpretty.register_uri(
+                    httpretty.POST,
+                    uri=api_url,
+                    status=HTTPStatus.OK,
+                    body=json.dumps({"externalLoyaltyMemberNumber": EXPECTED_CARD_NUMBER}),
+                    content_type="text/json",
+                )
+
+                itsu.join()
+                assert True
