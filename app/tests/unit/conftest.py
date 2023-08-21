@@ -39,12 +39,16 @@ def mock_signals(monkeypatch):
                 monkeypatch.setattr("app.agents.base.signal", Signal)
 
         @property
-        def call_count(self):
+        def count(self):
             return len(call_list)
 
         @property
-        def calls(self):
+        def full_list(self):
             return call_list
+
+        @property
+        def name_list(self):
+            return [call["name"] for call in call_list]
 
         @staticmethod
         def has(name):
