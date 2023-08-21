@@ -7,6 +7,7 @@ from soteria.configuration import Configuration
 
 import settings
 from app.agents.itsu import Itsu
+from app.models import RetryTaskStatuses
 
 from .setup_data import (
     CONFIG_JSON_ITSU_BODY,
@@ -116,3 +117,22 @@ def mock_pepper_loyalty_request():
 @pytest.fixture
 def mock_itsu_signals(mock_signals):
     return mock_signals(patches=["app.agents.itsu.signal"], base_agent=True)
+
+
+@pytest.fixture
+def mock_get_task_pending():
+    class MockTask:
+        def __init__(self, *_):
+            self.status = RetryTaskStatuses.RETRYING
+            self.status = RetryTaskStatuses.PENDING
+
+    return MockTask
+
+
+@pytest.fixture
+def mock_get_task_retrying():
+    class MockTask:
+        def __init__(self, *_):
+            self.status = RetryTaskStatuses.RETRYING
+
+    return MockTask

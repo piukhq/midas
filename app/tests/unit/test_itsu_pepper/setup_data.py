@@ -182,6 +182,9 @@ EXPECTED_USER_LOOKUP_RESPONSE = {
     "page": {"count": 1, "limit": 3, "startKey": "eyJfaWQiOiI2NGUzNDk1OGQ4NjIzNTkxZDg3Y2I1NTQifQ"},
 }
 
+EXPECTED_USER_LOOKUP_UNKNOWN_RESPONSE = {"items": [], "page": {"count": 0, "limit": 3}}
+
+
 EXPECTED_CARD_NUMBER_RESPONSE = {
     "_id": EXPECTED_PEPPER_ID,
     "tenantId": "627b9ee450c8850d3b5bc30b",

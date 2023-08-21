@@ -5,18 +5,19 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.exceptions import (
+    AccountAlreadyExistsError,
     EndSiteDownError,
+    IPBlockedError,
     JoinError,
     NotSentError,
-    RetryLimitReachedError,
-    IPBlockedError,
     ResourceNotFoundError,
+    RetryLimitReachedError,
     StatusLoginFailedError,
-
-
 )
+
 from .setup_data import (
     CONFIG_JSON_PEPPER_BODY,
+    EXPECTED_ACCOUNT_EXISTS_RESPONSE,
     EXPECTED_ACCOUNT_SETUP_RESPONSE_NO_USER_NUMBER,
     EXPECTED_ACCOUNT_SETUP_RESPONSE_WITH_USER_NUMBER,
     EXPECTED_CARD_NUMBER,
@@ -25,6 +26,7 @@ from .setup_data import (
     EXPECTED_PEPPER_ID,
     EXPECTED_PEPPER_PAYLOAD,
     EXPECTED_USER_LOOKUP_RESPONSE,
+    EXPECTED_USER_LOOKUP_UNKNOWN_RESPONSE,
     MESSAGE,
     PEPPER_MERCHANT_URL,
     SECRET_ITSU_PEPPER_JOIN,
@@ -41,7 +43,7 @@ AUDIT_RESPONSE_REQUEST = ["send-audit-request", "send-audit-response", "record-h
 AUDIT_REQUEST_REQUEST_FAIL = ["send-audit-request", "request-fail"]
 
 
-class TestItsuPepperJoinHappyPath:
+class TestItsuPepperJoinSuccess:
     def test_overlay_pepper_config(self, itsu_pepper, itsu):
         payload = itsu_pepper.pepper_add_user_payload()
         assert payload == EXPECTED_PEPPER_PAYLOAD
@@ -80,6 +82,30 @@ class TestItsuPepperJoinHappyPath:
         assert returned_pepper_id == EXPECTED_PEPPER_ID
         assert mock_itsu_signals.count == 1
         assert mock_itsu_signals.has("record-http-request")
+
+    @httpretty.activate
+    def test_pepper_add_user_422_retry_recovery(
+        self,
+        mock_pepper_user_request,
+        mock_pepper_get_user_by_id_request,
+        itsu_pepper,
+        mock_itsu_signals,
+        mock_get_task_retrying,
+        monkeypatch,
+    ):
+        monkeypatch.setattr("app.agents.itsu.get_task", mock_get_task_retrying)
+        mock_pepper_get_user_by_id_request(response=EXPECTED_USER_LOOKUP_RESPONSE)
+        mock_pepper_user_request(status=HTTPStatus.UNPROCESSABLE_ENTITY, response=EXPECTED_ACCOUNT_EXISTS_RESPONSE)
+        returned_pepper_id, card_number = itsu_pepper.pepper_add_user(PEPPER_MERCHANT_URL)
+        assert returned_pepper_id == EXPECTED_PEPPER_ID
+        assert card_number == ""
+        assert mock_itsu_signals.name_list == [
+            "send-audit-request",
+            "send-audit-response",
+            "record-http-request",
+            "request-fail",
+            "record-http-request",
+        ]
 
     @httpretty.activate
     def test_call_pepper_for_card_number(self, mock_itsu_signals, itsu_pepper, mock_pepper_loyalty_request):
@@ -169,6 +195,47 @@ class TestItsuJoinErrors:
         assert mock_itsu_signals.name_list == signals
 
     @httpretty.activate
+    def test_pepper_add_user_422_1st_try(
+        self,
+        mock_pepper_user_request,
+        mock_pepper_get_user_by_id_request,
+        itsu_pepper,
+        mock_itsu_signals,
+        mock_get_task_pending,
+        monkeypatch,
+    ):
+        monkeypatch.setattr("app.agents.itsu.get_task", mock_get_task_pending)
+        mock_pepper_user_request(status=HTTPStatus.UNPROCESSABLE_ENTITY, response=EXPECTED_ACCOUNT_EXISTS_RESPONSE)
+        mock_pepper_get_user_by_id_request(response=EXPECTED_USER_LOOKUP_RESPONSE)
+        with pytest.raises(AccountAlreadyExistsError):
+            itsu_pepper.pepper_add_user(PEPPER_MERCHANT_URL)
+        assert mock_itsu_signals.name_list == AUDIT_RESPONSE_REQUEST_FAIL
+
+    @httpretty.activate
+    def test_pepper_add_user_422_retry_no_user(
+        self,
+        mock_pepper_user_request,
+        mock_pepper_get_user_by_id_request,
+        itsu_pepper,
+        mock_itsu_signals,
+        mock_get_task_retrying,
+        monkeypatch,
+    ):
+        monkeypatch.setattr("app.agents.itsu.get_task", mock_get_task_retrying)
+        mock_pepper_user_request(status=HTTPStatus.UNPROCESSABLE_ENTITY, response=EXPECTED_ACCOUNT_EXISTS_RESPONSE)
+        mock_pepper_get_user_by_id_request(response=EXPECTED_USER_LOOKUP_UNKNOWN_RESPONSE)
+        returned_pepper_id, card_number = itsu_pepper.pepper_add_user(PEPPER_MERCHANT_URL)
+        assert mock_itsu_signals.name_list == [
+            "send-audit-request",
+            "send-audit-response",
+            "record-http-request",
+            "request-fail",
+            "record-http-request",
+        ]
+        assert returned_pepper_id == ""
+        assert card_number == ""
+
+    @httpretty.activate
     @pytest.mark.parametrize(
         "test, status, response, raises, signals",
         [
@@ -176,7 +243,7 @@ class TestItsuJoinErrors:
             ("401", HTTPStatus.UNAUTHORIZED, {}, StatusLoginFailedError, AUDIT_RESPONSE_REQUEST_FAIL),
             ("403", HTTPStatus.FORBIDDEN, {}, IPBlockedError, AUDIT_RESPONSE_REQUEST_FAIL),
             ("404", HTTPStatus.NOT_FOUND, {}, ResourceNotFoundError, AUDIT_RESPONSE_REQUEST_FAIL),
-            ("408", HTTPStatus.REQUEST_TIMEOUT,  {}, EndSiteDownError, AUDIT_RESPONSE_REQUEST_FAIL),
+            ("408", HTTPStatus.REQUEST_TIMEOUT, {}, EndSiteDownError, AUDIT_RESPONSE_REQUEST_FAIL),
             ("409", HTTPStatus.CONFLICT, {}, EndSiteDownError, AUDIT_RESPONSE_REQUEST_FAIL),
             ("422", HTTPStatus.UNPROCESSABLE_ENTITY, {}, EndSiteDownError, AUDIT_RESPONSE_REQUEST_FAIL),
             ("429", HTTPStatus.TOO_MANY_REQUESTS, {}, EndSiteDownError, AUDIT_RESPONSE_REQUEST_FAIL),
