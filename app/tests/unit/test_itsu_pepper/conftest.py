@@ -13,6 +13,7 @@ from .setup_data import (
     CONFIG_JSON_PEPPER_BODY,
     EXPECTED_CARD_NUMBER,
     EXPECTED_PEPPER_ID,
+    EXPECTED_USER_LOOKUP_RESPONSE,
     MESSAGE,
     PEPPER_MERCHANT_URL,
     SECRET_ITSU_ACTEOL_JOIN,
@@ -66,9 +67,26 @@ def mock_pepper_user_request():
     def mock_request(status=HTTPStatus.OK, response=None):
         if not response:
             response = {"id": EXPECTED_PEPPER_ID}
-        api_url = f"{PEPPER_MERCHANT_URL}/users?autoActivate=true"
+        api_url = f"{PEPPER_MERCHANT_URL}/users?autoActivate=true&awaitExternalAccountSync=true"
         httpretty.register_uri(
             httpretty.POST,
+            uri=api_url,
+            status=status,
+            body=json.dumps(response),
+            content_type="text/json",
+        )
+
+    return mock_request
+
+
+@pytest.fixture
+def mock_pepper_get_user_by_id_request():
+    def mock_request(status=HTTPStatus.OK, response=None):
+        if not response:
+            response = EXPECTED_USER_LOOKUP_RESPONSE
+        api_url = f"{PEPPER_MERCHANT_URL}/users?credentialId=test_mm_3@bink.com&limit=3"
+        httpretty.register_uri(
+            httpretty.GET,
             uri=api_url,
             status=status,
             body=json.dumps(response),
