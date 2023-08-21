@@ -294,9 +294,12 @@ class Itsu(Acteol):
             resp_json = resp.json()
             pepper_id = resp_json.get("id", None)
         except BaseError as ex:
-            if ex.exception.response.status_code == 422:
-                pepper_id = self.handle_join_account_exists(ex.exception.response.json(), pepper_base_url)
-            else:
+            try:
+                if ex.exception.response.status_code == 422:
+                    pepper_id = self.handle_join_account_exists(ex.exception.response.json(), pepper_base_url)
+                else:
+                    raise ex from ex
+            except AttributeError:
                 raise ex from ex
         return pepper_id
 
