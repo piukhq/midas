@@ -202,29 +202,20 @@ class Itsu(Acteol):
         payload: dict = {}
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=True, json=payload)
         resp_json = resp.json()
-
         card_number = resp_json.get("externalLoyaltyMemberNumber", None)
-
-        if card_number:
-            self.identifier_type = [
-                "card_number",  # Not sure this is needed but the base class has one
-            ]
-            # Set up attributes needed for the creation of an active membership card
-            self.identifier = {
-                "card_number": card_number,
-                "merchant_identifier": pepper_id,
-            }
-            self.credentials["card_number"] = card_number
-            self.credentials["merchant_identifier"] = pepper_id
-        else:
-            signal("request-fail").send(
-                self,
-                slug=self.scheme_slug,
-                channel=self.channel,
-                error=JoinError,
-            )
-            raise JoinError()
         return card_number
+
+    def set_identifiers(self, pepper_id, card_number):
+        self.identifier_type = [
+            "card_number",  # Not sure this is needed but the base class has one
+        ]
+        # Set up attributes needed for the creation of an active membership card
+        self.identifier = {
+            "card_number": card_number,
+            "merchant_identifier": pepper_id,
+        }
+        self.credentials["card_number"] = card_number
+        self.credentials["merchant_identifier"] = pepper_id
 
     def pepper_get_by_id(self, email: str, pepper_base_url: str) -> str:
         pepper_id = ""
@@ -279,7 +270,7 @@ class Itsu(Acteol):
             raise JoinError()
         return pepper_id
 
-    def pepper_add_user(self, pepper_base_url) -> str:
+    def pepper_add_user(self, pepper_base_url) -> Tuple[str, str]:
         """
         Calls pepper and adds a new user returning the user id
         The add user call only works once if it returns a Validation error saying already associated
@@ -287,18 +278,23 @@ class Itsu(Acteol):
         :param pepper_base_url: pepper service base url
         :return: pepper_id the id returned by pepper when user is added
         """
-        api_url = f"{pepper_base_url}/users?autoActivate=true"
+        card_number = ""
+        api_url = f"{pepper_base_url}/users?autoActivate=true&awaitExternalAccountSync=true"
         payload = self.pepper_add_user_payload()
         try:
             resp = self.make_request(api_url, method="post", timeout=20, audit=True, json=payload)
             resp_json = resp.json()
-            pepper_id = resp_json.get("id", None)
+            pepper_id = resp_json.get("id", "")
+            card_number = resp_json.get("externalLoyaltyMemberNumber", "")
         except BaseError as ex:
-            if ex.exception.response.status_code == 422:
-                pepper_id = self.handle_join_account_exists(ex.exception.response.json(), pepper_base_url)
-            else:
+            try:
+                if ex.exception.response.status_code == 422:
+                    pepper_id = self.handle_join_account_exists(ex.exception.response.json(), pepper_base_url)
+                else:
+                    raise ex from ex
+            except AttributeError:
                 raise ex from ex
-        return pepper_id
+        return pepper_id, card_number
 
     def set_pepper_config(self) -> str:
         """
@@ -336,9 +332,13 @@ class Itsu(Acteol):
         to call Acteol as well.
         """
         pepper_base_url = self.set_pepper_config()
-        pepper_id = self.pepper_add_user(pepper_base_url)
-        if pepper_id:
-            self.call_pepper_for_card_number(pepper_id, pepper_base_url)
+        pepper_id, card_number = self.pepper_add_user(pepper_base_url)
+
+        if pepper_id and not card_number:
+            card_number = self.call_pepper_for_card_number(pepper_id, pepper_base_url)
+
+        if pepper_id and card_number:
+            self.set_identifiers(pepper_id, card_number)
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         else:
             signal("join-fail").send(
