@@ -52,7 +52,7 @@ class SlimChickens(BaseAgent):
     def login(self) -> None:
         self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
 
-    def _balance(self) -> Balance | None:
+    def make_balance_request(self) -> Balance | None:
         try:
             resp = self.make_request(
             urljoin(self.base_url, "/search"),
@@ -61,13 +61,10 @@ class SlimChickens(BaseAgent):
         except BaseError as ex:
             error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
-        return resp.json
+        return resp
             
     def balance(self) -> Balance | None:
-        resp = self.make_request(
-            urljoin(self.base_url, "/search"),
-            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
-        )
+        resp = self.make_balance_request()
         vouchers = resp.json()["wallet"]
         in_progress = None
         issued = []
