@@ -11,6 +11,7 @@ from app.agents.schemas import Balance, Voucher
 from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
 from app.vouchers import VoucherState, voucher_state_names
+from app.exceptions import (CardNumberError, UnknownError)
 
 RETRY_LIMIT = 3
 log = get_logger("slim-chickens")
@@ -51,6 +52,17 @@ class SlimChickens(BaseAgent):
     def login(self) -> None:
         self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
 
+    def _balance(self) -> Balance | None:
+        try:
+            resp = self.make_request(
+            urljoin(self.base_url, "/search"),
+            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+        )
+        except BaseError as ex:
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+            self.handle_error_codes(error_code)
+        return resp.json
+            
     def balance(self) -> Balance | None:
         resp = self.make_request(
             urljoin(self.base_url, "/search"),
