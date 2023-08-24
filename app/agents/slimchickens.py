@@ -8,7 +8,7 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
-from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, ValidationError, WeakPassword
 from app.reporting import get_logger
 from app.vouchers import VoucherState, voucher_state_names
 from app.exceptions import (CardNumberError, UnknownError)
@@ -58,7 +58,7 @@ class SlimChickens(BaseAgent):
             urljoin(self.base_url, "/search"),
             json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
         )
-        except BaseError as ex:
+        except ValidationError as ex:
             error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
             self.handle_error_codes(error_code)
         return resp
