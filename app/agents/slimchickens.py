@@ -41,7 +41,7 @@ class SlimChickens(BaseAgent):
             "username": self.credentials["email"],
             "channels": [{"channelKey": self.outbound_security["channel_key"]}],
         }
-        resp = self.make_request(self.url, method="post", audit=True, json=payload)
+        resp = self.make_request(self.url, method="post", audit=False, json=payload)
         resp_json = resp.json()
         if "Password is required" in resp_json.get("errors", {}).values():
             return False
