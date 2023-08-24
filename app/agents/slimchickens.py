@@ -53,14 +53,16 @@ class SlimChickens(BaseAgent):
         self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
 
     def make_balance_request(self) -> Balance | None:
+        self.errors= {
+            CardNumberError: [401],
+        }
         try:
             resp = self.make_request(
             urljoin(self.base_url, "/search"),
             json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
         )
-        except ValidationError as ex:
-            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
-            self.handle_error_codes(error_code)
+        except BaseError as ex:
+            self.handle_error_codes(ex.code)
         return resp
             
     def balance(self) -> Balance | None:
