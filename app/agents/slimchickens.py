@@ -53,7 +53,7 @@ class SlimChickens(BaseAgent):
     def login(self) -> None:
         self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
 
-    def make_balance_request(self) -> Balance | None:
+    def make_balance_request(self) -> Response:
         self.errors = {CardNumberError: [401]} # type: ignore
         try:
             resp = self.make_request(
@@ -64,7 +64,7 @@ class SlimChickens(BaseAgent):
             self.handle_error_codes(ex.code)
         return resp
 
-    def balance(self) -> Response:
+    def balance(self) -> Balance | None:
         resp = self.make_balance_request()
         vouchers = resp.json()["wallet"]
         in_progress = None
