@@ -99,6 +99,7 @@ class SlimChickens(BaseAgent):
                     "lastName": self.credentials["last_name"],
                     "username": self.credentials["email"],
                     "password": self.credentials["password"],
+                    "email": self.credentials["email"],
                     "dob": self.credentials["date_of_birth"],
                     "attributes": {"optin2": marketing_mapping.get("optin2")},
                     "channels": [{"channelKey": self.outbound_security["channel_key"]}],
