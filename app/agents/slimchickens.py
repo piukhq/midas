@@ -8,10 +8,11 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
-from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, ValidationError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
 from app.vouchers import VoucherState, voucher_state_names
-from app.exceptions import (CardNumberError, UnknownError)
+from app.exceptions import (CardNumberError)
+from requests.models import Response
 
 RETRY_LIMIT = 3
 log = get_logger("slim-chickens")
@@ -53,19 +54,17 @@ class SlimChickens(BaseAgent):
         self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
 
     def make_balance_request(self) -> Balance | None:
-        self.errors= {
-            CardNumberError: [401],
-        }
+        self.errors = {CardNumberError: [401]} # type: ignore
         try:
             resp = self.make_request(
-            urljoin(self.base_url, "/search"),
-            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
-        )
+                urljoin(self.base_url, "/search"),
+                json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+            )
         except BaseError as ex:
             self.handle_error_codes(ex.code)
         return resp
-            
-    def balance(self) -> Balance | None:
+
+    def balance(self) -> Response:
         resp = self.make_balance_request()
         vouchers = resp.json()["wallet"]
         in_progress = None
