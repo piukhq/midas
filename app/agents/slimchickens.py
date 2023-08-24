@@ -59,7 +59,9 @@ class SlimChickens(BaseAgent):
         return []
 
     def make_balance_request(self) -> Response:
-        self.errors = {CardNumberError: [401]}  # type: ignore
+        self.errors = {
+            CardNumberError: [401],  # type: ignore
+        }
         try:
             resp = self.make_request(
                 urljoin(self.base_url, "/search"),
