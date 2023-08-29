@@ -43,7 +43,7 @@ class SlimChickens(BaseAgent):
             "username": self.credentials["email"],
             "channels": [{"channelKey": self.outbound_security["channel_key"]}],
         }
-        resp = self.make_request(self.url, method="post", audit=True, json=payload)
+        resp = self.make_request(self.url, method="post", audit=False, json=payload)
         resp_json = resp.json()
         if "Password is required" in resp_json.get("errors", {}).values():
             return False
@@ -51,7 +51,13 @@ class SlimChickens(BaseAgent):
             return True
 
     def login(self) -> None:
-        self._authenticate(username=self.credentials["email"], password=self.credentials["password"])
+        self._authenticate(
+            username=f"{self.credentials['email']}-{self.outbound_security['channel_key']}",
+            password=self.credentials["password"],
+        )
+
+    def transactions(self) -> list:
+        return []
 
     def make_balance_request(self) -> Response:
         self.errors = {CardNumberError: [401]} # type: ignore
@@ -65,7 +71,12 @@ class SlimChickens(BaseAgent):
         return resp
 
     def balance(self) -> Balance | None:
-        resp = self.make_balance_request()
+
+        resp = self.make_request(
+            urljoin(self.base_url, "/search"),
+            method="post",
+            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+        )
         vouchers = resp.json()["wallet"]
         in_progress = None
         issued = []
@@ -75,7 +86,7 @@ class SlimChickens(BaseAgent):
                 in_progress = Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
                     code=voucher["voucherCode"],
-                    issue_date=voucher["start"],
+                    issue_date=voucher["loyaltyScheme"]["stateChangedon"],
                     expiry_date=voucher["voucherExpiry"],
                 )
             else:
@@ -96,31 +107,27 @@ class SlimChickens(BaseAgent):
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
         marketing_mapping = {i["slug"]: i["value"] for i in self.credentials["consents"]}
         try:
-            account_exists = self._account_already_exists()
-        except BaseError:
-            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            raise
-        if not account_exists:
-            payload = {
-                "firstName": self.credentials["first_name"],
-                "lastName": self.credentials["last_name"],
-                "username": self.credentials["email"],
-                "password": self.credentials["password"],
-                "dob": self.credentials["date_of_birth"],
-                "attributes": {"optin2": marketing_mapping.get("optin2")},
-                "channels": [{"channelKey": self.outbound_security["channel_key"]}],
-            }
-            try:
+            if not self._account_already_exists():
+                payload = {
+                    "firstName": self.credentials["first_name"],
+                    "lastName": self.credentials["last_name"],
+                    "username": self.credentials["email"],
+                    "password": self.credentials["password"],
+                    "email": self.credentials["email"],
+                    "dob": self.credentials["date_of_birth"],
+                    "attributes": {"optin2": marketing_mapping.get("optin2")},
+                    "channels": [{"channelKey": self.outbound_security["channel_key"]}],
+                }
                 resp = self.make_request(self.url, method="post", audit=True, json=payload)
                 resp_json = resp.json()
                 if "Password is too weak" in resp_json.get("errors", {}).values():
                     raise WeakPassword()
                 signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
-            except BaseError:
-                signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-                raise
-        else:
-            raise AccountAlreadyExistsError()  # The join journey ends
+            else:
+                raise AccountAlreadyExistsError()  # The join journey ends
+        except BaseError:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+            raise
 
         response_data = resp.json()
         self.identifier = {
