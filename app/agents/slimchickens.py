@@ -1,4 +1,5 @@
 import base64
+import time
 from decimal import Decimal
 from typing import Any
 from urllib.parse import urljoin
@@ -119,6 +120,7 @@ class SlimChickens(BaseAgent):
                     "channels": [{"channelKey": self.outbound_security["channel_key"]}],
                 }
                 resp = self.make_request(self.url, method="post", audit=True, json=payload)
+                time.sleep(2)
                 resp_json = resp.json()
                 if "Password is too weak" in resp_json.get("errors", {}).values():
                     raise WeakPassword()
