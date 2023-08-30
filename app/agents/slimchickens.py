@@ -12,7 +12,7 @@ from app.agents.schemas import Balance, Voucher
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
 from app.vouchers import VoucherState, voucher_state_names
-from app.exceptions import (CardNumberError)
+from app.exceptions import CardNumberError
 from requests.models import Response
 
 RETRY_LIMIT = 3
