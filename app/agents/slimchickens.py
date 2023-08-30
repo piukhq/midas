@@ -73,11 +73,7 @@ class SlimChickens(BaseAgent):
         return resp
 
     def balance(self) -> Balance | None:
-        resp = self.make_request(
-            urljoin(self.base_url, "/search"),
-            method="post",
-            json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
-        )
+        resp = self.make_balance_request()
         vouchers = resp.json()["wallet"]
         in_progress = None
         issued = []
