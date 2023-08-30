@@ -4,15 +4,14 @@ from typing import Any
 from urllib.parse import urljoin
 
 from blinker import signal
+from requests.models import Response
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
-from app.exceptions import AccountAlreadyExistsError, BaseError, ConfigurationError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
 from app.vouchers import VoucherState, voucher_state_names
-from app.exceptions import CardNumberError
-from requests.models import Response
 
 RETRY_LIMIT = 3
 log = get_logger("slim-chickens")
