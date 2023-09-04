@@ -26,7 +26,7 @@ class SlimChickens(BaseAgent):
         self.base_url = self.config.merchant_url
         self.outbound_security = self.config.security_credentials["outbound"]["credentials"][0]["value"]
 
-    def _authenticate(self, username: str, password: str):
+    def _configure_outbound_auth(self, username: str, password: str):
         if self.outbound_auth_service == Configuration.OPEN_AUTH_SECURITY:
             return
         else:
@@ -38,7 +38,9 @@ class SlimChickens(BaseAgent):
                 raise ConfigurationError(exception=e) from e
 
     def _account_already_exists(self) -> bool:
-        self._authenticate(username=self.outbound_security["username"], password=self.outbound_security["password"])
+        self._configure_outbound_auth(
+            username=self.outbound_security["username"], password=self.outbound_security["password"]
+        )
         payload = {
             "username": self.credentials["email"],
             "channels": [{"channelKey": self.outbound_security["channel_key"]}],
@@ -51,30 +53,39 @@ class SlimChickens(BaseAgent):
             return True
 
     def login(self) -> None:
-        self._authenticate(
+        """
+        There is no login, this will set the outbound auth headers
+        with the account holder's credentials for the balance request
+        """
+        self._configure_outbound_auth(
             username=f"{self.credentials['email']}-{self.outbound_security['channel_key']}",
             password=self.credentials["password"],
         )
+        # Balance request is made in the login so the correct errors can be raised for hermes
+        resp = self.login_balance_request()
+        self.balance_vouchers = resp.json()["wallet"]
 
     def transactions(self) -> list:
         return []
 
-    def make_balance_request(self) -> Response:
-        self.errors = {
-            CardNumberError: [401],  # type: ignore
-        }
+    def login_balance_request(self) -> Response:
         try:
             resp = self.make_request(
                 urljoin(self.base_url, "/search"),
+                method="post",
+                audit=True,
                 json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
             )
+            signal("log-in-success").send(self, slug=self.scheme_slug)
         except BaseError as ex:
-            self.handle_error_codes(ex.code)
+            signal("log-in-fail").send(self, slug=self.scheme_slug)
+            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+            if error_code == 401:
+                raise CardNumberError()
         return resp
 
     def balance(self) -> Balance | None:
-        resp = self.make_balance_request()
-        vouchers = resp.json()["wallet"]
+        vouchers = self.balance_vouchers
         in_progress = None
         issued = []
 
@@ -116,7 +127,7 @@ class SlimChickens(BaseAgent):
                     "channels": [{"channelKey": self.outbound_security["channel_key"]}],
                 }
                 resp = self.make_request(self.url, method="post", audit=True, json=payload)
-                time.sleep(2)
+                time.sleep(4)
                 resp_json = resp.json()
                 if "Password is too weak" in resp_json.get("errors", {}).values():
                     raise WeakPassword()
