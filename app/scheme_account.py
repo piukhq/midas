@@ -6,7 +6,7 @@ import requests
 
 import settings
 from app.encoding import JsonEncoder
-from app.exceptions import AccountAlreadyExistsError
+from app.exceptions import AccountAlreadyExistsError, WeakPassword
 from app.http_request import get_headers
 from app.reporting import get_logger
 from app.tasks.resend_consents import ConsentStatus
@@ -46,6 +46,7 @@ class SchemeAccountStatus:
     ENROL_FAILED = 901
     REGISTRATION_FAILED = 902
     ACCOUNT_ALREADY_EXISTS = 445
+    JOIN_WEAK_PASSWORD = 905
 
 
 class JourneyTypes(IntEnum):
@@ -86,6 +87,8 @@ def update_pending_join_account(
     delete_data = {"all": True}
     if isinstance(error, AccountAlreadyExistsError):
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
+    elif isinstance(error, WeakPassword):
+        status = SchemeAccountStatus.JOIN_WEAK_PASSWORD
     elif card_number:
         status = SchemeAccountStatus.REGISTRATION_FAILED
         delete_data = {"keep_card_number": True}
