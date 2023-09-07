@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from typing import Optional, Tuple
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urljoin
 from uuid import uuid4
 
 import sentry_sdk
@@ -33,13 +33,11 @@ class Itsu(Acteol):
 
     def get_auth_url_and_payload(self):
         url = urljoin(self.base_url, "token")
-        self.headers = {"Content-Type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "password",
             "username": self.outbound_security_credentials["username"],
             "password": self.outbound_security_credentials["password"],
         }
-        payload = urlencode(payload)
         return url, payload
 
     def authenticate(self):
@@ -47,7 +45,6 @@ class Itsu(Acteol):
             return
         if self.outbound_auth_service == Configuration.OAUTH_SECURITY:
             self._oauth_authentication()
-        self.headers["Content-Type"] = "application/json"
 
     def _check_response_for_error(self, resp_json: dict):
         """
@@ -108,7 +105,6 @@ class Itsu(Acteol):
                 raise
 
     def _get_customer_details(self, ctcid: str) -> dict:
-        self.headers["Content-Type"] = ""
         api_url = urljoin(self.base_url, f"api/Loyalty/GetCustomerDetails?customerid={ctcid}")
         resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
         if resp.status_code != HTTPStatus.OK:
@@ -318,7 +314,6 @@ class Itsu(Acteol):
         pepper_outbound_security_credentials = config.security_credentials["outbound"]["credentials"][0]["value"]
 
         self.headers = {
-            "Content-Type": "application/json",
             "Authorization": f"Token {pepper_outbound_security_credentials['authorization']}",
             "x-api-version": "10",
             "x-application-id": pepper_outbound_security_credentials["application-id"],

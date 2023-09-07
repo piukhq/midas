@@ -221,7 +221,6 @@ EXPECTED_CARD_NUMBER_RESPONSE = {
 
 
 EXPECTED_ITSU_PEPPER_HEADERS = {
-    "Content-Type": "application/json",
     "Authorization": "Token 627b9ee5c0aebf0e54a3b3dc",
     "x-api-version": "10",
     "x-application-id": "bink-03dxtvc8",
