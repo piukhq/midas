@@ -24,21 +24,23 @@ def agent_join(agent_class, user_info, tid, scheme_slug=None):
     return {"agent": agent_instance, "error": error}
 
 
-def login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid):
+def login_and_publish_status(user_info, scheme_slug, tid, join_result=None, agent_class=None):
     try:
-        if join_result["agent"].expecting_callback:
+        if not agent_class:
+            agent_class = get_agent_class(scheme_slug)
+        if join_result and join_result["agent"].expecting_callback:
             return True
         agent_instance = agent_login(agent_class, user_info, scheme_slug=scheme_slug, from_join=True)
         if agent_instance.identifier:
             update_pending_join_account(user_info, tid, identifier=agent_instance.identifier)
-        elif join_result["agent"].identifier:
+        elif join_result and join_result["agent"].identifier:
             update_pending_join_account(
                 user_info,
                 tid,
                 identifier=join_result["agent"].identifier,
             )
     except BaseError as e:
-        if join_result["error"] == AccountAlreadyExistsError:
+        if join_result and join_result["error"] == AccountAlreadyExistsError:
             consents = user_info["credentials"].get("consents", [])
             consent_ids = (consent["id"] for consent in consents)
             update_pending_join_account(
@@ -83,4 +85,4 @@ def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignor
         retry_task = get_task(session, scheme_account_id)
         if not retry_task.awaiting_callback:
             delete_task(session, retry_task)
-            login_and_publish_status(agent_class, user_info, scheme_slug, join_result, tid)
+            login_and_publish_status(user_info, scheme_slug, tid, join_result, agent_class)

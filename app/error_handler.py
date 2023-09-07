@@ -1,4 +1,5 @@
 import typing as t
+import uuid
 from typing import TYPE_CHECKING, Any
 
 import rq
@@ -13,13 +14,16 @@ from app.exceptions import (
     NotSentError,
     RetryLimitReachedError,
     ServiceConnectionError,
+    StatusLoginFailedError,
     UnknownError,
 )
 from app.models import RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
 from app.retry_util import (
+    create_task,
     delete_task,
+    enqueue_retry_task,
     enqueue_retry_task_delay,
     fail_callback_task,
     get_task,
@@ -49,6 +53,48 @@ def handle_failed_join(db_session, retry_task, exc_value):
     update_pending_join_account(
         user_info, tid, exc_value, scheme_slug=scheme_slug, consent_ids=consent_ids, raise_exception=False
     )
+
+
+def handle_failed_login(self):
+    try:
+        with db.session_scope() as session:
+            if self.retry_count > 0:
+                task = get_task(session, scheme_account_id=self.user_info["scheme_account_id"])
+                handle_request_exception(  # pragma: no cover
+                    db_session=session,
+                    backoff_base=RETRY_BACKOFF_BASE,
+                    max_retries=MAX_RETRY_COUNT,
+                    job=None,
+                    exc_value=StatusLoginFailedError(),
+                    connection=redis_raw,
+                    retryable_exceptions=[
+                        StatusLoginFailedError,  # type: ignore
+                    ],
+                    scheme_account_id=self.user_info["scheme_account_id"],
+                )
+                # if self.retry_count > MAX_RETRY_COUNT:
+                #     task.status = RetryTaskStatuses.FAILED
+            else:
+                task = create_task(
+                    db_session=session,
+                    user_info=self.user_info,
+                    journey_type="attempt-login",
+                    message_uid=str(uuid.uuid1()),
+                    scheme_identifier="slim-chickens",
+                    scheme_account_id=self.user_info["scheme_account_id"],
+                )
+                enqueue_retry_task(
+                    connection=redis_raw,
+                    function_path="app.journeys.join.login_and_publish_status",
+                    args=[
+                        task.request_data,
+                        task.scheme_identifier,
+                        task.message_uid,
+                    ],
+                )
+                session.commit()
+    except BaseError as e:
+        raise e
 
 
 def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: list):
@@ -93,6 +139,7 @@ def _handle_request_exception(
     retry_task: RetryTask,
     request_exception: BaseError,
     retryable_status_codes: list[int],
+    from_login: bool = False,
 ) -> t.Tuple[t.Optional[RetryTaskStatuses], t.Optional[Any]]:
     status = None
     next_attempt_time = None
@@ -108,7 +155,12 @@ def _handle_request_exception(
     )
 
     if attempts <= max_retries:
-        if resp is None or 500 <= request_exception.code < 600 or request_exception.code in retryable_status_codes:
+        if (
+            from_login
+            or resp is None
+            or 500 <= request_exception.code < 600
+            or request_exception.code in retryable_status_codes
+        ):
             next_attempt_time = enqueue_retry_task_delay(
                 connection=connection,
                 retry_task=retry_task,
@@ -135,14 +187,21 @@ def handle_request_exception(
     connection: Any,
     backoff_base: int,
     max_retries: int,
-    job: rq.job.Job,
+    job: rq.job.Job | None,
     exc_value: BaseError,
     retryable_exceptions: list[BaseError],
+    scheme_account_id: int | None = None,
 ):
     next_attempt_time = None
-    retry_task = get_task(db_session, job.args[0])
+    if scheme_account_id:
+        retry_task = get_task(db_session, scheme_account_id)
+    else:
+        retry_task = get_task(db_session, job.args[0])
+    if retry_task.journey_type == "attempt-login":
+        from_login = True
+
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
-    if type(exc_value) in retryable_exceptions:
+    if from_login or type(exc_value) in retryable_exceptions:
         status, next_attempt_time = _handle_request_exception(
             connection=connection,
             backoff_base=backoff_base,
@@ -150,6 +209,7 @@ def handle_request_exception(
             retry_task=retry_task,
             request_exception=exc_value,
             retryable_status_codes=retryable_status_codes or [],
+            from_login=from_login,
         )
     else:  # otherwise report to sentry and fail the task
         status = RetryTaskStatuses.FAILED
@@ -170,7 +230,7 @@ def handle_request_exception(
 
 
 def handle_retry_task_request_error(
-    job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
+    job: rq.job.Job | None, exc_type: type, exc_value: BaseError, traceback: "Traceback"
 ) -> None:
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed
