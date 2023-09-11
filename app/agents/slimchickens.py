@@ -74,7 +74,11 @@ class SlimChickens(BaseAgent):
                 urljoin(self.base_url, "/search"),
                 method="post",
                 audit=True,
-                json={"channelKeys": [self.outbound_security["channel_key"]], "types": ["wallet"]},
+                json={
+                    "channelKeys": [self.outbound_security["channel_key"]],
+                    "types": ["wallet"],
+                    "email": self.credentials["email"],
+                },
             )
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except BaseError as ex:
