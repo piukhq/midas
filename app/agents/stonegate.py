@@ -39,7 +39,7 @@ class Stonegate(Acteol):
     def _check_response_for_error(self, resp_json: dict):
         pass
 
-    def _find_customer_details(self, send_audit: bool = False) -> Tuple[str, str]:
+    def _find_customer_details(self, send_audit: bool = False) -> bool:
         self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
