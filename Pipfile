@@ -46,6 +46,7 @@ flask-testing = "*"
 sqlalchemy-utils = "*"
 rq = "!=1.14.0"
 sqlalchemy-stubs = "*"
+argon2-cffi = "*"
 
 [dev-packages]
 black = "*"
