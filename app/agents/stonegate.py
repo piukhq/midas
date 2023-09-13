@@ -1,4 +1,3 @@
-from typing import Tuple
 from urllib.parse import urlencode, urljoin
 
 import argon2
@@ -36,17 +35,13 @@ class Stonegate(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
-    def _check_response_for_error(self, resp_json: dict):
-        pass
-
     def _find_customer_details(self, send_audit: bool = False) -> bool:
         self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
-        resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=send_audit, json=payload)
+        resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
         resp_json = resp.json()
-        resp_data = resp_json["ResponseData"][0]
-        errors = resp_data.get("Errors")
+        errors = resp_json.get("Errors")
         if not errors:
             return True
         if errors[0]["ErrorCode"] == 4:
@@ -63,7 +58,7 @@ class Stonegate(Acteol):
         marketing_optin = False
         if consents := self.credentials.get("consents", []):
             marketing_optin = consents[0]["value"]
-        url = urljoin(self.base_url, "Customer/Post")
+        url = urljoin(self.base_url, "api/Customer/Post")
         payload = {
             "PersonalInfo": {
                 "FirstName": self.credentials["first_name"],
@@ -84,9 +79,8 @@ class Stonegate(Acteol):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             resp_json = resp.json()
-            self._check_response_for_error(resp_json)
             self.identifier = {"merchant_identifier": resp_json["ResponseData"]["MemberNumber"]}
-            signal("join-success").senf(self, slug=self.scheme_slug, channel=self.channel)
+            signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code

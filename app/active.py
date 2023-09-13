@@ -17,4 +17,5 @@ AGENTS = {
     "bpl-asos": "bpl.Bpl",
     "bpl-cortado": "bpl.Bpl",
     "bpl-viator": "bpl.Bpl",
+    "mixr": "stonegate.Stonegate",
 }
