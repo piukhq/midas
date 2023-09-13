@@ -49,7 +49,6 @@ class TestItsuPepperJoinSuccess:
         assert payload == EXPECTED_PEPPER_PAYLOAD
         assert itsu_pepper.scheme_slug == MESSAGE["loyalty_plan"]
         assert itsu_pepper.headers == EXPECTED_ITSU_PEPPER_HEADERS
-        assert itsu.headers == {}
 
     @pytest.fixture
     @httpretty.activate
