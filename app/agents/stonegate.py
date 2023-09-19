@@ -5,7 +5,7 @@ from blinker import signal
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
-from app.agents.schemas import Transaction
+from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError
 
 hasher = argon2.PasswordHasher()
@@ -36,7 +36,6 @@ class Stonegate(Acteol):
         self.headers["Content-Type"] = "application/json"
 
     def _check_customer_exists(self, send_audit: bool = False) -> bool:
-        self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
         resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
@@ -47,7 +46,7 @@ class Stonegate(Acteol):
         if errors[0]["ErrorCode"] == 4:
             return False
         else:
-            raise Exception()
+            raise JoinError()
 
     def _get_join_payload(self):
         hashed_password = hasher.hash(self.credentials["password"])
@@ -73,6 +72,7 @@ class Stonegate(Acteol):
         }
 
     def join(self):
+        self.authenticate()
         check_user_exists = self._check_customer_exists()
         if check_user_exists:
             raise AccountAlreadyExistsError()
@@ -89,6 +89,17 @@ class Stonegate(Acteol):
         except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise ex
+
+    def login(self):
+        pass
+
+    def balance(self):
+        return Balance(
+            points=0,
+            value=0,
+            value_label="",
+            vouchers=[],
+        )
 
     def transactions(self) -> list[Transaction]:
         return []
