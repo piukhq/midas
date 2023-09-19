@@ -6,7 +6,7 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
 from app.agents.schemas import Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError
+from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError
 
 hasher = argon2.PasswordHasher()
 
@@ -35,7 +35,7 @@ class Stonegate(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
-    def _find_customer_details(self, send_audit: bool = False) -> bool:
+    def _check_customer_exists(self, send_audit: bool = False) -> bool:
         self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
@@ -50,7 +50,7 @@ class Stonegate(Acteol):
             raise Exception()
 
     def join(self):
-        check_user_exists = self._find_customer_details()
+        check_user_exists = self._check_customer_exists()
         if check_user_exists:
             raise AccountAlreadyExistsError()
 
@@ -79,13 +79,13 @@ class Stonegate(Acteol):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             resp_json = resp.json()
+            if "MemberNumber" not in resp_json["ResponseData"] or not resp_json["ResponseData"]["MemberNumber"]:
+                raise JoinError()
             self.identifier = {"merchant_identifier": resp_json["ResponseData"]["MemberNumber"]}
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
-            error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
-            self.handle_error_codes(error_code)
+            raise ex
 
     def transactions(self) -> list[Transaction]:
-        # No transactions available for Itsu, return empty list to prevent exception being raised.
         return []
