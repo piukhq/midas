@@ -259,3 +259,17 @@ def test_get_payload_when_consents_is_true(mock_signal, mock_authenticate, stone
     }
     payload = stonegate._get_join_payload()
     assert payload["MarketingOptin"]["EmailOptin"] is True
+
+
+@mock.patch("app.agents.stonegate.Stonegate.authenticate")
+@mock.patch("app.agents.stonegate.signal", autospec=True)
+def test_get_payload_when_consents_is_false(mock_signal, mock_authenticate, stonegate):
+    stonegate.credentials = {
+        "first_name": "Fake",
+        "last_name": "Name",
+        "email": "email@domain.com",
+        "password": "pAsSw0rD",
+        "consents": [{"id": 11738, "slug": "Subscription", "value": False, "created_on": "1996-09-26T00:00:00"}],
+    }
+    payload = stonegate._get_join_payload()
+    assert payload["MarketingOptin"]["EmailOptin"] is False
