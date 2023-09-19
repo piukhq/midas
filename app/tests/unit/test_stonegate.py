@@ -208,7 +208,7 @@ def test_create_account_fails_generic_exception(mock_signal, mock_authenticate, 
             )
         ],
     )
-    with pytest.raises(Exception):
+    with pytest.raises(JoinError):
         stonegate.join()
         mock_signal.assert_called_with("join-fail")
 
