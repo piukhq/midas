@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import urljoin
 
+import arrow
 from blinker import signal
 from requests.models import Response
 from soteria.configuration import Configuration
@@ -88,6 +89,10 @@ class SlimChickens(BaseAgent):
                 raise CardNumberError()
         return resp
 
+    @staticmethod
+    def _voucher_date_to_timestamp(date: str) -> int:
+        return arrow.get(date).int_timestamp
+
     def balance(self) -> Balance | None:
         vouchers = self.balance_vouchers
         in_progress = None
@@ -98,16 +103,16 @@ class SlimChickens(BaseAgent):
                 in_progress = Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
                     code=voucher["voucherCode"],
-                    issue_date=voucher["loyaltyScheme"]["stateChangedon"],
-                    expiry_date=voucher["voucherExpiry"],
+                    issue_date=self._voucher_date_to_timestamp(voucher["loyaltyScheme"]["stateChangedon"]),
+                    expiry_date=self._voucher_date_to_timestamp(voucher["voucherExpiry"]),
                 )
             else:
                 issued.append(
                     Voucher(
                         state=voucher_state_names[VoucherState.ISSUED],
                         code="----------",
-                        issue_date=voucher["start"],
-                        expiry_date=voucher["voucherExpiry"],
+                        issue_date=self._voucher_date_to_timestamp(voucher["offer"]["start"]),
+                        expiry_date=self._voucher_date_to_timestamp(voucher["voucherExpiry"]),
                     )
                 )
         if in_progress is None:
