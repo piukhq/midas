@@ -1120,7 +1120,7 @@ class TestSlimChicken(unittest.TestCase):
                         redeem_date=None,
                         expiry_date=1724194799,
                         code="747163178",
-                        value=None,
+                        value=Decimal("0"),
                         target_value=None,
                         conversion_date=None,
                     )
@@ -1135,7 +1135,7 @@ class TestSlimChicken(unittest.TestCase):
         self.assertEqual(
             resp,
             Balance(
-                points=Decimal("0"),
+                points=Decimal("4"),
                 value=Decimal("0"),
                 value_label="",
                 reward_tier=0,
@@ -1147,7 +1147,7 @@ class TestSlimChicken(unittest.TestCase):
                         redeem_date=None,
                         expiry_date=1724194799,
                         code="376819964",
-                        value=None,
+                        value=Decimal("4"),
                         target_value=None,
                         conversion_date=None,
                     ),

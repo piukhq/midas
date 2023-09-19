@@ -98,13 +98,17 @@ class SlimChickens(BaseAgent):
         in_progress = None
         issued = []
 
+        points = Decimal("0")
+
         for voucher in vouchers:
             if "cardPoints" in voucher:
+                points = Decimal(voucher["cardPoints"])
                 in_progress = Voucher(
                     state=voucher_state_names[VoucherState.IN_PROGRESS],
                     code=voucher["voucherCode"],
                     issue_date=self._voucher_date_to_timestamp(voucher["loyaltyScheme"]["stateChangedon"]),
                     expiry_date=self._voucher_date_to_timestamp(voucher["voucherExpiry"]),
+                    value=points,
                 )
             else:
                 issued.append(
@@ -118,7 +122,7 @@ class SlimChickens(BaseAgent):
         if in_progress is None:
             raise BaseError
 
-        return Balance(points=Decimal(0), value=Decimal(0), value_label="", vouchers=[in_progress, *issued])
+        return Balance(points=points, value=Decimal(0), value_label="", vouchers=[in_progress, *issued])
 
     def join(self) -> Any:
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
