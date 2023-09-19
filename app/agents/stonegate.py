@@ -49,17 +49,12 @@ class Stonegate(Acteol):
         else:
             raise Exception()
 
-    def join(self):
-        check_user_exists = self._check_customer_exists()
-        if check_user_exists:
-            raise AccountAlreadyExistsError()
-
+    def _get_join_payload(self):
         hashed_password = hasher.hash(self.credentials["password"])
         marketing_optin = False
         if consents := self.credentials.get("consents", []):
             marketing_optin = consents[0]["value"]
-        url = urljoin(self.base_url, "api/Customer/Post")
-        payload = {
+        return {
             "PersonalInfo": {
                 "FirstName": self.credentials["first_name"],
                 "LastName": self.credentials["last_name"],
@@ -76,6 +71,14 @@ class Stonegate(Acteol):
             ],
             "MemberNumber": {"GenerateMemberNumber": "true"},
         }
+
+    def join(self):
+        check_user_exists = self._check_customer_exists()
+        if check_user_exists:
+            raise AccountAlreadyExistsError()
+
+        url = urljoin(self.base_url, "api/Customer/Post")
+        payload = self._get_join_payload()
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             resp_json = resp.json()
