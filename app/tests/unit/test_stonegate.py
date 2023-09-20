@@ -128,7 +128,7 @@ def stonegate():
                 "scheme_account_id": 99999,
                 "channel": "com.bink.wallet",
             },
-            scheme_slug="mixr",
+            scheme_slug="stonegate",
         )
         stonegate.base_url = "http://fake.com/"
         return stonegate
