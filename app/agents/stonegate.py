@@ -81,7 +81,7 @@ class Stonegate(Acteol):
         try:
             resp = self.make_request(url, method="post", audit=True, json=payload)
             resp_json = resp.json()
-            if "MemberNumber" not in resp_json["ResponseData"] or not resp_json["ResponseData"]["MemberNumber"]:
+            if not resp_json["ResponseData"]["MemberNumber"]:
                 raise JoinError()
             self.identifier = {"merchant_identifier": resp_json["ResponseData"]["MemberNumber"]}
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
