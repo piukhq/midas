@@ -73,8 +73,7 @@ class Stonegate(Acteol):
 
     def join(self):
         self.authenticate()
-        check_user_exists = self._check_customer_exists()
-        if check_user_exists:
+        if self._check_customer_exists():
             raise AccountAlreadyExistsError()
 
         url = urljoin(self.base_url, "api/Customer/Post")
