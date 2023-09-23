@@ -6,7 +6,7 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError
+from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError, StatusLoginFailedError
 
 hasher = argon2.PasswordHasher()
 
@@ -89,8 +89,71 @@ class Stonegate(Acteol):
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise ex
 
+    def _find_customer_details(self, filters, send_audit: bool = False) -> dict:
+        self.authenticate()
+        api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
+        payload = {
+            "SearchFilters": filters,
+            "ResponseFilters": {"LoyaltyDetails": True, "StaffInfo": True, "SupInfo": True},
+            "BrandID": "Bink",
+        }
+        resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
+        resp_json = resp.json()
+        errors = resp_json.get("Errors")
+        if not errors:
+            return resp_json["ResponseData"][0]
+        if errors[0]["ErrorCode"] == 4:
+            return {}
+        else:
+            raise Exception()
+
+    def _patch_customer_details(self, ctc_id) -> None:
+        api_url = urljoin(self.base_url, "api/Customer/Patch")
+        payload = {
+            "CtcID": ctc_id,
+            "DataProcess": {
+                "ProcessMydata": True,
+            },
+            "ModifiedDate": "2023-06-08T09:11:39.8328971+01:00",
+            "SupInfo": [{"FieldName": "pll_bink", "FieldContent": "true"}],
+        }
+        resp = self.make_request(api_url, method="patch", json=payload)
+        self._check_response_for_error(resp.json())
+
     def login(self):
-        pass
+        if (
+            self.credentials["card_number"]
+            and not self.user_info.get("from_join")
+            and not self.credentials.get("merchant_identifier")
+        ):
+            try:
+                response_data = self._find_customer_details(
+                    send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
+                )
+                if not response_data:
+                    signal("request-fail").send(
+                        self,
+                        slug=self.scheme_slug,
+                        channel=self.channel,
+                        error=StatusLoginFailedError,
+                    )
+                    raise StatusLoginFailedError
+                ctc_id = response_data["CtcID"]
+                self._patch_customer_details(ctc_id)
+
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+                self.identifier_type = [
+                    "card_number",  # Not sure if this is needed but the base class has one
+                ]
+                # Set up attributes needed for the creation of an active membership card
+                self.identifier = {
+                    "card_number": self.credentials["card_number"],
+                    "merchant_identifier": self.credentials["card_number"],
+                }
+                self.credentials.update({"merchant_identifier": self.credentials["card_number"], "ctcid": ctc_id})
+            except BaseError:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                raise
 
     def balance(self):
         return Balance(

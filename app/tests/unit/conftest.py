@@ -1,4 +1,25 @@
+import json
+from http import HTTPStatus
+
+import httpretty
 import pytest
+
+from app.api import create_app
+
+
+@pytest.fixture
+def mock_europa_request():
+    def mock_request(response=None):
+        uri = "http://mock_europa.com/configuration"
+        httpretty.register_uri(
+            httpretty.GET,
+            uri=uri,
+            status=HTTPStatus.OK,
+            body=json.dumps(response),
+            content_type="text/json",
+        )
+
+    return mock_request
 
 
 @pytest.fixture
@@ -70,3 +91,30 @@ def mock_signals(monkeypatch):
             return None, None
 
     return MockSignals
+
+
+@pytest.fixture
+def client():
+    """Configures the app for testing
+    Can be used to make requests to API end points from unit tests for white box testing
+
+    :return: App for testing
+    """
+    app = create_app()
+    app.config["TESTING"] = True
+    client = app.test_client()
+
+    yield client
+
+
+@pytest.fixture
+def redis_retry_pretty_fix(monkeypatch):
+    """
+    Redis connection fails if HTTPPretty is active so the hack is to mock out get_count which uses redis
+
+    """
+
+    def get_count(_):
+        return 0
+
+    monkeypatch.setattr("app.redis_retry.get_count", get_count)
