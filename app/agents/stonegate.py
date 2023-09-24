@@ -1,3 +1,4 @@
+from decimal import Decimal
 from urllib.parse import urlencode, urljoin
 
 import argon2
@@ -16,6 +17,7 @@ class Stonegate(Acteol):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.oauth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = "SYNC"
+        self._points_balance = 0
 
     def get_auth_url_and_payload(self):
         url = urljoin(self.base_url, "token")
@@ -139,6 +141,7 @@ class Stonegate(Acteol):
                     )
                     raise StatusLoginFailedError
                 ctc_id = response_data["CtcID"]
+                self._points_balance = int(response_data["LoyaltyDetails"]["LoyaltyPointsBalance"])
                 self._patch_customer_details(ctc_id)
 
                 signal("log-in-success").send(self, slug=self.scheme_slug)
@@ -148,17 +151,17 @@ class Stonegate(Acteol):
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
                     "card_number": self.credentials["card_number"],
-                    "merchant_identifier": self.credentials["card_number"],
+                    "merchant_identifier": ctc_id,
                 }
-                self.credentials.update({"merchant_identifier": self.credentials["card_number"], "ctcid": ctc_id})
+                self.credentials.update({"merchant_identifier": ctc_id})
             except BaseError:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
 
     def balance(self):
         return Balance(
-            points=0,
-            value=0,
+            points=Decimal(self._points_balance),
+            value=Decimal(0),
             value_label="",
             vouchers=[],
         )

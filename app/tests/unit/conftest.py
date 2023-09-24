@@ -94,6 +94,41 @@ def mock_signals(monkeypatch):
 
 
 @pytest.fixture
+def http_pretty_mock():
+    class MockRequest:
+        def __init__(self, response_body):
+            self.response_body = response_body
+            self.request_json = None
+            self.request_uri = None
+            self.request = None
+            self.call_count = 0
+
+        def call_back(self, request, uri, response_headers):
+            self.request_json = None
+            try:
+                self.request_json = json.loads(request.body)
+            except json.JSONDecodeError:
+                pass
+            self.request = request
+            self.request_uri = uri
+            self.call_count += 1
+            return [200, response_headers, json.dumps(self.response_body)]
+
+    def mock_setup(url, action=httpretty.GET, status=HTTPStatus.OK, response=None):
+        mock_request = MockRequest(response)
+        httpretty.register_uri(
+            action,
+            uri=url,
+            status=status,
+            body=mock_request.call_back,
+            content_type="text/json",
+        )
+        return mock_request
+
+    return mock_setup
+
+
+@pytest.fixture
 def client():
     """Configures the app for testing
     Can be used to make requests to API end points from unit tests for white box testing
@@ -117,4 +152,12 @@ def redis_retry_pretty_fix(monkeypatch):
     def get_count(_):
         return 0
 
+    def inc_count(_):
+        pass
+
+    def max_out_count(_):
+        pass
+
     monkeypatch.setattr("app.redis_retry.get_count", get_count)
+    monkeypatch.setattr("app.redis_retry.inc_count", inc_count)
+    monkeypatch.setattr("app.redis_retry.max_out_count", max_out_count)
