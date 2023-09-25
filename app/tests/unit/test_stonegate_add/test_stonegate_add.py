@@ -7,6 +7,17 @@ import settings
 from .setup_data import CONFIG_JSON_STONEGATE_BODY, MERCHANT_URL, SECRET_ACTEOL_JOIN
 
 
+def assert_correct_happy_path_calls(test, mock_find_user, mock_patch_ctc_id, mock_put_hermes_credentials):
+    assert mock_find_user.call_count == 1
+    assert mock_patch_ctc_id.call_count == 1
+    assert mock_put_hermes_credentials.call_count == 1
+
+    assert mock_find_user.request_json["SearchFilters"]["MemberNumber"] == test.card_number
+    assert mock_patch_ctc_id.request_json["CtcID"] == test.ctc_id
+    assert mock_put_hermes_credentials.request_json["card_number"] == test.card_number
+    assert mock_put_hermes_credentials.request_json["merchant_identifier"] == test.ctc_id
+
+
 class TestStoneGateAdd:
     @httpretty.activate
     def test_happy_path(
@@ -41,15 +52,18 @@ class TestStoneGateAdd:
             "&credentials=xxx&token=xxx"
         )
 
-        resp = balance_response.json
         assert balance_response.status_code == 200
-        assert resp["points"] == int(test.points_balance)
-        assert resp["scheme_account_id"] == test.account_id
-        assert resp["user_set"] == test.user_id
-        assert resp["bink_user_id"] == test.bink_user_id
-        assert resp["value"] == 0
-        assert resp["reward_tier"] == 0
-        assert resp["vouchers"] == []
+        assert balance_response.json == {
+            "points": int(test.points_balance),
+            "points_label": str(int(test.points_balance)),
+            "value": 0.0,
+            "value_label": "",
+            "scheme_account_id": test.account_id,
+            "user_set": test.user_id,
+            "bink_user_id": test.bink_user_id,
+            "reward_tier": 0,
+            "vouchers": [],
+        }
 
         assert mock_stonegate_signals.name_list == [
             "send-audit-request",
@@ -59,13 +73,7 @@ class TestStoneGateAdd:
             "log-in-success",
         ]
 
-        assert mock_find_user.call_count == 1
-        assert mock_patch_ctc_id.call_count == 1
-        assert mock_put_hermes_credentials.call_count == 1
-        assert mock_find_user.request_json["SearchFilters"]["MemberNumber"] == test.card_number
-        assert mock_patch_ctc_id.request_json["CtcID"] == test.ctc_id
-        assert mock_put_hermes_credentials.request_json["card_number"] == test.card_number
-        assert mock_put_hermes_credentials.request_json["merchant_identifier"] == test.ctc_id
+        assert_correct_happy_path_calls(test, mock_find_user, mock_patch_ctc_id, mock_put_hermes_credentials)
 
     @httpretty.activate
     def test_invalid_card_number(
