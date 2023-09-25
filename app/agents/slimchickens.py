@@ -62,6 +62,7 @@ class SlimChickens(BaseAgent):
         else:
             return True
 
+
     def login(self) -> None:
         """
         There is no login, this will set the outbound auth headers
@@ -81,7 +82,7 @@ class SlimChickens(BaseAgent):
     def login_balance_request(self) -> Response:
         try:
             resp = self.make_request(
-                urljoin(self.base_url, "/search"),
+                urljoin(self.base_url, "search"),
                 method="post",
                 audit=True,
                 json={

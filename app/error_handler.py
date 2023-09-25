@@ -21,10 +21,10 @@ from app.models import RetryTask, RetryTaskStatuses
 from app.reporting import get_logger
 from app.resources import decrypt_credentials
 from app.retry_util import (
-    create_task,
+    create_task_with_delay,
     delete_task,
-    enqueue_retry_task,
     enqueue_retry_task_delay,
+    enqueue_retry_login_task_delay,
     fail_callback_task,
     get_task,
     reset_task_for_callback_attempt,
@@ -75,7 +75,7 @@ def handle_failed_login(self):
                 # if self.retry_count > MAX_RETRY_COUNT:
                 #     task.status = RetryTaskStatuses.FAILED
             else:
-                task = create_task(
+                task = create_task_with_delay(
                     db_session=session,
                     user_info=self.user_info,
                     journey_type="attempt-login",
@@ -83,14 +83,11 @@ def handle_failed_login(self):
                     scheme_identifier="slim-chickens",
                     scheme_account_id=self.user_info["scheme_account_id"],
                 )
-                enqueue_retry_task(
+                enqueue_retry_login_task_delay(
                     connection=redis_raw,
-                    function_path="app.journeys.join.login_and_publish_status",
-                    args=[
-                        task.request_data,
-                        task.scheme_identifier,
-                        task.message_uid,
-                    ],
+                    retry_task=task,
+                    delay_seconds=60,
+                    call_function = "app.journeys.join.login_and_publish_status"
                 )
                 session.commit()
     except BaseError as e:
@@ -107,7 +104,10 @@ def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: li
     )
     if retry_task.callback_retries == 0:
         next_attempt_time = enqueue_retry_task_delay(
-            connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60
+            connection=redis_raw,
+            retry_task=retry_task,
+            delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60,
+            call_function="app.journeys.join.attempt_join"
         )
         reset_task_for_callback_attempt(
             db_session=db_session,
@@ -118,7 +118,8 @@ def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: li
         logger.debug(f"Next attempt time at {next_attempt_time}")
     elif attempts < MAX_CALLBACK_RETRY_COUNT:
         next_attempt_time = enqueue_retry_task_delay(
-            connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60
+            connection=redis_raw, retry_task=retry_task, delay_seconds=pow(RETRY_BACKOFF_BASE, float(attempts)) * 60,
+            call_function="app.journeys.join.attempt_join"
         )
         update_callback_attempt(
             db_session=db_session,
@@ -155,6 +156,10 @@ def _handle_request_exception(
     )
 
     if attempts <= max_retries:
+        if from_login:
+            call_function = "app.journeys.join.login_and_publish_status"
+        else:
+            call_function = "app.journeys.join.attempt_join"
         if (
             from_login
             or resp is None
@@ -165,6 +170,7 @@ def _handle_request_exception(
                 connection=connection,
                 retry_task=retry_task,
                 delay_seconds=pow(backoff_base, float(attempts)) * 60,
+                call_function="app.journeys.join.attempt_join"
             )
             status = RetryTaskStatuses.RETRYING
             logger.debug(f"Next attempt time at {next_attempt_time}")
