@@ -1,3 +1,6 @@
+from http import HTTPStatus
+
+import httpretty
 import pytest
 from soteria.configuration import Configuration
 
@@ -5,13 +8,13 @@ import settings
 
 
 @pytest.fixture()
-def patch_balance_login(monkeypatch, mock_europa_request, redis_retry_pretty_fix):
-    def patchit(credentials, secret, conf_body):
+def apply_login_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix):
+    def patchit(test, credentials):
         monkeypatch.setattr("app.resources.decrypt_credentials", lambda *_: credentials)
         monkeypatch.setattr(settings, "CONFIG_SERVICE_URL", "http://mock_europa.com")
-        monkeypatch.setattr(Configuration, "get_security_credentials", lambda *_: secret)
+        monkeypatch.setattr(Configuration, "get_security_credentials", lambda *_: test.security_credentials)
         monkeypatch.setattr("app.agents.stonegate.Stonegate.authenticate", lambda *_: None)
-        mock_europa_request(conf_body)
+        mock_europa_request(test.europa_response)
 
     return patchit
 
@@ -128,4 +131,65 @@ def test_vars():
                 "Errors": [{"ErrorCode": 4, "ErrorDescription": "No Data found"}],
             }
 
+            self.security_credentials = [
+                {"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.test@bink.com"}}
+            ]
+
+            self.MERCHANT_URL = "https://atreemouat.xxxitsucomms.co.uk"
+
+            self.europa_response = {
+                "merchant_url": self.MERCHANT_URL,
+                "retry_limit": 3,
+                "log_level": 0,
+                "callback_url": "",
+                "country": "uk",
+                "security_credentials": {
+                    "inbound": {
+                        "service": Configuration.OAUTH_SECURITY,
+                        "credentials": [
+                            {
+                                "credential_type": 3,
+                                "storage_key": "a_storage_key",
+                                "value": {"password": "paSSword", "username": "username@bink.com"},
+                            },
+                        ],
+                    },
+                    "outbound": {
+                        "service": Configuration.OAUTH_SECURITY,
+                        "credentials": [
+                            {
+                                "credential_type": 3,
+                                "storage_key": "a_storage_key",
+                                "value": {"password": "paSSword", "username": "username@bink.com"},
+                            },
+                        ],
+                    },
+                },
+            }
+
     return Vars
+
+
+@pytest.fixture
+def apply_mock_end_points(http_pretty_mock):
+    def mocks(test, customer_details_response_body, customer_details_response_status):
+        mocks_dict = {
+            "mock_find_user": http_pretty_mock(
+                f"{test.MERCHANT_URL}/api/Customer/FindCustomerDetails",
+                httpretty.POST,
+                customer_details_response_status,
+                customer_details_response_body,
+            ),
+            "mock_patch_ctc_id": http_pretty_mock(
+                f"{test.MERCHANT_URL}/api/Customer/Patch", httpretty.PATCH, HTTPStatus.OK, {}
+            ),
+            "mock_put_hermes_credentials": http_pretty_mock(
+                f"{settings.HERMES_URL}/schemes/accounts/{test.account_id}/credentials",
+                httpretty.PUT,
+                HTTPStatus.OK,
+                {},
+            ),
+        }
+        return mocks_dict
+
+    return mocks

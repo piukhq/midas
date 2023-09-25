@@ -123,11 +123,7 @@ class Stonegate(Acteol):
         self._check_response_for_error(resp.json())
 
     def login(self):
-        if (
-            self.credentials["card_number"]
-            and not self.user_info.get("from_join")
-            and not self.credentials.get("merchant_identifier")
-        ):
+        if self.credentials["card_number"]:
             try:
                 response_data = self._find_customer_details(
                     send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
@@ -151,9 +147,9 @@ class Stonegate(Acteol):
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
                     "card_number": self.credentials["card_number"],
-                    "merchant_identifier": ctc_id,
+                    "merchant_identifier": self.credentials["card_number"],
                 }
-                self.credentials.update({"merchant_identifier": ctc_id})
+                self.credentials.update({"merchant_identifier": self.credentials["card_number"]})
             except BaseError:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
