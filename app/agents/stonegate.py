@@ -141,9 +141,7 @@ class Stonegate(Acteol):
                 self._patch_customer_details(ctc_id)
 
                 signal("log-in-success").send(self, slug=self.scheme_slug)
-                self.identifier_type = [
-                    "card_number",  # Not sure if this is needed but the base class has one
-                ]
+
                 # Set up attributes needed for the creation of an active membership card
                 self.identifier = {
                     "card_number": self.credentials["card_number"],
