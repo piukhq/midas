@@ -1,5 +1,4 @@
 import base64
-import uuid
 from decimal import Decimal
 from typing import Any
 from urllib.parse import urljoin
@@ -11,9 +10,11 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
+from app import db
 from app.error_handler import handle_failed_login
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
+from app.retry_util import get_task, delete_task
 from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
@@ -80,6 +81,15 @@ class SlimChickens(BaseAgent):
         return []
 
     def login_balance_request(self) -> Response:
+        """
+        If the search request fails during a join journey, it could mean that the account has not been created yet
+        on Slim Chickens system. We therefore need to hold the balance request for a short time. The hold is using
+        midas retry. Retry requires a function to call, some data and a retry time. If the following balance request
+        fails, an exception is raised. If the current journey is a join and the error code is a 401, then we want
+        to retry the balance request. Once the retry login/balance has succeeded, the retry task has to be deleted.
+        Unfortunately we need to check the retry task for every balance request, then delete if one for the current
+        scheme account id is found.
+        """
         try:
             resp = self.make_request(
                 urljoin(self.base_url, "search"),
@@ -103,6 +113,18 @@ class SlimChickens(BaseAgent):
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             if error_code == 401:
                 raise CardNumberError()
+
+        # Check the retry database for a login retry task (only for join journeys), if there is one, delete it.
+        if self.user_info.get("from_join"):
+            try:
+                with db.session_scope() as session:
+                    retry_task = get_task(session, self.user_info["scheme_account_id"])
+            except Exception as ex:
+                retry_task = None
+
+            if retry_task:
+                delete_task(session, retry_task)
+
         return resp
 
     @staticmethod

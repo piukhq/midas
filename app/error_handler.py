@@ -56,25 +56,34 @@ def handle_failed_join(db_session, retry_task, exc_value):
 
 
 def handle_failed_login(self):
+    # Check the retry database for a login retry task, if there is one, delete it.
     try:
         with db.session_scope() as session:
-            if self.retry_count > 0:
-                task = get_task(session, scheme_account_id=self.user_info["scheme_account_id"])
-                handle_request_exception(  # pragma: no cover
-                    db_session=session,
-                    backoff_base=RETRY_BACKOFF_BASE,
-                    max_retries=MAX_RETRY_COUNT,
-                    job=None,
-                    exc_value=StatusLoginFailedError(),
-                    connection=redis_raw,
-                    retryable_exceptions=[
-                        StatusLoginFailedError,  # type: ignore
-                    ],
-                    scheme_account_id=self.user_info["scheme_account_id"],
-                )
-                # if self.retry_count > MAX_RETRY_COUNT:
-                #     task.status = RetryTaskStatuses.FAILED
-            else:
+            retry_task = get_task(session, self.user_info["scheme_account_id"])
+    except Exception as ex:
+        retry_task = None
+
+    if retry_task:
+        with db.session_scope() as session:
+            status, next_attempt_time = _handle_request_exception(
+                connection=redis_raw,
+                backoff_base=RETRY_BACKOFF_BASE,
+                max_retries=MAX_RETRY_COUNT,
+                retry_task=retry_task,
+                request_exception=StatusLoginFailedError(),
+                retryable_status_codes= [],
+                from_login=True,
+            )
+
+            update_task_for_retry(
+                db_session=session,
+                retry_task=retry_task,
+                retry_status=t.cast(str, status),
+                next_attempt_time=next_attempt_time,
+            )
+    else:
+        try:
+            with db.session_scope() as session:
                 task = create_task_with_delay(
                     db_session=session,
                     user_info=self.user_info,
@@ -90,8 +99,8 @@ def handle_failed_login(self):
                     call_function = "app.journeys.join.login_and_publish_status"
                 )
                 session.commit()
-    except BaseError as e:
-        raise e
+        except BaseError as e:
+            raise e
 
 
 def retry_on_callback(db_session: Session, retry_task: RetryTask, error_code: list):
@@ -170,7 +179,7 @@ def _handle_request_exception(
                 connection=connection,
                 retry_task=retry_task,
                 delay_seconds=pow(backoff_base, float(attempts)) * 60,
-                call_function="app.journeys.join.attempt_join"
+                call_function=call_function
             )
             status = RetryTaskStatuses.RETRYING
             logger.debug(f"Next attempt time at {next_attempt_time}")
@@ -193,21 +202,14 @@ def handle_request_exception(
     connection: Any,
     backoff_base: int,
     max_retries: int,
-    job: rq.job.Job | None,
+    job: rq.job.Job,
     exc_value: BaseError,
     retryable_exceptions: list[BaseError],
-    scheme_account_id: int | None = None,
 ):
     next_attempt_time = None
-    if scheme_account_id:
-        retry_task = get_task(db_session, scheme_account_id)
-    else:
-        retry_task = get_task(db_session, job.args[0])
-    if retry_task.journey_type == "attempt-login":
-        from_login = True
-
+    retry_task = get_task(db_session, job.args[0])
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
-    if from_login or type(exc_value) in retryable_exceptions:
+    if type(exc_value) in retryable_exceptions:
         status, next_attempt_time = _handle_request_exception(
             connection=connection,
             backoff_base=backoff_base,
@@ -215,7 +217,6 @@ def handle_request_exception(
             retry_task=retry_task,
             request_exception=exc_value,
             retryable_status_codes=retryable_status_codes or [],
-            from_login=from_login,
         )
     else:  # otherwise report to sentry and fail the task
         status = RetryTaskStatuses.FAILED
