@@ -73,12 +73,12 @@ class Stonegate(Acteol):
 
     def join(self):
         self.authenticate()
-        if self._check_customer_exists():
-            raise AccountAlreadyExistsError()
-
-        url = urljoin(self.base_url, "api/Customer/Post")
-        payload = self._get_join_payload()
         try:
+            if self._check_customer_exists():
+                raise AccountAlreadyExistsError()
+
+            url = urljoin(self.base_url, "api/Customer/Post")
+            payload = self._get_join_payload()
             resp = self.make_request(url, method="post", audit=True, json=payload)
             resp_json = resp.json()
             if not resp_json["ResponseData"]["MemberNumber"]:
