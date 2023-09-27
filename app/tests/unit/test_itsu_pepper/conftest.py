@@ -23,21 +23,6 @@ from .setup_data import (
 )
 
 
-@pytest.fixture
-def mock_europa_request():
-    def mock_request(response=None):
-        uri = "http://mock_europa.com/configuration"
-        httpretty.register_uri(
-            httpretty.GET,
-            uri=uri,
-            status=HTTPStatus.OK,
-            body=json.dumps(response),
-            content_type="text/json",
-        )
-
-    return mock_request
-
-
 @pytest.fixture()
 @httpretty.activate
 def itsu(monkeypatch, mock_europa_request):
