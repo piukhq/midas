@@ -1,0 +1,53 @@
+{
+  "slug": "itsu",
+  "responses": {
+    "request_1": {
+      "endpoint": "api/Customer/FindCustomerDetails",
+      "type": "POST",
+      "status_code": 200,
+      "response": {
+        "ResponseData": [
+          {
+            "CtcID": "123",
+            "ExternalIdentifier": {
+              "ExternalID": "123"
+            }
+          }
+        ]
+      }
+    },
+    "request_2": {
+      "endpoint": "api/Customer/Patch",
+      "type": "PATCH",
+      "status_code": 200,
+      "response": {}
+    },
+    "request_3": {
+      "endpoint": "api/Loyalty/GetCustomerDetails?customerid=123",
+      "type": "GET",
+      "status_code": 200,
+      "response": {
+        "Email": "email@domain.com",
+        "CurrentMemberNumber": "123",
+        "CustomerID": "123"
+      }
+    },
+    "request_4": {
+      "endpoint": "api/Voucher/GetAllByCustomerIDByParams",
+      "type": "POST",
+      "status_code": 200,
+      "response": {
+        "voucher": []
+      }
+    },
+    "request_5": {
+      "endpoint": "users?autoActivate=true&awaitExternalAccountSync=true",
+      "type": "POST",
+      "status_code": 200,
+      "response": {
+        "id": "123",
+        "externalLoyaltyMemberNumber": "123"
+      }
+    }
+  }
+}
