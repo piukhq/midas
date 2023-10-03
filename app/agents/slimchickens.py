@@ -8,13 +8,13 @@ from blinker import signal
 from requests.models import Response
 from soteria.configuration import Configuration
 
+from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
-from app import db
 from app.error_handler import handle_failed_login
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPassword
 from app.reporting import get_logger
-from app.retry_util import get_task, delete_task
+from app.retry_util import delete_task, get_task
 from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
@@ -63,7 +63,6 @@ class SlimChickens(BaseAgent):
         else:
             return True
 
-
     def login(self) -> None:
         """
         There is no login, this will set the outbound auth headers
@@ -92,7 +91,7 @@ class SlimChickens(BaseAgent):
         """
         try:
             resp = self.make_request(
-                urljoin(self.base_url, "search"),
+                urljoin("http://127.0.0.1:6502/", "mock/search"),
                 method="post",
                 audit=True,
                 json={
@@ -109,7 +108,8 @@ class SlimChickens(BaseAgent):
                     f"{self.scheme_slug} account was not created in time, create retry task for login."
                     f"Scheme account id: {self.user_info['scheme_account_id']}"
                 )
-                handle_failed_login(self)
+                with db.session_scope() as session:
+                    handle_failed_login(self, session)
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             if error_code == 401:
                 raise CardNumberError()

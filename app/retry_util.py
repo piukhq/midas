@@ -30,6 +30,7 @@ def create_task(
     db_session.flush()
     return retry_task
 
+
 def create_task_with_delay(
     db_session: Session,
     user_info: dict,
@@ -41,7 +42,7 @@ def create_task_with_delay(
     """
     Used where a request has already been made and need to add a new retry task to try later
     """
-    next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=3*60)
+    next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
     retry_task = RetryTask(
         request_data=user_info,
         journey_type=journey_type,
@@ -49,11 +50,12 @@ def create_task_with_delay(
         scheme_identifier=scheme_identifier,
         scheme_account_id=scheme_account_id,
         attempts=1,
-        next_attempt_time=next_attempt_time
+        next_attempt_time=next_attempt_time,
     )
     db_session.add(retry_task)
     db_session.flush()
     return retry_task
+
 
 def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
     return (
@@ -111,38 +113,33 @@ def fail_callback_task(db_session: Session, retry_task: RetryTask):
     return retry_task
 
 
-def enqueue_retry_task_delay(*, connection: t.Any, retry_task: RetryTask, delay_seconds: float, call_function: str):
+def enqueue_retry_task_delay(*, connection: t.Any, args: list, delay_seconds: float, call_function: str):
     q = rq.Queue("midas-retry", connection=connection)
     next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=delay_seconds)
     q.enqueue_at(
         next_attempt_time,
         call_function,
-        args=[
-            retry_task.scheme_account_id,
-            retry_task.message_uid,
-            retry_task.scheme_identifier,
-            retry_task.request_data,
-        ],
+        args=args,
         failure_ttl=DEFAULT_FAILURE_TTL,
         at_front=False,
     )
     return next_attempt_time
 
-def enqueue_retry_login_task_delay(*, connection: t.Any, retry_task: RetryTask, delay_seconds: float, call_function: str):
+
+def enqueue_retry_login_task_delay(
+    *, connection: t.Any, retry_task: RetryTask, delay_seconds: float, call_function: str
+):
     q = rq.Queue("midas-retry", connection=connection)
     next_attempt_time = datetime.now(tz=timezone.utc) + timedelta(seconds=delay_seconds)
     q.enqueue_at(
         next_attempt_time,
         call_function,
-        args=[
-            retry_task.request_data,
-            retry_task.scheme_identifier,
-            5
-        ],
+        args=[retry_task.request_data, retry_task.scheme_identifier, 5],
         failure_ttl=DEFAULT_FAILURE_TTL,
         at_front=False,
     )
     return next_attempt_time
+
 
 # this one
 def enqueue_retry_task(*, connection: t.Any, function_path: str, args: list) -> rq.job.Job:
