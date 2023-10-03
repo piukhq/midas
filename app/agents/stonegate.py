@@ -85,7 +85,10 @@ class Stonegate(Acteol):
             resp_json = resp.json()
             if not resp_json["ResponseData"]["MemberNumber"]:
                 raise JoinError()
-            self.identifier = {"merchant_identifier": resp_json["ResponseData"]["MemberNumber"]}
+            self.identifier = {
+                "merchant_identifier": resp_json["ResponseData"]["MemberNumber"],
+                "card_number": resp_json["ResponseData"]["MemberNumber"],
+            }
             signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
         except BaseError as ex:
             signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
@@ -123,7 +126,7 @@ class Stonegate(Acteol):
         self._check_response_for_error(resp.json())
 
     def login(self):
-        if self.credentials["card_number"]:
+        if self.credentials.get("card_number"):
             try:
                 response_data = self._find_customer_details(
                     send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
