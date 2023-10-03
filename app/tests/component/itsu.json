@@ -1,9 +1,25 @@
 {
   "slug": "itsu",
+  "agent_path": "app.agents.itsu.Itsu",
+  "credentials": {
+    "email": "email@domain.com",
+    "password": "password",
+    "first_name": "Name",
+    "last_name": "Surname",
+    "consents": [
+      {"id": "fake-consent-123", "value": "true"}
+    ]
+  },
+  "security_credentials": {
+                                "credential_type": 3,
+                                "storage_key": "a_storage_key",
+                                "value": {"password": "paSSword", "username": "username@bink.com", "authorization": "fake-123", "application-id": "fake-123"}
+                            },
   "responses": {
     "request_1": {
       "endpoint": "api/Customer/FindCustomerDetails",
       "type": "POST",
+      "journey": ["join"],
       "status_code": 200,
       "response": {
         "ResponseData": [
@@ -19,22 +35,26 @@
     "request_2": {
       "endpoint": "api/Customer/Patch",
       "type": "PATCH",
+      "journey": ["add"],
       "status_code": 200,
       "response": {}
     },
     "request_3": {
       "endpoint": "api/Loyalty/GetCustomerDetails?customerid=123",
       "type": "GET",
+      "journey": ["add"],
       "status_code": 200,
       "response": {
         "Email": "email@domain.com",
         "CurrentMemberNumber": "123",
-        "CustomerID": "123"
+        "CustomerID": "123",
+        "LoyaltyPointsBalance": 3
       }
     },
     "request_4": {
       "endpoint": "api/Voucher/GetAllByCustomerIDByParams",
       "type": "POST",
+      "journey": ["add"],
       "status_code": 200,
       "response": {
         "voucher": []
@@ -43,6 +63,7 @@
     "request_5": {
       "endpoint": "users?autoActivate=true&awaitExternalAccountSync=true",
       "type": "POST",
+      "journey": ["add", "join"],
       "status_code": 200,
       "response": {
         "id": "123",

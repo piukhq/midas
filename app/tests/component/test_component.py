@@ -9,38 +9,45 @@ import pytest
 from soteria.configuration import Configuration
 from app.journeys.join import attempt_join
 import settings
-from app.scheme_account import SchemeAccountStatus, JourneyTypes
+from app.scheme_account import SchemeAccountStatus, JourneyTypes, update_pending_join_account
+from app.journeys.join import login_and_publish_status
+import requests_mock
 
-REQUEST_TYPES = {"POST": httpretty.POST, "PATCH": httpretty.PATCH, "GET": httpretty.GET}
-EUROPA_RESPONSE = {
-                "merchant_url": "https://localhost",
-                "retry_limit": 3,
-                "log_level": 0,
-                "callback_url": "",
-                "country": "uk",
-                "security_credentials": {
-                    "inbound": {
-                        "service": Configuration.OAUTH_SECURITY,
-                        "credentials": [
-                            {
-                                "credential_type": 3,
-                                "storage_key": "a_storage_key",
-                                "value": {"password": "paSSword", "username": "username@bink.com"},
-                            },
-                        ],
-                    },
-                    "outbound": {
-                        "service": Configuration.OAUTH_SECURITY,
-                        "credentials": [
-                            {
-                                "credential_type": 3,
-                                "storage_key": "a_storage_key",
-                                "value": {"password": "paSSword", "username": "username@bink.com", "authorization": "fake-123"},
-                            },
-                        ],
-                    },
-                },
-            }
+def read_fixture_json():
+    path = os.getcwd() + "/app/tests/component/itsu.json"
+    with open(path, "r") as json_fixture:
+        data = json.load(json_fixture)
+        return data
+
+
+@pytest.fixture
+def retailer_fixture():
+    return read_fixture_json()
+
+
+REQUEST_TYPES = {"POST": httpretty.POST, "PATCH": httpretty.PATCH, "GET": httpretty.GET, "PUT": httpretty.PUT}
+
+
+@pytest.fixture
+def europa_response(retailer_fixture):
+    return {
+        "merchant_url": "https://localhost/",
+        "retry_limit": 3,
+        "log_level": 0,
+        "callback_url": "",
+        "country": "uk",
+        "security_credentials": {
+            "inbound": {
+                "service": Configuration.OPEN_AUTH_SECURITY,
+                "credentials": []
+            },
+            "outbound": {
+                "service": Configuration.OAUTH_SECURITY,
+                "credentials": [retailer_fixture["security_credentials"]],
+            },
+        },
+    }
+
 
 @pytest.fixture
 def mock_europa_request():
@@ -59,21 +66,6 @@ def mock_europa_request():
 
 @pytest.fixture
 def mock_signals(monkeypatch):
-    """
-    Useful to generic mock to trap signals.
-    Will need to be instantiated giving patches list and or base_agent=True
-    see test_itsu_pepper conftest.py which shows use eg
-    @pytest.fixture
-        def mock_itsu_signals(mock_signals):
-            return mock_signals(patches=["app.agents.itsu.signal"], base_agent=True)
-    then just add mock_itsu_signals as a fixture and then use asserts such as;
-          mock_itsu_signals.has("signal name")
-          args, kwargs = mock_itsu_signals.get("signal name")
-    Unlike unit test patching this does not require multiple decorators and gives call data as trapped (no call wrapper)
-
-    :param monkeypatch:
-    :return:
-    """
     call_list = []
 
     class Signal:
@@ -162,6 +154,7 @@ def http_pretty_mock():
 
     return mock_setup
 
+
 @pytest.fixture
 def redis_retry_pretty_fix(monkeypatch):
     """
@@ -184,18 +177,15 @@ def redis_retry_pretty_fix(monkeypatch):
 
 
 @pytest.fixture()
-def apply_login_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix):
+def apply_login_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix, retailer_fixture, europa_response):
     def patchit():
-        monkeypatch.setattr("app.journeys.join.decrypt_credentials", lambda *_: {
-            "first_name": "michal",  # make this generic read credentials from fixture!!!
-            "last_name": "jozw",
-            "password": "p@s$w0Rd",
-            "email": "email@domain.com"
-        })
+        monkeypatch.setattr("app.journeys.join.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
         monkeypatch.setattr(settings, "CONFIG_SERVICE_URL", "http://mock_europa.com")
-        monkeypatch.setattr(Configuration, "get_security_credentials", lambda *_: [{"value": {"password": "MBX1pmb2uxh5vzc@ucp", "username": "acteol.test@bink.com", "authorization": "fake-123", "application-id": "fake-id"}}])
-        monkeypatch.setattr("app.agents.itsu.Itsu.authenticate", lambda *_: None)
-        mock_europa_request(EUROPA_RESPONSE)
+        monkeypatch.setattr(
+            Configuration, "get_security_credentials", lambda *_: [retailer_fixture["security_credentials"]]
+        )
+        monkeypatch.setattr("{}.authenticate".format(retailer_fixture["agent_path"]), lambda *_: None)
+        mock_europa_request(europa_response)
 
     return patchit
 
@@ -224,46 +214,68 @@ def client():
 
     yield client
 
-
 @pytest.fixture
-def read_fixture_json():
-    path = os.getcwd() + "/app/tests/component/itsu.json"
-    with open(path, "r") as json_fixture:
-        data = json.load(json_fixture)
-        return data
-
-@pytest.fixture
-def apply_mock_end_points(http_pretty_mock, read_fixture_json):
+def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
     def mocks():
-        mocks_list = []
-        responses = read_fixture_json["responses"]
+        hermes_mock_status = http_pretty_mock(
+            f"{settings.HERMES_URL}/schemes/accounts/123/status", httpretty.POST, 200, {}
+        )
+        hermes_mock_credentials = http_pretty_mock(
+            f"{settings.HERMES_URL}/schemes/accounts/123/credentials", httpretty.PUT, 200, {}
+        )
+        hermes_mock_consents = http_pretty_mock(
+            f"{settings.HERMES_URL}/schemes/user_consent/fake-consent-123",
+            httpretty.PUT,
+            200,
+            {},
+        )
+        mocks = {
+            "hermes_mock_update_status": hermes_mock_status,
+            "hermes_mock_update_credentials": hermes_mock_credentials,
+            "hermes_mock_consents": hermes_mock_consents
+        }
+        responses = retailer_fixture["responses"]
         for k, v in responses.items():
-            mocks_list.append(
-                http_pretty_mock(
-                    urljoin("https://localhost", v["endpoint"]),
+            mocks.update({
+                k: http_pretty_mock(
+                    urljoin(europa_response["merchant_url"], v["endpoint"]),
                     REQUEST_TYPES[v["type"]],
                     v["status_code"],
                     v["response"],
                 )
-            )
-        return mocks_list
+            })
+        return mocks
 
     return mocks
 
 
 @httpretty.activate
-def test_join(apply_login_patches, apply_mock_end_points, apply_db_patches):
+@patch("app.journeys.join.login_and_publish_status", side_effect=login_and_publish_status)
+@patch("app.journeys.join.update_pending_join_account", side_effect=update_pending_join_account)
+def test_join(mock_login_and_publish_status, mock_update_pending_join_account, apply_login_patches, apply_mock_end_points, apply_db_patches, retailer_fixture):
     apply_login_patches()
-    apply_mock_end_points()
     apply_db_patches()
-    credentials = {"email": "email@domain.com", "first_name": "Michal", "last_name": "Jozwiak", "password": "P@s$w0Rd"}
+    mock_url_calls = apply_mock_end_points()
     user_info = {
         "user_set": "1",
         "bink_user_id": "1",
-        "credentials": credentials,
-        "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,  # TODO: check where/how this is used
+        "credentials": retailer_fixture["credentials"],
+        "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
         "journey_type": JourneyTypes.JOIN.value,
         "scheme_account_id": "123",
         "channel": "bink.com",
     }
-    attempt_join("1234", "1", "itsu", user_info)
+    responses = retailer_fixture["responses"]
+    attempt_join(user_info["scheme_account_id"], "1", retailer_fixture["slug"], user_info)
+
+    mock_login_and_publish_status.assert_called()
+    mock_update_pending_join_account.assert_called()
+    for key, response in responses.items():
+        if "join" in responses.get(key)["journey"]:
+            assert mock_url_calls.get(key).call_count == 1
+    # publish.balance called
+    # send balance to hades called
+    # publish transaction
+    # publish status
+
+
