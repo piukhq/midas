@@ -37,7 +37,7 @@ class Stonegate(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
-    def _check_customer_exists(self, send_audit: bool = False) -> bool:
+    def _check_customer_exists(self, send_audit: bool = True) -> bool:
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
         resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
