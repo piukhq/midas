@@ -19,6 +19,14 @@ RETRY_LIMIT = 3
 log = get_logger("slim-chickens")
 
 
+def is_bink_voucher(voucher: dict) -> bool:
+    if "cardPoints" in voucher:
+        # in-progress vouchers don't have tags
+        return True
+
+    return any(tag["name"] == "Bink" for tag in voucher["offer"]["tags"])
+
+
 class SlimChickens(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
@@ -101,6 +109,9 @@ class SlimChickens(BaseAgent):
         points = Decimal("0")
 
         for voucher in vouchers:
+            if not is_bink_voucher(voucher):
+                continue
+
             if "cardPoints" in voucher:
                 points = Decimal(voucher["cardPoints"])
                 in_progress = Voucher(
