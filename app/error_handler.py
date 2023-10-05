@@ -79,14 +79,8 @@ def handle_failed_login(self, session: Session):
             retry_status=t.cast(str, status),
             next_attempt_time=next_attempt_time,
         )
-        if status == RetryTaskStatuses.FAILED:
-            status = SchemeAccountStatus.ACTIVE
-            publish.zero_balance(
-                self.user_info["scheme_account_id"], self.user_info["user_set"], retry_task.message_uid
-            )
-            publish.status(
-                self.user_info["scheme_account_id"], status, retry_task.message_uid, self.user_info, journey="join"
-            )
+        if status in [RetryTaskStatuses.FAILED, RetryTaskStatuses.SUCCESS]:
+            delete_task(session, retry_task)
 
     else:
         try:
@@ -101,7 +95,7 @@ def handle_failed_login(self, session: Session):
             enqueue_retry_login_task_delay(
                 connection=redis_raw,
                 retry_task=task,
-                delay_seconds=2,
+                delay_seconds=60,
                 call_function="app.journeys.join.login_and_publish_status",
             )
             session.commit()
@@ -203,7 +197,7 @@ def _handle_request_exception(
             next_attempt_time = enqueue_retry_task_delay(
                 connection=connection,
                 args=args,
-                delay_seconds=pow(backoff_base, float(attempts)) * 2,
+                delay_seconds=pow(backoff_base, float(attempts)) * 60,
                 call_function=call_function,
             )
             status = RetryTaskStatuses.RETRYING
