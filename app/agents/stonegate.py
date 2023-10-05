@@ -18,6 +18,10 @@ class Stonegate(Acteol):
         self.oauth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = "SYNC"
         self._points_balance = 0
+        self.audit_config = {
+            "type": "json",
+            "audit_sensitive_keys": ["SupInfo"],
+        }
 
     def get_auth_url_and_payload(self):
         url = urljoin(self.base_url, "token")

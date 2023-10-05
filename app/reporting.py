@@ -52,7 +52,7 @@ def sanitise_json(data: MutableMapping, sensitive_keys: list):
     data = deepcopy(data)
     for k, v in data.items():
         # if `k` is a sensitive key, redact the whole thing (even if it's a mapping itself.)
-        if k.lower() in sensitive_keys or type(v) == str and "argon2id" in v:
+        if k.lower() in sensitive_keys:
             data[k] = settings.SANITISATION_STANDIN
         # if `k` isn't sensitive but it is a mapping, sanitise that mapping.
         elif isinstance(v, MutableMapping):
