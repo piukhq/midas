@@ -18,6 +18,10 @@ class Stonegate(Acteol):
         self.oauth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = "SYNC"
         self._points_balance = 0
+        self.audit_config = {
+            "type": "json",
+            "audit_sensitive_keys": ["SupInfo"],
+        }
 
     def get_auth_url_and_payload(self):
         url = urljoin(self.base_url, "token")
@@ -37,7 +41,7 @@ class Stonegate(Acteol):
             self._oauth_authentication()
         self.headers["Content-Type"] = "application/json"
 
-    def _check_customer_exists(self, send_audit: bool = False) -> bool:
+    def _check_customer_exists(self, send_audit: bool = True) -> bool:
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {"SearchFilters": {"Email": self.credentials["email"]}}
         resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
