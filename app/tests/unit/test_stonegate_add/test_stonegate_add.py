@@ -124,7 +124,7 @@ class TestStoneGateAdd:
             "&credentials=xxx&token=xxx"
         )
 
-        assert balance_response.status_code == 403
+        assert balance_response.status_code == 436
         assert mock_call_data["mock_find_user"].call_count == 1
         assert mock_call_data["mock_patch_ctc_id"].call_count == 0
         assert mock_call_data["mock_put_hermes_credentials"].call_count == 0
