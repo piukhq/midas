@@ -65,6 +65,10 @@ class TestItsuPepperJoinSuccess:
         assert returned_pepper_id == EXPECTED_PEPPER_ID
         assert card_number == EXPECTED_CARD_NUMBER
         assert mock_itsu_signals.name_list == AUDIT_RESPONSE_REQUEST
+        args, kwargs = mock_itsu_signals.get("send-audit-request")
+        assert args[0] == itsu_pepper
+        payload = kwargs["payload"]
+        assert payload["email"] == USER_EMAIL
 
     @httpretty.activate
     def test_pepper_add_user_no_card(self, mock_itsu_signals, itsu_pepper, mock_pepper_user_request):
