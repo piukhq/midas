@@ -7,7 +7,7 @@ from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, JoinError, StatusLoginFailedError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 
 hasher = argon2.PasswordHasher()
 
@@ -140,9 +140,9 @@ class Stonegate(Acteol):
                         self,
                         slug=self.scheme_slug,
                         channel=self.channel,
-                        error=StatusLoginFailedError,
+                        error=CardNumberError,
                     )
-                    raise StatusLoginFailedError
+                    raise CardNumberError
                 ctc_id = response_data["CtcID"]
                 self._points_balance = int(response_data["LoyaltyDetails"]["LoyaltyPointsBalance"])
                 self._patch_customer_details(ctc_id)
