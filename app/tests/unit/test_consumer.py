@@ -31,7 +31,7 @@ class TestConsumer(TestCase):
             join_data={"abc": "def"},
         )
 
-        self.loyalty_card_removed_bink_message = LoyaltyCardRemovedBink(
+        self.loyalty_card_removed_message = LoyaltyCardRemoved(
             channel="test.com",
             transaction_id="123",
             bink_user_id="99999",
@@ -100,9 +100,9 @@ class TestConsumer(TestCase):
         )
         mock_enqueue_task.assert_called_with(connection=redis_raw, retry_task=mock_create_task.return_value)
 
-    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed_from_bink")
-    def test_loyalty_card_removed_bink_success(self, mock_removed_task):
-        self.consumer.on_loyalty_card_removed_bink(self.loyalty_card_removed_bink_message)
+    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed")
+    def test_loyalty_card_removed_success(self, mock_removed_task):
+        self.consumer.on_loyalty_card_removed(self.loyalty_card_removed_message)
         mock_removed_task.assert_called_with(
             "10",
             {

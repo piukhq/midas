@@ -3,7 +3,7 @@ from unittest import mock
 from soteria.configuration import Configuration
 
 from app.agents.base import JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING
-from app.journeys.removed import agent_loyalty_card_removed_from_bink
+from app.journeys.removed import agent_loyalty_card_removed
 from app.scheme_account import JourneyTypes
 
 
@@ -24,7 +24,7 @@ class MockAgentImplemented:
         self.scheme_slug = scheme_slug
         self.config = config
 
-    def loyalty_card_removed_bink(self):
+    def loyalty_card_removed(self):
         pass
 
 

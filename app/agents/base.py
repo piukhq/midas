@@ -309,7 +309,7 @@ class BaseAgent(object):
     def calculate_label(self, points: Decimal) -> str:
         raise NotImplementedError()
 
-    def loyalty_card_removed_bink(self) -> None:
+    def loyalty_card_removed(self) -> None:
         """
         When a card is removed from bink and the agent must report it override this function
         - requires the JourneyTypes.REMOVED will be passed in user info and the agent must pass

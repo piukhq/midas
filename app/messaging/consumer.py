@@ -9,7 +9,7 @@ import settings
 from app import db
 from app.db import redis_raw
 from app.exceptions import BaseError
-from app.journeys.removed import attempt_loyalty_card_removed_from_bink
+from app.journeys.removed import attempt_loyalty_card_removed
 from app.reporting import get_logger
 from app.retry_util import create_task, enqueue_retry_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -26,7 +26,7 @@ class TaskConsumer(ConsumerMixin):
 
         # When dispatching a new message add below a mapping to an on message receive method:
         self.dispatcher.connect(JoinApplication, self.on_join_application)
-        self.dispatcher.connect(LoyaltyCardRemovedBink, self.on_loyalty_card_removed_bink)
+        self.dispatcher.connect(LoyaltyCardRemoved, self.on_loyalty_card_removed)
 
     def get_consumers(self, Consumer: Type[kombu.Consumer], channel: Any) -> list[kombu.Consumer]:  # pragma: no cover
         log.debug(f"{Consumer} has been retrieved")
@@ -77,7 +77,7 @@ class TaskConsumer(ConsumerMixin):
             return
 
     @staticmethod
-    def on_loyalty_card_removed_bink(message: Message) -> None:
+    def on_loyalty_card_removed(message: Message) -> None:
         try:
             message = cast(LoyaltyCardRemovedBink, message)
             scheme_slug = message.loyalty_plan
@@ -93,8 +93,9 @@ class TaskConsumer(ConsumerMixin):
                 "message_uid": message.transaction_id,
                 "credentials": {},
                 "journey_type": JourneyTypes.REMOVED.value,  # maybe we need another type? Decide on 1st implementation
+                "origin": message.origin
             }
-            attempt_loyalty_card_removed_from_bink(scheme_slug, user_info)
+            attempt_loyalty_card_removed(scheme_slug, user_info)
             log.debug(f"Card removed for {user_info['scheme_account_id']}")
         except BaseError as e:
             sentry_sdk.capture_exception(e)

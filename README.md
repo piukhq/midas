@@ -74,11 +74,11 @@ There is a Dockerfile provided in the project root. Build an image from this to 
 Originally intended for Costa who require a report of when the last card is removed
 from a wallet. Details need to be worked out; it is believed this is for marketing purposes
 not to inform the retailer to remove/delete the card.  We intend to report the card if Hermes
-sends the loyalty_card_removed_bink message
+sends the loyalty_card_removed message
 
 In the agent class override the base method:
 
-  ```loyalty_card_removed_bink(self) -> None:```
+  ```loyalty_card_removed(self) -> None:```
 
 This method will only be called if:
 1. Europa must be configured for the REMOVED_HANDLER

@@ -171,3 +171,25 @@ class Stonegate(Acteol):
 
     def transactions(self) -> list[Transaction]:
         return []
+
+
+    def loyalty_card_removed(self) -> None:
+        pll_mixr = False
+
+        response_data = self._find_customer_details(
+            send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
+        )
+        if not response_data:
+            raise StatusLoginFailedError
+        ctc_id = response_data["CtcID"]
+
+        api_url = urljoin(self.base_url, "api/Customer/Patch")
+        payload = {
+            "CtcID": ctc_id,
+            "DataProcess": {
+                "ProcessMydata": True,
+            },
+            "ModifiedDate": "2023-06-08T09:11:39.8328971+01:00",
+            "SupInfo": [{"FieldName": "pll_bink", "FieldContent": "false"}],
+        }
+        self.make_request(api_url, method="patch", json=payload)
