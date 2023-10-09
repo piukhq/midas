@@ -1,5 +1,6 @@
 from decimal import Decimal
 from urllib.parse import urlencode, urljoin
+from uuid import uuid4
 
 import argon2
 from blinker import signal
@@ -83,6 +84,7 @@ class Stonegate(Acteol):
             if self._check_customer_exists():
                 raise AccountAlreadyExistsError()
 
+            self.message_uid = str(uuid4())
             url = urljoin(self.base_url, "api/Customer/Post")
             payload = self._get_join_payload()
             resp = self.make_request(url, method="post", audit=True, json=payload)
