@@ -32,7 +32,6 @@ azure-oidc = {version="*", index="pypi-cloud"}
 soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
 user-token-store = {version="*", index="pypi-cloud"}
-olympus-messaging = {version="*", index="pypi-cloud"}
 urllib3 = "*"
 click = "*"
 alembic = "*"
