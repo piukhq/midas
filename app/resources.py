@@ -73,7 +73,7 @@ class Balance(Resource):
             "scheme_account_id": int(request.args["scheme_account_id"]),
         }
         tid = request.headers.get("transaction")
-        # this one
+
         try:
             agent_class = get_agent_class(scheme_slug)
         except NotFound as e:

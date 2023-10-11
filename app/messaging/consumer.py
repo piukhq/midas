@@ -57,7 +57,6 @@ class TaskConsumer(ConsumerMixin):
             "scheme_account_id": int(message.request_id),
             "channel": message.channel,
         }
-        # this one
         try:
             with db.session_scope() as session:
                 task = create_task(
