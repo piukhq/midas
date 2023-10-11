@@ -12,9 +12,9 @@ from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
 from app.error_handler import handle_failed_login
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPasswordError
 from app.reporting import get_logger
-from app.retry_util import get_task
+from app.retry_util import delete_task, get_task
 from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
@@ -36,6 +36,8 @@ class SlimChickens(BaseAgent):
         self.credentials = self.user_info["credentials"]
         self.base_url = self.config.merchant_url
         self.outbound_security = self.config.security_credentials["outbound"]["credentials"][0]["value"]
+        self.retry_task = None
+        self.balance_vouchers = None
 
     def _configure_outbound_auth(self, username: str, password: str):
         if self.outbound_auth_service == Configuration.OPEN_AUTH_SECURITY:
@@ -74,12 +76,21 @@ class SlimChickens(BaseAgent):
         )
         # Balance request is made in the login so the correct errors can be raised for hermes
         resp = self.login_balance_request()
+
+        if resp and self.user_info.get("from_join"):
+            try:
+                with db.session_scope() as session:
+                    retry_task = get_task(session, self.user_info["scheme_account_id"])
+                    delete_task(session, retry_task)
+            except Exception:
+                pass
+
         self.balance_vouchers = [] if not resp else resp.json().get("wallet", [])
 
     def transactions(self) -> list:
         return []
 
-    def login_balance_request(self) -> Response | dict:
+    def login_balance_request(self) -> Response | None:
         """
         If the search request fails during a join journey, it could mean that the account has not been created yet
         on Slim Chickens system. We therefore need to hold the balance request for a short time. The hold is using
@@ -89,7 +100,7 @@ class SlimChickens(BaseAgent):
         Unfortunately we need to check the retry task for every balance request, then delete if one for the current
         scheme account id is found.
         """
-        resp = {}
+        resp = None
         try:
             resp = self.make_request(
                 urljoin(self.base_url, "search"),
@@ -114,15 +125,16 @@ class SlimChickens(BaseAgent):
             signal("log-in-fail").send(self, slug=self.scheme_slug)
             # Check the retry database for a login retry task (only for join journeys),
             # if there is one, do not raise error.
-            # THIS DOES NOT WORK FOR SECOND LOGIN REQUEST MADE BY HERMES!!!!
-            if self.user_info.get("from_join"):
+            # The next conditional is to handle the balance request made from Hermes
+            if error_code == 401:
                 try:
                     with db.session_scope() as session:
-                        retry_task = get_task(session, self.user_info["scheme_account_id"])
-                except Exception as ex:
-                    retry_task = None
-            if not retry_task and error_code == 401:
-                raise CardNumberError()
+                        self.retry_task = get_task(session, self.user_info["scheme_account_id"])
+                except Exception:
+                    self.retry_task = None
+
+                if not self.retry_task and self.user_info["journey_type"] > 0 and not self.user_info.get("from_join"):
+                    raise CardNumberError()
 
         return resp
 
@@ -136,6 +148,8 @@ class SlimChickens(BaseAgent):
         issued = []
 
         points = Decimal("0")
+        if self.retry_task and not vouchers:
+            return Balance(points=points, value=Decimal(0), value_label="", vouchers=None)
 
         for voucher in vouchers:
             if not is_bink_voucher(voucher):
@@ -159,13 +173,11 @@ class SlimChickens(BaseAgent):
                         expiry_date=self._voucher_date_to_timestamp(voucher["voucherExpiry"]),
                     )
                 )
-        # Checks if from a join and no vouchers due to retry task system for login so no errors are raised.
-        # THIS DOES NOT WORK FOR SECOND LOGIN REQUEST MADE BY HERMES!!!!
-        if in_progress is None and not self.user_info.get("from_join"):
-            raise BaseError
-        valid_vouchers = None if self.user_info.get("from_join") and not vouchers else [in_progress, *issued]
 
-        return Balance(points=points, value=Decimal(0), value_label="", vouchers=valid_vouchers)
+        if in_progress is None:
+            raise BaseError
+
+        return Balance(points=points, value=Decimal(0), value_label="", vouchers=[in_progress, *issued])
 
     def join(self) -> Any:
         self.url = urljoin(self.base_url, f"core/account/{self.outbound_security['account_key']}/consumer")
@@ -185,13 +197,12 @@ class SlimChickens(BaseAgent):
                 resp = self.make_request(self.url, method="post", audit=True, json=payload)
                 resp_json = resp.json()
                 if "Password is too weak" in resp_json.get("errors", {}).values():
-                    raise WeakPassword()
+                    raise WeakPasswordError()
                 signal("join-success").send(self, slug=self.scheme_slug, channel=self.channel)
             else:
                 raise AccountAlreadyExistsError()
-        except BaseError as ex:
-            if ex.name not in [WeakPassword.name, AccountAlreadyExistsError.name]:
-                signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
+        except BaseError:
+            signal("join-fail").send(self, slug=self.scheme_slug, channel=self.channel)
             raise  # The join journey ends
 
         response_data = resp.json()

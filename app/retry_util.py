@@ -141,12 +141,16 @@ def enqueue_retry_login_task_delay(
     return next_attempt_time
 
 
-# this one
-def enqueue_retry_task(*, connection: t.Any, function_path: str, args: list) -> rq.job.Job:
+def enqueue_retry_task(*, connection: t.Any, retry_task: RetryTask) -> rq.job.Job:
     q = rq.Queue("midas-retry", connection=connection)
     job = q.enqueue(
-        function_path,
-        args=args,
+        "app.journeys.join.attempt_join",
+        args=[
+            retry_task.scheme_account_id,
+            retry_task.message_uid,
+            retry_task.scheme_identifier,
+            retry_task.request_data,
+        ],
         failure_ttl=DEFAULT_FAILURE_TTL,
         at_front=False,
     )

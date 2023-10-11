@@ -68,16 +68,7 @@ class TaskConsumer(ConsumerMixin):
                     scheme_identifier=message.loyalty_plan,
                     scheme_account_id=message.request_id,
                 )
-                enqueue_retry_task(
-                    connection=redis_raw,
-                    function_path="app.journeys.join.attempt_join",
-                    args=[
-                        task.scheme_account_id,
-                        task.message_uid,
-                        task.scheme_identifier,
-                        task.request_data,
-                    ],
-                )
+                enqueue_retry_task(connection=redis_raw, retry_task=task)
                 session.commit()
 
         except BaseError as e:

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import rq
 from sqlalchemy.orm.session import Session
 
-from app import db, publish
+from app import db
 from app.db import redis_raw
 from app.exceptions import (
     BaseError,
@@ -31,7 +31,7 @@ from app.retry_util import (
     update_callback_attempt,
     update_task_for_retry,
 )
-from app.scheme_account import SchemeAccountStatus, update_pending_join_account
+from app.scheme_account import update_pending_join_account
 from settings import MAX_CALLBACK_RETRY_COUNT, MAX_RETRY_COUNT, RETRY_BACKOFF_BASE
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -95,7 +95,7 @@ def handle_failed_login(self, session: Session):
             enqueue_retry_login_task_delay(
                 connection=redis_raw,
                 retry_task=task,
-                delay_seconds=60,
+                delay_seconds=pow(RETRY_BACKOFF_BASE, float(1)) * 60,
                 call_function="app.journeys.join.login_and_publish_status",
             )
             session.commit()
@@ -256,7 +256,7 @@ def handle_request_exception(
 
 
 def handle_retry_task_request_error(
-    job: rq.job.Job | None, exc_type: type, exc_value: BaseError, traceback: "Traceback"
+    job: rq.job.Job, exc_type: type, exc_value: BaseError, traceback: "Traceback"
 ) -> None:
     # max retry exception from immediate retries bubbles up to key error and that's how it'll reach
     # this stage, hence no retries will be scheduled until exception handling is implemented or fixed

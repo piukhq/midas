@@ -11,7 +11,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.schemas import Balance, Voucher
 from app.agents.slimchickens import SlimChickens
-from app.exceptions import AccountAlreadyExistsError, BaseError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, WeakPasswordError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -1027,7 +1027,7 @@ class TestSlimChicken(unittest.TestCase):
     @httpretty.activate
     @mock.patch("requests.Session.post", autospec=True)
     @mock.patch("app.agents.slimchickens.signal", autospec=True)
-    def test_create_account_eror_checking_if_account_exists(self, mock_signal, mock_requests_session):
+    def test_create_account_error_checking_if_account_exists(self, mock_signal, mock_requests_session):
         url = f"{self.slim_chickens.base_url}core/account/123/consumer"
 
         httpretty.register_uri(
@@ -1071,9 +1071,9 @@ class TestSlimChicken(unittest.TestCase):
         def custom_response(request, uri, headers):
             if custom_response.counter == 0:
                 custom_response.counter += 1
-                return (HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1055": "Password is required"}}))
+                return HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1055": "Password is required"}})
             else:
-                return (HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1154": "Password is too weak"}}))
+                return HTTPStatus.CONFLICT, headers, json.dumps({"errors": {"1154": "Password is too weak"}})
 
         custom_response.counter = 0
 
@@ -1091,7 +1091,7 @@ class TestSlimChicken(unittest.TestCase):
             "date_of_birth": "1979-05-10T00:00:00Z",
             "consents": [{"id": 71629, "slug": "optin2", "value": True, "created_on": "2023-08-14", "journey_type": 0}],
         }
-        with self.assertRaises(WeakPassword) as e:
+        with self.assertRaises(WeakPasswordError) as e:
             self.slim_chickens.join()
         expected_calls = [  # The expected call stack for signal, in order
             call("join-fail"),
@@ -1235,6 +1235,8 @@ class TestSlimChicken(unittest.TestCase):
         self.slim_chickens.outbound_security["password"] = "password1"
         self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
         self.slim_chickens.outbound_security["account_key"] = "123"
+        # Journey type greater than zero = not a join
+        self.slim_chickens.user_info["journey_type"] = 1
         with self.assertRaises(Exception) as e:
             self.slim_chickens.login()
         self.assertEqual(e.exception.name, "Card not registered or Unknown")
@@ -1244,3 +1246,65 @@ class TestSlimChicken(unittest.TestCase):
             call().send(self.slim_chickens, slug=self.slim_chickens.scheme_slug),
         ]
         mock_signal.assert_has_calls(expected_calls)
+
+    @httpretty.activate
+    @mock.patch("app.agents.slimchickens.handle_failed_login")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.slimchickens.signal", autospec=True)
+    def test_login_balance_request_from_join_401(self, mock_signal, mock_requests_session, mock_handle_failed_login):
+        url = f"{self.slim_chickens.base_url}search"
+
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps({}),
+                    status=401,
+                )
+            ],
+        )
+
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        # Journey type greater than zero = not a join
+        self.slim_chickens.user_info["journey_type"] = 1
+        self.slim_chickens.user_info["from_join"] = True
+
+        resp = self.slim_chickens.login_balance_request()
+
+        self.assertEqual(resp, None)
+        mock_handle_failed_login.assert_called()
+
+    @httpretty.activate
+    @mock.patch("app.agents.slimchickens.handle_failed_login")
+    @mock.patch("requests.Session.post", autospec=True)
+    @mock.patch("app.agents.slimchickens.signal", autospec=True)
+    def test_login_balance_request_from_hermes_401(self, mock_signal, mock_requests_session, mock_handle_failed_login):
+        url = f"{self.slim_chickens.base_url}search"
+
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=url,
+            status=HTTPStatus.OK,
+            responses=[
+                httpretty.Response(
+                    body=json.dumps({}),
+                    status=401,
+                )
+            ],
+        )
+
+        self.slim_chickens.outbound_security["user_name"] = "testuser"
+        self.slim_chickens.outbound_security["password"] = "password1"
+        self.slim_chickens.outbound_security["channel_key"] = "1eceec2173454776b7d9a0f4a307c94b"
+        self.slim_chickens.outbound_security["account_key"] = "123"
+        # Journey type greater than zero = not a join
+        self.slim_chickens.user_info["journey_type"] = 1
+
+        with self.assertRaises(CardNumberError):
+            self.slim_chickens.login_balance_request()
+        mock_handle_failed_login.assert_not_called()

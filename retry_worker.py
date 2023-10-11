@@ -10,7 +10,6 @@ cli = typer.Typer()
 logger = logging.getLogger(__name__)
 
 
-# this one
 @cli.command()
 def task_worker(burst: bool = False) -> None:  # pragma: no cover
     worker = Worker(
