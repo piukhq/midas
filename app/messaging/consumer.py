@@ -69,7 +69,7 @@ class TaskConsumer(ConsumerMixin):
                     scheme_account_id=message.request_id,
                 )
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
-                log.debug(f"Join request created for {user_info.scheme_account_id}")
+                log.debug(f"Join request created for {user_info['scheme_account_id']}")
                 session.commit()
 
         except BaseError as e:
@@ -95,7 +95,7 @@ class TaskConsumer(ConsumerMixin):
                 "journey_type": JourneyTypes.REMOVED.value,  # maybe we need another type? Decide on 1st implementation
             }
             attempt_loyalty_card_removed_from_bink(scheme_slug, user_info)
-            log.debug(f"Card removed for {user_info.scheme_account_id}")
+            log.debug(f"Card removed for {user_info['scheme_account_id']}")
         except BaseError as e:
             sentry_sdk.capture_exception(e)
             return
