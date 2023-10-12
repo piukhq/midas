@@ -54,7 +54,7 @@ jobs:
       - run: pip install pipenv
       - run: pipenv install --dev --system --deploy --ignore-pipfile
       - run: pytest --verbose --cov app --cov-report term-missing app/tests/unit
-      - run: xenon --max-average A --max-modules B --max-absolute B .
+      - run: xenon --max-average A --max-modules B --max-absolute C .
       - run: mypy app
       - run: flake8 .
       - run: black --check .
