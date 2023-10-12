@@ -46,6 +46,7 @@ sqlalchemy-utils = "*"
 rq = "!=1.14.0"
 sqlalchemy-stubs = "*"
 argon2-cffi = "*"
+olympus-messaging = {version="*", index="pypi-cloud"}
 
 [dev-packages]
 black = "*"
