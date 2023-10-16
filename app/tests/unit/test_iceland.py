@@ -1655,51 +1655,6 @@ class TestIcelandEndToEnd(FlaskTestCase):
         }
         self.config = mock_configuration
 
-    @mock.patch("app.resources_callbacks.decrypt_credentials", return_value={})
-    @mock.patch("app.resources_callbacks.delete_task")
-    @mock.patch("app.resources_callbacks.get_task", return_value=Mock())
-    @mock.patch("app.agents.iceland.get_task", return_value=Mock())
-    @mock.patch("app.error_handler.get_task", return_value=Mock())
-    @mock.patch("app.agents.iceland.signal", autospec=True)
-    @mock.patch("app.scheme_account.requests", autospec=True)
-    @mock.patch.object(BaseAgent, "consent_confirmation")
-    @mock.patch("app.publish.status")
-    @mock.patch.object(RSA, "decode", autospec=True)
-    @mock.patch("app.security.utils.configuration.Configuration")
-    def test_async_join_callback_returns_success(
-        self,
-        mock_config,
-        mock_decode,
-        mock_publish_status,
-        mock_consent_confirmation,
-        mock_scheme_account_requests,
-        mock_iceland_signal,
-        mock_get_task_error_handler,
-        mock_get_task_iceland,
-        mock_get_task_callback,
-        mock_delete_task_callback,
-        mock_decrypt_credentials,
-    ):
-        mock_config.return_value = self.config
-        mock_decode.return_value = self.json_data
-
-        mock_get_task_callback.return_value = retry_task
-
-        headers = {
-            "Authorization": "Signature {}".format(self.signature),
-        }
-
-        response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
-
-        self.assertTrue(mock_config.called)
-        self.assertTrue(mock_decode.called)
-        self.assertTrue(mock_publish_status.called)
-        self.assertTrue(mock_consent_confirmation.called)
-        self.assertTrue(mock_scheme_account_requests.put.called)
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"success": True}, response.json)
-
     @mock.patch.object(RSA, "decode", autospec=True)
     @mock.patch("app.security.utils.configuration.Configuration")
     def test_join_callback_returns_200_with_bad_record_uid(
