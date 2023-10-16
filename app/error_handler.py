@@ -58,7 +58,7 @@ def handle_failed_join(db_session, retry_task, exc_value):
 def handle_failed_login(self, session: Session):
     # Check the retry database for a login retry task, if there is one, delete it.
     try:
-        retry_task = get_task(session, self.user_info["scheme_account_id"])
+        retry_task = get_task(session, self.user_info["scheme_account_id"], journey_type="attempt-login")
     except Exception:
         retry_task = None
 
@@ -162,6 +162,7 @@ def _handle_request_exception(
     request_exception: BaseError,
     retryable_status_codes: list[int],
     from_login: bool = False,
+    journey_type="attempt-join",
 ) -> t.Tuple[t.Optional[RetryTaskStatuses], t.Optional[Any]]:
     status = None
     next_attempt_time = None
@@ -224,9 +225,10 @@ def handle_request_exception(
     job: rq.job.Job,
     exc_value: BaseError,
     retryable_exceptions: list[BaseError],
+    journey_type: str = "attempt-join",
 ):
     next_attempt_time = None
-    retry_task = get_task(db_session, job.args[0])
+    retry_task = get_task(db_session, job.args[0], journey_type=journey_type)
     retryable_status_codes = [exception.code for exception in retryable_exceptions]
     if type(exc_value) in retryable_exceptions:
         status, next_attempt_time = _handle_request_exception(
@@ -236,6 +238,7 @@ def handle_request_exception(
             retry_task=retry_task,
             request_exception=exc_value,
             retryable_status_codes=retryable_status_codes or [],
+            journey_type=journey_type,
         )
     else:  # otherwise report to sentry and fail the task
         status = RetryTaskStatuses.FAILED

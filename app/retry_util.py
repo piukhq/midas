@@ -57,9 +57,13 @@ def create_task_with_delay(
     return retry_task
 
 
-def get_task(db_session: Session, scheme_account_id: str) -> RetryTask:
+def get_task(db_session: Session, scheme_account_id: str, journey_type: str = "attempt-join") -> RetryTask:
     return (
-        db_session.execute(select(RetryTask).where(RetryTask.scheme_account_id == scheme_account_id))
+        db_session.execute(
+            select(RetryTask).where(
+                RetryTask.scheme_account_id == scheme_account_id and RetryTask.journey_type == journey_type
+            )
+        )
         .unique()
         .scalar_one()
     )
