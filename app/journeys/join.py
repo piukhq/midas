@@ -40,21 +40,25 @@ def login_and_publish_status(user_info, scheme_slug, tid, join_result=None, agen
                 identifier=join_result["agent"].identifier,
             )
     except BaseError as e:
-        if join_result and join_result["error"] == AccountAlreadyExistsError:
-            consents = user_info["credentials"].get("consents", [])
-            consent_ids = (consent["id"] for consent in consents)
-            update_pending_join_account(
-                user_info,
-                tid,
-                error=e,
-                scheme_slug=scheme_slug,
-                consent_ids=consent_ids,
-            )
-        else:
-            publish.zero_balance(user_info["scheme_account_id"], user_info["user_set"], tid)
-        return True
+        return process_login_error(join_result, user_info, scheme_slug, tid, e)
 
     return publish_balance_and_transactions(agent_instance, user_info, tid, SchemeAccountStatus.ACTIVE)
+
+
+def process_login_error(join_result, user_info, scheme_slug, tid, e):
+    if join_result and join_result["error"] == AccountAlreadyExistsError:
+        consents = user_info["credentials"].get("consents", [])
+        consent_ids = (consent["id"] for consent in consents)
+        update_pending_join_account(
+            user_info,
+            tid,
+            error=e,
+            scheme_slug=scheme_slug,
+            consent_ids=consent_ids,
+        )
+    else:
+        publish.zero_balance(user_info["scheme_account_id"], user_info["user_set"], tid)
+    return True
 
 
 def publish_balance_and_transactions(agent_instance, user_info, tid, status):
@@ -72,6 +76,7 @@ def publish_balance_and_transactions(agent_instance, user_info, tid, status):
     finally:
         publish.status(user_info["scheme_account_id"], status, tid, user_info, journey="join")
         return True
+
 
 def attempt_join(scheme_account_id, tid, scheme_slug, user_info):  # type: ignore  # noqa
     user_info["credentials"] = decrypt_credentials(user_info["credentials"])
