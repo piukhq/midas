@@ -80,7 +80,7 @@ class SlimChickens(BaseAgent):
         if resp and self.user_info.get("from_join"):
             try:
                 with db.session_scope() as session:
-                    retry_task = get_task(session, self.user_info["scheme_account_id"])
+                    retry_task = get_task(session, self.user_info["scheme_account_id"], journey_type="attempt-login")
                     delete_task(session, retry_task)
             except Exception:
                 pass
@@ -129,7 +129,9 @@ class SlimChickens(BaseAgent):
             if error_code == 401:
                 try:
                     with db.session_scope() as session:
-                        self.retry_task = get_task(session, self.user_info["scheme_account_id"])
+                        self.retry_task = get_task(
+                            session, self.user_info["scheme_account_id"], journey_type="attempt-login"
+                        )
                 except Exception:
                     self.retry_task = None
 
