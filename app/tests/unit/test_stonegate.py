@@ -70,6 +70,18 @@ RESPONSE_DATA_ACCOUNT_EXISTS = {
     "Errors": [],
 }
 
+RESPONSE_DATA_ACCOUNT_VALID = {
+    "ResponseData": {
+        "Duplicated": "true",
+        "CtcID": 2,
+        "CpyID": 3,
+        "MD5": "sample string 4",
+        "ReferrerCode": "sample string 5",
+        "MemberNumber": "sample string 6",
+    },
+    "ResponseStatus": "true",
+}
+
 RESPONSE_DATA_ERROR = {
     "ResponseData": {
         "Duplicated": "true",
@@ -273,3 +285,35 @@ def test_get_payload_when_consents_is_false(mock_signal, mock_authenticate, ston
     }
     payload = stonegate._get_join_payload()
     assert payload["MarketingOptin"]["EmailOptin"] is False
+
+@httpretty.activate
+@mock.patch("app.agents.base.BaseAgent.make_request")
+@mock.patch("app.agents.stonegate.Stonegate.authenticate")
+def test_loyalty_card_removed_mixr(mock_authenticate, mock_make_request, stonegate):
+    find_customer_details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=find_customer_details_url,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps(RESPONSE_DATA_ACCOUNT_VALID),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    stonegate.user_info = {
+        "user_set": "1234",
+        "bink_user_id": "1234",
+        "scheme_account_id": 123,
+        "channel": "com.stonegate.mixr",
+        "status": 0,
+        "account_id": "123456789",
+        "message_uid": "8888",
+        "credentials": {"abc": "def"},
+        "journey_type": JourneyTypes.REMOVED.value
+    }
+
+    stonegate.loyalty_card_removed()
+
+    assert urljoin(stonegate.base_url, "api/Customer/Patch") == mock_make_request.call_args.args[0]

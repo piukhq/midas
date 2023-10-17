@@ -183,7 +183,7 @@ class Stonegate(Acteol):
 
 
         response_data = self._find_customer_details(
-            send_audit=True, filters={"MemberNumber": self.user_info("account_id")}
+            send_audit=True, filters={"MemberNumber": self.user_info["account_id"]}
         )
         if not response_data:
             raise CardNumberError
