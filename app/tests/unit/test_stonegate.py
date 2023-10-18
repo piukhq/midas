@@ -361,7 +361,7 @@ def test_loyalty_card_removed_lloyds_channel(mock_authenticate, stonegate):
         "user_set": "1234",
         "bink_user_id": "1234",
         "scheme_account_id": 123,
-        "channel": "literally.something.else",
+        "channel": "com.lloyds.api2",
         "status": 0,
         "account_id": "123456789",
         "message_uid": "8888",
