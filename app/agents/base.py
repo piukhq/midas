@@ -138,6 +138,11 @@ class BaseAgent(object):
 
     @staticmethod
     def get_audit_payload(kwargs, url):
+        """
+        Instead of changing Atlas and releasing 2 repos make agent
+        modifications by overriding this method. Ensure you don't
+        send None in string fields which Atlas exceptions e.g. email
+        """
         if "json" in kwargs:
             return kwargs["json"]
         elif "data" in kwargs:
