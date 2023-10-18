@@ -204,7 +204,7 @@ class ResourceNotFoundError(BaseError):
     generic_message = "Requested resource was not found at the given endpoint."
 
 
-class WeakPassword(BaseError):
+class WeakPasswordError(BaseError):
     code = 905
     name = "Join password too weak"
     generic_message = "Password provided did not meet retailer requirements."
