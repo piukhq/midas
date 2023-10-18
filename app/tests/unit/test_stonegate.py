@@ -9,7 +9,7 @@ import pytest
 from soteria.configuration import Configuration
 
 from app.agents.stonegate import Stonegate
-from app.exceptions import AccountAlreadyExistsError, JoinError
+from app.exceptions import AccountAlreadyExistsError, CardNumberError, JoinError
 from app.scheme_account import JourneyTypes
 
 RESPONSE_DATA_FIND_CUSTOMER_DETAILS = {
@@ -286,11 +286,12 @@ def test_get_payload_when_consents_is_false(mock_signal, mock_authenticate, ston
     payload = stonegate._get_join_payload()
     assert payload["MarketingOptin"]["EmailOptin"] is False
 
+
 @httpretty.activate
-@mock.patch("app.agents.base.BaseAgent.make_request")
 @mock.patch("app.agents.stonegate.Stonegate.authenticate")
-def test_loyalty_card_removed_mixr(mock_authenticate, mock_make_request, stonegate):
+def test_loyalty_card_removed_mixr(mock_authenticate, stonegate):
     find_customer_details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
+    patch_customer_details = urljoin(stonegate.base_url, "api/Customer/Patch")
     httpretty.register_uri(
         httpretty.POST,
         uri=find_customer_details_url,
@@ -298,6 +299,17 @@ def test_loyalty_card_removed_mixr(mock_authenticate, mock_make_request, stonega
         responses=[
             httpretty.Response(
                 body=json.dumps(RESPONSE_DATA_ACCOUNT_VALID),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    httpretty.register_uri(
+        httpretty.PATCH,
+        uri=patch_customer_details,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps({}),
                 status=HTTPStatus.OK,
             )
         ],
@@ -311,9 +323,102 @@ def test_loyalty_card_removed_mixr(mock_authenticate, mock_make_request, stonega
         "account_id": "123456789",
         "message_uid": "8888",
         "credentials": {"abc": "def"},
-        "journey_type": JourneyTypes.REMOVED.value
+        "journey_type": JourneyTypes.REMOVED.value,
     }
+    with mock.patch.object(stonegate, "make_request", side_effect=stonegate.make_request):
+        stonegate.loyalty_card_removed()
+        assert urljoin(stonegate.base_url, "api/Customer/Patch") == stonegate.make_request.call_args.args[0]
 
-    stonegate.loyalty_card_removed()
 
-    assert urljoin(stonegate.base_url, "api/Customer/Patch") == mock_make_request.call_args.args[0]
+@httpretty.activate
+@mock.patch("app.agents.stonegate.Stonegate.authenticate")
+def test_loyalty_card_removed_lloyds_channel(mock_authenticate, stonegate):
+    find_customer_details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
+    patch_customer_details = urljoin(stonegate.base_url, "api/Customer/Patch")
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=find_customer_details_url,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps(RESPONSE_DATA_ACCOUNT_VALID),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    httpretty.register_uri(
+        httpretty.PATCH,
+        uri=patch_customer_details,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps({}),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    stonegate.user_info = {
+        "user_set": "1234",
+        "bink_user_id": "1234",
+        "scheme_account_id": 123,
+        "channel": "literally.something.else",
+        "status": 0,
+        "account_id": "123456789",
+        "message_uid": "8888",
+        "credentials": {"abc": "def"},
+        "journey_type": JourneyTypes.REMOVED.value,
+    }
+    with mock.patch.object(stonegate, "make_request", side_effect=stonegate.make_request):
+        stonegate.loyalty_card_removed()
+        stonegate.make_request.assert_called_with(
+            urljoin(stonegate.base_url, "api/Customer/Patch"),
+            method="patch",
+            json={
+                "CtcID": 2,
+                "DataProcess": {"ProcessMydata": True},
+                "ModifiedDate": mock.ANY,
+                "SupInfo": [{"FieldName": "pll_bink", "FieldContent": "false"}],
+            },
+        )
+
+
+@httpretty.activate
+@mock.patch("app.agents.stonegate.Stonegate.authenticate")
+def test_loyalty_card_removed_raises_card_number_error(mock_authenticate, stonegate):
+    find_customer_details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
+    patch_customer_details = urljoin(stonegate.base_url, "api/Customer/Patch")
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=find_customer_details_url,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps({}),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    httpretty.register_uri(
+        httpretty.PATCH,
+        uri=patch_customer_details,
+        status=HTTPStatus.OK,
+        responses=[
+            httpretty.Response(
+                body=json.dumps({}),
+                status=HTTPStatus.OK,
+            )
+        ],
+    )
+    stonegate.user_info = {
+        "user_set": "1234",
+        "bink_user_id": "1234",
+        "scheme_account_id": 123,
+        "channel": "literally.something.else",
+        "status": 0,
+        "account_id": "123456789",
+        "message_uid": "8888",
+        "credentials": {"abc": "def"},
+        "journey_type": JourneyTypes.REMOVED.value,
+    }
+    with pytest.raises(CardNumberError):
+        stonegate.loyalty_card_removed()

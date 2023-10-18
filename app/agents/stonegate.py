@@ -112,9 +112,15 @@ class Stonegate(Acteol):
         }
         resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
         resp_json = resp.json()
+        response_data = resp_json.get("ResponseData")
+        if not response_data:
+            return
         errors = resp_json.get("Errors")
         if not errors:
-            return resp_json["ResponseData"][0]
+            # ResponseData can be a list when performing an add and a dictionary if it comes from a join request
+            if type(response_data) is list:
+                return response_data[0]
+            return response_data
         if errors[0]["ErrorCode"] == 4:
             return {}
         else:
@@ -174,14 +180,12 @@ class Stonegate(Acteol):
     def transactions(self) -> list[Transaction]:
         return []
 
-
     def loyalty_card_removed(self) -> None:
         field_name = ""
         if self.user_info["channel"] == "com.stonegate.mixr":
             field_name = "pll_mixr"
         else:
             field_name = "pll_bink"
-
 
         response_data = self._find_customer_details(
             send_audit=True, filters={"MemberNumber": self.user_info["account_id"]}
