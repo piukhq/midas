@@ -178,7 +178,7 @@ AUDIT_ADDITIONAL_SENSITIVE_KEYS = getenv("AUDIT_ADDITIONAL_SENSITIVE_KEYS", requ
 SANITISATION_STANDIN = getenv("AUDIT_SANITISATION_STANDIN", default="********")
 
 # Combined set of keys to redact from audit logs.
-AUDIT_DEFAULT_SENSITIVE_KEYS = ["password", "passwd", "pwd", "pw", "key", "secret", "token"]
+AUDIT_DEFAULT_SENSITIVE_KEYS = ["password", "passwd", "pwd", "pw", "key", "secret", "token", "credentials"]
 
 AUDIT_SENSITIVE_KEYS = []
 if AUDIT_USE_DEFAULT_SENSITIVE_KEYS:
