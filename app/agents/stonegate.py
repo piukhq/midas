@@ -114,7 +114,7 @@ class Stonegate(Acteol):
         resp_json = resp.json()
         response_data = resp_json.get("ResponseData")
         if not response_data:
-            return
+            return {}
         errors = resp_json.get("Errors")
         if not errors:
             # ResponseData can be a list when performing an add and a dictionary if it comes from a join request
