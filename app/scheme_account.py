@@ -75,7 +75,9 @@ def update_pending_join_account(
             requests.put(
                 f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials", data=data, headers=headers
             )
-            log.debug(f"Update request for account: {scheme_account_id}, identifier: {identifier}, scheme: {scheme_slug}")
+            log.debug(
+                f"Update request for account: {scheme_account_id}, identifier: {identifier}, scheme: {scheme_slug}"
+            )
             return
 
     log.debug(f"{error}; updating scheme account: {scheme_account_id}")
