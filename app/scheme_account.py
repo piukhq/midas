@@ -75,7 +75,9 @@ def update_pending_join_account(
             requests.put(
                 f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials", data=data, headers=headers
             )
-            log.debug(f"Update request for User: {user_info}, Identifier: {identifier}, Scheme: {scheme_slug}")
+            log.debug(
+                f"Update request for account: {scheme_account_id}, identifier: {identifier}, scheme: {scheme_slug}"
+            )
             return
 
     log.debug(f"{error}; updating scheme account: {scheme_account_id}")
@@ -145,7 +147,7 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
         data=json.dumps(question_data, cls=JsonEncoder),
         headers=headers,
     )
-    log.debug(f"Update request for User: {user_info}, Scheme: {scheme_slug}")
+    log.debug(f"Update request for account: {user_info['scheme_account_id']}, scheme: {scheme_slug}")
     if error and raise_exception:
         error.message = message
         raise error
