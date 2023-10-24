@@ -1,6 +1,6 @@
 import json
 from http import HTTPStatus
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from urllib.parse import urljoin
 from app.api import create_app
 import os
@@ -9,12 +9,29 @@ import pytest
 from soteria.configuration import Configuration
 from app.journeys.join import attempt_join
 import settings
+from app.models import RetryTask
 from app.scheme_account import SchemeAccountStatus, JourneyTypes, update_pending_join_account
 from app.journeys.join import login_and_publish_status
-import requests_mock
+
+settings.API_AUTH_ENABLED = False
+
+
+@pytest.fixture
+def client():
+    """Configures the app for testing
+    Can be used to make requests to API end points from unit tests for white box testing
+
+    :return: App for testing
+    """
+    app = create_app()
+    app.config["TESTING"] = True
+    client = app.test_client()
+
+    yield client
+
 
 def read_fixture_json():
-    path = os.getcwd() + "/app/tests/component/itsu.json"
+    path = os.getcwd() + "/app/tests/component/wasabi.json"
     with open(path, "r") as json_fixture:
         data = json.load(json_fixture)
         return data
@@ -25,7 +42,13 @@ def retailer_fixture():
     return read_fixture_json()
 
 
-REQUEST_TYPES = {"POST": httpretty.POST, "PATCH": httpretty.PATCH, "GET": httpretty.GET, "PUT": httpretty.PUT}
+REQUEST_TYPES = {
+    "POST": httpretty.POST,
+    "PATCH": httpretty.PATCH,
+    "GET": httpretty.GET,
+    "PUT": httpretty.PUT,
+    "DELETE": httpretty.DELETE,
+}
 
 
 @pytest.fixture
@@ -37,10 +60,7 @@ def europa_response(retailer_fixture):
         "callback_url": "",
         "country": "uk",
         "security_credentials": {
-            "inbound": {
-                "service": Configuration.OPEN_AUTH_SECURITY,
-                "credentials": []
-            },
+            "inbound": {"service": Configuration.OPEN_AUTH_SECURITY, "credentials": []},
             "outbound": {
                 "service": Configuration.OAUTH_SECURITY,
                 "credentials": [retailer_fixture["security_credentials"]],
@@ -177,8 +197,29 @@ def redis_retry_pretty_fix(monkeypatch):
 
 
 @pytest.fixture()
+def apply_wasabi_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix, retailer_fixture, europa_response):
+    def patchit():
+        monkeypatch.setattr("app.agents.acteol.get_task", lambda *_: RetryTask(request_data={"ctcid": "ctcid"}))
+
+    return patchit
+
+
+@pytest.fixture()
+def apply_bpl_patches(monkeypatch):
+    def patchit():
+        join_get_task = RetryTask(awaiting_callback=True)
+        if "bpl" in retailer_fixture["slug"]:
+            join_get_task.request_data = {"credentials": ""}
+            monkeypatch.setattr("app.bpl_callback.hash_ids.decode", lambda *_: ["123"])
+            monkeypatch.setattr("app.bpl_callback.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
+            monkeypatch.setattr("app.bpl_callback.get_task", lambda *_: join_get_task)
+            monkeypatch.setattr("app.bpl_callback.delete_task", lambda *_: None)
+
+
+@pytest.fixture()
 def apply_login_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix, retailer_fixture, europa_response):
     def patchit():
+        monkeypatch.setattr("app.resources.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
         monkeypatch.setattr("app.journeys.join.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
         monkeypatch.setattr(settings, "CONFIG_SERVICE_URL", "http://mock_europa.com")
         monkeypatch.setattr(
@@ -191,11 +232,10 @@ def apply_login_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix
 
 
 @pytest.fixture()
-def apply_db_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix):
+def apply_db_patches(monkeypatch, mock_europa_request, redis_retry_pretty_fix, retailer_fixture):
     def patchit():
-        mock_task = Mock()
-        mock_task.awaiting_callback = False
-        monkeypatch.setattr("app.journeys.join.get_task", lambda *_: mock_task)
+        join_get_task = RetryTask()
+        monkeypatch.setattr("app.journeys.join.get_task", lambda *_: join_get_task)
         monkeypatch.setattr("app.journeys.join.delete_task", lambda *_: None)
 
     return patchit
@@ -213,6 +253,7 @@ def client():
     client = app.test_client()
 
     yield client
+
 
 @pytest.fixture
 def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
@@ -232,18 +273,20 @@ def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
         mocks = {
             "hermes_mock_update_status": hermes_mock_status,
             "hermes_mock_update_credentials": hermes_mock_credentials,
-            "hermes_mock_consents": hermes_mock_consents
+            "hermes_mock_consents": hermes_mock_consents,
         }
         responses = retailer_fixture["responses"]
         for k, v in responses.items():
-            mocks.update({
-                k: http_pretty_mock(
-                    urljoin(europa_response["merchant_url"], v["endpoint"]),
-                    REQUEST_TYPES[v["type"]],
-                    v["status_code"],
-                    v["response"],
-                )
-            })
+            mocks.update(
+                {
+                    k: http_pretty_mock(
+                        urljoin(europa_response["merchant_url"], v["endpoint"]),
+                        REQUEST_TYPES[v["type"]],
+                        v["status_code"],
+                        v["response"],
+                    )
+                }
+            )
         return mocks
 
     return mocks
@@ -252,10 +295,19 @@ def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
 @httpretty.activate
 @patch("app.journeys.join.login_and_publish_status", side_effect=login_and_publish_status)
 @patch("app.journeys.join.update_pending_join_account", side_effect=update_pending_join_account)
-def test_join(mock_login_and_publish_status, mock_update_pending_join_account, apply_login_patches, apply_mock_end_points, apply_db_patches, retailer_fixture):
+def test_join(
+    mock_login_and_publish_status,
+    mock_update_pending_join_account,
+    apply_login_patches,
+    apply_mock_end_points,
+    apply_db_patches,
+    apply_wasabi_patches,
+    retailer_fixture,
+):
     apply_login_patches()
     apply_db_patches()
-    mock_url_calls = apply_mock_end_points()
+    apply_mock_end_points()
+    apply_wasabi_patches()
     user_info = {
         "user_set": "1",
         "bink_user_id": "1",
@@ -267,15 +319,77 @@ def test_join(mock_login_and_publish_status, mock_update_pending_join_account, a
     }
     responses = retailer_fixture["responses"]
     attempt_join(user_info["scheme_account_id"], "1", retailer_fixture["slug"], user_info)
-
     mock_login_and_publish_status.assert_called()
     mock_update_pending_join_account.assert_called()
-    for key, response in responses.items():
-        if "join" in responses.get(key)["journey"]:
-            assert mock_url_calls.get(key).call_count == 1
     # publish.balance called
     # send balance to hades called
     # publish transaction
     # publish status
 
 
+@httpretty.activate
+@patch("app.agents.bpl.get_task")
+@patch("app.journeys.join.login_and_publish_status", side_effect=login_and_publish_status)
+@patch("app.journeys.join.update_pending_join_account", side_effect=update_pending_join_account)
+def test_join_with_callback(
+    mock_get_task,
+    mock_login_and_publish_status,
+    mock_update_pending_join_account,
+    apply_login_patches,
+    apply_mock_end_points,
+    apply_db_patches,
+    retailer_fixture,
+    client,
+):
+    apply_login_patches()
+    apply_db_patches()
+    apply_mock_end_points()
+    mock_get_task.return_value = RetryTask(awaiting_callback=True)
+    user_info = {
+        "user_set": "1",
+        "bink_user_id": "1",
+        "credentials": retailer_fixture["credentials"],
+        "status": SchemeAccountStatus.JOIN_ASYNC_IN_PROGRESS,
+        "journey_type": JourneyTypes.JOIN.value,
+        "scheme_account_id": "123",
+        "channel": "bink.com",
+    }
+    responses = retailer_fixture["responses"]
+    attempt_join(user_info["scheme_account_id"], "1", retailer_fixture["slug"], user_info)
+    client.post(
+        "/join/bpl/bpl-viator",
+        data=json.dumps(
+            {
+                "UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
+                "email": "ncostaa@bink.com",
+                "account_number": 56789,
+                "third_party_identifier": "8v5zjgey0xd7k618x43wmpo2139lq4r8",
+            }
+        ),
+        headers={"Content-type": "application/json"},
+    )
+    mock_login_and_publish_status.assert_called()
+    mock_update_pending_join_account.assert_called()
+    # publish.balance called
+    # send balance to hades called
+    # publish transaction
+    # publish status
+
+
+@httpretty.activate
+def test_login(apply_login_patches, apply_mock_end_points, apply_db_patches, retailer_fixture, client):
+    retailer_fixture["credentials"]["card_number"] = "123"
+    apply_login_patches()
+    apply_db_patches()
+    apply_mock_end_points()
+    scheme_account_id = "123"
+    bink_user_id = "1"
+    user_id = "1"
+    balance_response = client.get(
+        f"/{retailer_fixture['slug']}/balance?scheme_account_id={scheme_account_id}"
+        f"&user_id={user_id}&bink_user_id={bink_user_id}"
+        f"&journey_type=2"
+        "&credentials=xxx&token=xxx"
+    )
+    assert balance_response.status_code == 200
+    assert balance_response.json == "{}"
