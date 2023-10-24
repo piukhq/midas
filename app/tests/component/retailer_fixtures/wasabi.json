@@ -26,6 +26,12 @@
          "application-id":"fake-123"
       }
    },
+   "callback": {"callback_endpoint": "/join/bpl/bpl-viator", "callback_data": {
+                "UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
+                "email": "ncostaa@bink.com",
+                "account_number": 56789,
+                "third_party_identifier": "8v5zjgey0xd7k618x43wmpo2139lq4r8"
+            }},
    "responses":{
       "request_1":{
          "endpoint":"api/Order/Get?CtcID=ctcid&LastRecordsCount=5&IncludeOrderDetails=false",
