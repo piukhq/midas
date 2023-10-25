@@ -275,7 +275,7 @@ class Itsu(Acteol):
         :return: pepper_id the id returned by pepper when user is added
         """
         card_number = ""
-        api_url = f"{pepper_base_url}/users?autoActivate=true&awaitExternalAccountSync=true"
+        api_url = urljoin(pepper_base_url, "/users?autoActivate=true&awaitExternalAccountSync=true")
         payload = self.pepper_add_user_payload()
         try:
             resp = self.make_request(api_url, method="post", timeout=20, audit=True, json=payload)
