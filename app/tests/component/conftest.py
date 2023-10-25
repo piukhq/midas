@@ -147,16 +147,16 @@ def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
     def mocks():
         responses = retailer_fixture["responses"]
         mocks = []
-        for k, v in responses.items():
+        for response in responses:
             mocks.append(
-                {
-                    k: http_pretty_mock(
-                        urljoin(europa_response["merchant_url"], v["endpoint"]),
-                        REQUEST_TYPES[v["type"]],
-                        v["status_code"],
-                        v["response"],
+
+                     http_pretty_mock(
+                        urljoin(europa_response["merchant_url"], response["endpoint"]),
+                        REQUEST_TYPES[response["type"]],
+                        response["status_code"],
+                        response["response"],
                     )
-                }
+
             )
         return mocks
 

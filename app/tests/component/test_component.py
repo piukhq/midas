@@ -3,23 +3,27 @@ from unittest.mock import patch
 
 import httpretty
 import pytest
-
+from app.publish import balance, status
 import settings
 from app.journeys.join import attempt_join, login_and_publish_status
 from app.scheme_account import JourneyTypes, SchemeAccountStatus, update_pending_join_account
 
 settings.API_AUTH_ENABLED = False
 
-retailers = ["itsu", "squaremeal", "wasabi", "bpl-viator"]
+retailers = ["itsu", "squaremeal", "wasabi", "stonegate", "bpl-viator"]
 
 
 @httpretty.activate
-@pytest.mark.parametrize("retailer_fixture", ['itsu'], indirect=True)
+@pytest.mark.parametrize("retailer_fixture", ['stonegate'], indirect=True)
+@patch("app.journeys.join.publish.balance", side_effect=balance)
+@patch("app.journeys.join.publish.status", side_effect=status)
 @patch("app.journeys.join.login_and_publish_status", side_effect=login_and_publish_status)
 @patch("app.journeys.join.update_pending_join_account", side_effect=update_pending_join_account)
 def test_join(
     mock_login_and_publish_status,
     mock_update_pending_join_account,
+    mock_publish_balance,
+    mock_publish_status,
     apply_login_patches,
     apply_hermes_patches,
     apply_mock_end_points,
@@ -51,22 +55,25 @@ def test_join(
         "channel": "bink.com",
     }
     attempt_join(user_info["scheme_account_id"], "1", retailer_fixture["slug"], user_info)
+
     mock_update_pending_join_account.assert_called()
 
     if retailer_fixture.get("callback"):
         callback_endpoint = retailer_fixture["callback"]["callback_endpoint"]
         callback_data = retailer_fixture["callback"]["callback_data"]
-        client.post(
+        resp = client.post(
             callback_endpoint,
             data=json.dumps(callback_data),
             headers={"Content-type": "application/json"})
+        assert resp.status_code == 200
+        assert resp.json == {
+            "success": True
+        }
     else:
         mock_login_and_publish_status.assert_called()
-        return
-        # publish.balance called
-        # send balance to hades called
-        # publish transaction
-        # publish status
+        mock_publish_balance.assert_called()
+        mock_publish_status.assert_called()
+        # Join journey ends on publish.status()
 
 
 @httpretty.activate

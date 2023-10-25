@@ -1,6 +1,6 @@
 {
-  "slug": "itsu",
-  "agent_path": "app.agents.itsu.Itsu",
+  "slug": "stonegate",
+  "agent_path": "app.agents.stonegate.Stonegate",
   "credentials": {
     "email": "email@domain.com",
     "password": "password",
@@ -31,47 +31,26 @@
       "response": {
         "ResponseData": [
           {
-            "CtcID": "123",
-            "ExternalIdentifier": {
-              "ExternalID": "123"
-            }
           }
+        ],
+        "Errors": [
+          {"ErrorCode": 4}
         ]
       }
+    },
+    {
+      "endpoint": "api/Customer/Post",
+      "type": "POST",
+      "status_code": 200,
+      "response": {"ResponseData": {
+        "MemberNumber": "123"
+      }}
     },
     {
       "endpoint": "api/Customer/Patch",
       "type": "PATCH",
       "status_code": 200,
       "response": {}
-    },
-    {
-      "endpoint": "api/Loyalty/GetCustomerDetails?customerid=123",
-      "type": "GET",
-      "status_code": 200,
-      "response": {
-        "Email": "email@domain.com",
-        "CurrentMemberNumber": "123",
-        "CustomerID": "123",
-        "LoyaltyPointsBalance": 3
-      }
-    },
-    {
-      "endpoint": "api/Voucher/GetAllByCustomerIDByParams",
-      "type": "POST",
-      "status_code": 200,
-      "response": {
-        "voucher": []
-      }
-    },
-    {
-      "endpoint": "users?autoActivate=true&awaitExternalAccountSync=true",
-      "type": "POST",
-      "status_code": 200,
-      "response": {
-        "id": "123",
-        "externalLoyaltyMemberNumber": "123"
-      }
     }
   ]
 }
