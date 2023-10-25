@@ -170,6 +170,9 @@ API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
 LOYALTY_REQUEST_QUEUE = getenv("LOYALTY_REQUEST_QUEUE", default="loyalty-request")
 LOYALTY_RESPONSE_QUEUE = getenv("LOYALTY_RESPONSE_QUEUE", default="loyalty-response")
 
+# Disable all exports to Atlas
+AUDIT_EXPORTS = getenv("AUDIT_EXPORTS", default="true", conv=boolconv)
+
 # Whether to include Midas' default sensitive keys in the audit sanitisation process.
 AUDIT_USE_DEFAULT_SENSITIVE_KEYS = getenv("AUDIT_USE_DEFAULT_SENSITIVE_KEYS", default="true", conv=boolconv)
 
