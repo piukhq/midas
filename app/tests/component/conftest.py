@@ -177,12 +177,15 @@ def apply_wasabi_patches(monkeypatch):
 @pytest.fixture()
 def apply_bpl_patches(monkeypatch, retailer_fixture):
     def patchit():
-        join_get_task = RetryTask(awaiting_callback=True)
+        join_get_task = RetryTask(awaiting_callback=True, request_data={"credentials": ""})
         join_get_task.request_data = {"credentials": ""}
         monkeypatch.setattr("app.bpl_callback.hash_ids.decode", lambda *_: ["123"])
         monkeypatch.setattr("app.bpl_callback.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
         monkeypatch.setattr(
-            "app.bpl_callback.get_task", lambda *_: RetryTask(awaiting_callback=True, request_data={"credentials": ""})
+            "app.bpl_callback.get_task", lambda *_: join_get_task
+        )
+        monkeypatch.setattr(
+            "app.agents.bpl.get_task", lambda *_: join_get_task
         )
         monkeypatch.setattr("app.bpl_callback.delete_task", lambda *_: None)
 
