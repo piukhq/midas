@@ -9,6 +9,7 @@ from blinker import signal
 from requests import Response
 from soteria.configuration import Configuration
 
+import settings
 from app.http_request import get_headers
 from app.reporting import get_logger, sanitise_json, sanitise_rpc
 from app.requests_retry import requests_retry_session
@@ -170,6 +171,9 @@ class AuditLogger:
         self.send_to_atlas(response_audit_log, audit_config)
 
     def send_to_atlas(self, audit_log, audit_config):
+        if not settings.AUDIT_EXPORTS:
+            log.warning("Atlas audit exports are disabled.")
+            return
         if not audit_log:
             log.debug("No request or response data to send to Atlas.")
             return
