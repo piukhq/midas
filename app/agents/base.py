@@ -137,7 +137,12 @@ class BaseAgent(object):
         )
 
     @staticmethod
-    def _get_audit_payload(kwargs, url):
+    def get_audit_payload(kwargs, url):
+        """
+        Instead of changing Atlas and releasing 2 repos make agent
+        modifications by overriding this method. Ensure you don't
+        send None in string fields which Atlas exceptions e.g. email
+        """
         if "json" in kwargs:
             return kwargs["json"]
         elif "data" in kwargs:
@@ -227,7 +232,7 @@ class BaseAgent(object):
 
         try:
             if audit:
-                audit_payload = self._get_audit_payload(kwargs, url)
+                audit_payload = self.get_audit_payload(kwargs, url)
                 self.send_audit_request(audit_payload, url)
 
             resp = self.session.request(method, url=url, **args)

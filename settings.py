@@ -16,6 +16,7 @@ from app.exceptions import (
     NoSuchRecordError,
     PreRegisteredCardError,
     StatusLoginFailedError,
+    WeakPasswordError,
 )
 from app.version import __version__
 from sentry_utils import SentryScrubber
@@ -105,6 +106,7 @@ if SENTRY_DSN:
             NoSuchRecordError,
             PreRegisteredCardError,
             StatusLoginFailedError,
+            WeakPasswordError,
         ],
         event_scrubber=SentryScrubber(denylist=DEFAULT_DENYLIST),
     )

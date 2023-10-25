@@ -31,6 +31,12 @@ class Itsu(Acteol):
         self.oauth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = "SYNC"
 
+    def get_audit_payload(self, kwargs, url):
+        payload = super().get_audit_payload(kwargs, url)
+        cred = payload.get("credentials", [{}])[0]
+        payload["email"] = cred.get("id", "")  # Atlas does not except None use empty string
+        return payload
+
     def get_auth_url_and_payload(self):
         url = urljoin(self.base_url, "token")
         payload = {

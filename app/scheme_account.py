@@ -6,7 +6,7 @@ import requests
 
 import settings
 from app.encoding import JsonEncoder
-from app.exceptions import AccountAlreadyExistsError, WeakPassword
+from app.exceptions import AccountAlreadyExistsError, WeakPasswordError
 from app.http_request import get_headers
 from app.reporting import get_logger
 from app.tasks.resend_consents import ConsentStatus
@@ -75,6 +75,9 @@ def update_pending_join_account(
             requests.put(
                 f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials", data=data, headers=headers
             )
+            log.debug(
+                f"Update request for account: {scheme_account_id}, identifier: {identifier}, scheme: {scheme_slug}"
+            )
             return
 
     log.debug(f"{error}; updating scheme account: {scheme_account_id}")
@@ -87,7 +90,7 @@ def update_pending_join_account(
     delete_data = {"all": True}
     if isinstance(error, AccountAlreadyExistsError):
         status = SchemeAccountStatus.ACCOUNT_ALREADY_EXISTS
-    elif isinstance(error, WeakPassword):
+    elif isinstance(error, WeakPasswordError):
         status = SchemeAccountStatus.JOIN_WEAK_PASSWORD
     elif card_number:
         status = SchemeAccountStatus.REGISTRATION_FAILED
@@ -144,7 +147,7 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
         data=json.dumps(question_data, cls=JsonEncoder),
         headers=headers,
     )
-
+    log.debug(f"Update request for account: {user_info['scheme_account_id']}, scheme: {scheme_slug}")
     if error and raise_exception:
         error.message = message
         raise error
@@ -161,4 +164,5 @@ def delete_scheme_account(tid, scheme_account_id, bink_user_id):
     if bink_user_id:
         headers["bink-user-id"] = str(bink_user_id)
 
+    log.debug(f"Delete request for {scheme_account_id}")
     requests.delete("{}/schemes/accounts/{}".format(settings.HERMES_URL, scheme_account_id), headers=headers)

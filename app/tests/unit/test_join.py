@@ -152,7 +152,7 @@ class TestJoin(TestCase):
         agent.identifier = {"merchant_identifier": str(uuid4())}
         mock_agent_login.return_value = agent
         result = login_and_publish_status(
-            Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
+            self.user_info, self.scheme_slug, self.tid, {"agent": agent, "error": ""}, Bpl
         )
 
         assert mock_update_pending_join_account.call_args.args == (self.user_info, self.tid)
@@ -194,7 +194,7 @@ class TestJoin(TestCase):
         agent = copy(self.bpl)
         agent.identifier = {"merchant_identifier": str(uuid4())}
         result = login_and_publish_status(
-            Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
+            self.user_info, self.scheme_slug, self.tid, {"agent": agent, "error": ""}, Bpl
         )
 
         mock_agent_login.assert_called()
@@ -225,7 +225,7 @@ class TestJoin(TestCase):
         agent.identifier = {"merchant_identifier": str(uuid4())}
         mock_agent_login.return_value = agent
         result = login_and_publish_status(
-            Bpl, self.user_info, self.scheme_slug, {"agent": agent, "error": ""}, self.tid
+            self.user_info, self.scheme_slug, self.tid, {"agent": agent, "error": ""}, Bpl
         )
 
         assert mock_update_pending_join_account.call_args.args == (self.user_info, self.tid)
@@ -250,7 +250,7 @@ class TestJoin(TestCase):
         mock_update_pending_join_account,
     ) -> None:
         result = login_and_publish_status(
-            Bpl, self.user_info, self.scheme_slug, {"agent": self.bpl, "error": AccountAlreadyExistsError}, self.tid
+            self.user_info, self.scheme_slug, self.tid, {"agent": self.bpl, "error": AccountAlreadyExistsError}, Bpl
         )
 
         mock_agent_login.assert_called()
@@ -270,7 +270,7 @@ class TestJoin(TestCase):
         mock_publish_zero_balance,
     ) -> None:
         result = login_and_publish_status(
-            Bpl, self.user_info, self.scheme_slug, {"agent": self.bpl, "error": ""}, self.tid
+            self.user_info, self.scheme_slug, self.tid, {"agent": self.bpl, "error": ""}, Bpl
         )
 
         mock_agent_login.assert_called()

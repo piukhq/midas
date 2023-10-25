@@ -29,6 +29,7 @@ class TaskConsumer(ConsumerMixin):
         self.dispatcher.connect(LoyaltyCardRemovedBink, self.on_loyalty_card_removed_bink)
 
     def get_consumers(self, Consumer: Type[kombu.Consumer], channel: Any) -> list[kombu.Consumer]:  # pragma: no cover
+        log.debug(f"{Consumer} has been retrieved")
         return [Consumer(queues=[self.loyalty_request_queue], callbacks=[self.on_message])]
 
     def on_message(self, body: dict, message: kombu.Message) -> None:  # pragma: no cover
@@ -68,6 +69,7 @@ class TaskConsumer(ConsumerMixin):
                     scheme_account_id=message.request_id,
                 )
                 enqueue_retry_task(connection=redis_raw, retry_task=task)
+                log.debug(f"Join request created for {user_info['scheme_account_id']}")
                 session.commit()
 
         except BaseError as e:
@@ -93,6 +95,7 @@ class TaskConsumer(ConsumerMixin):
                 "journey_type": JourneyTypes.REMOVED.value,  # maybe we need another type? Decide on 1st implementation
             }
             attempt_loyalty_card_removed_from_bink(scheme_slug, user_info)
+            log.debug(f"Card removed for {user_info['scheme_account_id']}")
         except BaseError as e:
             sentry_sdk.capture_exception(e)
             return

@@ -164,7 +164,7 @@ def test_create_account_200(mock_signal, mock_authenticate, stonegate):
     )
     stonegate.join()
 
-    assert stonegate.identifier == {"merchant_identifier": "sample string 6"}
+    assert stonegate.identifier == {"merchant_identifier": "sample string 6", "card_number": "sample string 6"}
     mock_authenticate.assert_called()
     mock_signal.assert_called_with("join-success")
 
