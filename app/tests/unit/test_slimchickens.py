@@ -11,7 +11,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.schemas import Balance, Voucher
 from app.agents.slimchickens import SlimChickens
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, WeakPasswordError
+from app.exceptions import AccountAlreadyExistsError, BaseError, StatusLoginFailedError, WeakPasswordError
 from app.scheme_account import JourneyTypes
 
 settings.API_AUTH_ENABLED = False
@@ -1239,8 +1239,8 @@ class TestSlimChicken(unittest.TestCase):
         self.slim_chickens.user_info["journey_type"] = 1
         with self.assertRaises(Exception) as e:
             self.slim_chickens.login()
-        self.assertEqual(e.exception.name, "Card not registered or Unknown")
-        self.assertEqual(e.exception.code, 436)
+        self.assertEqual(e.exception.name, "Invalid credentials")
+        self.assertEqual(e.exception.code, 403)
         expected_calls = [  # The expected call stack for signal, in order
             call("log-in-fail"),
             call().send(self.slim_chickens, slug=self.slim_chickens.scheme_slug),
@@ -1305,6 +1305,7 @@ class TestSlimChicken(unittest.TestCase):
         # Journey type greater than zero = not a join
         self.slim_chickens.user_info["journey_type"] = 1
 
-        with self.assertRaises(CardNumberError):
+        with self.assertRaises(StatusLoginFailedError) as e:
             self.slim_chickens.login_balance_request()
+        self.assertEqual(e.exception.name, "Invalid credentials")
         mock_handle_failed_login.assert_not_called()
