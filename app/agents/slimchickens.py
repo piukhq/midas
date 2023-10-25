@@ -12,7 +12,13 @@ from app import db
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Voucher
 from app.error_handler import handle_failed_login
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, ConfigurationError, WeakPasswordError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    BaseError,
+    ConfigurationError,
+    StatusLoginFailedError,
+    WeakPasswordError,
+)
 from app.reporting import get_logger
 from app.retry_util import delete_task, get_task
 from app.vouchers import VoucherState, voucher_state_names
@@ -136,7 +142,7 @@ class SlimChickens(BaseAgent):
                     self.retry_task = None
 
                 if not self.retry_task and self.user_info["journey_type"] > 0 and not self.user_info.get("from_join"):
-                    raise CardNumberError()
+                    raise StatusLoginFailedError()
 
         return resp
 
