@@ -57,5 +57,9 @@
         "LoyaltyTier": "0"
       }
     }
-  ]
+  ],
+  "expected_identifier": {
+    "merchant_identifier": "123",
+    "card_number": "123"
+  }
 }

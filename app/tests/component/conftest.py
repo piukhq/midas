@@ -20,6 +20,20 @@ REQUEST_TYPES = {
 }
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--stringinput",
+        action="append",
+        default=[],
+        help="list of stringinputs to pass to test functions",
+    )
+
+
+def pytest_generate_tests(metafunc):
+    if "stringinput" in metafunc.fixturenames:
+        metafunc.parametrize("stringinput", metafunc.config.getoption("stringinput"))
+
+
 @pytest.fixture
 def retailer_fixture(request):
     filename = request.param
@@ -149,14 +163,12 @@ def apply_mock_end_points(http_pretty_mock, retailer_fixture, europa_response):
         mocks = []
         for response in responses:
             mocks.append(
-
-                     http_pretty_mock(
-                        urljoin(europa_response["merchant_url"], response["endpoint"]),
-                        REQUEST_TYPES[response["type"]],
-                        response["status_code"],
-                        response["response"],
-                    )
-
+                http_pretty_mock(
+                    urljoin(europa_response["merchant_url"], response["endpoint"]),
+                    REQUEST_TYPES[response["type"]],
+                    response["status_code"],
+                    response["response"],
+                )
             )
         return mocks
 
@@ -181,12 +193,8 @@ def apply_bpl_patches(monkeypatch, retailer_fixture):
         join_get_task.request_data = {"credentials": ""}
         monkeypatch.setattr("app.bpl_callback.hash_ids.decode", lambda *_: ["123"])
         monkeypatch.setattr("app.bpl_callback.decrypt_credentials", lambda *_: retailer_fixture["credentials"])
-        monkeypatch.setattr(
-            "app.bpl_callback.get_task", lambda *_: join_get_task
-        )
-        monkeypatch.setattr(
-            "app.agents.bpl.get_task", lambda *_: join_get_task
-        )
+        monkeypatch.setattr("app.bpl_callback.get_task", lambda *_: join_get_task)
+        monkeypatch.setattr("app.agents.bpl.get_task", lambda *_: join_get_task)
         monkeypatch.setattr("app.bpl_callback.delete_task", lambda *_: None)
 
     return patchit

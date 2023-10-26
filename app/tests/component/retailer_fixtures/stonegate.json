@@ -52,5 +52,9 @@
       "status_code": 200,
       "response": {}
     }
-  ]
+  ],
+    "expected_identifier": {
+    "merchant_identifier": "123",
+    "card_number": "123"
+  }
 }

@@ -154,5 +154,9 @@
         "errors": ""
       }
     }
-  ]
+  ],
+    "expected_identifier": {
+    "merchant_identifier": "ctcid",
+    "card_number": "123"
+  }
 }

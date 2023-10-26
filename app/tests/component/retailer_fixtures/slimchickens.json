@@ -62,5 +62,8 @@
         "LoyaltyPointsBalance": 3
       }
     }
-  ]
+  ],
+    "expected_identifier": {
+    "merchant_identifier": "email@domain.com"
+  }
 }
