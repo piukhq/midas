@@ -12,3 +12,7 @@ def get_headers(tid):
     }
 
     return headers
+
+
+def urljoin(*parts):
+    return '/'.join([p.strip().strip('/') for p in parts])

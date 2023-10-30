@@ -1,11 +1,12 @@
 from decimal import Decimal
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode
 from uuid import uuid4
 
 import argon2
 from blinker import signal
 from soteria.configuration import Configuration
 
+from app.http_request import urljoin
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
