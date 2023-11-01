@@ -24,7 +24,6 @@ def _nop_decorator(*args, **kwargs):
 
 
 class JoinCallbackBpl(Resource):
-
     @view_session
     def post(self, scheme_slug, *, session: db.Session):
         log.debug("Callback POST request received for scheme {}".format(scheme_slug))

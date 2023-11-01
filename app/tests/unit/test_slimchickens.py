@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, call
 import httpretty
 from soteria.configuration import Configuration
 
-import settings
 from app.agents.schemas import Balance, Voucher
 from app.agents.slimchickens import SlimChickens
 from app.exceptions import AccountAlreadyExistsError, BaseError, StatusLoginFailedError, WeakPasswordError
