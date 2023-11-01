@@ -16,7 +16,6 @@ from app.exceptions import GeneralError, StatusLoginFailedError
 from app.models import RetryTask
 from app.vouchers import VoucherState, voucher_state_names
 
-settings.API_AUTH_ENABLED = False
 from app.api import create_app  # noqa
 from app.bpl_callback import JoinCallbackBpl  # noqa
 

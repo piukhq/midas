@@ -7,11 +7,14 @@ omit = *migrations*
        wsgi.py
        manage.py
        local_credentials.py
-       app/mocks*
+       app/mocks/*
        app/constants.py
        app/postgres.py
        app/db.py
        app/retry_worker.py
+       app/tests/*
+       app/agents/performance_mock.py
+       app/agents/mock_agents.py
 
 branch = True
 

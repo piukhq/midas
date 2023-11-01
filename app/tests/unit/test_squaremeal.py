@@ -23,8 +23,6 @@ from app.exceptions import (
 )
 from app.scheme_account import JourneyTypes
 
-settings.API_AUTH_ENABLED = False
-
 OUTBOUND_SECURITY_CREDENTIALS = {
     "outbound": {
         "service": Configuration.OAUTH_SECURITY,
