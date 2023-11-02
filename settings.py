@@ -163,9 +163,6 @@ PUSH_PROMETHEUS_METRICS = getenv("PUSH_PROMETHEUS_METRICS", default="true", conv
 PROMETHEUS_PUSH_GATEWAY = "http://localhost:9100"
 PROMETHEUS_JOB = "midas"
 
-API_AUTH_ENABLED = getenv("TXM_API_AUTH_ENABLED", default="true", conv=boolconv)
-
-
 # olympus-messaging interface
 LOYALTY_REQUEST_QUEUE = getenv("LOYALTY_REQUEST_QUEUE", default="loyalty-request")
 LOYALTY_RESPONSE_QUEUE = getenv("LOYALTY_RESPONSE_QUEUE", default="loyalty-response")

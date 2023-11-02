@@ -8,13 +8,10 @@ from unittest.mock import MagicMock, call
 import httpretty
 from soteria.configuration import Configuration
 
-import settings
 from app.agents.schemas import Balance, Voucher
 from app.agents.slimchickens import SlimChickens
 from app.exceptions import AccountAlreadyExistsError, BaseError, StatusLoginFailedError, WeakPasswordError
 from app.scheme_account import JourneyTypes
-
-settings.API_AUTH_ENABLED = False
 
 TIME_FORMAT = "YYYY-MM-DD HH:mm:ss"
 
