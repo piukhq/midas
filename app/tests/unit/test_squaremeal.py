@@ -9,7 +9,6 @@ import httpretty
 from flask_testing import TestCase
 from soteria.configuration import Configuration
 
-import settings
 from app.agents.schemas import Balance
 from app.agents.squaremeal import Squaremeal
 from app.api import create_app
@@ -22,8 +21,6 @@ from app.exceptions import (
     ValidationError,
 )
 from app.scheme_account import JourneyTypes
-
-settings.API_AUTH_ENABLED = False
 
 OUTBOUND_SECURITY_CREDENTIALS = {
     "outbound": {

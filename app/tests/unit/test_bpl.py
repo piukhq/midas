@@ -12,13 +12,11 @@ from flask_testing import TestCase
 
 import settings
 from app.agents.bpl import Bpl
+from app.api import create_app  # noqa
+from app.bpl_callback import JoinCallbackBpl  # noqa
 from app.exceptions import GeneralError, StatusLoginFailedError
 from app.models import RetryTask
 from app.vouchers import VoucherState, voucher_state_names
-
-settings.API_AUTH_ENABLED = False
-from app.api import create_app  # noqa
-from app.bpl_callback import JoinCallbackBpl  # noqa
 
 data = {
     "UUID": "7e54d768-033e-40fa-999a-76c21bdd9c42",
