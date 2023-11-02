@@ -3,7 +3,7 @@ from typing import Any, Type, cast
 import kombu
 import sentry_sdk
 from kombu.mixins import ConsumerMixin
-from olympus_messaging import JoinApplication, LoyaltyCardRemovedBink, Message, MessageDispatcher, build_message
+from olympus_messaging import JoinApplication, LoyaltyCardRemoved, Message, MessageDispatcher, build_message
 
 import settings
 from app import db
@@ -79,21 +79,18 @@ class TaskConsumer(ConsumerMixin):
     @staticmethod
     def on_loyalty_card_removed(message: Message) -> None:
         try:
-            message = cast(LoyaltyCardRemovedBink, message)
+            message = cast(LoyaltyCardRemoved, message)
             scheme_slug = message.loyalty_plan
-            status = int(message.message_data.get("status", 0))
 
             user_info = {
                 "user_set": message.bink_user_id,
                 "bink_user_id": message.bink_user_id,
                 "scheme_account_id": int(message.request_id),
                 "channel": message.channel,
-                "status": status,
                 "account_id": message.account_id,  # merchant's main answer from hermes eg card number
                 "message_uid": message.transaction_id,
                 "credentials": {},
-                "journey_type": JourneyTypes.REMOVED.value,  # maybe we need another type? Decide on 1st implementation
-                "origin": message.origin
+                "journey_type": JourneyTypes.REMOVED.value,
             }
             attempt_loyalty_card_removed(scheme_slug, user_info)
             log.debug(f"Card removed for {user_info['scheme_account_id']}")

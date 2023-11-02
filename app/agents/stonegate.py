@@ -3,12 +3,14 @@ from urllib.parse import urlencode, urljoin
 from uuid import uuid4
 
 import argon2
+import arrow
 from blinker import signal
+import sentry_sdk
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, LoyaltyCardRemovedError
 
 hasher = argon2.PasswordHasher()
 
@@ -174,13 +176,18 @@ class Stonegate(Acteol):
 
 
     def loyalty_card_removed(self) -> None:
-        pll_mixr = False
+        field_name = ""
+        if self.user_info["channel"] == "com.stonegate.mixr":
+            field_name = "pll_mixr"
+        else:
+            field_name = "pll_bink"
+
 
         response_data = self._find_customer_details(
-            send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
+            send_audit=True, filters={"MemberNumber": self.user_info("account_id")}
         )
         if not response_data:
-            raise StatusLoginFailedError
+            raise CardNumberError
         ctc_id = response_data["CtcID"]
 
         api_url = urljoin(self.base_url, "api/Customer/Patch")
@@ -189,7 +196,11 @@ class Stonegate(Acteol):
             "DataProcess": {
                 "ProcessMydata": True,
             },
-            "ModifiedDate": "2023-06-08T09:11:39.8328971+01:00",
-            "SupInfo": [{"FieldName": "pll_bink", "FieldContent": "false"}],
+            "ModifiedDate": arrow.utcnow().isoformat(),
+            "SupInfo": [{"FieldName": field_name, "FieldContent": "false"}],
         }
-        self.make_request(api_url, method="patch", json=payload)
+        resp = self.make_request(api_url, method="patch", json=payload)
+        resp_json = resp.json()
+        errors = resp_json.get("Errors")
+        if errors:
+            sentry_sdk.capture_exception(LoyaltyCardRemovedError(errors))

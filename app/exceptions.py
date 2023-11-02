@@ -208,3 +208,9 @@ class WeakPasswordError(BaseError):
     code = 905
     name = "Join password too weak"
     generic_message = "Password provided did not meet retailer requirements."
+
+
+class LoyaltyCardRemovedError(BaseError):
+    code = 906
+    name = "Loyalty card removed"
+    generic_message = "Notification of a loyalty card removal to the retailer has failed."

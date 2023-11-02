@@ -1,7 +1,7 @@
 from unittest import TestCase, mock
 
 import kombu
-from olympus_messaging import JoinApplication, LoyaltyCardRemovedBink
+from olympus_messaging import JoinApplication, LoyaltyCardRemoved
 
 from app.db import redis_raw
 from app.exceptions import UnknownError
@@ -38,8 +38,6 @@ class TestConsumer(TestCase):
             request_id="1223232",
             account_id="12345678989",
             loyalty_plan="10",
-            # message body data
-            message_data={"status": "1"},
         )
 
     @mock.patch("app.messaging.consumer.db")
@@ -110,7 +108,6 @@ class TestConsumer(TestCase):
                 "bink_user_id": "99999",
                 "scheme_account_id": 1223232,
                 "channel": "test.com",
-                "status": 1,
                 "account_id": "12345678989",
                 "message_uid": "123",
                 "credentials": {},
@@ -119,10 +116,10 @@ class TestConsumer(TestCase):
         )
 
     @mock.patch("app.messaging.consumer.sentry_sdk.capture_exception")
-    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed_from_bink")
-    def test_loyalty_card_removed_bink_raises_base_error(self, mock_removed_task, mock_sentry):
+    @mock.patch("app.messaging.consumer.attempt_loyalty_card_removed")
+    def test_loyalty_card_removed_raises_base_error(self, mock_removed_task, mock_sentry):
         mock_removed_task.side_effect = UnknownError()
-        self.assertEqual(self.consumer.on_loyalty_card_removed_bink(self.loyalty_card_removed_bink_message), None)
+        self.assertEqual(self.consumer.on_loyalty_card_removed(self.loyalty_card_removed_message), None)
         mock_removed_task.assert_called_with(
             "10",
             {
@@ -130,7 +127,6 @@ class TestConsumer(TestCase):
                 "bink_user_id": "99999",
                 "scheme_account_id": 1223232,
                 "channel": "test.com",
-                "status": 1,
                 "account_id": "12345678989",
                 "message_uid": "123",
                 "credentials": {},

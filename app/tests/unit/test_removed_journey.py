@@ -29,11 +29,11 @@ class MockAgentImplemented:
 
 
 @mock.patch("app.journeys.removed.get_agent_class")
-def test_agent_loyalty_card_removed_bink_not_implemented(mock_get_agent):
+def test_agent_loyalty_card_removed_not_implemented(mock_get_agent):
     mock_get_agent.return_value = MockAgentNotImplemented
     user_info = {"journey_type": JourneyTypes.REMOVED}
     slug = "test.com"
-    result = agent_loyalty_card_removed_from_bink(slug, user_info)
+    result = agent_loyalty_card_removed(slug, user_info)
     agent_instance = result.get("agent")
     assert mock_get_agent.called
     assert agent_instance.retry_count == 1
@@ -41,15 +41,15 @@ def test_agent_loyalty_card_removed_bink_not_implemented(mock_get_agent):
     error = result.get("error")
     # We don't raise an exception because most agents will not implement this feature and we don't want
     # to flood sentry - however we log a warning to help implementation
-    assert "object has no attribute 'loyalty_card_removed_bink'" in error
+    assert "object has no attribute 'loyalty_card_removed'" in error
 
 
 @mock.patch("app.journeys.removed.get_agent_class")
-def test_agent_loyalty_card_removed_bink_implemented(mock_get_agent):
+def test_agent_loyalty_card_removed_implemented(mock_get_agent):
     mock_get_agent.return_value = MockAgentImplemented
     user_info = {"journey_type": JourneyTypes.REMOVED}
     slug = "test.com"
-    result = agent_loyalty_card_removed_from_bink(slug, user_info)
+    result = agent_loyalty_card_removed(slug, user_info)
     agent_instance = result.get("agent")
     assert mock_get_agent.called
     assert agent_instance.retry_count == 1
