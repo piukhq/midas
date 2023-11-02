@@ -3,13 +3,15 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 import argon2
+import arrow
+import sentry_sdk
 from blinker import signal
 from soteria.configuration import Configuration
 
 from app.http_request import urljoin
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, LoyaltyCardRemovedError
 
 hasher = argon2.PasswordHasher()
 
@@ -111,9 +113,15 @@ class Stonegate(Acteol):
         }
         resp = self.make_request(api_url, method="post", audit=send_audit, json=payload)
         resp_json = resp.json()
+        response_data = resp_json.get("ResponseData")
+        if not response_data:
+            return {}
         errors = resp_json.get("Errors")
         if not errors:
-            return resp_json["ResponseData"][0]
+            # ResponseData can be a list when performing an add and a dictionary if it comes from a join request
+            if isinstance(response_data, list):
+                return response_data[0]
+            return response_data
         if errors[0]["ErrorCode"] == 4:
             return {}
         else:
@@ -172,3 +180,32 @@ class Stonegate(Acteol):
 
     def transactions(self) -> list[Transaction]:
         return []
+
+    def loyalty_card_removed(self) -> None:
+        field_name = ""
+        if self.user_info["channel"] == "com.stonegate.mixr":
+            field_name = "pll_mixr"
+        else:
+            field_name = "pll_bink"
+
+        response_data = self._find_customer_details(
+            send_audit=True, filters={"MemberNumber": self.user_info["account_id"]}
+        )
+        if not response_data:
+            raise CardNumberError
+        ctc_id = response_data["CtcID"]
+
+        api_url = urljoin(self.base_url, "api/Customer/Patch")
+        payload = {
+            "CtcID": ctc_id,
+            "DataProcess": {
+                "ProcessMydata": True,
+            },
+            "ModifiedDate": arrow.utcnow().isoformat(),
+            "SupInfo": [{"FieldName": field_name, "FieldContent": "false"}],
+        }
+        resp = self.make_request(api_url, method="patch", json=payload)
+        resp_json = resp.json()
+        errors = resp_json.get("Errors")
+        if errors:
+            sentry_sdk.capture_exception(LoyaltyCardRemovedError(errors))

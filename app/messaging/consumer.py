@@ -3,13 +3,13 @@ from typing import Any, Type, cast
 import kombu
 import sentry_sdk
 from kombu.mixins import ConsumerMixin
-from olympus_messaging import JoinApplication, LoyaltyCardRemovedBink, Message, MessageDispatcher, build_message
+from olympus_messaging import JoinApplication, LoyaltyCardRemoved, Message, MessageDispatcher, build_message
 
 import settings
 from app import db
 from app.db import redis_raw
 from app.exceptions import BaseError
-from app.journeys.removed import attempt_loyalty_card_removed_from_bink
+from app.journeys.removed import attempt_loyalty_card_removed
 from app.reporting import get_logger
 from app.retry_util import create_task, enqueue_retry_task
 from app.scheme_account import JourneyTypes, SchemeAccountStatus
@@ -26,7 +26,7 @@ class TaskConsumer(ConsumerMixin):
 
         # When dispatching a new message add below a mapping to an on message receive method:
         self.dispatcher.connect(JoinApplication, self.on_join_application)
-        self.dispatcher.connect(LoyaltyCardRemovedBink, self.on_loyalty_card_removed_bink)
+        self.dispatcher.connect(LoyaltyCardRemoved, self.on_loyalty_card_removed)
 
     def get_consumers(self, Consumer: Type[kombu.Consumer], channel: Any) -> list[kombu.Consumer]:  # pragma: no cover
         log.debug(f"{Consumer} has been retrieved")
@@ -77,24 +77,22 @@ class TaskConsumer(ConsumerMixin):
             return
 
     @staticmethod
-    def on_loyalty_card_removed_bink(message: Message) -> None:
+    def on_loyalty_card_removed(message: Message) -> None:
         try:
-            message = cast(LoyaltyCardRemovedBink, message)
+            message = cast(LoyaltyCardRemoved, message)
             scheme_slug = message.loyalty_plan
-            status = int(message.message_data.get("status", 0))
 
             user_info = {
                 "user_set": message.bink_user_id,
                 "bink_user_id": message.bink_user_id,
                 "scheme_account_id": int(message.request_id),
                 "channel": message.channel,
-                "status": status,
                 "account_id": message.account_id,  # merchant's main answer from hermes eg card number
                 "message_uid": message.transaction_id,
                 "credentials": {},
-                "journey_type": JourneyTypes.REMOVED.value,  # maybe we need another type? Decide on 1st implementation
+                "journey_type": JourneyTypes.REMOVED.value,
             }
-            attempt_loyalty_card_removed_from_bink(scheme_slug, user_info)
+            attempt_loyalty_card_removed(scheme_slug, user_info)
             log.debug(f"Card removed for {user_info['scheme_account_id']}")
         except BaseError as e:
             sentry_sdk.capture_exception(e)
