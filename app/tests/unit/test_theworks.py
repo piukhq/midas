@@ -10,7 +10,6 @@ import httpretty
 from flask_testing import TestCase
 from soteria.configuration import Configuration
 
-import settings
 from app.agents.schemas import Balance, Transaction
 from app.agents.theworks import TheWorks
 from app.api import create_app
@@ -23,8 +22,6 @@ from app.exceptions import (
     UnknownError,
 )
 from app.scheme_account import JourneyTypes
-
-settings.API_AUTH_ENABLED = False
 
 TIME_FORMAT = "YYYY-MM-DD HH:mm:ss"
 

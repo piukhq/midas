@@ -32,7 +32,7 @@ azure-oidc = {version="*", index="pypi-cloud"}
 soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
 user-token-store = {version="*", index="pypi-cloud"}
-olympus-messaging = {version="*", index="pypi-cloud"}
+olympus-messaging = {version="==0.2.6", index="pypi-cloud"}
 urllib3 = "*"
 click = "*"
 alembic = "*"
@@ -65,7 +65,6 @@ mypy = "*"
 types-certifi = "*"
 types-python-dateutil = "*"
 types-redis = "*"
-types-requests = "*"
 types-setuptools = "*"
 types-six = "*"
 types-toml = "*"
@@ -73,3 +72,5 @@ ptpython = "*"
 xenon = "*"
 isort = "*"
 responses = "*"
+types-requests = "*"
+types-urllib3 = "*"
