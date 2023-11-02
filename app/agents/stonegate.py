@@ -118,7 +118,7 @@ class Stonegate(Acteol):
         errors = resp_json.get("Errors")
         if not errors:
             # ResponseData can be a list when performing an add and a dictionary if it comes from a join request
-            if type(response_data) is list:
+            if isinstance(response_data, list):
                 return response_data[0]
             return response_data
         if errors[0]["ErrorCode"] == 4:
