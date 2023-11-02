@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 from urllib.parse import urlencode, urljoin
 from uuid import uuid4
@@ -7,7 +6,6 @@ import argon2
 import arrow
 import sentry_sdk
 from blinker import signal
-import sentry_sdk
 from soteria.configuration import Configuration
 
 from app.agents.acteol import Acteol
