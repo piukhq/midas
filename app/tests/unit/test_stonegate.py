@@ -70,6 +70,18 @@ RESPONSE_DATA_ACCOUNT_EXISTS = {
     "Errors": [],
 }
 
+RESPONSE_DATA_ACCOUNT_VALID = {
+    "ResponseData": {
+        "Duplicated": "true",
+        "CtcID": 2,
+        "CpyID": 3,
+        "MD5": "sample string 4",
+        "ReferrerCode": "sample string 5",
+        "MemberNumber": "sample string 6",
+    },
+    "ResponseStatus": "true",
+}
+
 RESPONSE_DATA_ERROR = {
     "ResponseData": {
         "Duplicated": "true",

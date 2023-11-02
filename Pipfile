@@ -32,21 +32,17 @@ azure-oidc = {version="*", index="pypi-cloud"}
 soteria = {version="*", index="pypi-cloud"}
 gunicorn = "*"
 user-token-store = {version="*", index="pypi-cloud"}
-olympus-messaging = {version="==0.2.6", index="pypi-cloud"}
 urllib3 = "*"
 click = "*"
 alembic = "*"
 sqlalchemy = "*"
 typer = "*"
-isort = "*"
 flask-admin = "*"
-pytest = "*"
-httpretty = "*"
-flask-testing = "*"
 sqlalchemy-utils = "*"
 rq = "!=1.14.0"
 sqlalchemy-stubs = "*"
 argon2-cffi = "*"
+olympus-messaging = {version="*", index="pypi-cloud"}
 
 [dev-packages]
 black = "*"
@@ -56,7 +52,7 @@ pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
 pytest-forked = "*"
-Flask-Testing = "*"
+flask-testing = "*"
 httpretty = "*"
 SQLAlchemy = "*"
 ipdb = "*"
