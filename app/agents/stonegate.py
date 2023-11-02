@@ -11,8 +11,10 @@ from soteria.configuration import Configuration
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, LoyaltyCardRemovedError
+from app.reporting import get_logger
 
 hasher = argon2.PasswordHasher()
+log = get_logger("stonegate")
 
 
 class Stonegate(Acteol):
@@ -205,6 +207,13 @@ class Stonegate(Acteol):
         }
         resp = self.make_request(api_url, method="patch", json=payload)
         resp_json = resp.json()
+        log.debug(
+            f"Stonegate card removed: User: {self.user_info['bink_user_id']}, "
+            f"Channel: {self.user_info['channel']}, "
+            f"Field name: {field_name}, "
+            f"Response: {resp_json}"
+        )
+
         errors = resp_json.get("Errors")
         if errors:
             sentry_sdk.capture_exception(LoyaltyCardRemovedError(errors))
