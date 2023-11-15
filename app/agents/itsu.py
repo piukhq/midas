@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Optional, Tuple
 from urllib.parse import urljoin
+import requests
 from uuid import uuid4
 
 import sentry_sdk
@@ -30,6 +31,7 @@ class Itsu(Acteol):
         super().__init__(retry_count, user_info, scheme_slug=scheme_slug)
         self.oauth_token_timeout = 75600  # n_seconds in 21 hours
         self.integration_service = "SYNC"
+        self._points_balance = Decimal(0)
 
     def get_audit_payload(self, kwargs, url):
         payload = super().get_audit_payload(kwargs, url)
@@ -64,7 +66,7 @@ class Itsu(Acteol):
         else:
             raise Exception()
 
-    def _find_customer_details(self, send_audit: bool = False) -> Tuple[str, str]:
+    def _find_customer_details(self, send_audit: bool = False) -> dict:
         self.authenticate()
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {
@@ -76,52 +78,46 @@ class Itsu(Acteol):
         resp_json = resp.json()
         self._check_response_for_error(resp_json)
         resp_data = resp_json["ResponseData"][0]
-        ctcid = str(resp_data["CtcID"])
-        pepper_id = str(resp_data["ExternalIdentifier"]["ExternalID"])
 
-        return ctcid, pepper_id
+        return resp_data
 
-    def _patch_customer_details(self, ctcid) -> None:
-        api_url = urljoin(self.base_url, "api/Customer/Patch")
-        payload = {"CtcID": ctcid, "SupInfo": [{"FieldName": "BinkActive", "FieldContent": "true"}]}
-        resp = self.make_request(api_url, method="patch", timeout=self.API_TIMEOUT, json=payload)
-        self._check_response_for_error(resp.json())
+    def _update_hermes_credentials(self):
+        api_url = urljoin(
+            settings.HERMES_URL,
+            f"schemes/accounts/{self.user_info['scheme_account_id']}/credentials",
+        )
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + settings.SERVICE_API_KEY,
+            "bink-user-id": str(self.user_info["bink_user_id"]),
+        }
+        requests.put(  # Don't want to call any signals for internal calls
+            api_url, data=self.identifier, headers=headers, timeout=self.API_TIMEOUT
+        )
 
     def login(self) -> None:
         if (
-            self.credentials["card_number"]
-            and not self.user_info.get("from_join")
-            and not self.credentials.get("merchant_identifier")
+                self.credentials["card_number"]
+                and not self.user_info.get("from_join")
+                and not self.credentials.get("merchant_identifier")
         ):
             try:
-                ctcid, pepper_id = self._find_customer_details(send_audit=True)
-                self._patch_customer_details(ctcid)
+                customer_details = self._find_customer_details(send_audit=True)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
-                self.identifier_type = [
-                    "card_number",  # Not sure this is needed but the base class has one
-                ]
-                # Set up attributes needed for the creation of an active membership card
-                self.identifier = {
-                    "card_number": self.credentials["card_number"],
-                    "merchant_identifier": pepper_id,
-                }
-                self.credentials.update({"merchant_identifier": pepper_id, "ctcid": ctcid})
             except BaseError:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
 
-    def _get_customer_details(self, ctcid: str) -> dict:
-        api_url = urljoin(self.base_url, f"api/Loyalty/GetCustomerDetails?customerid={ctcid}")
-        resp = self.make_request(api_url, method="get", timeout=self.API_TIMEOUT)
-        if resp.status_code != HTTPStatus.OK:
-            log.debug(f"Error while fetching customer details, reason: {resp.status_code} {resp.reason}")
-            raise Exception  # The journey ends
+            cticd = str(customer_details["CtcID"])
+            pepper_id = str(customer_details["ExternalIdentifier"]["ExternalID"])
+            self._points_balance = Decimal(customer_details["LoyaltyPointsBalance"])
 
-        resp_json = resp.json()
-        self._check_response_for_error(resp_json)
-        return resp_json
+            self.set_identifiers(pepper_id, self.credentials["card_number"])
+            self.credentials.update({"merchant_identifier": pepper_id, "ctcid": cticd})
+            self._update_hermes_credentials(cticd)
 
-    def _get_vouchers_by_offer_id(self, ctcid: str, offer_id: int) -> list[dict]:
+    def _get_bink_mapped_vouchers(self) -> list:
+        offer_id = settings.ITSU_VOUCHER_OFFER_ID
         if offer_id < 1:
             raise Exception(
                 f"Invalid value {offer_id} in environment variable "
@@ -129,7 +125,7 @@ class Itsu(Acteol):
             )
         # Ensure a valid API token
         self.authenticate()
-        body = {"CustomerID": ctcid, "OfferID": offer_id}
+        body = {"CustomerID": self.credentials.get("ctcid"), "OfferID": offer_id}
         api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
         resp_json = resp.json()
@@ -139,48 +135,10 @@ class Itsu(Acteol):
 
         vouchers = resp_json["voucher"]
 
-        return vouchers
-
-    def balance(self) -> Optional[Balance]:
-        # Ensure a valid API token
-        self.authenticate()
-        try:
-            ctcid = self.credentials.get("ctcid")
-            pepper_id = self.credentials.get("merchant_identifier")
-            if not ctcid:
-                # Find customer ctcid
-                ctcid, pepper_id = self._find_customer_details()
-            # Get customer details
-            customer_details = self._get_customer_details(ctcid=ctcid)
-        except BaseError as ex:
-            sentry_issue_id = sentry_sdk.capture_exception(ex)
-            log.debug(
-                f"Balance Error: {ex.message}, Sentry Issue ID: {sentry_issue_id}, Scheme: {self.scheme_slug} "
-                f"Scheme Account ID: {self.scheme_id}"
-            )
-            raise
-
-        if not self._customer_fields_are_present(customer_details=customer_details):
-            log.debug(
-                (
-                    "Expected fields not found in customer details during join: Email, CurrentMemberNumber, CustomerID "
-                    f"for user ID: {self.credentials['merchant_identifier']}"
-                )
-            )
-            raise NoSuchRecordError()
-
-        self._check_deleted_user(resp_json=customer_details)
-        points = Decimal(customer_details["LoyaltyPointsBalance"])
-
-        self.update_hermes_credentials(pepper_id, customer_details)
-
-        # Get all vouchers for this customer
-        vouchers = self._get_vouchers_by_offer_id(ctcid=ctcid, offer_id=settings.ITSU_VOUCHER_OFFER_ID)
-
         bink_mapped_vouchers = []  # Vouchers mapped to format required by Bink
 
         # Create an 'in-progress' voucher - the current, incomplete voucher
-        in_progress_voucher = self._make_in_progress_voucher(points=points)
+        in_progress_voucher = self._make_in_progress_voucher(points=self._points_balance)
         bink_mapped_vouchers.append(in_progress_voucher)
 
         # Now create the other types of vouchers
@@ -191,11 +149,14 @@ class Itsu(Acteol):
             if bink_mapped_voucher := self._map_acteol_voucher_to_bink_struct(voucher=voucher):
                 bink_mapped_vouchers.append(bink_mapped_voucher)
 
+        return bink_mapped_vouchers
+
+    def balance(self) -> Optional[Balance]:
         return Balance(
-            points=points,
-            value=points,
+            points=self._points_balance,
+            value=self._points_balance,
             value_label="",
-            vouchers=bink_mapped_vouchers,
+            vouchers=self._get_bink_mapped_vouchers(),
         )
 
     def call_pepper_for_card_number(self, pepper_id: str, pepper_base_url: str) -> str:
