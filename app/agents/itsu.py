@@ -1,19 +1,17 @@
-from http import HTTPStatus
 from typing import Optional, Tuple
 from urllib.parse import urljoin
-import requests
 from uuid import uuid4
 
-import sentry_sdk
+import requests
 from _decimal import Decimal
 from blinker import signal
 from soteria.configuration import Configuration
 
 import settings
 from app import db
-from app.agents.acteol import Acteol, log
+from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
-from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, NoSuchRecordError
+from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.models import RetryTaskStatuses
 from app.retry_util import get_task
 
@@ -97,9 +95,9 @@ class Itsu(Acteol):
 
     def login(self) -> None:
         if (
-                self.credentials["card_number"]
-                and not self.user_info.get("from_join")
-                and not self.credentials.get("merchant_identifier")
+            self.credentials["card_number"]
+            and not self.user_info.get("from_join")
+            and not self.credentials.get("merchant_identifier")
         ):
             try:
                 customer_details = self._find_customer_details(send_audit=True)
@@ -108,13 +106,12 @@ class Itsu(Acteol):
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
                 raise
 
-            cticd = str(customer_details["CtcID"])
             pepper_id = str(customer_details["ExternalIdentifier"]["ExternalID"])
-            self._points_balance = Decimal(customer_details["LoyaltyPointsBalance"])
+            self._points_balance = Decimal(customer_details["LoyaltyDetails"]["LoyaltyPointsBalance"])
 
             self.set_identifiers(pepper_id, self.credentials["card_number"])
-            self.credentials.update({"merchant_identifier": pepper_id, "ctcid": cticd})
-            self._update_hermes_credentials(cticd)
+            self.credentials.update({"merchant_identifier": pepper_id, "ctcid": str(customer_details["CtcID"])})
+            self._update_hermes_credentials()
 
     def _get_bink_mapped_vouchers(self) -> list:
         offer_id = settings.ITSU_VOUCHER_OFFER_ID
