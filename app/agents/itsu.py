@@ -79,6 +79,12 @@ class Itsu(Acteol):
 
         return resp_data
 
+    def _patch_customer_details(self, ctcid) -> None:
+        api_url = urljoin(self.base_url, "api/Customer/Patch")
+        payload = {"CtcID": ctcid, "SupInfo": [{"FieldName": "BinkActive", "FieldContent": "true"}]}
+        resp = self.make_request(api_url, method="patch", timeout=self.API_TIMEOUT, json=payload)
+        self._check_response_for_error(resp.json())
+
     def _update_hermes_credentials(self):
         api_url = urljoin(
             settings.HERMES_URL,
@@ -107,10 +113,12 @@ class Itsu(Acteol):
                 raise
 
             pepper_id = str(customer_details["ExternalIdentifier"]["ExternalID"])
+            ctcid = str(customer_details["CtcID"])
             self._points_balance = Decimal(customer_details["LoyaltyDetails"]["LoyaltyPointsBalance"])
 
             self.set_identifiers(pepper_id, self.credentials["card_number"])
-            self.credentials.update({"merchant_identifier": pepper_id, "ctcid": str(customer_details["CtcID"])})
+            self.credentials.update({"merchant_identifier": pepper_id, "ctcid": ctcid})
+            self._patch_customer_details(ctcid)
             self._update_hermes_credentials()
 
     def _get_bink_mapped_vouchers(self) -> list:
