@@ -7,8 +7,10 @@ from urllib.parse import urljoin
 
 import httpretty
 import pytest
+import requests
 from soteria.configuration import Configuration
 
+import app.requests_retry
 import settings
 from app.agents.itsu import Itsu
 from app.agents.schemas import Balance, Voucher
@@ -229,6 +231,14 @@ class TestItsu(unittest.TestCase):
             urljoin(settings.HERMES_URL, "schemes/accounts/1/credentials"),
             status=HTTPStatus.OK,
         )
+        httpretty.register_uri(
+            httpretty.PATCH,
+            urljoin(
+                self.itsu.base_url,
+                "api/Customer/Patch",
+            ),
+            status=HTTPStatus.OK,
+        )
         mock_find_customer_details.return_value = self.mock_find_customer_details_resp["ResponseData"][0]
         mock_authenticate.return_value = self.mock_token
         self.itsu.credentials = {"card_number": "111111"}
@@ -250,24 +260,29 @@ class TestItsu(unittest.TestCase):
         assert httpretty.last_request().path == "/schemes/accounts/1/credentials"
 
     @httpretty.activate
+    @patch("app.requests_retry.requests_retry_session", return_value=requests.Session())
     @patch("app.agents.itsu.signal", autospec=True)
     @patch("app.agents.itsu.Itsu.authenticate")
-    def test_login_invalid_card_number(self, mock_authenticate, mock_signal):
+    def test_login_invalid_card_number(self, mock_authenticate, mock_signal, mock_requests_retry_session):
         mock_authenticate.return_value = self.mock_token
         self.itsu.credentials = {"card_number": "12345"}
-        api_url = urljoin(
-            self.itsu.base_url,
-            "api/Customer/FindCustomerDetails",
-        )
-        response = {
-            "ResponseData": None,
-            "ResponseStatus": False,
-            "Errors": [{"ErrorCode": 4, "ErrorDescription": "No Data found"}],
-        }
         httpretty.register_uri(
             httpretty.POST,
-            api_url,
-            responses=[httpretty.Response(body=json.dumps(response))],
+            urljoin(
+                self.itsu.base_url,
+                "api/Customer/FindCustomerDetails",
+            ),
+            responses=[
+                httpretty.Response(
+                    body=json.dumps(
+                        {
+                            "ResponseData": None,
+                            "ResponseStatus": False,
+                            "Errors": [{"ErrorCode": 4, "ErrorDescription": "No Data found"}],
+                        }
+                    )
+                )
+            ],
             status=HTTPStatus.OK,
         )
         with pytest.raises(CardNumberError):

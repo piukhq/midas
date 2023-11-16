@@ -85,7 +85,7 @@ class Itsu(Acteol):
         resp = self.make_request(api_url, method="patch", timeout=self.API_TIMEOUT, json=payload)
         self._check_response_for_error(resp.json())
 
-    def _update_hermes_credentials(self):
+    def _update_hermes_credentials(self) -> None:
         api_url = urljoin(
             settings.HERMES_URL,
             f"schemes/accounts/{self.user_info['scheme_account_id']}/credentials",
