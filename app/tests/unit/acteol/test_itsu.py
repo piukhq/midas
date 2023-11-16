@@ -10,7 +10,6 @@ import pytest
 import requests
 from soteria.configuration import Configuration
 
-import app.requests_retry
 import settings
 from app.agents.itsu import Itsu
 from app.agents.schemas import Balance, Voucher
