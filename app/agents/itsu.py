@@ -69,7 +69,7 @@ class Itsu(Acteol):
         api_url = urljoin(self.base_url, "api/Customer/FindCustomerDetails")
         payload = {
             "SearchFilters": {"MemberNumber": self.credentials["card_number"]},
-            "ResponseFilters": {"SupInfo": "true"},
+            "ResponseFilters": {"SupInfo": "true", "LoyaltyDetails": "true"},
         }
 
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, audit=send_audit, json=payload)
