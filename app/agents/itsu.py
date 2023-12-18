@@ -130,7 +130,10 @@ class Itsu(Acteol):
             )
         # Ensure a valid API token
         self.authenticate()
-        body = {"CustomerID": self.credentials.get("ctcid"), "OfferID": offer_id}
+        if ctcid := self.credentials.get("ctcid"):
+            body = {"CustomerID": ctcid, "OfferID": offer_id}
+        else:
+            body = {"CustomerID": str(self._find_customer_details(send_audit=True)["CtcID"]), "OfferID": offer_id}
         api_url = urljoin(self.base_url, "api/Voucher/GetAllByCustomerIDByParams")
         resp = self.make_request(api_url, method="post", timeout=self.API_TIMEOUT, json=body)
         resp_json = resp.json()
