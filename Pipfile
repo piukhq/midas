@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [[source]]
-name = "pypi-cloud"
-url = "https://269fdc63-af3d-4eca-8101-8bddc22d6f14:b694b5b1-f97e-49e4-959e-f3c202e3ab91@pypi.gb.bink.com/simple"
+name = "pypi-azure"
+url = "https://jeff:lkzedq5xrttrobhxf6liuqefz4pzb5hp6m6wnjygjr5qhqo4phua@pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple/"
 verify_ssl = true
 
 [packages]
@@ -28,10 +28,10 @@ sentry-sdk = "*"
 requests = "*"
 prometheus-client = "*"
 Werkzeug = "*"
-azure-oidc = {version="*", index="pypi-cloud"}
-soteria = {version="*", index="pypi-cloud"}
+azure-oidc = {version="*", index="pypi-azure"}
+soteria = {version="*", index="pypi-azure"}
 gunicorn = "*"
-user-token-store = {version="*", index="pypi-cloud"}
+user-token-store = {version="*", index="pypi-azure"}
 urllib3 = "*"
 click = "*"
 alembic = "*"
@@ -42,7 +42,7 @@ sqlalchemy-utils = "*"
 rq = "!=1.14.0"
 sqlalchemy-stubs = "*"
 argon2-cffi = "*"
-olympus-messaging = {version="*", index="pypi-cloud"}
+olympus-messaging = {version="*", index="pypi-azure"}
 
 [dev-packages]
 black = "*"
