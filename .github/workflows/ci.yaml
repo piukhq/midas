@@ -51,14 +51,16 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - run: pip install pipenv
-      - run: pipenv install --dev --system --deploy --ignore-pipfile
+      - run: pip install poetry
+      - run: poetry self add "poetry-dynamic-versioning[plugin]"
+      - run: poetry config repositories.pypi-azure https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/upload/
+      - run: poetry config http-basic.pypi-azure jeff ${{ secrets.AZURE_DEVOPS_PAT }}
+      - run: poetry build
+      - run: poetry publish -r pypi-azure
       - run: pytest --verbose --cov app --cov-report term-missing app/tests/unit
       - run: xenon --max-average A --max-modules B --max-absolute B .
       - run: mypy app
-      - run: flake8 .
-      - run: black --check .
-      - run: isort --check .
+      - run ruff check .
   create_dev_release:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     name: create_dev_release

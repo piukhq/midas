@@ -295,7 +295,7 @@ class TestAudit(unittest.TestCase):
                         "this is fine",
                     ],
                 },
-                "audit_translated_payload": {"key": "val", "key": "val"},
+                "audit_translated_payload": {"key": "val", "key1": "val"},
             },
         )
         audit_config = {"type": "jsonrpc", "audit_sensitive_keys": [2, 4]}
@@ -319,7 +319,7 @@ class TestAudit(unittest.TestCase):
                         "this is fine",
                     ],
                 },
-                "audit_translated_payload": {"key": "val", "key": "val"},
+                "audit_translated_payload": {"key": "val", "key1": "val"},
             },
         }
         expected = {
@@ -337,7 +337,7 @@ class TestAudit(unittest.TestCase):
                         "this is fine",
                     ],
                 },
-                "audit_translated_payload": {"key": "val", "key": "val"},
+                "audit_translated_payload": {"key": "val", "key1": "val"},
             },
         }
         result = sanitise_rpc(payload, [2, 4])
