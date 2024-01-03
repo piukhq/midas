@@ -60,7 +60,7 @@ jobs:
       - run: pytest --verbose --cov app --cov-report term-missing app/tests/unit
       - run: xenon --max-average A --max-modules B --max-absolute B .
       - run: mypy app
-      - run ruff check .
+      - run: ruff check .
   create_dev_release:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     name: create_dev_release
