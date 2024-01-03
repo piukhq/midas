@@ -97,8 +97,8 @@ class TestWasabi(unittest.TestCase):
             self.wasabi.authenticate()
 
             # THEN
-            assert mock_refresh_token.called_once()
-            assert mock_store_token.called_once_with(self.mock_token)
+            mock_refresh_token.assert_called_once()
+            mock_store_token.assert_called_once_with(self.mock_token)
 
     @patch("app.agents.base.BaseAgent._token_is_valid")
     @patch("app.agents.base.BaseAgent._refresh_token")
@@ -206,7 +206,7 @@ class TestWasabi(unittest.TestCase):
             )
 
             # THEN
-            assert self.wasabi.token_store.set.called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
+            self.wasabi.token_store.set.assert_called_once_with(self.wasabi.scheme_id, json.dumps(expected_token))
 
     def test_make_headers(self):
         """
@@ -826,7 +826,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi._set_customer_preferences(ctcid=ctcid, email_optin=email_optin)
 
         # THEN
-        assert mock_set_task.called_once()
+        mock_set_task.assert_called_once()
 
     @patch("app.agents.acteol.Acteol.authenticate")
     @patch("app.agents.acteol.Acteol._validate_member_number")
@@ -937,7 +937,7 @@ class TestWasabi(unittest.TestCase):
         self.wasabi.login()
 
         # THEN
-        assert mock_validate_member_number.called_once()
+        mock_validate_member_number.assert_called_once()
 
     @patch("app.agents.acteol.signal", autospec=True)
     @patch("app.agents.acteol.Acteol.authenticate")
