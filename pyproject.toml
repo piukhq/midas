@@ -55,6 +55,7 @@ rq = "^1.15.1"
 sqlalchemy-stubs = "^0.4"
 argon2-cffi = "^23.1.0"
 olympus-messaging = "^0.3.2"
+requests-futures = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
