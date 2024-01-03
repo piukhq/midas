@@ -14,6 +14,7 @@ from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
 from app.models import RetryTaskStatuses
 from app.retry_util import get_task
+from app.journeys.view import JourneyTypes
 
 
 class Itsu(Acteol):
@@ -103,7 +104,6 @@ class Itsu(Acteol):
         if (
             self.credentials["card_number"]
             and not self.user_info.get("from_join")
-            and not self.credentials.get("merchant_identifier")
         ):
             try:
                 customer_details = self._find_customer_details(send_audit=True)
@@ -118,7 +118,11 @@ class Itsu(Acteol):
 
             self.set_identifiers(pepper_id, self.credentials["card_number"])
             self.credentials.update({"merchant_identifier": pepper_id, "ctcid": ctcid})
-            self._patch_customer_details(ctcid)
+
+            # Don't call the patch customer details if this is a balance request - journey type UPDATE (id = 3)
+            if not self.journey_type == JourneyTypes.UPDATE:
+                self._patch_customer_details(ctcid)
+
             self._update_hermes_credentials()
 
     def _get_bink_mapped_vouchers(self) -> list:
