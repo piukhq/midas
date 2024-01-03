@@ -12,9 +12,9 @@ from app import db
 from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError
+from app.journeys.view import JourneyTypes
 from app.models import RetryTaskStatuses
 from app.retry_util import get_task
-from app.journeys.view import JourneyTypes
 
 
 class Itsu(Acteol):
@@ -101,10 +101,7 @@ class Itsu(Acteol):
         )
 
     def login(self) -> None:
-        if (
-            self.credentials["card_number"]
-            and not self.user_info.get("from_join")
-        ):
+        if self.credentials["card_number"] and not self.user_info.get("from_join"):
             try:
                 customer_details = self._find_customer_details(send_audit=True)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
