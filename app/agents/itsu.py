@@ -102,8 +102,13 @@ class Itsu(Acteol):
 
     def login(self) -> None:
         if self.credentials["card_number"] and not self.user_info.get("from_join"):
+            # Audit logs not required for balance requests
+            send_audit = True
+            if self.journey_type == JourneyTypes.UPDATE:
+                send_audit = False
+
             try:
-                customer_details = self._find_customer_details(send_audit=True)
+                customer_details = self._find_customer_details(send_audit=send_audit)
                 signal("log-in-success").send(self, slug=self.scheme_slug)
             except BaseError:
                 signal("log-in-fail").send(self, slug=self.scheme_slug)
