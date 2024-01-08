@@ -1,13 +1,12 @@
 name: ci
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ develop, master ]
+    branches: [master]
   pull_request:
-    branches: [ develop, master ]
+    branches: [master]
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
   tests:
@@ -47,28 +46,25 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
           severity: HIGH,CRITICAL
-      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
       - run: pip install poetry
-      - run: poetry self add "poetry-dynamic-versioning[plugin]"
-      - run: poetry config repositories.pypi-azure https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/upload/
-      - run: poetry config http-basic.pypi-azure jeff ${{ secrets.AZURE_DEVOPS_PAT }}
-      - run: poetry build
-      - run: poetry publish -r pypi-azure
-      - run: pytest --verbose --cov app --cov-report term-missing app/tests/unit
-      - run: xenon --max-average A --max-modules B --max-absolute B .
-      - run: mypy app
-      - run: ruff check .
-  create_dev_release:
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    name: create_dev_release
+      - run: poetry install
+      - run: poetry run scripts/cibuild
+
+  release_dev:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    name: release_dev
+    environment: Development
     runs-on: ubuntu-latest
-    needs: [ tests ]
+    needs: [tests]
     steps:
       - uses: actions/checkout@v3
-      - run: echo "container_tag=$(date +'%FT%H%M%SZ')" >> $GITHUB_ENV
+        with:
+          fetch-depth: 0
+      - run: echo "::set-output name=date::$(date +'%FT%H%M%SZ')"
+        id: date
       - uses: docker/login-action@v2
         with:
           registry: binkcore.azurecr.io
@@ -76,17 +72,22 @@ jobs:
           password: ${{ secrets.ACR_BINKCORE_PASSWORD }}
       - uses: docker/build-push-action@v4
         with:
+          context: .
           push: true
           tags: |
-            binkcore.azurecr.io/midas:${{ env.container_tag }}
-            binkcore.azurecr.io/midas:latest
-  create_tag_release:
+            binkcore.azurecr.io/${{ github.event.repository.name }}:${{ steps.date.outputs.date }}
+            binkcore.azurecr.io/${{ github.event.repository.name }}:latest
+
+  release_staging:
     if: github.event_name == 'release' && github.event.action == 'published'
-    name: create_tag_release
+    name: release_staging
+    environment: Staging
     runs-on: ubuntu-latest
-    needs: [ tests ]
+    needs: [tests]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: tag_check
         run: |
           if ! [[ ${{ github.event.release.tag_name }} =~ [0-9]+.[0-9]+.[0-9]+ ]]; then
@@ -99,8 +100,9 @@ jobs:
           password: ${{ secrets.ACR_BINKCORE_PASSWORD }}
       - uses: docker/build-push-action@v4
         with:
+          context: .
           push: true
           tags: |
-            binkcore.azurecr.io/midas:${{ github.event.release.tag_name }}
-            binkcore.azurecr.io/midas:staging-${{ github.event.release.tag_name }}
-            binkcore.azurecr.io/midas:staging
+            binkcore.azurecr.io/${{ github.event.repository.name }}:${{ github.event.release.tag_name }}
+            binkcore.azurecr.io/${{ github.event.repository.name }}:staging-${{ github.event.release.tag_name }}
+            binkcore.azurecr.io/${{ github.event.repository.name }}:staging

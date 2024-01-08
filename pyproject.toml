@@ -18,10 +18,9 @@ name = "pypi"
 priority = "primary"
 
 [[tool.poetry.source]]
-name = "pypi-azure"
+name = "azure"
 url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple/"
 priority = "supplemental"
-
 
 [tool.poetry.dependencies]
 python = "^3.11"
