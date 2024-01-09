@@ -5,11 +5,9 @@ import httpretty
 
 def assert_correct_happy_path_calls(test, mock_call_data):
     assert mock_call_data["mock_find_user"].call_count == 1
-    assert mock_call_data["mock_patch_ctc_id"].call_count == 1
     assert mock_call_data["mock_put_hermes_credentials"].call_count == 1
 
     assert mock_call_data["mock_find_user"].request_json["SearchFilters"]["MemberNumber"] == test.card_number
-    assert mock_call_data["mock_patch_ctc_id"].request_json["CtcID"] == test.ctc_id
     assert mock_call_data["mock_put_hermes_credentials"].request_json["card_number"] == test.card_number
     assert mock_call_data["mock_put_hermes_credentials"].request_json["merchant_identifier"] == test.card_number
 
@@ -58,6 +56,8 @@ class TestStoneGateAdd:
         ]
 
         assert_correct_happy_path_calls(test, mock_call_data)
+        assert mock_call_data["mock_patch_ctc_id"].call_count == 1
+        assert mock_call_data["mock_patch_ctc_id"].request_json["CtcID"] == test.ctc_id
 
     @httpretty.activate
     def test_view_happy_path(
@@ -76,7 +76,7 @@ class TestStoneGateAdd:
         balance_response = client.get(
             f"/stonegate/balance?scheme_account_id={test.account_id}"
             f"&user_id={test.user_id}&bink_user_id={test.bink_user_id}"
-            f"&journey_type=2"
+            f"&journey_type=3"
             "&credentials=xxx&token=xxx"
         )
 
@@ -94,14 +94,12 @@ class TestStoneGateAdd:
         }
 
         assert mock_stonegate_signals.name_list == [
-            "send-audit-request",
-            "send-audit-response",
-            "record-http-request",
             "record-http-request",
             "log-in-success",
         ]
 
         assert_correct_happy_path_calls(test, mock_call_data)
+        assert mock_call_data["mock_patch_ctc_id"].call_count == 0
 
     @httpretty.activate
     def test_invalid_card_number(

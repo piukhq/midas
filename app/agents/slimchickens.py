@@ -21,6 +21,7 @@ from app.exceptions import (
 )
 from app.reporting import get_logger
 from app.retry_util import delete_task, get_task
+from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
@@ -111,7 +112,8 @@ class SlimChickens(BaseAgent):
             resp = self.make_request(
                 urljoin(self.base_url, "search"),
                 method="post",
-                audit=True,
+                # Audit logs not required for balance requests
+                audit=False if self.journey_type == JourneyTypes.UPDATE else True,
                 json={
                     "channelKeys": [self.outbound_security["channel_key"]],
                     "types": ["wallet"],
