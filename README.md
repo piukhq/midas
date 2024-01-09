@@ -22,7 +22,7 @@
 
 ## Prerequisites
 
-- [pipenv](https://docs.pipenv.org)
+- [poetry](https://python-poetry.org)
 
 ## Dependencies
 
@@ -35,7 +35,7 @@ The following is a list of the important dependencies used in the project. You d
 
 ## Project Setup
 
-Pipenv is used for managing project dependencies and execution.
+Poetry is used for managing project dependencies and execution.
 
 ### Virtual Environment
 
@@ -51,7 +51,9 @@ Create a virtualenv and install required software packages:
 poetry install
 ```
 
-Project configuration is done through environment variables. A convenient way to set these is in a `.env` file in the project root. This file will be sourced by Pipenv when `pipenv run` and `pipenv shell` are used. See `settings.py` for configuration options that can be set in this file.
+Project configuration is done through environment variables. A convenient way to set these is in a `.env` file in the project root. See `settings.py` for configuration options that can be set in this file.
+
+For terminal usage this file can be automatically sourced with [direnv]() or [poetry-dotenv-plugin](https://pypi.org/project/poetry-dotenv-plugin). Most editors and IDEs have built-in or plugin support for dotenv files.
 
 To make a `.env` file from the provided example:
 
