@@ -1,26 +1,21 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "midas"
 version = "0.0.0"
 description = "Retailer integration service"
 authors = ["mlatham <ml@bink.com>"]
-license = "Bink"
 readme = "README.md"
 packages = [
     { include = "app" },
 ]
 
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
-
-[[tool.poetry.source]]
-name = "pypi"
-priority = "primary"
-
 [[tool.poetry.source]]
 name = "azure"
 url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple/"
-priority = "supplemental"
+priority = "primary"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -40,7 +35,7 @@ requests = "^2.31.0"
 prometheus-client = "^0.19.0"
 werkzeug = "^3.0.1"
 azure-oidc = "^1.0.1"
-soteria = { version = "^1.6.3", source = "pypi-azure" }
+soteria = "^1.6.3"
 gunicorn = "^21.2.0"
 user-token-store = "^1.1.6"
 urllib3 = "^2.1.0"

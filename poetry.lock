@@ -19,6 +19,11 @@ typing-extensions = ">=4"
 [package.extras]
 tz = ["backports.zoneinfo"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "amqp"
 version = "5.2.0"
@@ -33,6 +38,11 @@ files = [
 [package.dependencies]
 vine = ">=5.0.0,<6.0.0"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "aniso8601"
 version = "9.0.1"
@@ -46,6 +56,11 @@ files = [
 
 [package.extras]
 dev = ["black", "coverage", "isort", "pre-commit", "pyenchant", "pylint"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "anyio"
@@ -67,6 +82,11 @@ doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphin
 test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
 trio = ["trio (>=0.23)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "argon2-cffi"
 version = "23.1.0"
@@ -86,6 +106,11 @@ dev = ["argon2-cffi[tests,typing]", "tox (>4)"]
 docs = ["furo", "myst-parser", "sphinx", "sphinx-copybutton", "sphinx-notfound-page"]
 tests = ["hypothesis", "pytest"]
 typing = ["mypy"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "argon2-cffi-bindings"
@@ -124,6 +149,11 @@ cffi = ">=1.0.1"
 dev = ["cogapp", "pre-commit", "pytest", "wheel"]
 tests = ["pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "arrow"
 version = "1.3.0"
@@ -143,6 +173,11 @@ types-python-dateutil = ">=2.8.10"
 doc = ["doc8", "sphinx (>=7.0.0)", "sphinx-autobuild", "sphinx-autodoc-typehints", "sphinx_rtd_theme (>=1.3.0)"]
 test = ["dateparser (==1.*)", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytz (==2021.1)", "simplejson (==3.*)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "asttokens"
 version = "2.4.1"
@@ -161,6 +196,11 @@ six = ">=1.12.0"
 astroid = ["astroid (>=1,<2)", "astroid (>=2,<4)"]
 test = ["astroid (>=1,<2)", "astroid (>=2,<4)", "pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "async-timeout"
 version = "4.0.3"
@@ -171,6 +211,11 @@ files = [
     {file = "async-timeout-4.0.3.tar.gz", hash = "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f"},
     {file = "async_timeout-4.0.3-py3-none-any.whl", hash = "sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "attrs"
@@ -191,6 +236,11 @@ tests = ["attrs[tests-no-zope]", "zope-interface"]
 tests-mypy = ["mypy (>=1.6)", "pytest-mypy-plugins"]
 tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "pytest (>=4.3.0)", "pytest-xdist[psutil]"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "azure-common"
 version = "1.1.28"
@@ -201,6 +251,11 @@ files = [
     {file = "azure-common-1.1.28.zip", hash = "sha256:4ac0cd3214e36b6a1b6a442686722a5d8cc449603aa833f3f0f40bda836704a3"},
     {file = "azure_common-1.1.28-py2.py3-none-any.whl", hash = "sha256:5c12d3dcf4ec20599ca6b0d3e09e86e146353d443e7fcc050c9a19c1f9df20ad"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "azure-core"
@@ -222,6 +277,11 @@ typing-extensions = ">=4.6.0"
 [package.extras]
 aio = ["aiohttp (>=3.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "azure-identity"
 version = "1.15.0"
@@ -238,6 +298,11 @@ azure-core = ">=1.23.0,<2.0.0"
 cryptography = ">=2.5"
 msal = ">=1.24.0,<2.0.0"
 msal-extensions = ">=0.3.0,<2.0.0"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "azure-keyvault-secrets"
@@ -256,25 +321,18 @@ azure-core = ">=1.24.0,<2.0.0"
 isodate = ">=0.6.1"
 typing-extensions = ">=4.0.1"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "azure-oidc"
 version = "1.0.1"
 description = "Provides a way to put Azure AD bearer token authentication in front of flask and falcon APIs"
 optional = false
-python-versions = ">=3.8,<4.0"
-files = [
-    {file = "azure_oidc-1.0.1-py3-none-any.whl", hash = "sha256:da1b00a4d168fcb23db7a3f6a1b3cd12e8e746550854689e4621148a1badeef4"},
-    {file = "azure_oidc-1.0.1.tar.gz", hash = "sha256:badc20faaababb2135b4df715141ddee7b3f89d67a1799921947470a68cc0b57"},
-]
-
-[package.dependencies]
-jwcrypto = "*"
-requests = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
-reference = "pypi-azure"
+python-versions = "*"
+files = []
 
 [[package]]
 name = "billiard"
@@ -287,6 +345,11 @@ files = [
     {file = "billiard-4.2.0.tar.gz", hash = "sha256:9a3c3184cb275aa17a732f93f65b20c525d3d9f253722d26a82194803ade5a2c"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "blinker"
 version = "1.7.0"
@@ -297,6 +360,11 @@ files = [
     {file = "blinker-1.7.0-py3-none-any.whl", hash = "sha256:c3f865d4d54db7abc53758a01601cf343fe55b84c1de4e3fa910e420b438d5b9"},
     {file = "blinker-1.7.0.tar.gz", hash = "sha256:e6820ff6fa4e4d1d8e2747c2283749c3f547e4fee112b98555cdcdae32996182"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "celery"
@@ -353,6 +421,11 @@ yaml = ["PyYAML (>=3.10)"]
 zookeeper = ["kazoo (>=1.3.1)"]
 zstd = ["zstandard (==0.22.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "certifi"
 version = "2023.11.17"
@@ -363,6 +436,11 @@ files = [
     {file = "certifi-2023.11.17-py3-none-any.whl", hash = "sha256:e036ab49d5b79556f99cfc2d9320b34cfbe5be05c5871b51de9329f0603b0474"},
     {file = "certifi-2023.11.17.tar.gz", hash = "sha256:9b469f3a900bf28dc19b8cfbf8019bf47f7fdd1a65a1d4ffb98fc14166beb4d1"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "cffi"
@@ -427,6 +505,11 @@ files = [
 
 [package.dependencies]
 pycparser = "*"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "charset-normalizer"
@@ -527,6 +610,11 @@ files = [
     {file = "charset_normalizer-3.3.2-py3-none-any.whl", hash = "sha256:3e4d1f6587322d2788836a99c69062fbb091331ec940e02d12d179c1d53e25fc"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "click"
 version = "8.1.7"
@@ -541,6 +629,11 @@ files = [
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "click-didyoumean"
 version = "0.3.0"
@@ -554,6 +647,11 @@ files = [
 
 [package.dependencies]
 click = ">=7"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "click-plugins"
@@ -571,6 +669,11 @@ click = ">=4.0"
 
 [package.extras]
 dev = ["coveralls", "pytest (>=3.6)", "pytest-cov", "wheel"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "click-repl"
@@ -590,6 +693,11 @@ prompt-toolkit = ">=3.0.36"
 [package.extras]
 testing = ["pytest (>=7.2.1)", "pytest-cov (>=4.0.0)", "tox (>=4.4.3)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -600,6 +708,11 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "coverage"
@@ -665,6 +778,11 @@ files = [
 [package.extras]
 toml = ["tomli"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "cryptography"
 version = "41.0.7"
@@ -710,6 +828,11 @@ ssh = ["bcrypt (>=3.1.5)"]
 test = ["pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-cov", "pytest-xdist"]
 test-randomorder = ["pytest-randomly"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "decorator"
 version = "5.1.1"
@@ -721,22 +844,10 @@ files = [
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
 
-[[package]]
-name = "deprecated"
-version = "1.2.14"
-description = "Python @deprecated decorator to deprecate old python classes, functions or methods."
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-files = [
-    {file = "Deprecated-1.2.14-py2.py3-none-any.whl", hash = "sha256:6fac8b097794a90302bdbb17b9b815e732d3c4720583ff1b198499d78470466c"},
-    {file = "Deprecated-1.2.14.tar.gz", hash = "sha256:e5323eb936458dccc2582dc6f9c322c852a775a27065ff2b0c4970b9d53d01b3"},
-]
-
-[package.dependencies]
-wrapt = ">=1.10,<2"
-
-[package.extras]
-dev = ["PyTest", "PyTest-Cov", "bump2version (<1)", "sphinx (<2)", "tox"]
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "execnet"
@@ -752,6 +863,11 @@ files = [
 [package.extras]
 testing = ["hatch", "pre-commit", "pytest", "tox"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "executing"
 version = "2.0.1"
@@ -765,6 +881,11 @@ files = [
 
 [package.extras]
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "flask"
@@ -788,6 +909,11 @@ Werkzeug = ">=3.0.0"
 async = ["asgiref (>=3.2)"]
 dotenv = ["python-dotenv"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "flask-admin"
 version = "1.6.1"
@@ -806,6 +932,11 @@ wtforms = "*"
 [package.extras]
 aws = ["boto"]
 azure = ["azure-storage-blob"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "flask-restful"
@@ -826,6 +957,11 @@ six = ">=1.3.0"
 
 [package.extras]
 docs = ["sphinx"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "flask-restplus"
@@ -850,6 +986,11 @@ dev = ["blinker", "flake8 (==3.5.0)", "invoke (==0.21.0)", "mock (==2.0.0)", "py
 doc = ["Sphinx (==2.0.1)", "alabaster (==0.7.10)", "sphinx-issues (==1.2.0)"]
 test = ["blinker", "mock (==2.0.0)", "pytest (==3.2.3)", "pytest-benchmark (==3.1.1)", "pytest-cov (==2.5.1)", "pytest-faker (==2.0.0)", "pytest-flask (==0.10.0)", "pytest-mock (==1.6.3)", "pytest-profiling (==1.2.11)", "pytest-sugar (==0.9.0)", "tzlocal"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "flask-script"
 version = "2.0.6"
@@ -863,6 +1004,11 @@ files = [
 [package.dependencies]
 Flask = "*"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "flask-testing"
 version = "0.8.1"
@@ -875,6 +1021,11 @@ files = [
 
 [package.dependencies]
 Flask = "*"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "greenlet"
@@ -947,6 +1098,11 @@ files = [
 docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "gunicorn"
 version = "21.2.0"
@@ -967,6 +1123,11 @@ gevent = ["gevent (>=1.4.0)"]
 setproctitle = ["setproctitle"]
 tornado = ["tornado (>=0.2)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "hashids"
 version = "1.3.1"
@@ -981,6 +1142,11 @@ files = [
 [package.extras]
 test = ["pytest (>=2.1.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "httpretty"
 version = "1.1.4"
@@ -990,6 +1156,11 @@ python-versions = ">=3"
 files = [
     {file = "httpretty-1.1.4.tar.gz", hash = "sha256:20de0e5dd5a18292d36d928cc3d6e52f8b2ac73daec40d41eb62dee154933b68"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "idna"
@@ -1002,6 +1173,11 @@ files = [
     {file = "idna-3.6.tar.gz", hash = "sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "iniconfig"
 version = "2.0.0"
@@ -1012,6 +1188,11 @@ files = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "ipdb"
@@ -1028,15 +1209,20 @@ files = [
 decorator = {version = "*", markers = "python_version >= \"3.11\""}
 ipython = {version = ">=7.31.1", markers = "python_version >= \"3.11\""}
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "ipython"
-version = "8.19.0"
+version = "8.20.0"
 description = "IPython: Productive Interactive Computing"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "ipython-8.19.0-py3-none-any.whl", hash = "sha256:2f55d59370f59d0d2b2212109fe0e6035cfea436b1c0e6150ad2244746272ec5"},
-    {file = "ipython-8.19.0.tar.gz", hash = "sha256:ac4da4ecf0042fb4e0ce57c60430c2db3c719fa8bdf92f8631d6bd8a5785d1f0"},
+    {file = "ipython-8.20.0-py3-none-any.whl", hash = "sha256:bc9716aad6f29f36c449e30821c9dd0c1c1a7b59ddcc26931685b87b4c569619"},
+    {file = "ipython-8.20.0.tar.gz", hash = "sha256:2f21bd3fc1d51550c89ee3944ae04bbc7bc79e129ea0937da6e6c68bfdbf117a"},
 ]
 
 [package.dependencies]
@@ -1063,6 +1249,11 @@ qtconsole = ["qtconsole"]
 test = ["pickleshare", "pytest", "pytest-asyncio (<0.22)", "testpath"]
 test-extra = ["curio", "matplotlib (!=3.2.0)", "nbformat", "numpy (>=1.23)", "pandas", "pickleshare", "pytest", "pytest-asyncio (<0.22)", "testpath", "trio"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "isodate"
 version = "0.6.1"
@@ -1077,6 +1268,11 @@ files = [
 [package.dependencies]
 six = "*"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "itsdangerous"
 version = "2.1.2"
@@ -1087,6 +1283,11 @@ files = [
     {file = "itsdangerous-2.1.2-py3-none-any.whl", hash = "sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44"},
     {file = "itsdangerous-2.1.2.tar.gz", hash = "sha256:5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "jedi"
@@ -1107,6 +1308,11 @@ docs = ["Jinja2 (==2.11.3)", "MarkupSafe (==1.1.1)", "Pygments (==2.8.1)", "alab
 qa = ["flake8 (==5.0.4)", "mypy (==0.971)", "types-setuptools (==67.2.0.1)"]
 testing = ["Django", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "jinja2"
 version = "3.1.2"
@@ -1123,6 +1329,11 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "jsonschema"
@@ -1145,6 +1356,11 @@ rpds-py = ">=0.7.1"
 format = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3987", "uri-template", "webcolors (>=1.11)"]
 format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3986-validator (>0.1.0)", "uri-template", "webcolors (>=1.11)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "jsonschema-specifications"
 version = "2023.12.1"
@@ -1159,19 +1375,10 @@ files = [
 [package.dependencies]
 referencing = ">=0.31.0"
 
-[[package]]
-name = "jwcrypto"
-version = "1.5.1"
-description = "Implementation of JOSE Web standards"
-optional = false
-python-versions = ">= 3.6"
-files = [
-    {file = "jwcrypto-1.5.1.tar.gz", hash = "sha256:48bb9bf433777136253579e52b75ffe0f9a4a721d133d01f45a0b91ed5f4f1ae"},
-]
-
-[package.dependencies]
-cryptography = ">=3.4"
-deprecated = "*"
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "kombu"
@@ -1205,6 +1412,11 @@ sqs = ["boto3 (>=1.26.143)", "pycurl (>=7.43.0.5)", "urllib3 (>=1.26.16)"]
 yaml = ["PyYAML (>=3.10)"]
 zookeeper = ["kazoo (>=2.8.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "mako"
 version = "1.3.0"
@@ -1224,6 +1436,11 @@ babel = ["Babel"]
 lingua = ["lingua"]
 testing = ["pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "mando"
 version = "0.7.1"
@@ -1240,6 +1457,11 @@ six = "*"
 
 [package.extras]
 restructuredtext = ["rst2ansi"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "markupsafe"
@@ -1268,6 +1490,16 @@ files = [
     {file = "MarkupSafe-2.1.3-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:5bbe06f8eeafd38e5d0a4894ffec89378b6c6a625ff57e3028921f8ff59318ac"},
     {file = "MarkupSafe-2.1.3-cp311-cp311-win32.whl", hash = "sha256:dd15ff04ffd7e05ffcb7fe79f1b98041b8ea30ae9234aed2a9168b5797c3effb"},
     {file = "MarkupSafe-2.1.3-cp311-cp311-win_amd64.whl", hash = "sha256:134da1eca9ec0ae528110ccc9e48041e0828d79f24121a1a146161103c76e686"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:f698de3fd0c4e6972b92290a45bd9b1536bffe8c6759c62471efaa8acb4c37bc"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:aa57bd9cf8ae831a362185ee444e15a93ecb2e344c8e52e4d721ea3ab6ef1823"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ffcc3f7c66b5f5b7931a5aa68fc9cecc51e685ef90282f4a82f0f5e9b704ad11"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:47d4f1c5f80fc62fdd7777d0d40a2e9dda0a05883ab11374334f6c4de38adffd"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1f67c7038d560d92149c060157d623c542173016c4babc0c1913cca0564b9939"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:9aad3c1755095ce347e26488214ef77e0485a3c34a50c5a5e2471dff60b9dd9c"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:14ff806850827afd6b07a5f32bd917fb7f45b046ba40c57abdb636674a8b559c"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8f9293864fe09b8149f0cc42ce56e3f0e54de883a9de90cd427f191c346eb2e1"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-win32.whl", hash = "sha256:715d3562f79d540f251b99ebd6d8baa547118974341db04f5ad06d5ea3eb8007"},
+    {file = "MarkupSafe-2.1.3-cp312-cp312-win_amd64.whl", hash = "sha256:1b8dd8c3fd14349433c79fa8abeb573a55fc0fdd769133baac1f5e07abf54aeb"},
     {file = "MarkupSafe-2.1.3-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:8e254ae696c88d98da6555f5ace2279cf7cd5b3f52be2b5cf97feafe883b58d2"},
     {file = "MarkupSafe-2.1.3-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cb0932dc158471523c9637e807d9bfb93e06a95cbf010f1a38b98623b929ef2b"},
     {file = "MarkupSafe-2.1.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9402b03f1a1b4dc4c19845e5c749e3ab82d5078d16a2a4c2cd2df62d57bb0707"},
@@ -1300,6 +1532,11 @@ files = [
     {file = "MarkupSafe-2.1.3.tar.gz", hash = "sha256:af598ed32d6ae86f1b747b82783958b1a4ab8f617b06fe68795c7f026abbdcad"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "matplotlib-inline"
 version = "0.1.6"
@@ -1313,6 +1550,11 @@ files = [
 
 [package.dependencies]
 traitlets = "*"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "msal"
@@ -1333,6 +1575,11 @@ requests = ">=2.0.0,<3"
 [package.extras]
 broker = ["pymsalruntime (>=0.13.2,<0.14)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "msal-extensions"
 version = "1.1.0"
@@ -1351,6 +1598,11 @@ portalocker = [
     {version = ">=1.0,<3", markers = "platform_system != \"Windows\""},
     {version = ">=1.6,<3", markers = "platform_system == \"Windows\""},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "mypy"
@@ -1398,6 +1650,11 @@ install-types = ["pip"]
 mypyc = ["setuptools (>=50)"]
 reports = ["lxml"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "mypy-extensions"
 version = "1.0.0"
@@ -1409,6 +1666,11 @@ files = [
     {file = "mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "olympus-messaging"
 version = "0.3.2"
@@ -1417,13 +1679,13 @@ optional = false
 python-versions = ">=3.9,<4.0"
 files = [
     {file = "olympus_messaging-0.3.2-py3-none-any.whl", hash = "sha256:10458a0c923a4d0b1277f6d613a478c010777455f5d6600d50e9e7a61e6709c3"},
-    {file = "olympus_messaging-0.3.2.tar.gz", hash = "sha256:53c780f946821978caf7d3eae4e765f9e887bcd14c50feb08e5ca039fc965122"},
+    {file = "olympus_messaging-0.3.2.tar.gz", hash = "sha256:6831b88f19752521b8cbaa7335d6bfd7cc2892cd3e56a5d5bffbcb52dc32f109"},
 ]
 
 [package.source]
 type = "legacy"
 url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
-reference = "pypi-azure"
+reference = "azure"
 
 [[package]]
 name = "packaging"
@@ -1435,6 +1697,11 @@ files = [
     {file = "packaging-23.2-py3-none-any.whl", hash = "sha256:8c491190033a9af7e1d931d0b5dacc2ef47509b34dd0de67ed209b5203fc88c7"},
     {file = "packaging-23.2.tar.gz", hash = "sha256:048fb0e9405036518eaaf48a55953c750c11e1a1b68e0dd1a9d62ed0c092cfc5"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "parso"
@@ -1451,6 +1718,11 @@ files = [
 qa = ["flake8 (==3.8.3)", "mypy (==0.782)"]
 testing = ["docopt", "pytest (<6.0.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pexpect"
 version = "4.9.0"
@@ -1464,6 +1736,11 @@ files = [
 
 [package.dependencies]
 ptyprocess = ">=0.5"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pgpy"
@@ -1479,6 +1756,11 @@ files = [
 cryptography = ">=3.3.2"
 pyasn1 = "*"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pluggy"
 version = "1.3.0"
@@ -1493,6 +1775,11 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "portalocker"
@@ -1513,6 +1800,11 @@ docs = ["sphinx (>=1.7.1)"]
 redis = ["redis"]
 tests = ["pytest (>=5.4.1)", "pytest-cov (>=2.8.1)", "pytest-mypy (>=0.8.0)", "pytest-timeout (>=2.1.0)", "redis", "sphinx (>=6.0.0)", "types-redis"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "prometheus-client"
 version = "0.19.0"
@@ -1527,6 +1819,11 @@ files = [
 [package.extras]
 twisted = ["twisted"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "prompt-toolkit"
 version = "3.0.43"
@@ -1540,6 +1837,11 @@ files = [
 
 [package.dependencies]
 wcwidth = "*"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "psycopg2-binary"
@@ -1622,6 +1924,11 @@ files = [
     {file = "psycopg2_binary-2.9.9-cp39-cp39-win_amd64.whl", hash = "sha256:f7ae5d65ccfbebdfa761585228eb4d0df3a8b15cfb53bd953e713e09fbb12957"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "ptyprocess"
 version = "0.7.0"
@@ -1632,6 +1939,11 @@ files = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
     {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pure-eval"
@@ -1647,6 +1959,11 @@ files = [
 [package.extras]
 tests = ["pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pyasn1"
 version = "0.5.1"
@@ -1658,6 +1975,11 @@ files = [
     {file = "pyasn1-0.5.1.tar.gz", hash = "sha256:6d391a96e59b23130a5cfa74d6fd7f388dbbe26cc8f1edf39fdddf08d9d6676c"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pycparser"
 version = "2.21"
@@ -1668,6 +1990,11 @@ files = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
     {file = "pycparser-2.21.tar.gz", hash = "sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pycryptodome"
@@ -1710,6 +2037,11 @@ files = [
     {file = "pycryptodome-3.19.1.tar.gz", hash = "sha256:8ae0dd1bcfada451c35f9e29a3e5db385caabc190f98e4a80ad02a61098fb776"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pygments"
 version = "2.17.2"
@@ -1724,6 +2056,11 @@ files = [
 [package.extras]
 plugins = ["importlib-metadata"]
 windows-terminal = ["colorama (>=0.4.6)"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pyjwt"
@@ -1745,6 +2082,11 @@ dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pyte
 docs = ["sphinx (>=4.5.0,<5.0.0)", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pytest"
 version = "7.4.4"
@@ -1765,6 +2107,11 @@ pluggy = ">=0.12,<2.0"
 [package.extras]
 testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pytest-cov"
 version = "4.1.0"
@@ -1782,6 +2129,11 @@ pytest = ">=4.6"
 
 [package.extras]
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pytest-xdist"
@@ -1803,6 +2155,11 @@ psutil = ["psutil (>=3.0)"]
 setproctitle = ["setproctitle"]
 testing = ["filelock"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "python-dateutil"
 version = "2.8.2"
@@ -1817,6 +2174,11 @@ files = [
 [package.dependencies]
 six = ">=1.5"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "pytz"
 version = "2023.3.post1"
@@ -1827,6 +2189,11 @@ files = [
     {file = "pytz-2023.3.post1-py2.py3-none-any.whl", hash = "sha256:ce42d816b81b68506614c11e8937d3aa9e41007ceb50bfdcb0749b921bf646c7"},
     {file = "pytz-2023.3.post1.tar.gz", hash = "sha256:7b4fddbeb94a1eba4b557da24f19fdf9db575192544270a9101d8509f9f43d7b"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pywin32"
@@ -1850,6 +2217,11 @@ files = [
     {file = "pywin32-306-cp39-cp39-win32.whl", hash = "sha256:e25fd5b485b55ac9c057f67d94bc203f3f6595078d1fb3b458c9c28b7153a802"},
     {file = "pywin32-306-cp39-cp39-win_amd64.whl", hash = "sha256:39b61c15272833b5c329a2989999dcae836b1eed650252ab1b7bfbe1d59f30f4"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "pyyaml"
@@ -1910,6 +2282,11 @@ files = [
     {file = "PyYAML-6.0.1.tar.gz", hash = "sha256:bfdf460b1736c775f2ba9f6a92bca30bc2095067b8a9d77876d1fad6cc3b4a43"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "radon"
 version = "6.0.1"
@@ -1927,6 +2304,11 @@ mando = ">=0.6,<0.8"
 
 [package.extras]
 toml = ["tomli (>=2.0.1)"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "redis"
@@ -1946,20 +2328,30 @@ async-timeout = {version = ">=4.0.2", markers = "python_full_version <= \"3.11.2
 hiredis = ["hiredis (>=1.0.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "referencing"
-version = "0.32.0"
+version = "0.32.1"
 description = "JSON Referencing + Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "referencing-0.32.0-py3-none-any.whl", hash = "sha256:bdcd3efb936f82ff86f993093f6da7435c7de69a3b3a5a06678a6050184bee99"},
-    {file = "referencing-0.32.0.tar.gz", hash = "sha256:689e64fe121843dcfd57b71933318ef1f91188ffb45367332700a86ac8fd6161"},
+    {file = "referencing-0.32.1-py3-none-any.whl", hash = "sha256:7e4dc12271d8e15612bfe35792f5ea1c40970dadf8624602e33db2758f7ee554"},
+    {file = "referencing-0.32.1.tar.gz", hash = "sha256:3c57da0513e9563eb7e203ebe9bb3a1b509b042016433bd1e45a2853466c3dd3"},
 ]
 
 [package.dependencies]
 attrs = ">=22.2.0"
 rpds-py = ">=0.7.0"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "requests"
@@ -1982,6 +2374,11 @@ urllib3 = ">=1.21.1,<3"
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "requests-futures"
 version = "1.0.1"
@@ -1998,6 +2395,11 @@ requests = ">=1.2.0"
 
 [package.extras]
 dev = ["black (>=22.3.0)", "build (>=0.7.0)", "isort (>=5.11.4)", "pyflakes (>=2.2.0)", "pytest (>=6.2.5)", "pytest-cov (>=3.0.0)", "pytest-network (>=0.0.1)", "readme-renderer[rst] (>=26.0)", "twine (>=3.4.2)"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "responses"
@@ -2017,6 +2419,11 @@ urllib3 = ">=1.25.10,<3.0"
 
 [package.extras]
 tests = ["coverage (>=6.0.0)", "flake8", "mypy", "pytest (>=7.0.0)", "pytest-asyncio", "pytest-cov", "pytest-httpserver", "tomli", "tomli-w", "types-PyYAML", "types-requests"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "rpds-py"
@@ -2126,6 +2533,11 @@ files = [
     {file = "rpds_py-0.16.2.tar.gz", hash = "sha256:781ef8bfc091b19960fc0142a23aedadafa826bc32b433fdfe6fd7f964d7ef44"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "rq"
 version = "1.15.1"
@@ -2140,6 +2552,11 @@ files = [
 [package.dependencies]
 click = ">=5.0.0"
 redis = ">=4.0.0"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "ruff"
@@ -2166,6 +2583,11 @@ files = [
     {file = "ruff-0.1.11-py3-none-win_arm64.whl", hash = "sha256:97ce4d752f964ba559c7023a86e5f8e97f026d511e48013987623915431c7ea9"},
     {file = "ruff-0.1.11.tar.gz", hash = "sha256:f9d4d88cb6eeb4dfe20f9f0519bd2eaba8119bde87c3d5065c541dbae2b5a2cb"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "sentry-sdk"
@@ -2212,6 +2634,11 @@ starlette = ["starlette (>=0.19.1)"]
 starlite = ["starlite (>=1.48)"]
 tornado = ["tornado (>=5)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "six"
 version = "1.16.0"
@@ -2222,6 +2649,11 @@ files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "sniffio"
@@ -2234,15 +2666,20 @@ files = [
     {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "soteria"
-version = "1.6.3"
+version = "1.6.4"
 description = "Configuration and security methods for the merchant API framework"
 optional = false
 python-versions = ">=3.11,<4.0"
 files = [
-    {file = "soteria-1.6.3-py3-none-any.whl", hash = "sha256:68fe610a014e71642517772272e4bedc3cc20964a9b698f1d5506e171d94547d"},
-    {file = "soteria-1.6.3.tar.gz", hash = "sha256:e761c5047bdfcf8ad40a8e1ac0f94754c8374e57c3f666f849805d4b828cc66e"},
+    {file = "soteria-1.6.4-py3-none-any.whl", hash = "sha256:7bc8f49d729c7096fa3e5eb286d28347471dbfba108994429d32ddd39270655b"},
+    {file = "soteria-1.6.4.tar.gz", hash = "sha256:65055ba772a639fa55c371816793431863f6a44169ff723ec7c66b9a9c343fcb"},
 ]
 
 [package.dependencies]
@@ -2250,13 +2687,13 @@ azure-identity = ">=1.13.0,<2.0.0"
 azure-keyvault-secrets = ">=4.7.0,<5.0.0"
 hashids = ">=1.3.1,<2.0.0"
 pgpy = ">=0.6.0,<0.7.0"
-pycryptodome = ">=3.18.0,<4.0.0"
+pycryptodome = ">=3.19.1,<4.0.0"
 tenacity = ">=8.2.2,<9.0.0"
 
 [package.source]
 type = "legacy"
 url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
-reference = "pypi-azure"
+reference = "azure"
 
 [[package]]
 name = "sqlalchemy"
@@ -2323,7 +2760,7 @@ typing-extensions = ">=4.6.0"
 [package.extras]
 aiomysql = ["aiomysql (>=0.2.0)", "greenlet (!=0.4.17)"]
 aioodbc = ["aioodbc", "greenlet (!=0.4.17)"]
-aiosqlite = ["aiosqlite", "greenlet (!=0.4.17)", "typing_extensions (!=3.10.0.1)"]
+aiosqlite = ["aiosqlite", "greenlet (!=0.4.17)", "typing-extensions (!=3.10.0.1)"]
 asyncio = ["greenlet (!=0.4.17)"]
 asyncmy = ["asyncmy (>=0.2.3,!=0.2.4,!=0.2.6)", "greenlet (!=0.4.17)"]
 mariadb-connector = ["mariadb (>=1.0.1,!=1.1.2,!=1.1.5)"]
@@ -2333,7 +2770,7 @@ mssql-pyodbc = ["pyodbc"]
 mypy = ["mypy (>=0.910)"]
 mysql = ["mysqlclient (>=1.4.0)"]
 mysql-connector = ["mysql-connector-python"]
-oracle = ["cx_oracle (>=8)"]
+oracle = ["cx-oracle (>=8)"]
 oracle-oracledb = ["oracledb (>=1.0.1)"]
 postgresql = ["psycopg2 (>=2.7)"]
 postgresql-asyncpg = ["asyncpg", "greenlet (!=0.4.17)"]
@@ -2343,7 +2780,12 @@ postgresql-psycopg2binary = ["psycopg2-binary"]
 postgresql-psycopg2cffi = ["psycopg2cffi"]
 postgresql-psycopgbinary = ["psycopg[binary] (>=3.0.7)"]
 pymysql = ["pymysql"]
-sqlcipher = ["sqlcipher3_binary"]
+sqlcipher = ["sqlcipher3-binary"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "sqlalchemy-stubs"
@@ -2359,6 +2801,11 @@ files = [
 [package.dependencies]
 mypy = ">=0.790"
 typing-extensions = ">=3.7.4"
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "sqlalchemy-utils"
@@ -2388,6 +2835,11 @@ test-all = ["Babel (>=1.3)", "Jinja2 (>=2.3)", "Pygments (>=1.2)", "arrow (>=0.3
 timezone = ["python-dateutil"]
 url = ["furl (>=0.4.1)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "stack-data"
 version = "0.6.3"
@@ -2407,6 +2859,11 @@ pure-eval = "*"
 [package.extras]
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "tenacity"
 version = "8.2.3"
@@ -2420,6 +2877,11 @@ files = [
 
 [package.extras]
 doc = ["reno", "sphinx", "tornado (>=4.5)"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "traitlets"
@@ -2435,6 +2897,11 @@ files = [
 [package.extras]
 docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,<7.5)", "pytest-mock", "pytest-mypy-testing"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "typer"
@@ -2457,6 +2924,11 @@ dev = ["autoflake (>=1.3.1,<2.0.0)", "flake8 (>=3.8.3,<4.0.0)", "pre-commit (>=2
 doc = ["cairosvg (>=2.5.2,<3.0.0)", "mdx-include (>=1.4.1,<2.0.0)", "mkdocs (>=1.1.2,<2.0.0)", "mkdocs-material (>=8.1.4,<9.0.0)", "pillow (>=9.3.0,<10.0.0)"]
 test = ["black (>=22.3.0,<23.0.0)", "coverage (>=6.2,<7.0)", "isort (>=5.0.6,<6.0.0)", "mypy (==0.910)", "pytest (>=4.4.0,<8.0.0)", "pytest-cov (>=2.10.0,<5.0.0)", "pytest-sugar (>=0.9.4,<0.10.0)", "pytest-xdist (>=1.32.0,<4.0.0)", "rich (>=10.11.0,<14.0.0)", "shellingham (>=1.3.0,<2.0.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-certifi"
 version = "2021.10.8.3"
@@ -2468,81 +2940,116 @@ files = [
     {file = "types_certifi-2021.10.8.3-py3-none-any.whl", hash = "sha256:b2d1e325e69f71f7c78e5943d410e650b4707bb0ef32e4ddf3da37f54176e88a"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-pyopenssl"
-version = "23.3.0.0"
+version = "23.3.0.20240106"
 description = "Typing stubs for pyOpenSSL"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-pyOpenSSL-23.3.0.0.tar.gz", hash = "sha256:5ffb077fe70b699c88d5caab999ae80e192fe28bf6cda7989b7e79b1e4e2dcd3"},
-    {file = "types_pyOpenSSL-23.3.0.0-py3-none-any.whl", hash = "sha256:00171433653265843b7469ddb9f3c86d698668064cc33ef10537822156130ebf"},
+    {file = "types-pyOpenSSL-23.3.0.20240106.tar.gz", hash = "sha256:3d6f3462bec0c260caadf93fbb377225c126661b779c7d9ab99b6dad5ca10db9"},
+    {file = "types_pyOpenSSL-23.3.0.20240106-py3-none-any.whl", hash = "sha256:47a7eedbd18b7bcad17efebf1c53416148f5a173918a6d75027e75e32fe039ae"},
 ]
 
 [package.dependencies]
 cryptography = ">=35.0.0"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-python-dateutil"
-version = "2.8.19.14"
+version = "2.8.19.20240106"
 description = "Typing stubs for python-dateutil"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-python-dateutil-2.8.19.14.tar.gz", hash = "sha256:1f4f10ac98bb8b16ade9dbee3518d9ace017821d94b057a425b069f834737f4b"},
-    {file = "types_python_dateutil-2.8.19.14-py3-none-any.whl", hash = "sha256:f977b8de27787639986b4e28963263fd0e5158942b3ecef91b9335c130cb1ce9"},
+    {file = "types-python-dateutil-2.8.19.20240106.tar.gz", hash = "sha256:1f8db221c3b98e6ca02ea83a58371b22c374f42ae5bbdf186db9c9a76581459f"},
+    {file = "types_python_dateutil-2.8.19.20240106-py3-none-any.whl", hash = "sha256:efbbdc54590d0f16152fa103c9879c7d4a00e82078f6e2cf01769042165acaa2"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "types-redis"
-version = "4.6.0.11"
+version = "4.6.0.20240106"
 description = "Typing stubs for redis"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-redis-4.6.0.11.tar.gz", hash = "sha256:c8cfc84635183deca2db4a528966c5566445fd3713983f0034fb0f5a09e0890d"},
-    {file = "types_redis-4.6.0.11-py3-none-any.whl", hash = "sha256:94fc61118601fb4f79206b33b9f4344acff7ca1d7bba67834987fb0efcf6a770"},
+    {file = "types-redis-4.6.0.20240106.tar.gz", hash = "sha256:2b2fa3a78f84559616242d23f86de5f4130dfd6c3b83fb2d8ce3329e503f756e"},
+    {file = "types_redis-4.6.0.20240106-py3-none-any.whl", hash = "sha256:912de6507b631934bd225cdac310b04a58def94391003ba83939e5a10e99568d"},
 ]
 
 [package.dependencies]
 cryptography = ">=35.0.0"
 types-pyOpenSSL = "*"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-requests"
-version = "2.31.0.20231231"
+version = "2.31.0.20240106"
 description = "Typing stubs for requests"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-requests-2.31.0.20231231.tar.gz", hash = "sha256:0f8c0c9764773384122813548d9eea92a5c4e1f33ed54556b508968ec5065cee"},
-    {file = "types_requests-2.31.0.20231231-py3-none-any.whl", hash = "sha256:2e2230c7bc8dd63fa3153c1c0ae335f8a368447f0582fc332f17d54f88e69027"},
+    {file = "types-requests-2.31.0.20240106.tar.gz", hash = "sha256:0e1c731c17f33618ec58e022b614a1a2ecc25f7dc86800b36ef341380402c612"},
+    {file = "types_requests-2.31.0.20240106-py3-none-any.whl", hash = "sha256:da997b3b6a72cc08d09f4dba9802fdbabc89104b35fe24ee588e674037689354"},
 ]
 
 [package.dependencies]
 urllib3 = ">=2"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-setuptools"
-version = "69.0.0.0"
+version = "69.0.0.20240106"
 description = "Typing stubs for setuptools"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-setuptools-69.0.0.0.tar.gz", hash = "sha256:b0a06219f628c6527b2f8ce770a4f47550e00d3e8c3ad83e2dc31bc6e6eda95d"},
-    {file = "types_setuptools-69.0.0.0-py3-none-any.whl", hash = "sha256:8c86195bae2ad81e6dea900a570fe9d64a59dbce2b11cc63c046b03246ea77bf"},
+    {file = "types-setuptools-69.0.0.20240106.tar.gz", hash = "sha256:e077f9089578df3c9938f6e4aa1633f182ba6740a6fdb1333f162bae5dfcbadc"},
+    {file = "types_setuptools-69.0.0.20240106-py3-none-any.whl", hash = "sha256:b1da8981425723a674fd459c43dfa4402abeaee3f9cf682723ee9cf226125cc3"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "types-six"
-version = "1.16.21.9"
+version = "1.16.21.20240106"
 description = "Typing stubs for six"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-six-1.16.21.9.tar.gz", hash = "sha256:746e6c25b8c48b3c8ab9efe7f68022839111de423d35ba4b206b88b12d75f233"},
-    {file = "types_six-1.16.21.9-py3-none-any.whl", hash = "sha256:1591a09430a3035326da5fdb71692d0b3cc36b25a440cc5929ca6241f3984705"},
+    {file = "types-six-1.16.21.20240106.tar.gz", hash = "sha256:c83908b4925583e973eb9971ef2bd60dbab647611e10e9cd588d2bef415bfe68"},
+    {file = "types_six-1.16.21.20240106-py3-none-any.whl", hash = "sha256:3658c9e36e9cb003e522655b01b9ca39bd0db61b6383b3e7d0d10d14f873b338"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "types-toml"
@@ -2555,6 +3062,11 @@ files = [
     {file = "types_toml-0.10.8.7-py3-none-any.whl", hash = "sha256:61951da6ad410794c97bec035d59376ce1cbf4453dc9b6f90477e81e4442d631"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "types-urllib3"
 version = "1.26.25.14"
@@ -2565,6 +3077,11 @@ files = [
     {file = "types-urllib3-1.26.25.14.tar.gz", hash = "sha256:229b7f577c951b8c1b92c1bc2b2fdb0b49847bd2af6d1cc2a2e3dd340f3bda8f"},
     {file = "types_urllib3-1.26.25.14-py3-none-any.whl", hash = "sha256:9683bbb7fb72e32bfe9d2be6e04875fbe1b3eeec3cbb4ea231435aa7fd6b4f0e"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "typing-extensions"
@@ -2577,6 +3094,11 @@ files = [
     {file = "typing_extensions-4.9.0.tar.gz", hash = "sha256:23478f88c37f27d76ac8aee6c905017a143b0b1b886c3c9f66bc2fd94f9f5783"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "tzdata"
 version = "2023.4"
@@ -2587,6 +3109,11 @@ files = [
     {file = "tzdata-2023.4-py2.py3-none-any.whl", hash = "sha256:aa3ace4329eeacda5b7beb7ea08ece826c28d761cda36e747cfbf97996d39bf3"},
     {file = "tzdata-2023.4.tar.gz", hash = "sha256:dd54c94f294765522c77399649b4fefd95522479a664a0cec87f41bebc6148c9"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "urllib3"
@@ -2604,6 +3131,11 @@ brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "user-token-store"
 version = "1.1.6"
@@ -2612,7 +3144,7 @@ optional = false
 python-versions = ">=3.9,<4.0"
 files = [
     {file = "user_token_store-1.1.6-py3-none-any.whl", hash = "sha256:cd60fc0d0d0e29871c94ab89245218a2043eb3321010d9024063eb5f0e099bbc"},
-    {file = "user_token_store-1.1.6.tar.gz", hash = "sha256:6c72ffac634d9616e49e1670e1bfc128c4176e8bfc6031a69eea6b0dfd8e89c2"},
+    {file = "user_token_store-1.1.6.tar.gz", hash = "sha256:d7be029b3144d705bdebfb81dafd7cc7a039e5d6fa5e628456673fbfebdca289"},
 ]
 
 [package.dependencies]
@@ -2622,7 +3154,7 @@ requests = "*"
 [package.source]
 type = "legacy"
 url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
-reference = "pypi-azure"
+reference = "azure"
 
 [[package]]
 name = "vine"
@@ -2635,16 +3167,26 @@ files = [
     {file = "vine-5.1.0.tar.gz", hash = "sha256:8b62e981d35c41049211cf62a0a1242d8c1ee9bd15bb196ce38aefd6799e61e0"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [[package]]
 name = "wcwidth"
-version = "0.2.12"
+version = "0.2.13"
 description = "Measures the displayed width of unicode strings in a terminal"
 optional = false
 python-versions = "*"
 files = [
-    {file = "wcwidth-0.2.12-py2.py3-none-any.whl", hash = "sha256:f26ec43d96c8cbfed76a5075dac87680124fa84e0855195a6184da9c187f133c"},
-    {file = "wcwidth-0.2.12.tar.gz", hash = "sha256:f01c104efdf57971bcb756f054dd58ddec5204dd15fa31d6503ea57947d97c02"},
+    {file = "wcwidth-0.2.13-py2.py3-none-any.whl", hash = "sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859"},
+    {file = "wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "werkzeug"
@@ -2663,94 +3205,20 @@ MarkupSafe = ">=2.1.1"
 [package.extras]
 watchdog = ["watchdog (>=2.3)"]
 
-[[package]]
-name = "wrapt"
-version = "1.16.0"
-description = "Module for decorators, wrappers and monkey patching."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "wrapt-1.16.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:ffa565331890b90056c01db69c0fe634a776f8019c143a5ae265f9c6bc4bd6d4"},
-    {file = "wrapt-1.16.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e4fdb9275308292e880dcbeb12546df7f3e0f96c6b41197e0cf37d2826359020"},
-    {file = "wrapt-1.16.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb2dee3874a500de01c93d5c71415fcaef1d858370d405824783e7a8ef5db440"},
-    {file = "wrapt-1.16.0-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2a88e6010048489cda82b1326889ec075a8c856c2e6a256072b28eaee3ccf487"},
-    {file = "wrapt-1.16.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ac83a914ebaf589b69f7d0a1277602ff494e21f4c2f743313414378f8f50a4cf"},
-    {file = "wrapt-1.16.0-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:73aa7d98215d39b8455f103de64391cb79dfcad601701a3aa0dddacf74911d72"},
-    {file = "wrapt-1.16.0-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:807cc8543a477ab7422f1120a217054f958a66ef7314f76dd9e77d3f02cdccd0"},
-    {file = "wrapt-1.16.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:bf5703fdeb350e36885f2875d853ce13172ae281c56e509f4e6eca049bdfb136"},
-    {file = "wrapt-1.16.0-cp310-cp310-win32.whl", hash = "sha256:f6b2d0c6703c988d334f297aa5df18c45e97b0af3679bb75059e0e0bd8b1069d"},
-    {file = "wrapt-1.16.0-cp310-cp310-win_amd64.whl", hash = "sha256:decbfa2f618fa8ed81c95ee18a387ff973143c656ef800c9f24fb7e9c16054e2"},
-    {file = "wrapt-1.16.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:1a5db485fe2de4403f13fafdc231b0dbae5eca4359232d2efc79025527375b09"},
-    {file = "wrapt-1.16.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:75ea7d0ee2a15733684badb16de6794894ed9c55aa5e9903260922f0482e687d"},
-    {file = "wrapt-1.16.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a452f9ca3e3267cd4d0fcf2edd0d035b1934ac2bd7e0e57ac91ad6b95c0c6389"},
-    {file = "wrapt-1.16.0-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:43aa59eadec7890d9958748db829df269f0368521ba6dc68cc172d5d03ed8060"},
-    {file = "wrapt-1.16.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:72554a23c78a8e7aa02abbd699d129eead8b147a23c56e08d08dfc29cfdddca1"},
-    {file = "wrapt-1.16.0-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:d2efee35b4b0a347e0d99d28e884dfd82797852d62fcd7ebdeee26f3ceb72cf3"},
-    {file = "wrapt-1.16.0-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:6dcfcffe73710be01d90cae08c3e548d90932d37b39ef83969ae135d36ef3956"},
-    {file = "wrapt-1.16.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:eb6e651000a19c96f452c85132811d25e9264d836951022d6e81df2fff38337d"},
-    {file = "wrapt-1.16.0-cp311-cp311-win32.whl", hash = "sha256:66027d667efe95cc4fa945af59f92c5a02c6f5bb6012bff9e60542c74c75c362"},
-    {file = "wrapt-1.16.0-cp311-cp311-win_amd64.whl", hash = "sha256:aefbc4cb0a54f91af643660a0a150ce2c090d3652cf4052a5397fb2de549cd89"},
-    {file = "wrapt-1.16.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:5eb404d89131ec9b4f748fa5cfb5346802e5ee8836f57d516576e61f304f3b7b"},
-    {file = "wrapt-1.16.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:9090c9e676d5236a6948330e83cb89969f433b1943a558968f659ead07cb3b36"},
-    {file = "wrapt-1.16.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:94265b00870aa407bd0cbcfd536f17ecde43b94fb8d228560a1e9d3041462d73"},
-    {file = "wrapt-1.16.0-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f2058f813d4f2b5e3a9eb2eb3faf8f1d99b81c3e51aeda4b168406443e8ba809"},
-    {file = "wrapt-1.16.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:98b5e1f498a8ca1858a1cdbffb023bfd954da4e3fa2c0cb5853d40014557248b"},
-    {file = "wrapt-1.16.0-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:14d7dc606219cdd7405133c713f2c218d4252f2a469003f8c46bb92d5d095d81"},
-    {file = "wrapt-1.16.0-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:49aac49dc4782cb04f58986e81ea0b4768e4ff197b57324dcbd7699c5dfb40b9"},
-    {file = "wrapt-1.16.0-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:418abb18146475c310d7a6dc71143d6f7adec5b004ac9ce08dc7a34e2babdc5c"},
-    {file = "wrapt-1.16.0-cp312-cp312-win32.whl", hash = "sha256:685f568fa5e627e93f3b52fda002c7ed2fa1800b50ce51f6ed1d572d8ab3e7fc"},
-    {file = "wrapt-1.16.0-cp312-cp312-win_amd64.whl", hash = "sha256:dcdba5c86e368442528f7060039eda390cc4091bfd1dca41e8046af7c910dda8"},
-    {file = "wrapt-1.16.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d462f28826f4657968ae51d2181a074dfe03c200d6131690b7d65d55b0f360f8"},
-    {file = "wrapt-1.16.0-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a33a747400b94b6d6b8a165e4480264a64a78c8a4c734b62136062e9a248dd39"},
-    {file = "wrapt-1.16.0-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b3646eefa23daeba62643a58aac816945cadc0afaf21800a1421eeba5f6cfb9c"},
-    {file = "wrapt-1.16.0-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3ebf019be5c09d400cf7b024aa52b1f3aeebeff51550d007e92c3c1c4afc2a40"},
-    {file = "wrapt-1.16.0-cp36-cp36m-musllinux_1_1_aarch64.whl", hash = "sha256:0d2691979e93d06a95a26257adb7bfd0c93818e89b1406f5a28f36e0d8c1e1fc"},
-    {file = "wrapt-1.16.0-cp36-cp36m-musllinux_1_1_i686.whl", hash = "sha256:1acd723ee2a8826f3d53910255643e33673e1d11db84ce5880675954183ec47e"},
-    {file = "wrapt-1.16.0-cp36-cp36m-musllinux_1_1_x86_64.whl", hash = "sha256:bc57efac2da352a51cc4658878a68d2b1b67dbe9d33c36cb826ca449d80a8465"},
-    {file = "wrapt-1.16.0-cp36-cp36m-win32.whl", hash = "sha256:da4813f751142436b075ed7aa012a8778aa43a99f7b36afe9b742d3ed8bdc95e"},
-    {file = "wrapt-1.16.0-cp36-cp36m-win_amd64.whl", hash = "sha256:6f6eac2360f2d543cc875a0e5efd413b6cbd483cb3ad7ebf888884a6e0d2e966"},
-    {file = "wrapt-1.16.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:a0ea261ce52b5952bf669684a251a66df239ec6d441ccb59ec7afa882265d593"},
-    {file = "wrapt-1.16.0-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7bd2d7ff69a2cac767fbf7a2b206add2e9a210e57947dd7ce03e25d03d2de292"},
-    {file = "wrapt-1.16.0-cp37-cp37m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9159485323798c8dc530a224bd3ffcf76659319ccc7bbd52e01e73bd0241a0c5"},
-    {file = "wrapt-1.16.0-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a86373cf37cd7764f2201b76496aba58a52e76dedfaa698ef9e9688bfd9e41cf"},
-    {file = "wrapt-1.16.0-cp37-cp37m-musllinux_1_1_aarch64.whl", hash = "sha256:73870c364c11f03ed072dda68ff7aea6d2a3a5c3fe250d917a429c7432e15228"},
-    {file = "wrapt-1.16.0-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:b935ae30c6e7400022b50f8d359c03ed233d45b725cfdd299462f41ee5ffba6f"},
-    {file = "wrapt-1.16.0-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:db98ad84a55eb09b3c32a96c576476777e87c520a34e2519d3e59c44710c002c"},
-    {file = "wrapt-1.16.0-cp37-cp37m-win32.whl", hash = "sha256:9153ed35fc5e4fa3b2fe97bddaa7cbec0ed22412b85bcdaf54aeba92ea37428c"},
-    {file = "wrapt-1.16.0-cp37-cp37m-win_amd64.whl", hash = "sha256:66dfbaa7cfa3eb707bbfcd46dab2bc6207b005cbc9caa2199bcbc81d95071a00"},
-    {file = "wrapt-1.16.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:1dd50a2696ff89f57bd8847647a1c363b687d3d796dc30d4dd4a9d1689a706f0"},
-    {file = "wrapt-1.16.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:44a2754372e32ab315734c6c73b24351d06e77ffff6ae27d2ecf14cf3d229202"},
-    {file = "wrapt-1.16.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8e9723528b9f787dc59168369e42ae1c3b0d3fadb2f1a71de14531d321ee05b0"},
-    {file = "wrapt-1.16.0-cp38-cp38-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:dbed418ba5c3dce92619656802cc5355cb679e58d0d89b50f116e4a9d5a9603e"},
-    {file = "wrapt-1.16.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:941988b89b4fd6b41c3f0bfb20e92bd23746579736b7343283297c4c8cbae68f"},
-    {file = "wrapt-1.16.0-cp38-cp38-musllinux_1_1_aarch64.whl", hash = "sha256:6a42cd0cfa8ffc1915aef79cb4284f6383d8a3e9dcca70c445dcfdd639d51267"},
-    {file = "wrapt-1.16.0-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:1ca9b6085e4f866bd584fb135a041bfc32cab916e69f714a7d1d397f8c4891ca"},
-    {file = "wrapt-1.16.0-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:d5e49454f19ef621089e204f862388d29e6e8d8b162efce05208913dde5b9ad6"},
-    {file = "wrapt-1.16.0-cp38-cp38-win32.whl", hash = "sha256:c31f72b1b6624c9d863fc095da460802f43a7c6868c5dda140f51da24fd47d7b"},
-    {file = "wrapt-1.16.0-cp38-cp38-win_amd64.whl", hash = "sha256:490b0ee15c1a55be9c1bd8609b8cecd60e325f0575fc98f50058eae366e01f41"},
-    {file = "wrapt-1.16.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:9b201ae332c3637a42f02d1045e1d0cccfdc41f1f2f801dafbaa7e9b4797bfc2"},
-    {file = "wrapt-1.16.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:2076fad65c6736184e77d7d4729b63a6d1ae0b70da4868adeec40989858eb3fb"},
-    {file = "wrapt-1.16.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c5cd603b575ebceca7da5a3a251e69561bec509e0b46e4993e1cac402b7247b8"},
-    {file = "wrapt-1.16.0-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b47cfad9e9bbbed2339081f4e346c93ecd7ab504299403320bf85f7f85c7d46c"},
-    {file = "wrapt-1.16.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f8212564d49c50eb4565e502814f694e240c55551a5f1bc841d4fcaabb0a9b8a"},
-    {file = "wrapt-1.16.0-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:5f15814a33e42b04e3de432e573aa557f9f0f56458745c2074952f564c50e664"},
-    {file = "wrapt-1.16.0-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:db2e408d983b0e61e238cf579c09ef7020560441906ca990fe8412153e3b291f"},
-    {file = "wrapt-1.16.0-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:edfad1d29c73f9b863ebe7082ae9321374ccb10879eeabc84ba3b69f2579d537"},
-    {file = "wrapt-1.16.0-cp39-cp39-win32.whl", hash = "sha256:ed867c42c268f876097248e05b6117a65bcd1e63b779e916fe2e33cd6fd0d3c3"},
-    {file = "wrapt-1.16.0-cp39-cp39-win_amd64.whl", hash = "sha256:eb1b046be06b0fce7249f1d025cd359b4b80fc1c3e24ad9eca33e0dcdb2e4a35"},
-    {file = "wrapt-1.16.0-py3-none-any.whl", hash = "sha256:6906c4100a8fcbf2fa735f6059214bb13b97f75b1a61777fcf6432121ef12ef1"},
-    {file = "wrapt-1.16.0.tar.gz", hash = "sha256:5f370f952971e7d17c7d1ead40e49f32345a7f7a5373571ef44d800d06b1899d"},
-]
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "wtforms"
-version = "3.1.1"
+version = "3.1.2"
 description = "Form validation and rendering for Python web development."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "wtforms-3.1.1-py3-none-any.whl", hash = "sha256:ae7c54b29806c70f7bce8eb9f24afceb10ca5c32af3d9f04f74d2f66ccc5c7e0"},
-    {file = "wtforms-3.1.1.tar.gz", hash = "sha256:5e51df8af9a60f6beead75efa10975e97768825a82146a65c7cbf5b915990620"},
+    {file = "wtforms-3.1.2-py3-none-any.whl", hash = "sha256:bf831c042829c8cdbad74c27575098d541d039b1faa74c771545ecac916f2c07"},
+    {file = "wtforms-3.1.2.tar.gz", hash = "sha256:f8d76180d7239c94c6322f7990ae1216dae3659b7aa1cee94b6318bdffb474b9"},
 ]
 
 [package.dependencies]
@@ -2758,6 +3226,11 @@ markupsafe = "*"
 
 [package.extras]
 email = ["email-validator"]
+
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
 
 [[package]]
 name = "xenon"
@@ -2775,7 +3248,12 @@ PyYAML = ">=4.2b1,<7.0"
 radon = ">=4,<7"
 requests = ">=2.0,<3.0"
 
+[package.source]
+type = "legacy"
+url = "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple"
+reference = "azure"
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3a234a6db51f54caa476d9ce30ab710e5fa35f993a300c87abfc3f07c5b501fe"
+content-hash = "9fa94ccc16fe6aa45f320f5d94b1ca51de981ef65b252c7887b7387b48f9eb13"
