@@ -1,6 +1,7 @@
 import logging
 import os
 import typing as t
+from importlib.metadata import version
 
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -18,7 +19,6 @@ from app.exceptions import (
     StatusLoginFailedError,
     WeakPasswordError,
 )
-from app.version import __version__
 from sentry_utils import SentryScrubber
 
 os.chdir(os.path.dirname(__file__))
@@ -96,7 +96,7 @@ if SENTRY_DSN:
         dsn=SENTRY_DSN,
         environment=SENTRY_ENV,
         integrations=[FlaskIntegration(), RedisIntegration()],
-        release=__version__,
+        release=version("midas"),
         ignore_errors=[
             AccountAlreadyExistsError,
             CardNotRegisteredError,
