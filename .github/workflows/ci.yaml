@@ -32,6 +32,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install poetry
+      - run: poetry config http-basic.azure jeff ${{ secrets.AZURE_DEVOPS_PAT }}
       - run: poetry install
       - run: poetry run scripts/cibuild
 
