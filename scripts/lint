@@ -1,0 +1,11 @@
+#!/bin/sh
+. scripts/_common
+
+info 'ruff'
+ruff check
+ruff format --diff
+
+info 'mypy'
+mypy app
+
+success 'all linters passed successfully'

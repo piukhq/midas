@@ -1,0 +1,7 @@
+#!/bin/sh
+. scripts/_common
+
+info 'running tests'
+pytest --cov --cov-report xml --cov-report term-missing "$@"
+
+success 'all done'

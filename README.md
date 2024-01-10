@@ -22,7 +22,7 @@
 
 ## Prerequisites
 
-- [pipenv](https://docs.pipenv.org)
+- [poetry](https://python-poetry.org)
 
 ## Dependencies
 
@@ -35,17 +35,25 @@ The following is a list of the important dependencies used in the project. You d
 
 ## Project Setup
 
-Pipenv is used for managing project dependencies and execution.
+Poetry is used for managing project dependencies and execution.
 
 ### Virtual Environment
 
-To create a virtualenv and install required software packages:
+Allow Poetry to authenticate with Azure Artifacts, if you haven't already. Username and password can be obtained from the ['Azure DevOps - Feed - Read PAT' item in the Engineering 1Password vault](https://start.1password.com/open/i?a=24Z7AXLXINAQJK5EO2PN4BI7WA&v=sulgy6aoc2tk4jwje655zg44by&i=ryyryvavl2zkeetvfgx5iizqda&h=bink.1password.com).
 
 ```bash
-pipenv install --dev
+poetry config http-basic.azure <username> <password>
 ```
 
-Project configuration is done through environment variables. A convenient way to set these is in a `.env` file in the project root. This file will be sourced by Pipenv when `pipenv run` and `pipenv shell` are used. See `settings.py` for configuration options that can be set in this file.
+Create a virtualenv and install required software packages:
+
+```bash
+poetry install
+```
+
+Project configuration is done through environment variables. A convenient way to set these is in a `.env` file in the project root. See `settings.py` for configuration options that can be set in this file.
+
+For terminal usage this file can be automatically sourced with [direnv]() or [poetry-dotenv-plugin](https://pypi.org/project/poetry-dotenv-plugin). Most editors and IDEs have built-in or plugin support for dotenv files.
 
 To make a `.env` file from the provided example:
 
@@ -94,5 +102,3 @@ This method will only be called if:
                config=config,
            )
 ```
-
-        
