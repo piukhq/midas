@@ -21,6 +21,7 @@ from app.exceptions import (
 )
 from app.reporting import get_logger
 from app.retry_util import delete_task, get_task
+from app.scheme_account import JourneyTypes
 from app.vouchers import VoucherState, voucher_state_names
 
 RETRY_LIMIT = 3
@@ -96,6 +97,13 @@ class SlimChickens(BaseAgent):
     def transactions(self) -> list:
         return []
 
+    def _get_retry_task(self):
+        try:
+            with db.session_scope() as session:
+                self.retry_task = get_task(session, self.user_info["scheme_account_id"], journey_type="attempt-login")
+        except Exception:
+            self.retry_task = None
+
     def login_balance_request(self) -> Response | None:
         """
         If the search request fails during a join journey, it could mean that the account has not been created yet
@@ -111,7 +119,8 @@ class SlimChickens(BaseAgent):
             resp = self.make_request(
                 urljoin(self.base_url, "search"),
                 method="post",
-                audit=True,
+                # Audit logs not required for balance requests
+                audit=False if self.journey_type == JourneyTypes.UPDATE else True,
                 json={
                     "channelKeys": [self.outbound_security["channel_key"]],
                     "types": ["wallet"],
@@ -133,14 +142,7 @@ class SlimChickens(BaseAgent):
             # if there is one, do not raise error.
             # The next conditional is to handle the balance request made from Hermes
             if error_code == 401:
-                try:
-                    with db.session_scope() as session:
-                        self.retry_task = get_task(
-                            session, self.user_info["scheme_account_id"], journey_type="attempt-login"
-                        )
-                except Exception:
-                    self.retry_task = None
-
+                self._get_retry_task()
                 if not self.retry_task and self.user_info["journey_type"] > 0 and not self.user_info.get("from_join"):
                     raise StatusLoginFailedError()
 

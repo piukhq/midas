@@ -12,6 +12,7 @@ from app.agents.acteol import Acteol
 from app.agents.schemas import Balance, Transaction
 from app.exceptions import AccountAlreadyExistsError, BaseError, CardNumberError, JoinError, LoyaltyCardRemovedError
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 
 hasher = argon2.PasswordHasher()
 log = get_logger("stonegate")
@@ -145,7 +146,9 @@ class Stonegate(Acteol):
         if self.credentials.get("card_number"):
             try:
                 response_data = self._find_customer_details(
-                    send_audit=True, filters={"MemberNumber": self.credentials["card_number"]}
+                    # Audit logs not required for balance requests
+                    send_audit=False if self.journey_type == JourneyTypes.UPDATE else True,
+                    filters={"MemberNumber": self.credentials["card_number"]},
                 )
                 if not response_data:
                     signal("request-fail").send(
@@ -157,7 +160,9 @@ class Stonegate(Acteol):
                     raise CardNumberError
                 ctc_id = response_data["CtcID"]
                 self._points_balance = int(response_data["LoyaltyDetails"]["LoyaltyPointsBalance"])
-                self._patch_customer_details(ctc_id)
+                # Don't call the patch customer details if this is a balance request
+                if not self.journey_type == JourneyTypes.UPDATE:
+                    self._patch_customer_details(ctc_id)
 
                 signal("log-in-success").send(self, slug=self.scheme_slug)
 

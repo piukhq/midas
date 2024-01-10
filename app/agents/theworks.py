@@ -25,7 +25,7 @@ from app.exceptions import (
     UnknownError,
 )
 from app.reporting import get_logger
-from app.scheme_account import TWO_PLACES
+from app.scheme_account import TWO_PLACES, JourneyTypes
 
 RETRY_LIMIT = 3
 
@@ -192,7 +192,12 @@ class TheWorks(BaseAgent):
             self.audit_config["audit_keys_mapping"]["REQUEST"].update({4: "card_number"})
             self.audit_config["audit_keys_mapping"]["RESPONSE"].update({})
             request_data = self.give_x_payload("dc_995", [self.credentials.get("card_number"), "", "", "Points"])
-            resp = self._make_request(method="post", request_data=request_data, audit=True)
+            resp = self._make_request(
+                method="post",
+                request_data=request_data,
+                # Audit logs not required for balance requests
+                audit=False if self.journey_type == JourneyTypes.UPDATE else True,
+            )
             result, account_status = self.give_x_response(resp)
 
             if account_status == "0":
