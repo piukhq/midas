@@ -1,0 +1,7 @@
+#!/bin/sh
+. scripts/_common
+
+info 'ruff'
+ruff format
+
+success 'code formatting complete'

@@ -76,12 +76,8 @@ types-requests = "^2.31.0.20231231"
 types-urllib3 = "^1.26.25.14"
 ruff = "^0.1.9"
 
-[tool.black]
+[tool.ruff]
 line-length = 120
-
-[tool.isort]
-profile = "black"
-line_length = 120
 
 [tool.mypy]
 ignore_missing_imports = true

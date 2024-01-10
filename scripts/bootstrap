@@ -1,0 +1,58 @@
+#!/bin/sh
+. scripts/_common
+
+if [ -n "${VIRTUAL_ENV-}" ]; then
+    warn 'this script should not be run inside a virtual environment.'
+    exit 1
+fi
+
+install() {
+    poetry install
+}
+
+psql_cmd() {
+    psql -h localhost -U postgres -c "$1" -o /dev/null
+}
+
+test_postgres() {
+    psql_cmd 'select 1' >/dev/null 2>&1
+}
+
+make_postgres() {
+    if ! which docker; then
+        warn 'docker not found.'
+        info 'please either setup postgres on localhost:5432 or install docker.'
+        exit 1
+    fi
+
+    info 'creating postgres docker container...'
+    docker run -d --rm --name postgres -e POSTGRES_HOST_AUTH_METHOD=trust -p5432:5432 postgres
+}
+
+make_databases() {
+    psql_cmd 'create database midas' >/dev/null 2>&1 || true
+    psql_cmd 'create database midas_test' >/dev/null 2>&1 || true
+}
+
+ensure_postgres() {
+    if test_postgres; then
+        info 'postgres is available on localhost:5432'
+    else
+        make_postgres
+        for i in $(seq 5); do test_postgres && break || sleep 3; done
+    fi
+    make_databases
+}
+
+info 'installing dependencies'
+install
+
+info 'ensuring postgres availability'
+ensure_postgres
+
+poetry run scripts/migrate
+
+info 'loading data fixtures'
+load_fixtures
+
+success 'all done!'

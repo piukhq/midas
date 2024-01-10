@@ -1,0 +1,5 @@
+#!/bin/sh
+. scripts/_common
+
+info 'starting server'
+flask run

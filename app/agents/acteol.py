@@ -507,7 +507,7 @@ class Acteol(BaseAgent):
                 "agent_tries": self.AGENT_CONSENT_TRIES,  # max number of attempts to send consents to agent
                 "confirm_tries": confirm_retries,  # retries for each consent confirmation sent to hermes
                 "id": ctcid,  # used for identification in error messages
-                "callback": "app.agents.acteol"  # If present identifies the module containing the
+                "callback": "app.agents.acteol",  # If present identifies the module containing the
                 # function "agent_consent_response"
                 # callback_function can be set to change default function
                 # name.  Without this the HTML repsonse status code is used
