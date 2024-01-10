@@ -97,6 +97,15 @@ class SlimChickens(BaseAgent):
     def transactions(self) -> list:
         return []
 
+    def _get_retry_task(self):
+        try:
+            with db.session_scope() as session:
+                self.retry_task = get_task(
+                    session, self.user_info["scheme_account_id"], journey_type="attempt-login"
+                )
+        except Exception:
+            self.retry_task = None
+
     def login_balance_request(self) -> Response | None:
         """
         If the search request fails during a join journey, it could mean that the account has not been created yet
@@ -135,14 +144,7 @@ class SlimChickens(BaseAgent):
             # if there is one, do not raise error.
             # The next conditional is to handle the balance request made from Hermes
             if error_code == 401:
-                try:
-                    with db.session_scope() as session:
-                        self.retry_task = get_task(
-                            session, self.user_info["scheme_account_id"], journey_type="attempt-login"
-                        )
-                except Exception:
-                    self.retry_task = None
-
+                self._get_retry_task()
                 if not self.retry_task and self.user_info["journey_type"] > 0 and not self.user_info.get("from_join"):
                     raise StatusLoginFailedError()
 
