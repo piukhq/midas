@@ -100,9 +100,7 @@ class SlimChickens(BaseAgent):
     def _get_retry_task(self):
         try:
             with db.session_scope() as session:
-                self.retry_task = get_task(
-                    session, self.user_info["scheme_account_id"], journey_type="attempt-login"
-                )
+                self.retry_task = get_task(session, self.user_info["scheme_account_id"], journey_type="attempt-login")
         except Exception:
             self.retry_task = None
 

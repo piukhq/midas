@@ -103,7 +103,10 @@ class Squaremeal(BaseAgent):
         try:
             resp = self.make_request(
                 # Audit logs not required for balance requests
-                url, method="post", audit=False if self.journey_type == JourneyTypes.UPDATE else True, json=payload
+                url,
+                method="post",
+                audit=False if self.journey_type == JourneyTypes.UPDATE else True,
+                json=payload,
             )
             signal("log-in-success").send(self, slug=self.scheme_slug)
         except BaseError as ex:
