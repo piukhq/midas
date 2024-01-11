@@ -1,6 +1,7 @@
-FROM ghcr.io/binkhq/python:3.12-poetry AS build
+FROM ghcr.io/binkhq/python:3.12 AS build
 
 WORKDIR /src
+RUN pip install poetry
 COPY . .
 RUN poetry build
 
