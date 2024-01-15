@@ -10,6 +10,9 @@ authors = ["mlatham <ml@bink.com>"]
 readme = "README.md"
 packages = [
     { include = "app" },
+    { include = "settings.py" },
+    { include = "sentry_utils.py" },
+    { include = "retry_worker.py" },
 ]
 
 [[tool.poetry.source]]
