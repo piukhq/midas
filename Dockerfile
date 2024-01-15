@@ -1,7 +1,13 @@
-FROM ghcr.io/binkhq/python:3.12-poetry AS build
+FROM ghcr.io/binkhq/python:3.12 AS build
 
 WORKDIR /src
+
+RUN apt update && apt -y install git
+RUN pip install poetry
+RUN poetry self add "poetry-dynamic-versioning[plugin]"
+
 COPY . .
+
 RUN poetry build
 
 FROM ghcr.io/binkhq/python:3.12
