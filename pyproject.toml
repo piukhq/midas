@@ -13,6 +13,7 @@ packages = [
     { include = "settings.py" },
     { include = "sentry_utils.py" },
     { include = "retry_worker.py" },
+    { include = "consumer.py" },
 ]
 
 [[tool.poetry.source]]
