@@ -79,9 +79,7 @@ class BaseAgent(object):
             settings.CONFIG_SERVICE_URL,
             settings.AZURE_AAD_TENANT_ID,
         )
-        self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[
-            user_info["journey_type"]
-        ]
+        self.audit_handler_type = JOURNEY_TYPE_TO_HANDLER_TYPE_MAPPING[user_info["journey_type"]]
         self.retry_count = retry_count
         self.user_info = user_info
         self.scheme_slug = scheme_slug
@@ -174,9 +172,7 @@ class BaseAgent(object):
             try:
                 if self._token_is_valid(cached_token, current_timestamp):
                     have_valid_token = True
-                    token = cached_token[
-                        f"{self.scheme_slug.replace('-', '_')}_access_token"
-                    ]
+                    token = cached_token[f"{self.scheme_slug.replace('-', '_')}_access_token"]
             except (KeyError, TypeError) as e:
                 log.exception(e)
         except (KeyError, self.token_store.NoSuchToken):
@@ -193,9 +189,7 @@ class BaseAgent(object):
         try:
             response = self.session.post(url, data=payload, headers=self.headers)
         except requests.RequestException as e:
-            sentry_sdk.capture_message(
-                f"Failed request to get oauth token from {url}. exception: {e}"
-            )
+            sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
             raise ServiceConnectionError(exception=e) from e
         except (KeyError, IndexError) as e:
             raise ConfigurationError(exception=e) from e
@@ -207,9 +201,7 @@ class BaseAgent(object):
             f"{self.scheme_slug.replace('-', '_')}_access_token": token,
             "timestamp": current_timestamp,
         }
-        self.token_store.set(
-            scheme_account_id=self.scheme_id, token=json.dumps(token_dict)
-        )
+        self.token_store.set(scheme_account_id=self.scheme_id, token=json.dumps(token_dict))
 
     def _token_is_valid(self, token: dict, current_timestamp: int) -> bool:
         if isinstance(token["timestamp"], list):
@@ -228,9 +220,7 @@ class BaseAgent(object):
 
         return "/".join(path_list)
 
-    def make_request(
-        self, url, unique_data=None, method="get", timeout=5, audit=False, **kwargs
-    ):
+    def make_request(self, url, unique_data=None, method="get", timeout=5, audit=False, **kwargs):
         # Combine the passed kwargs with our headers and timeout values.
         path = urlsplit(url).path  # Get the path part of the url for signal call
         args = {
@@ -254,31 +244,17 @@ class BaseAgent(object):
                 self.send_audit_response(resp)
 
         except RetryError as e:
-            signal("request-fail").send(
-                self,
-                slug=self.scheme_slug,
-                channel=self.channel,
-                error=RetryLimitReachedError,
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=RetryLimitReachedError)
             raise RetryLimitReachedError(exception=e) from e
 
         except ConnectionError as e:
-            signal("request-fail").send(
-                self,
-                slug=self.scheme_slug,
-                channel=self.channel,
-                error=EndSiteDownError,
-            )
+            signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
             raise EndSiteDownError(exception=e) from e
 
         signal("record-http-request").send(
             self,
             slug=self.scheme_slug,
-            endpoint=(
-                self._remove_unique_data_in_path(path, unique_data)
-                if unique_data
-                else path
-            ),
+            endpoint=self._remove_unique_data_in_path(path, unique_data) if unique_data else path,
             latency=resp.elapsed.total_seconds(),
             response_code=resp.status_code,
         )
@@ -299,36 +275,18 @@ class BaseAgent(object):
                 )
                 raise StatusLoginFailedError(exception=e)
             elif e.response.status_code == 403:
-                signal("request-fail").send(
-                    self,
-                    slug=self.scheme_slug,
-                    channel=self.channel,
-                    error=IPBlockedError,
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=IPBlockedError)
                 raise IPBlockedError(exception=e) from e
             elif e.response.status_code == 404:
                 signal("request-fail").send(
-                    self,
-                    slug=self.scheme_slug,
-                    channel=self.channel,
-                    error=ResourceNotFoundError,
+                    self, slug=self.scheme_slug, channel=self.channel, error=ResourceNotFoundError
                 )
                 raise ResourceNotFoundError(exception=e) from e
             elif e.response.status_code in [503, 504]:
-                signal("request-fail").send(
-                    self,
-                    slug=self.scheme_slug,
-                    channel=self.channel,
-                    error=NotSentError,
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=NotSentError)
                 raise NotSentError(exception=e) from e
             else:
-                signal("request-fail").send(
-                    self,
-                    slug=self.scheme_slug,
-                    channel=self.channel,
-                    error=EndSiteDownError,
-                )
+                signal("request-fail").send(self, slug=self.scheme_slug, channel=self.channel, error=EndSiteDownError)
                 raise EndSiteDownError(exception=e) from e
 
         return resp
@@ -462,9 +420,7 @@ def pluralise(count, plural_suffix):
     return singular if count == 1 else plural
 
 
-def check_correct_authentication(
-    allowed_config_auth_types: list[int], actual_config_auth_type: int
-) -> None:
+def check_correct_authentication(allowed_config_auth_types: list[int], actual_config_auth_type: int) -> None:
     if actual_config_auth_type not in allowed_config_auth_types:
         raise ConfigurationError(
             message=f"Agent expecting Security Type(s) "
@@ -474,9 +430,7 @@ def check_correct_authentication(
 
 
 def create_error_response(error_code, error_description):
-    response_json = json.dumps(
-        {"error_codes": [{"code": error_code, "description": error_description}]}
-    )
+    response_json = json.dumps({"error_codes": [{"code": error_code, "description": error_description}]})
 
     return response_json
 
@@ -492,13 +446,7 @@ class MockedMiner(BaseAgent):
 
     def __init__(self, retry_count, user_info, scheme_slug=None):
         config = MagicMock()
-        super().__init__(
-            retry_count,
-            user_info,
-            config_handler_type=None,
-            scheme_slug=scheme_slug,
-            config=config,
-        )
+        super().__init__(retry_count, user_info, config_handler_type=None, scheme_slug=scheme_slug, config=config)
         self.errors = {}
         self.headers = {}
         self.identifier = {}
@@ -517,21 +465,13 @@ class MockedMiner(BaseAgent):
             except KeyError:
                 pass
 
-        card_number = self.credentials.get("card_number") or self.credentials.get(
-            "barcode"
-        )
-        if (
-            self.ghost_card_prefix
-            and card_number
-            and card_number.startswith(self.ghost_card_prefix)
-        ):
+        card_number = self.credentials.get("card_number") or self.credentials.get("barcode")
+        if self.ghost_card_prefix and card_number and card_number.startswith(self.ghost_card_prefix):
             raise PreRegisteredCardError()
 
     @staticmethod
     def _check_email_already_exists(email):
-        return any(
-            info["credentials"].get("email") == email for info in USER_STORE.values()
-        )
+        return any(info["credentials"].get("email") == email for info in USER_STORE.values())
 
     def _check_existing_join_credentials(self, email, ghost_card):
         if ghost_card:

@@ -7,13 +7,7 @@ import httpretty
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
-from app.exceptions import (
-    EndSiteDownError,
-    GeneralError,
-    IPBlockedError,
-    StatusLoginFailedError,
-    UnknownError,
-)
+from app.exceptions import EndSiteDownError, GeneralError, IPBlockedError, StatusLoginFailedError, UnknownError
 from app.scheme_account import JourneyTypes
 
 
@@ -55,9 +49,7 @@ class TestBase(TestCase):
     @httpretty.activate
     @mock.patch("app.requests_retry.Retry")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_agenterror_calls_signals(
-        self, mock_signal, mock_retry
-    ):
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """
@@ -302,10 +294,7 @@ class TestBase(TestCase):
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
 
-        cached_token = {
-            "iceland_bonus_card_access_token": "abcde12345fghij",
-            "timestamp": [current_timestamp - 1000],
-        }
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": [current_timestamp - 1000]}
 
         result = base_agent._token_is_valid(cached_token, current_timestamp)
 
@@ -315,10 +304,7 @@ class TestBase(TestCase):
         base_agent = self.mock_base_agent()
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
-        cached_token = {
-            "iceland_bonus_card_access_token": "abcde12345fghij",
-            "timestamp": current_timestamp - 1000,
-        }
+        cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": current_timestamp - 1000}
 
         result = base_agent._token_is_valid(cached_token, current_timestamp)
 
