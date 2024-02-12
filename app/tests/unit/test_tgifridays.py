@@ -5,6 +5,7 @@ from unittest import mock
 import responses
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
 from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
@@ -247,6 +248,7 @@ class TestTGIFridays(unittest.TestCase):
                     "journey_type": JourneyTypes.JOIN,
                     "scheme_account_id": 94531,
                     "channel": "com.bink.wallet",
+                    "bink_user_id": 7777777,
                 },
                 scheme_slug="tgi-fridays",
             )
@@ -304,11 +306,15 @@ class TestTGIFridays(unittest.TestCase):
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets, mock_uuid) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
             responses.POST,
-            url,
+            f"{self.tgi_fridays.base_url}api2/mobile/users",
             json=RESPONSE_SIGN_UP_REGISTER,
+            status=200,
+        )
+        responses.add(
+            responses.PUT,
+            f"{settings.HERMES_URL}/schemes/accounts/{self.tgi_fridays.user_info['scheme_account_id']}/credentials",
             status=200,
         )
 
@@ -335,7 +341,7 @@ class TestTGIFridays(unittest.TestCase):
             '"marketing_email_subscription": "true"}}'
         )
 
-        assert len(responses.calls._calls) == 1
+        assert len(responses.calls._calls) == 2
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
         assert self.tgi_fridays.identifier == {
