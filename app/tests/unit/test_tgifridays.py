@@ -333,6 +333,11 @@ class TestTGIFridays(unittest.TestCase):
         assert self.tgi_fridays.identifier == {"merchant_identifier": 111111111}
         assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
 
+        assert self.tgi_fridays.identifier == {
+            "card_number": "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
+            "merchant_identifier": 111111111,
+        }
+
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
