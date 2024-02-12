@@ -308,7 +308,7 @@ class BaseAgent(object):
             "Authorization": "token " + settings.SERVICE_API_KEY,
             "bink-user-id": str(self.user_info["bink_user_id"]),
         }
-        requests.put(  # Don't want to call any signals for internal calls
+        requests.put(
             api_url, data=json.dumps(self.identifier), headers=headers
         )
 
