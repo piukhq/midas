@@ -23,8 +23,6 @@ RETRY_LIMIT = 3
 log = get_logger("tgi-fridays")
 
 
-
-
 class TGIFridays(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
