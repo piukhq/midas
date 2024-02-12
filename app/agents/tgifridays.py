@@ -134,6 +134,8 @@ class TGIFridays(BaseAgent):
         resp_json = resp.json()
         user_id = resp_json["user"]["user_id"]
         self.identifier["merchant_identifier"] = user_id
+        self.credentials.update(self.identifier)
+        self.update_hermes_credentials()
 
     def login(self) -> None:
         try:
