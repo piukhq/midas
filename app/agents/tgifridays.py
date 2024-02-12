@@ -26,19 +26,13 @@ RETRY_LIMIT = 3
 log = get_logger("tgi-fridays")
 
 
-
-
 class TGIFridays(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
-        super().__init__(
-            retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug
-        )
+        super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
         self.base_url = self.config.merchant_url
         self.credentials = self.user_info["credentials"]
         self._points_balance = Decimal("0")
-        decimal.getcontext().rounding = (
-            decimal.ROUND_HALF_UP
-        )  # ensures that 0.5's are rounded up
+        decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # ensures that 0.5's are rounded up
 
     def check_response_for_errors(self, resp) -> responses.Response:
         try:
@@ -74,9 +68,7 @@ class TGIFridays(BaseAgent):
         path = "/" + uri
         request_body = json.dumps(body)
         payload = "".join((path, (request_body)))
-        return hmac.new(
-            bytes(secret, "UTF-8"), bytes(payload, "UTF-8"), hashlib.sha256
-        ).hexdigest()
+        return hmac.new(bytes(secret, "UTF-8"), bytes(payload, "UTF-8"), hashlib.sha256).hexdigest()
 
     def _get_user_information(self) -> dict:
         admin_key = self._get_vault_secrets(["tgi-fridays-admin-key"])[0]
@@ -107,9 +99,7 @@ class TGIFridays(BaseAgent):
                 "email": self.credentials["email"],
                 "password": self.credentials["password"],
                 "password_confirmation": self.credentials["password"],
-                "marketing_email_subscription": self.credentials["consents"][0][
-                    "value"
-                ],
+                "marketing_email_subscription": self.credentials["consents"][0]["value"],
             },
         }
         self.headers.update(
@@ -123,9 +113,7 @@ class TGIFridays(BaseAgent):
             }
         )
         try:
-            resp = self.make_request(
-                self.url, method="post", audit=True, data=json.dumps(payload)
-            )
+            resp = self.make_request(self.url, method="post", audit=True, data=json.dumps(payload))
         except Exception as e:
             if (
                 e.response.status_code == 422

@@ -26,9 +26,7 @@ class TestBase(TestCase):
             "credentials": {},
         }
         with mock.patch("app.agents.base.Configuration"):
-            base_agent = BaseAgent(
-                0, user_info, Configuration.JOIN_HANDLER, "test-agent"
-            )
+            base_agent = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
         return base_agent
 
     @mock.patch("app.agents.base.Configuration")
