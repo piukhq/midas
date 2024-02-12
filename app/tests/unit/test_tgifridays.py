@@ -336,7 +336,7 @@ class TestTGIFridays(unittest.TestCase):
         )
 
         assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER
+        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
         assert self.tgi_fridays.identifier == {
             "card_number": "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
@@ -366,7 +366,7 @@ class TestTGIFridays(unittest.TestCase):
         assert mock_tgifridays_signal.call_count == 1
 
         assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED
+        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED  # type:ignore
 
     @responses.activate
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
@@ -388,7 +388,7 @@ class TestTGIFridays(unittest.TestCase):
         assert mock_tgifridays_signal.call_count == 1
 
         assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL
+        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL  # type:ignore
 
     @responses.activate
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
@@ -416,7 +416,7 @@ class TestTGIFridays(unittest.TestCase):
         )
 
         assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION
+        assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
     @responses.activate
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)

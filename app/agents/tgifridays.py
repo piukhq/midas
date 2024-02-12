@@ -7,7 +7,7 @@ from typing import Optional
 from urllib.parse import urljoin
 from uuid import uuid4
 
-import responses
+from requests.models import Response
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from blinker import signal
@@ -34,7 +34,7 @@ class TGIFridays(BaseAgent):
         self._points_balance = Decimal("0")
         decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # ensures that 0.5's are rounded up
 
-    def check_response_for_errors(self, resp) -> responses.Response:
+    def check_response_for_errors(self, resp) -> Response | HTTPError:
         try:
             resp.raise_for_status()
         except HTTPError:
@@ -117,9 +117,9 @@ class TGIFridays(BaseAgent):
             resp = self.make_request(self.url, method="post", audit=True, data=json.dumps(payload))
         except Exception as e:
             if (
-                e.response.status_code == 422
-                and "device_already_shared" in e.response.text
-                or "Email has already been taken" in e.response.text
+                e.response.status_code == 422  # type:ignore
+                and "device_already_shared" in e.response.text  # type:ignore
+                or "Email has already been taken" in e.response.text  # type:ignore
             ):
                 signal("request-fail").send(
                     self,
