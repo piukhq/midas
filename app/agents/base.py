@@ -309,7 +309,7 @@ class BaseAgent(object):
             "bink-user-id": str(self.user_info["bink_user_id"]),
         }
         requests.put(  # Don't want to call any signals for internal calls
-            api_url, json=self.identifier, headers=headers
+            api_url, data=json.dumps(self.identifier), headers=headers
         )
 
     def join(self):
