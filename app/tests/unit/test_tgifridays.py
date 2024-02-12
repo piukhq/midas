@@ -3,10 +3,8 @@ from decimal import Decimal
 from unittest import mock
 from unittest.mock import MagicMock
 
-import app.agents.tgifridays
 import responses
 from soteria.configuration import Configuration
-from azure.keyvault.secrets import SecretClient
 
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
