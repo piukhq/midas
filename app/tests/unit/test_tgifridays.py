@@ -3,8 +3,10 @@ from decimal import Decimal
 from unittest import mock
 from unittest.mock import MagicMock
 
+import app.agents.tgifridays
 import responses
 from soteria.configuration import Configuration
+from azure.keyvault.secrets import SecretClient
 
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
@@ -55,113 +57,6 @@ USER_INFO = {
     "journey_type": 0,
     "scheme_account_id": 422678,
     "channel": "com.bink.wallet",
-}
-
-RESPONSE_GET_USER_INFORMATION = {
-    "anniversary": None,
-    "avatar_remote_url": None,
-    "created_at": "2023-04-04T09:05:19Z",
-    "email_verified": False,
-    "age_verified": False,
-    "privacy_policy": True,
-    "id": 111111111,
-    "updated_at": "2023-09-12T05:39:28Z",
-    "test_user": False,
-    "user_joined_at": "2023-04-04T09:05:19Z",
-    "balance": {
-        "banked_rewards": "2.00",
-        "membership_level": "Bronze",
-        "membership_level_id": 109,
-        "net_balance": 2,
-        "net_debits": 0,
-        "pending_points": 0,
-        "points_balance": 0,
-        "signup_anniversary_day": "04/04",
-        "total_credits": 15,
-        "total_debits": "0.0",
-        "total_point_credits": 15,
-        "total_redeemable_visits": 1,
-        "expired_membership_level": "Bronze",
-        "total_visits": 0,
-        "initial_visits": 1,
-        "unredeemed_cards": 0,
-    },
-    "selected_card_number": None,
-    "selected_reward_id": None,
-    "selected_discount_amount": None,
-    "rewards": [
-        {
-            "id": 31300354648,
-            "created_at": "2023-10-01T18:05:42Z",
-            "end_date_tz": "2023-10-05T18:29:59Z",
-            "start_date_tz": "2023-10-01T18:05:42Z",
-            "updated_at": "2023-10-01T18:05:42Z",
-            "image": "IMAGE_URL_GOES_HERE",
-            "status": "unredeemed",
-            "points": 100,
-            "discount_amount": 10,
-            "description": "Free Sandwich with Purchase of Chips and Drink",
-            "name": "Free Sandwich with Purchase of Chips and Drink",
-            "redeemable_properties": "",
-        },
-        {
-            "id": 31300354654,
-            "created_at": "2023-10-01T18:05:42Z",
-            "end_date_tz": "2023-10-14T18:29:59Z",
-            "start_date_tz": "2023-10-01T18:05:42Z",
-            "updated_at": "2023-10-01T18:05:42Z",
-            "image": "IMAGE_URL_GOES_HERE",
-            "status": "unredeemed",
-            "points": 100,
-            "discount_amount": 10,
-            "description": "Free Drinks",
-            "name": "Welcome Series Free Gift",
-            "redeemable_properties": "",
-        },
-    ],
-    "discount_type": None,
-    "allow_multiple": False,
-    "apple_pass_url": "APPLE_PASS_URL_GOES_HERE",
-    "authentication_token": "AUTHENTICATION_TOKEN_GOES_HERE",
-    "favourite_locations": "306082,333070,304374",
-    "favourite_store_numbers": "12345,0604,1234",
-    "marketing_email_subscription": True,
-    "marketing_pn_subscription": True,
-    "passcode_configured": False,
-    "profile_field_answers": {"test1": "Option 1"},
-    "referral_code": "REFERRAL_CODE_GOES_HERE",
-    "referral_path": "URL_GOES_HERE",
-    "terms_and_conditions": False,
-    "title": "",
-    "user_as_barcode": "1111111",
-    "user_as_qrcode": "QR_CODE_GOES_HERE",
-    "user_code": "P11111111",
-    "user_id": 111111111,
-    "user_relations": [
-        {
-            "id": 111111111,
-            "relation": "spouse",
-            "name": "FIRST_NAME_GOES_HERE LAST_NAME_GOES_HERE",
-            "birthday": "1999-01-01",
-            "created_at": "2023-08-18T12:32:13Z",
-            "updated_at": "2023-08-18T12:32:13Z",
-        }
-    ],
-    "work_zip_code": None,
-    "preferred_locale": "en",
-    "force_password_reset": True,
-    "expiration_date": None,
-    "sms_subscription": True,
-    "phone": "1111111111",
-    "migrate_status": False,
-    "email_unsubscribe": False,
-    "allow_push_notifications": True,
-    "facebook_signup": False,
-    "communicable_email": "test@example.com",
-    "access_token": "ACCESS_TOKEN_GOES_HERE",
-    "subscriptions": [
-        {"plan_name": "free burger", "pos_meta": "VIP subs", "subscription_id": 123}
-    ],
 }
 
 RESPONSE_SIGN_UP_REGISTER = {
@@ -334,7 +229,14 @@ RESPONSE_GET_USER_INFORMATION = {
     ],
 }
 
-RESPONSE_VAULT_SECRETS = ["client_id", "secret", "admin_key"]
+RESPONSE_VAULT_SECRETS = ["client_id", "secret"]
+
+
+class MockSecretClient:
+    def get_secret(self, item):
+        m = MagicMock()
+        setattr(m, "value", "admin_key")
+        return m
 
 
 class TestTGIFridays(unittest.TestCase):
@@ -380,6 +282,32 @@ class TestTGIFridays(unittest.TestCase):
             self.tgi_fridays._generate_signature(uri, body, secret)
             == "24ab8309a8e2de19f5e3f21ad1560deff4a81667d4356037317a9d5800a5cfc7"
         )
+
+    @mock.patch("app.agents.tgifridays.SecretClient", return_value=MockSecretClient())
+    def test_get_vault_secrets(self, mock_secret_client) -> None:
+        admin_key = self.tgi_fridays._get_vault_secrets(["tgi-fridays-admin-key"])
+        assert admin_key == ["admin_key"]
+
+    @responses.activate
+    @mock.patch("app.agents.tgifridays.SecretClient", return_value=MockSecretClient())
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_get_user_information(self, mock_base_signal, mock_secret_client) -> None:
+        url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
+        responses.add(
+            responses.GET,
+            url,
+            json=RESPONSE_GET_USER_INFORMATION,
+            status=200,
+        )
+        self.credentials["merchant_identifier"] = "111111111"
+        resp = self.tgi_fridays._get_user_information()
+
+        assert resp == RESPONSE_GET_USER_INFORMATION
+        assert responses.calls._calls[0].request.headers["Authorization"] == 'Bearer admin_key'
+        assert responses.calls._calls[0].request.body == b'{"user_id": "111111111"}'
+
+        assert mock_base_signal.call_count == 1
+        mock_base_signal.call_args[0][0] == 'record-http-request'
 
     @responses.activate
     @mock.patch.object(

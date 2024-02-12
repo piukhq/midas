@@ -26,6 +26,8 @@ RETRY_LIMIT = 3
 log = get_logger("tgi-fridays")
 
 
+
+
 class TGIFridays(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(
@@ -37,14 +39,6 @@ class TGIFridays(BaseAgent):
         decimal.getcontext().rounding = (
             decimal.ROUND_HALF_UP
         )  # ensures that 0.5's are rounded up
-
-    def _get_user_information(self) -> dict:
-        resp = self.make_request(
-            urljoin(self.base_url, "api2/dashboard/users/info"),
-            method="get",
-            json={"user_id": self.credentials["merchant_identifier"]},
-        )
-        return resp.json()
 
     def check_response_for_errors(self, resp) -> responses.Response:
         try:
@@ -58,7 +52,7 @@ class TGIFridays(BaseAgent):
         wait=wait_exponential(multiplier=1, min=3, max=12),
         reraise=True,
     )
-    def _get_vault_secrets(self) -> list:
+    def _get_vault_secrets(self, secret_names: list) -> list:
         kv_credential = DefaultAzureCredential(
             exclude_environment_credential=True,
             exclude_shared_token_cache_credential=True,
@@ -69,11 +63,7 @@ class TGIFridays(BaseAgent):
         client = SecretClient(vault_url=settings.VAULT_URL, credential=kv_credential)
         key_items = []
         try:
-            for item in [
-                "tgi-fridays-client-id",
-                "tgi-fridays-secret",
-                "tgi-fridays-admin-key",
-            ]:
+            for item in secret_names:
                 key_items.append(client.get_secret(item).value)
         except Exception:
             raise
@@ -88,9 +78,23 @@ class TGIFridays(BaseAgent):
             bytes(secret, "UTF-8"), bytes(payload, "UTF-8"), hashlib.sha256
         ).hexdigest()
 
+    def _get_user_information(self) -> dict:
+        admin_key = self._get_vault_secrets(["tgi-fridays-admin-key"])[0]
+        self.headers.update(
+            {
+                "Authorization": f"Bearer {admin_key}",
+            }
+        )
+        resp = self.make_request(
+            urljoin(self.base_url, "api2/dashboard/users/info"),
+            method="get",
+            json={"user_id": self.credentials["merchant_identifier"]},
+        )
+        return resp.json()
+
     def join(self) -> None:
         self.credentials.update({"punchh_app_device_id": str(uuid4())})
-        client_id, secret, admin_key = self._get_vault_secrets()
+        client_id, secret = self._get_vault_secrets(["tgi-fridays-client-id", "tgi-fridays-secret"])
 
         uri = "api2/mobile/users"
 
@@ -116,7 +120,6 @@ class TGIFridays(BaseAgent):
                 "punchh-app-device-id": self.credentials["punchh_app_device_id"],
                 "x-pch-digest": self._generate_signature(uri, payload, secret),
                 "Accept-Language": "",
-                # "Authorization": f"Bearer {admin_key}",
             }
         )
         try:
