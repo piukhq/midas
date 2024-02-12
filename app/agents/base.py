@@ -307,9 +307,7 @@ class BaseAgent(object):
             "Authorization": "token " + settings.SERVICE_API_KEY,
             "bink-user-id": str(self.user_info["bink_user_id"]),
         }
-        requests.put(
-            api_url, data=json.dumps(self.identifier), headers=headers
-        )
+        requests.put(api_url, data=json.dumps(self.identifier), headers=headers)
 
     def join(self):
         raise NotImplementedError()
