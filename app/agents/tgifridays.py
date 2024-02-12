@@ -23,6 +23,8 @@ RETRY_LIMIT = 3
 log = get_logger("tgi-fridays")
 
 
+
+
 class TGIFridays(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
@@ -69,6 +71,20 @@ class TGIFridays(BaseAgent):
                 "x-pch-digest": self._generate_signature(uri, payload, self.secrets["secret"]),
             }
         )
+
+    def _get_user_information(self) -> dict:
+        admin_key = self._get_vault_secrets(["tgi-fridays-admin-key"])[0]
+        self.headers.update(
+            {
+                "Authorization": f"Bearer {admin_key}",
+            }
+        )
+        resp = self.make_request(
+            urljoin(self.base_url, "api2/dashboard/users/info"),
+            method="get",
+            json={"user_id": self.credentials["merchant_identifier"]},
+        )
+        return resp.json()
 
     def join(self) -> None:
         self.errors = {
