@@ -85,7 +85,8 @@ class TGIFridays(BaseAgent):
         return resp.json()
 
     def join(self) -> None:
-        self.credentials.update({"punchh_app_device_id": str(uuid4())})
+        # use hermes card_number field to store the user's unique punchh-app-device-id
+        self.identifier = {"card_number": str(uuid4())}
         client_id, secret = self._get_vault_secrets(["tgi-fridays-client-id", "tgi-fridays-secret"])
 
         uri = "api2/mobile/users"
@@ -107,7 +108,7 @@ class TGIFridays(BaseAgent):
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "User-Agent": "bink",
-                "punchh-app-device-id": self.credentials["punchh_app_device_id"],
+                "punchh-app-device-id": self.identifier["card_number"],
                 "x-pch-digest": self._generate_signature(uri, payload, secret),
                 "Accept-Language": "",
             }
@@ -132,8 +133,7 @@ class TGIFridays(BaseAgent):
 
         resp_json = resp.json()
         user_id = resp_json["user"]["user_id"]
-        self.identifier = {"merchant_identifier": user_id}
-        self.credentials.update({"merchant_identifier": user_id})
+        self.identifier["merchant_identifier"] = user_id
 
     def login(self) -> None:
         try:

@@ -1,7 +1,6 @@
 import unittest
 from decimal import Decimal
 from unittest import mock
-from unittest.mock import MagicMock
 
 import responses
 from soteria.configuration import Configuration
@@ -223,8 +222,8 @@ RESPONSE_VAULT_SECRETS = ["client_id", "secret"]
 
 
 class MockSecretClient:
-    def get_secret(self, item):
-        m = MagicMock()
+    def get_secret(self, item) -> mock.MagicMock:
+        m = mock.MagicMock()
         setattr(m, "value", "admin_key")
         return m
 
@@ -235,7 +234,7 @@ class TestTGIFridays(unittest.TestCase):
         self.credentials = CREDENTIALS
 
         with mock.patch("app.agents.base.Configuration") as mock_configuration:
-            mock_config_object = MagicMock()
+            mock_config_object = mock.MagicMock()
             mock_config_object.security_credentials = self.outbound_security_credentials
             mock_config_object.integration_service = "SYNC"
             mock_configuration.return_value = mock_config_object
@@ -254,7 +253,7 @@ class TestTGIFridays(unittest.TestCase):
             self.tgi_fridays.base_url = "http://api-reflector/mock/"
             self.tgi_fridays.max_retries = 0
 
-    def test_generate_signature(self):
+    def test_generate_signature(self) -> None:
         uri = "api2/mobile/users"
         body = {
             "client": "client_id",
@@ -300,10 +299,11 @@ class TestTGIFridays(unittest.TestCase):
         mock_base_signal.call_args[0][0] == "record-http-request"
 
     @responses.activate
+    @mock.patch("app.agents.tgifridays.uuid4", return_value="4219ccc6-33bc-46f4-a1a9-996a2b3dc53e")
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets) -> None:
+    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets, mock_uuid) -> None:
         url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
             responses.POST,
@@ -321,14 +321,14 @@ class TestTGIFridays(unittest.TestCase):
         assert list(
             map(
                 request.headers.get,
-                ["User-Agent", "Content-Type", "x-pch-digest"],
+                ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
             )
         ) == [
             "bink",
             "application/json",
             "5e4fd03ff284fa436b1dcdf3feb946c56f276e7c7e16ac46a61b70330aab116a",
+            "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
         ]
-        assert isinstance(request.headers["punchh-app-device-id"], str)
         assert (
             request.body == '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
             '"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
@@ -338,12 +338,18 @@ class TestTGIFridays(unittest.TestCase):
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER
 
+        assert self.tgi_fridays.identifier == {
+            "card_number": "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
+            "merchant_identifier": 111111111,
+        }
+
     @responses.activate
+    @mock.patch("app.agents.tgifridays.uuid4", return_value="4219ccc6-33bc-46f4-a1a9-996a2b3dc53e")
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_join_error_422_device_already_shared(
-        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets
+        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets, mock_uuid
     ) -> None:
         url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
