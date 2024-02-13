@@ -114,6 +114,31 @@ class TGIFridays(BaseAgent):
 
     def login(self) -> None:
         user_information = self._get_user_information()
+        if not self.user_info.get("from_join"):
+            self.identifier = {"card_number": str(uuid4())}
+            client_id, secret = self._get_vault_secrets(["tgi-fridays-client-id", "tgi-fridays-secret"])
+            uri = "api2/mobile/users/login"
+            self.url = urljoin(self.base_url, uri)
+            payload = {
+                "client": client_id,
+                "user": {
+                    "email": self.credentials["email"],
+                    "password": self.credentials["password"],
+                },
+            }
+            self.headers.update(
+                {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "User-Agent": "bink",
+                    "punchh-app-device-id": self.identifier["card_number"],
+                    "x-pch-digest": self._generate_signature(uri, payload, secret),
+                    "Accept-Language": "",
+                }
+            )
+            resp = self.make_request(self.url, method="post", audit=True, data=json.dumps(payload))
+
+        user_information = self._get_user_information()
         self._points_balance = Decimal(user_information["balance"]["points_balance"])
 
     def balance(self) -> Optional[Balance]:
