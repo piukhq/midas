@@ -46,17 +46,21 @@ class AESCipher(object):
         return s[: -ord(s[len(s) - 1 :])]
 
 
+def get_aes_key(secret_name):  # pragma: no cover
+    vault_aes_keys = get_secret(secret_name)
+    aes_key = json.loads(vault_aes_keys)["AES_KEY"]
+    return aes_key.encode()
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=3, max=12),
     reraise=True,
 )
 @lru_cache(128)
-def get_aes_key(secret_name):  # pragma: no cover
+def get_secret(secret_name):
     client = connect_to_vault()
-    vault_aes_keys = client.get_secret(secret_name).value
-    aes_key = json.loads(vault_aes_keys)["AES_KEY"]
-    return aes_key.encode()
+    return client.get_secret(secret_name).value
 
 
 def connect_to_vault():  # pragma: no cover
