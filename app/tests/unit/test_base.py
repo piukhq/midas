@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 import arrow
 import httpretty
+import pytest
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
@@ -319,7 +320,6 @@ class TestBase(TestCase):
         self.assertEqual(result, expected)
 
     def test_get_audit_payload_json(self):
-        base_agent = self.mock_base_agent()
         kwargs = {
             "json": {
                 "client": "client_id",
@@ -333,9 +333,8 @@ class TestBase(TestCase):
                 },
             }
         }
-        url = "http://api-reflector/mock"
-        base_agent.get_audit_payload(kwargs, url)
-        data = base_agent.get_audit_payload(kwargs, url)
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
         assert data == {
             "client": "client_id",
             "user": {
@@ -348,15 +347,14 @@ class TestBase(TestCase):
             },
         }
 
-    def test_get_audit_payload_data(self):
+    def test_get_audit_payload_json_str(self):
         kwargs = {
             "data": '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
             '"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
             '"marketing_email_subscription": "true"}}'
         }
-        url = "http://api-reflector/mock"
         base_agent = self.mock_base_agent()
-        data = base_agent.get_audit_payload(kwargs, url)
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
         assert data == {
             "client": "client_id",
             "user": {
@@ -368,3 +366,57 @@ class TestBase(TestCase):
                 "marketing_email_subscription": "true",
             },
         }
+
+    def test_get_audit_payload_data_dict(self):
+        kwargs = {
+            "data": {
+                "client": "client_id",
+                "user": {
+                    "first_name": "John",
+                    "last_name": "Smith",
+                    "email": "johnsmith@test.com",
+                    "password": "password",
+                    "password_confirmation": "password",
+                    "marketing_email_subscription": "true",
+                },
+            }
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_bytes(self):
+        kwargs = {
+            "data": b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": '
+            b'"johnsmith@test.com", "password": "password", "password_confirmation": "password", '
+            b'"marketing_email_subscription": "true"}}'
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_tuple(self):
+        kwargs = {"data": ("the", "wrong", "format")}
+        base_agent = self.mock_base_agent()
+        with pytest.raises(TypeError):
+            base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")

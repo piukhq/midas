@@ -12,11 +12,19 @@ from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, Unknown
 from app.scheme_account import JourneyTypes
 
 CREDENTIALS = {
-    "last_name": "Smith",
-    "first_name": "John",
     "email": "johnsmith@test.com",
     "password": "password",
-    "consents": [{"value": "true"}],
+    "first_name": "John",
+    "last_name": "Smith",
+    "consents": [
+        {
+            "id": 87330,
+            "slug": "marketing_email_subscription",
+            "value": True,
+            "created_on": "2024-02-05T14:14:06.275027+00:00",
+            "journey_type": 0,
+        }
+    ],
 }
 
 OUTBOUND_SECURITY_CREDENTIALS = {
@@ -30,29 +38,13 @@ OUTBOUND_SECURITY_CREDENTIALS = {
     },
 }
 
-SCHEME_ACCOUNT_ID = "422678"
 SCHEME_SLUG = "tgi-fridays"
-TID = "d271d01a-c430-11ee-9e53-3e22fb277926"
 USER_INFO = {
     "user_set": "34390",
     "bink_user_id": "34390",
-    "credentials": {
-        "email": "success@bink.com",
-        "password": "L0yalty!!&B!n4",
-        "first_name": "Carla",
-        "last_name": "Gouws",
-        "consents": [
-            {
-                "id": 87330,
-                "slug": "marketing_email_subscription",
-                "value": True,
-                "created_on": "2024-02-05T14:14:06.275027+00:00",
-                "journey_type": 0,
-            }
-        ],
-    },
+    "credentials": CREDENTIALS,
     "status": 442,
-    "journey_type": 0,
+    "journey_type": JourneyTypes.JOIN,
     "scheme_account_id": 422678,
     "channel": "com.bink.wallet",
 }
@@ -241,15 +233,7 @@ class TestTGIFridays(unittest.TestCase):
             mock_configuration.return_value = mock_config_object
             self.tgi_fridays = TGIFridays(
                 retry_count=1,
-                user_info={
-                    "user_set": "27558",
-                    "credentials": self.credentials,
-                    "status": 442,
-                    "journey_type": JourneyTypes.JOIN,
-                    "scheme_account_id": 94531,
-                    "channel": "com.bink.wallet",
-                    "bink_user_id": 7777777,
-                },
+                user_info=USER_INFO,
                 scheme_slug="tgi-fridays",
             )
             self.tgi_fridays.base_url = "http://api-reflector/mock/"
@@ -274,15 +258,21 @@ class TestTGIFridays(unittest.TestCase):
             == "24ab8309a8e2de19f5e3f21ad1560deff4a81667d4356037317a9d5800a5cfc7"
         )
 
-    @mock.patch("app.agents.tgifridays.SecretClient", return_value=MockSecretClient())
-    def test_get_vault_secrets(self, mock_secret_client) -> None:
+    def test_generate_punchh_app_device_id(self) -> None:
+        assert (
+            self.tgi_fridays._generate_punchh_app_device_id()
+            == "b3de0a27a9e14e38f11c5830f6eb6959516b4e3c6a50f2445da6693373b9a099"
+        )
+
+    @mock.patch("app.agents.tgifridays.get_secret", return_value="admin_key")
+    def test_get_vault_secrets(self, mock_get_secret) -> None:
         admin_key = self.tgi_fridays._get_vault_secrets(["tgi-fridays-admin-key"])
         assert admin_key == ["admin_key"]
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.SecretClient", return_value=MockSecretClient())
+    @mock.patch("app.agents.tgifridays.get_secret", return_value="admin_key")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_get_user_information(self, mock_base_signal, mock_secret_client) -> None:
+    def test_get_user_information(self, mock_base_signal, mock_get_secret) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
@@ -301,11 +291,10 @@ class TestTGIFridays(unittest.TestCase):
         mock_base_signal.call_args[0][0] == "record-http-request"
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.uuid4", return_value="4219ccc6-33bc-46f4-a1a9-996a2b3dc53e")
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets, mock_uuid) -> None:
+    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets) -> None:
         responses.add(
             responses.POST,
             f"{self.tgi_fridays.base_url}api2/mobile/users",
@@ -332,30 +321,27 @@ class TestTGIFridays(unittest.TestCase):
         ) == [
             "bink",
             "application/json",
-            "5e4fd03ff284fa436b1dcdf3feb946c56f276e7c7e16ac46a61b70330aab116a",
-            "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
+            "b028e9f3d60e161d6514c6d58c75638717b016c611f469a36027096c6247b557",
+            "b3de0a27a9e14e38f11c5830f6eb6959516b4e3c6a50f2445da6693373b9a099",
         ]
         assert (
-            request.body == '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
-            '"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
-            '"marketing_email_subscription": "true"}}'
+            request.body
+            == '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", "marketing_email_subscription": true}}'
         )
 
-        assert len(responses.calls._calls) == 2
+        assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
         assert self.tgi_fridays.identifier == {
-            "card_number": "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
             "merchant_identifier": 111111111,
         }
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.uuid4", return_value="4219ccc6-33bc-46f4-a1a9-996a2b3dc53e")
     @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_join_error_422_device_already_shared(
-        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets, mock_uuid
+        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets
     ) -> None:
         url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(

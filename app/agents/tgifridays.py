@@ -5,19 +5,15 @@ import json
 from decimal import Decimal
 from typing import Optional
 from urllib.parse import urljoin
-from uuid import uuid4
 
 from requests.models import Response
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 from blinker import signal
 from requests import HTTPError
 from soteria.configuration import Configuration
-from tenacity import retry, stop_after_attempt, wait_exponential
 
-import settings
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
+from app.encryption import get_secret
 from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
 from app.reporting import get_logger
 
@@ -41,30 +37,18 @@ class TGIFridays(BaseAgent):
             raise
         return resp
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
     def _get_vault_secrets(self, secret_names: list) -> list:
-        kv_credential = DefaultAzureCredential(
-            exclude_environment_credential=True,
-            exclude_shared_token_cache_credential=True,
-            exclude_visual_studio_code_credential=True,
-            exclude_interactive_browser_credential=True,
-            additionally_allowed_tenants=[settings.AZURE_AAD_TENANT_ID],
-        )
-        client = SecretClient(vault_url=settings.VAULT_URL, credential=kv_credential)
-        key_items = []
+        secrets = []
         try:
-            for item in secret_names:
-                key_items.append(client.get_secret(item).value)
+            for secret in secret_names:
+                secrets.append(get_secret(secret))
         except Exception:
             raise
 
-        return key_items
+        return secrets
 
-    def _generate_signature(self, uri, body, secret) -> str:
+    @staticmethod
+    def _generate_signature(uri, body, secret) -> str:
         path = "/" + uri
         request_body = json.dumps(body)
         payload = "".join((path, (request_body)))
@@ -84,14 +68,13 @@ class TGIFridays(BaseAgent):
         )
         return resp.json()
 
+    def _generate_punchh_app_device_id(self):
+        id = self.user_info["bink_user_id"] + str(self.user_info["scheme_account_id"])
+        return hashlib.sha256(id.encode("utf-8")).hexdigest()
+
     def join(self) -> None:
-        # use hermes card_number field to store the user's unique punchh-app-device-id
-        self.identifier = {"card_number": str(uuid4())}
         client_id, secret = self._get_vault_secrets(["tgi-fridays-client-id", "tgi-fridays-secret"])
-
         uri = "api2/mobile/users"
-
-        self.url = urljoin(self.base_url, uri)
         payload = {
             "client": client_id,
             "user": {
@@ -105,16 +88,14 @@ class TGIFridays(BaseAgent):
         }
         self.headers.update(
             {
-                "Accept": "application/json",
                 "Content-Type": "application/json",
                 "User-Agent": "bink",
-                "punchh-app-device-id": self.identifier["card_number"],
+                "punchh-app-device-id": self._generate_punchh_app_device_id(),
                 "x-pch-digest": self._generate_signature(uri, payload, secret),
-                "Accept-Language": "",
             }
         )
         try:
-            resp = self.make_request(self.url, method="post", audit=True, data=json.dumps(payload))
+            resp = self.make_request(urljoin(self.base_url, uri), method="post", audit=True, data=json.dumps(payload))
         except Exception as e:
             if (
                 e.response.status_code == 422  # type:ignore
@@ -133,9 +114,8 @@ class TGIFridays(BaseAgent):
 
         resp_json = resp.json()
         user_id = resp_json["user"]["user_id"]
-        self.identifier["merchant_identifier"] = user_id
+        self.identifier = {"merchant_identifier": user_id}
         self.credentials.update(self.identifier)
-        self.update_hermes_credentials()
 
     def login(self) -> None:
         try:

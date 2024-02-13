@@ -6,7 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any, Optional
 from unittest.mock import MagicMock
-from urllib.parse import parse_qs, urlsplit, urljoin
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import arrow
@@ -137,7 +137,7 @@ class BaseAgent(object):
         )
 
     @staticmethod
-    def get_audit_payload(kwargs, url):
+    def get_audit_payload(kwargs, url) -> dict:
         """
         Instead of changing Atlas and releasing 2 repos make agent
         modifications by overriding this method. Ensure you don't
@@ -147,9 +147,13 @@ class BaseAgent(object):
             return kwargs["json"]
         elif "data" in kwargs:
             data = kwargs["data"]
-            if isinstance(data, str):
-                return json.loads(data)
-            return data
+            if isinstance(data, dict):
+                return data
+            else:
+                try:
+                    return json.loads(data)
+                except Exception:
+                    raise
         else:
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
@@ -296,18 +300,6 @@ class BaseAgent(object):
             if error_code in agent_error_codes:
                 raise agent_error
         raise unhandled_exception
-
-    def update_hermes_credentials(self) -> None:
-        api_url = urljoin(
-            settings.HERMES_URL,
-            f"schemes/accounts/{self.user_info['scheme_account_id']}/credentials",
-        )
-        headers = {
-            "Content-type": "application/json",
-            "Authorization": "token " + settings.SERVICE_API_KEY,
-            "bink-user-id": str(self.user_info["bink_user_id"]),
-        }
-        requests.put(api_url, data=json.dumps(self.identifier), headers=headers)
 
     def join(self):
         raise NotImplementedError()
