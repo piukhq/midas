@@ -100,7 +100,6 @@ RESPONSE_SIGN_UP_REGISTER = {
         "apple_pass_url": "APPLE_PASS_URL_GOES_HERE",
     },
 }
-
 RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED = {
     "errors": {"device_already_shared": ["Device already shared with maximum number of guests allowed."]}
 }
@@ -259,20 +258,17 @@ class TestTGIFridays(unittest.TestCase):
         )
 
     def test_generate_punchh_app_device_id(self) -> None:
-        assert (
-            self.tgi_fridays._generate_punchh_app_device_id()
-            == "b3de0a27a9e14e38f11c5830f6eb6959516b4e3c6a50f2445da6693373b9a099"
-        )
+        assert self.tgi_fridays._generate_punchh_app_device_id() == "e25vrke74gx9mwqpz0g6pjy38zo1dq0l"
 
-    @mock.patch("app.agents.tgifridays.get_secret", return_value="admin_key")
-    def test_get_vault_secrets(self, mock_get_secret) -> None:
-        admin_key = self.tgi_fridays._get_vault_secrets(["tgi-fridays-admin-key"])
+    @mock.patch("app.agents.tgifridays.connect_to_vault", return_value=MockSecretClient())
+    def test_get_vault_secrets(self, mock_connect_to_vault) -> None:
+        admin_key = self.tgi_fridays._get_vault_secrets(("tgi-fridays-admin-key",))
         assert admin_key == ["admin_key"]
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.get_secret", return_value="admin_key")
+    @mock.patch("app.agents.tgifridays.connect_to_vault", return_value=MockSecretClient())
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_get_user_information(self, mock_base_signal, mock_get_secret) -> None:
+    def test_get_user_information(self, mock_base_signal, mock_connect_to_vault) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
@@ -322,7 +318,7 @@ class TestTGIFridays(unittest.TestCase):
             "bink",
             "application/json",
             "b028e9f3d60e161d6514c6d58c75638717b016c611f469a36027096c6247b557",
-            "b3de0a27a9e14e38f11c5830f6eb6959516b4e3c6a50f2445da6693373b9a099",
+            "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
         ]
         assert (
             request.body

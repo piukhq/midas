@@ -319,7 +319,7 @@ class TestBase(TestCase):
 
         self.assertEqual(result, expected)
 
-    def test_get_audit_payload_json(self):
+    def test_get_audit_payload_json(self) -> None:
         kwargs = {
             "json": {
                 "client": "client_id",
@@ -347,7 +347,7 @@ class TestBase(TestCase):
             },
         }
 
-    def test_get_audit_payload_json_str(self):
+    def test_get_audit_payload_json_str(self) -> None:
         kwargs = {
             "data": '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
             '"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
@@ -367,7 +367,7 @@ class TestBase(TestCase):
             },
         }
 
-    def test_get_audit_payload_data_dict(self):
+    def test_get_audit_payload_data_dict(self) -> None:
         kwargs = {
             "data": {
                 "client": "client_id",
@@ -395,7 +395,7 @@ class TestBase(TestCase):
             },
         }
 
-    def test_get_audit_payload_bytes(self):
+    def test_get_audit_payload_bytes(self) -> None:
         kwargs = {
             "data": b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": '
             b'"johnsmith@test.com", "password": "password", "password_confirmation": "password", '
@@ -415,7 +415,7 @@ class TestBase(TestCase):
             },
         }
 
-    def test_get_audit_payload_tuple(self):
+    def test_get_audit_payload_tuple(self) -> None:
         kwargs = {"data": ("the", "wrong", "format")}
         base_agent = self.mock_base_agent()
         with pytest.raises(TypeError):

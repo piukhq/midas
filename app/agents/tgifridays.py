@@ -5,15 +5,18 @@ import json
 from decimal import Decimal
 from typing import Optional
 from urllib.parse import urljoin
+from app.encryption import hash_ids
 
 from requests.models import Response
 from blinker import signal
 from requests import HTTPError
 from soteria.configuration import Configuration
+from tenacity import retry, stop_after_attempt, wait_exponential
+from functools import lru_cache
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.encryption import get_secret
+from app.encryption import connect_to_vault
 from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
 from app.reporting import get_logger
 
@@ -30,6 +33,16 @@ class TGIFridays(BaseAgent):
         self._points_balance = Decimal("0")
         decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # ensures that 0.5's are rounded up
 
+    @staticmethod
+    def _generate_signature(uri: str, body: dict, secret: str) -> str:
+        path = "/" + uri
+        request_body = json.dumps(body)
+        payload = "".join((path, (request_body)))
+        return hmac.new(bytes(secret, "UTF-8"), bytes(payload, "UTF-8"), hashlib.sha256).hexdigest()
+
+    def _generate_punchh_app_device_id(self):
+        return hash_ids.encode(sorted(map(int, self.user_info["user_set"].split(",")))[0])
+
     def check_response_for_errors(self, resp) -> Response | HTTPError:
         try:
             resp.raise_for_status()
@@ -37,25 +50,25 @@ class TGIFridays(BaseAgent):
             raise
         return resp
 
-    def _get_vault_secrets(self, secret_names: list) -> list:
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=3, max=12),
+        reraise=True,
+    )
+    @lru_cache(128)
+    def _get_vault_secrets(self, secret_names: tuple) -> list:
         secrets = []
+        client = connect_to_vault()
         try:
             for secret in secret_names:
-                secrets.append(get_secret(secret))
+                secrets.append(client.get_secret(secret).value)
         except Exception:
             raise
 
         return secrets
 
-    @staticmethod
-    def _generate_signature(uri, body, secret) -> str:
-        path = "/" + uri
-        request_body = json.dumps(body)
-        payload = "".join((path, (request_body)))
-        return hmac.new(bytes(secret, "UTF-8"), bytes(payload, "UTF-8"), hashlib.sha256).hexdigest()
-
     def _get_user_information(self) -> dict:
-        admin_key = self._get_vault_secrets(["tgi-fridays-admin-key"])[0]
+        admin_key = self._get_vault_secrets(("tgi-fridays-admin-key",))[0]
         self.headers.update(
             {
                 "Authorization": f"Bearer {admin_key}",
@@ -68,12 +81,8 @@ class TGIFridays(BaseAgent):
         )
         return resp.json()
 
-    def _generate_punchh_app_device_id(self):
-        id = self.user_info["bink_user_id"] + str(self.user_info["scheme_account_id"])
-        return hashlib.sha256(id.encode("utf-8")).hexdigest()
-
     def join(self) -> None:
-        client_id, secret = self._get_vault_secrets(["tgi-fridays-client-id", "tgi-fridays-secret"])
+        client_id, secret = self._get_vault_secrets(("tgi-fridays-client-id", "tgi-fridays-secret"))
         uri = "api2/mobile/users"
         payload = {
             "client": client_id,
