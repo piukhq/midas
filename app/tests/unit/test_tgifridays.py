@@ -210,14 +210,7 @@ RESPONSE_GET_USER_INFORMATION = {
     "subscriptions": [{"plan_name": "free burger", "pos_meta": "VIP subs", "subscription_id": 123}],
 }
 
-RESPONSE_VAULT_SECRETS = ["client_id", "secret"]
-
-
-class MockSecretClient:
-    def get_secret(self, item) -> mock.MagicMock:
-        m = mock.MagicMock()
-        setattr(m, "value", "admin_key")
-        return m
+RESPONSE_VAULT_SECRETS = {"client_id": "client_id", "secret": "secret"}
 
 
 class TestTGIFridays(unittest.TestCase):
@@ -260,15 +253,10 @@ class TestTGIFridays(unittest.TestCase):
     def test_generate_punchh_app_device_id(self) -> None:
         assert self.tgi_fridays._generate_punchh_app_device_id() == "e25vrke74gx9mwqpz0g6pjy38zo1dq0l"
 
-    @mock.patch("app.agents.tgifridays.connect_to_vault", return_value=MockSecretClient())
-    def test_get_vault_secrets(self, mock_connect_to_vault) -> None:
-        admin_key = self.tgi_fridays._get_vault_secrets(("tgi-fridays-admin-key",))
-        assert admin_key == ["admin_key"]
-
     @responses.activate
-    @mock.patch("app.agents.tgifridays.connect_to_vault", return_value=MockSecretClient())
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value="admin_key")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_get_user_information(self, mock_base_signal, mock_connect_to_vault) -> None:
+    def test_get_user_information(self, mock_base_signal, mock_get_vault_key) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
@@ -287,10 +275,10 @@ class TestTGIFridays(unittest.TestCase):
         mock_base_signal.call_args[0][0] == "record-http-request"
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets) -> None:
+    def test_join_happy_path(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_key) -> None:
         responses.add(
             responses.POST,
             f"{self.tgi_fridays.base_url}api2/mobile/users",
@@ -333,11 +321,11 @@ class TestTGIFridays(unittest.TestCase):
         }
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_join_error_422_device_already_shared(
-        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets
+        self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_key
     ) -> None:
         url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
@@ -357,10 +345,10 @@ class TestTGIFridays(unittest.TestCase):
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED  # type:ignore
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_join_error_422_email(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_secrets) -> None:
+    def test_join_error_422_email(self, mock_base_signal, mock_tgifridays_signal, mock_get_vault_key) -> None:
         url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
             responses.POST,
@@ -379,9 +367,9 @@ class TestTGIFridays(unittest.TestCase):
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL  # type:ignore
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_success(self, mock_base_signal, mock_get_vault_secrets) -> None:
+    def test_balance_success(self, mock_base_signal, mock_get_vault_key) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
@@ -407,9 +395,9 @@ class TestTGIFridays(unittest.TestCase):
         assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_401(self, mock_base_signal, mock_get_vault_secrets) -> None:
+    def test_balance_401(self, mock_base_signal, mock_get_vault_key) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
@@ -425,9 +413,9 @@ class TestTGIFridays(unittest.TestCase):
         assert len(responses.calls._calls) == 1
 
     @responses.activate
-    @mock.patch.object(TGIFridays, "_get_vault_secrets", return_value=RESPONSE_VAULT_SECRETS)
+    @mock.patch("app.agents.tgifridays.get_vault_key", return_value=RESPONSE_VAULT_SECRETS)
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_422(self, mock_base_signal, mock_get_vault_secrets) -> None:
+    def test_balance_422(self, mock_base_signal, mock_get_vault_key) -> None:
         url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,

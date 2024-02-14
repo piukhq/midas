@@ -11,12 +11,10 @@ from requests.models import Response
 from blinker import signal
 from requests import HTTPError
 from soteria.configuration import Configuration
-from tenacity import retry, stop_after_attempt, wait_exponential
-from functools import lru_cache
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.encryption import connect_to_vault
+from app.encryption import get_vault_key
 from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
 from app.reporting import get_logger
 
@@ -50,25 +48,8 @@ class TGIFridays(BaseAgent):
             raise
         return resp
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=3, max=12),
-        reraise=True,
-    )
-    @lru_cache(128)
-    def _get_vault_secrets(self, secret_names: tuple) -> list:
-        secrets = []
-        client = connect_to_vault()
-        try:
-            for secret in secret_names:
-                secrets.append(client.get_secret(secret).value)
-        except Exception:
-            raise
-
-        return secrets
-
     def _get_user_information(self) -> dict:
-        admin_key = self._get_vault_secrets(("tgi-fridays-admin-key",))[0]
+        admin_key = get_vault_key("tgi-fridays-admin-key")
         self.headers.update(
             {
                 "Authorization": f"Bearer {admin_key}",
@@ -82,7 +63,10 @@ class TGIFridays(BaseAgent):
         return resp.json()
 
     def join(self) -> None:
-        client_id, secret = self._get_vault_secrets(("tgi-fridays-client-id", "tgi-fridays-secret"))
+        secrets = get_vault_key("tgi-fridays-secrets")
+        client_id = secrets["client_id"]
+        secret = secrets["secret"]
+
         uri = "api2/mobile/users"
         payload = {
             "client": client_id,
