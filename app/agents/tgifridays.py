@@ -1,4 +1,3 @@
-import decimal
 import hashlib
 import hmac
 import json
@@ -14,7 +13,6 @@ from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.encryption import get_vault_key
 from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
 from app.reporting import get_logger
 
@@ -28,8 +26,8 @@ class TGIFridays(BaseAgent):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
         self.base_url = self.config.merchant_url
         self.credentials = self.user_info["credentials"]
+        self.secrets = self.config.security_credentials["outbound"]["credentials"][0]["value"]
         self._points_balance = Decimal("0")
-        decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # ensures that 0.5's are rounded up
 
     @staticmethod
     def _generate_signature(uri: str, body: dict, secret: str) -> str:
@@ -49,10 +47,9 @@ class TGIFridays(BaseAgent):
         return resp
 
     def _get_user_information(self) -> dict:
-        admin_key = get_vault_key("tgi-fridays-admin-key")
         self.headers.update(
             {
-                "Authorization": f"Bearer {admin_key}",
+                "Authorization": f"Bearer {self.secrets["admin_key"]}",
             }
         )
         resp = self.make_request(
@@ -63,13 +60,9 @@ class TGIFridays(BaseAgent):
         return resp.json()
 
     def join(self) -> None:
-        secrets = get_vault_key("tgi-fridays-secrets")
-        client_id = secrets["client_id"]
-        secret = secrets["secret"]
-
         uri = "api2/mobile/users"
         payload = {
-            "client": client_id,
+            "client": self.secrets["client_id"],
             "user": {
                 "first_name": self.credentials["first_name"],
                 "last_name": self.credentials["last_name"],
@@ -84,7 +77,7 @@ class TGIFridays(BaseAgent):
                 "Content-Type": "application/json",
                 "User-Agent": "bink",
                 "punchh-app-device-id": self._generate_punchh_app_device_id(),
-                "x-pch-digest": self._generate_signature(uri, payload, secret),
+                "x-pch-digest": self._generate_signature(uri, payload, self.secrets["secret"]),
             }
         )
         try:
