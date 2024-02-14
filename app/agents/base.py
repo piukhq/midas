@@ -150,10 +150,7 @@ class BaseAgent(object):
             if isinstance(data, dict):
                 return data
             else:
-                try:
-                    return json.loads(data)
-                except Exception:
-                    raise
+                return json.loads(data)
         else:
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}
