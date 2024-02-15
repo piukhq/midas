@@ -274,8 +274,11 @@ class TestTGIFridays(unittest.TestCase):
         assert responses.calls._calls[0].request.headers["Authorization"] == "Bearer admin_key"
         assert responses.calls._calls[0].request.body == b'{"user_id": "111111111"}'
 
-        assert mock_base_signal.call_count == 1
-        mock_base_signal.call_args[0][0] == "record-http-request"
+        mock_base_signal.call_args_list = [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+        ]
 
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
@@ -299,8 +302,12 @@ class TestTGIFridays(unittest.TestCase):
 
         self.tgi_fridays.join()
 
-        assert mock_base_signal.call_count == 3
-        assert mock_tgifridays_signal.call_count == 0
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("join-success")]
 
         request = responses.calls._calls[0].request
         assert list(
@@ -316,7 +323,7 @@ class TestTGIFridays(unittest.TestCase):
         ]
         assert (
             request.body
-            == '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", "marketing_email_subscription": true}}'
+            == b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", "marketing_email_subscription": true}}'
         )
 
         assert len(responses.calls._calls) == 1
@@ -345,8 +352,13 @@ class TestTGIFridays(unittest.TestCase):
         with self.assertRaises(AccountAlreadyExistsError):
             self.tgi_fridays.join()
 
-        assert mock_base_signal.call_count == 3
-        assert mock_tgifridays_signal.call_count == 1
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+            mock.call("request-fail"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("join-fail")]
 
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED  # type:ignore
@@ -370,8 +382,13 @@ class TestTGIFridays(unittest.TestCase):
         with self.assertRaises(AccountAlreadyExistsError):
             self.tgi_fridays.join()
 
-        assert mock_base_signal.call_count == 3
-        assert mock_tgifridays_signal.call_count == 1
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+            mock.call("request-fail"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("join-fail")]
 
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL  # type:ignore

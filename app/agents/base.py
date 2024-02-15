@@ -96,7 +96,7 @@ class BaseAgent(object):
 
         self.session = requests_retry_session(retries=self.max_retries)
         self.headers: dict[str, str] = {}
-        self.errors: dict[Exception, int] = {}
+        self.errors: dict[type[BaseError], list[int]] = {}
         self.integration_service = ""
         self.outbound_auth_service: int = Configuration.OAUTH_SECURITY
         self.audit_config: dict[str, Any] = {}
