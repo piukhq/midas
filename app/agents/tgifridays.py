@@ -6,18 +6,10 @@ from typing import Optional
 from urllib.parse import urljoin
 
 from blinker import signal
-from requests import HTTPError
-from requests.models import Response
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
-from app.encryption import hash_ids
-from app.exceptions import (
-    AccountAlreadyExistsError,
-    BaseError,
-    NoSuchRecordError,
-)
 from app.encryption import hash_ids
 from app.exceptions import AccountAlreadyExistsError, BaseError, NoSuchRecordError, StatusLoginFailedError, UnknownError
 from app.reporting import get_logger
@@ -55,7 +47,6 @@ class TGIFridays(BaseAgent):
             resp = self.make_request(
                 urljoin(self.base_url, "api2/dashboard/users/info"),
                 method="get",
-                audit=True,
                 json={"user_id": self.credentials["merchant_identifier"]},
             )
         except BaseError as ex:

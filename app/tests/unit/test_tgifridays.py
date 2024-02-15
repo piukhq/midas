@@ -1,4 +1,5 @@
 import unittest
+from copy import copy
 from decimal import Decimal
 from unittest import mock
 
@@ -49,7 +50,6 @@ USER_INFO = {
     "bink_user_id": "34390",
     "credentials": CREDENTIALS,
     "status": 442,
-    "journey_type": JourneyTypes.JOIN,
     "scheme_account_id": 422678,
     "channel": "com.bink.wallet",
 }
@@ -278,22 +278,28 @@ RESPONSE_LOGIN_ERROR_412 = {
 }
 
 
-class TestTGIFridays(unittest.TestCase):
-    def setUp(self):
-        self.credentials = CREDENTIALS
+def tgi_fridays(journey_type):
+    with mock.patch("app.agents.base.Configuration") as mock_configuration:
+        mock_config_object = mock.MagicMock()
+        mock_config_object.security_credentials = OUTBOUND_SECURITY_CREDENTIALS
+        mock_config_object.integration_service = "SYNC"
+        mock_configuration.return_value = mock_config_object
 
-        with mock.patch("app.agents.base.Configuration") as mock_configuration:
-            mock_config_object = mock.MagicMock()
-            mock_config_object.security_credentials = OUTBOUND_SECURITY_CREDENTIALS
-            mock_config_object.integration_service = "SYNC"
-            mock_configuration.return_value = mock_config_object
-            self.tgi_fridays = TGIFridays(
-                retry_count=1,
-                user_info=USER_INFO,
-                scheme_slug="tgi-fridays",
-            )
-            self.tgi_fridays.base_url = "http://api-reflector/mock/"
-            self.tgi_fridays.max_retries = 0
+        user_info = copy(USER_INFO)
+        user_info["journey_type"] = journey_type
+        tgi_fridays = TGIFridays(
+            retry_count=1,
+            user_info=user_info,
+            scheme_slug="tgi-fridays",
+        )
+        tgi_fridays.base_url = "http://fake.com/"
+        tgi_fridays.max_retries = 0
+        return tgi_fridays
+
+
+class TestTGIFridaysJoin(unittest.TestCase):
+    def setUp(self):
+        self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.JOIN)
 
     def test_generate_signature(self) -> None:
         uri = "api2/mobile/users"
@@ -528,6 +534,11 @@ class TestTGIFridays(unittest.TestCase):
 
         assert len(responses.calls._calls) == 1
 
+
+class TestTGIFridaysLogin(unittest.TestCase):
+    def setUp(self):
+        self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.ADD)
+
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -544,11 +555,12 @@ class TestTGIFridays(unittest.TestCase):
             json=RESPONSE_GET_USER_INFORMATION,
             status=200,
         )
+
         self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 2
-        assert responses.calls._calls[0].response.json() == RESPONSE_LOGIN
-        assert responses.calls._calls[1].response.json() == RESPONSE_GET_USER_INFORMATION
+        assert responses.calls._calls[0].response.json() == RESPONSE_LOGIN  # type:ignore
+        assert responses.calls._calls[1].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
         request = responses.calls._calls[0].request
         assert list(
@@ -585,7 +597,7 @@ class TestTGIFridays(unittest.TestCase):
             status=422,
         )
 
-        with self.assertRaises(StatusLoginFailedError):
+        with pytest.raises(StatusLoginFailedError):
             self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 1
@@ -610,7 +622,7 @@ class TestTGIFridays(unittest.TestCase):
             status=412,
         )
 
-        with self.assertRaises(UnknownError):
+        with pytest.raises(UnknownError):
             self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 1
