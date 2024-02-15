@@ -6,7 +6,7 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any, Optional
 from unittest.mock import MagicMock
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlsplit, urljoin
 from uuid import uuid4
 
 import arrow
@@ -297,6 +297,18 @@ class BaseAgent(object):
             if error_code in agent_error_codes:
                 raise agent_error
         raise unhandled_exception
+
+    def update_hermes_credentials(self) -> None:
+        api_url = urljoin(
+            settings.HERMES_URL,
+            f"schemes/accounts/{self.user_info['scheme_account_id']}/credentials",
+        )
+        headers = {
+            "Content-type": "application/json",
+            "Authorization": "token " + settings.SERVICE_API_KEY,
+            "bink-user-id": str(self.user_info["bink_user_id"]),
+        }
+        requests.put(api_url, data=json.dumps(self.identifier), headers=headers)
 
     def join(self):
         raise NotImplementedError()

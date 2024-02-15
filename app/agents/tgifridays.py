@@ -11,12 +11,9 @@ from soteria.configuration import Configuration
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
-from app.exceptions import (
-    AccountAlreadyExistsError,
-    BaseError,
-    NoSuchRecordError,
-)
+from app.exceptions import AccountAlreadyExistsError, BaseError, NoSuchRecordError, StatusLoginFailedError, UnknownError
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 
 RETRY_LIMIT = 3
 
@@ -51,7 +48,6 @@ class TGIFridays(BaseAgent):
             resp = self.make_request(
                 urljoin(self.base_url, "api2/dashboard/users/info"),
                 method="get",
-                audit=True,
                 json={"user_id": self.credentials["merchant_identifier"]},
             )
         except BaseError as ex:
@@ -99,6 +95,29 @@ class TGIFridays(BaseAgent):
         self.credentials.update(self.identifier)
 
     def login(self) -> None:
+        if self.user_info["journey_type"] == JourneyTypes.ADD:
+            self.errors = {StatusLoginFailedError: [422], UnknownError: [400, 401, 412]}
+            uri = "api2/mobile/users/login"
+            payload = {
+                "client": self.secrets["client_id"],
+                "user": {
+                    "email": self.credentials["email"],
+                    "password": self.credentials["password"],
+                },
+            }
+            self._update_headers(uri, payload)
+            try:
+                resp = self.make_request(
+                    urljoin(self.base_url, uri), method="post", audit=True, data=json.dumps(payload)
+                )
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+            except BaseError as ex:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+                self.handle_error_codes(error_code)
+            self.identifier = {"merchant_identifier": resp.json()["user"]["user_id"]}
+            self.credentials.update(self.identifier)
+
         user_information = self._get_user_information()
         self._points_balance = Decimal(user_information["balance"]["points_balance"])
 
