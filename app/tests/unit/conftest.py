@@ -4,8 +4,6 @@ from http import HTTPStatus
 import httpretty
 import pytest
 
-from app.api import create_app
-
 
 @pytest.fixture
 def mock_europa_request():
@@ -126,20 +124,6 @@ def http_pretty_mock():
         return mock_request
 
     return mock_setup
-
-
-@pytest.fixture
-def client():
-    """Configures the app for testing
-    Can be used to make requests to API end points from unit tests for white box testing
-
-    :return: App for testing
-    """
-    app = create_app()
-    app.config["TESTING"] = True
-    client = app.test_client()
-
-    yield client
 
 
 @pytest.fixture
