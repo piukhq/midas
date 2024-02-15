@@ -635,7 +635,7 @@ class TestTGIFridaysLogin(unittest.TestCase):
         assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-fail")]
 
 
-class TestTGIFridaysLogin(unittest.TestCase):
+class TestTGIFridaysView(unittest.TestCase):
     def setUp(self):
         self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.UPDATE)
 
