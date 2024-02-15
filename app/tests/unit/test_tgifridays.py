@@ -401,10 +401,6 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert self.tgi_fridays.identifier == {"merchant_identifier": 111111111}
         assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
 
-        assert self.tgi_fridays.identifier == {
-            "merchant_identifier": 111111111,
-        }
-
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
@@ -633,3 +629,56 @@ class TestTGIFridaysLogin(unittest.TestCase):
             mock.call("request-fail"),
         ]
         assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-fail")]
+
+
+class TestTGIFridaysView(unittest.TestCase):
+    def setUp(self):
+        self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.UPDATE)
+
+    @responses.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_view_success(
+        self,
+        mock_base_signal,
+    ) -> None:
+        responses.add(
+            responses.GET,
+            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
+            json=RESPONSE_GET_USER_INFORMATION,
+            status=200,
+        )
+
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+        self.tgi_fridays.login()
+        balance = self.tgi_fridays.balance()
+
+        assert balance == Balance(
+            points=Decimal("0"),
+            value=Decimal("0"),
+            value_label="",
+            reward_tier=0,
+            balance=None,
+            vouchers=[],
+        )
+
+        assert len(responses.calls._calls) == 1
+        assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
+
+    @responses.activate
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_view_404(
+        self,
+        mock_base_signal,
+    ) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
+            status=401,
+        )
+
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+
+        with pytest.raises(UnknownError):
+            self.tgi_fridays.login()
+
+        assert len(responses.calls._calls) == 1
