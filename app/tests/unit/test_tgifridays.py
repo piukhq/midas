@@ -9,7 +9,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
-from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError
+from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError, StatusLoginFailedError
 from app.scheme_account import JourneyTypes
 
 CREDENTIALS = {
@@ -213,6 +213,68 @@ RESPONSE_GET_USER_INFORMATION = {
     "communicable_email": "test@example.com",
     "access_token": "ACCESS_TOKEN_GOES_HERE",
     "subscriptions": [{"plan_name": "free burger", "pos_meta": "VIP subs", "subscription_id": 123}],
+}
+
+RESPONSE_LOGIN = {
+    "access_token": {
+        "token": "ACCESS_TOKEN_GOES_HERE",
+        "seconds_to_expire": None,
+        "revoked_at": None,
+        "refresh_token": "REFRESH_TOKEN_GOES_HERE",
+        "scopes": [],
+    },
+    "user": {
+        "address": "",
+        "anniversary": "2013-02-16",
+        "avatar_remote_url": None,
+        "birthday": "1999-01-01",
+        "city": "",
+        "communicable_email": "test@example.com",
+        "created_at": "2019-01-11T09:08:25Z",
+        "email": "test@example.com",
+        "email_verified": False,
+        "facebook_signup": None,
+        "apple_signup": None,
+        "apple_uid": None,
+        "favourite_location_ids": "306082,333070,304374",
+        "favourite_store_numbers": "12345,0604,1234",
+        "fb_uid": None,
+        "first_name": "FIRST_NAME_GOES_HERE",
+        "gender": "",
+        "has_generated_fb_email": False,
+        "last_name": "LAST_NAME_GOES_HERE",
+        "marketing_email_subscription": True,
+        "marketing_pn_subscription": True,
+        "migrate_status": False,
+        "passcode_configured_for_giftcards": False,
+        "phone": "1111111111",
+        "profile_field_answers": {"test1": "Option 1"},
+        "referral_code": "REFERRAL_CODE_GOES_HERE",
+        "referral_path": "URL_GOES_HERE",
+        "secondary_email": "",
+        "state": "",
+        "superuser": False,
+        "terms_and_conditions": True,
+        "title": "",
+        "updated_at": "2020-04-29T04:18:24Z",
+        "user_as_qrcode": "QR_CODE_GOES_HERE",
+        "user_code": "P11111111",
+        "user_id": 111111111,
+        "preferred_locale": "en",
+        "user_relations": [],
+        "zip_code": None,
+        "verification_mode": None,
+        "sms_subscription": False,
+        "apple_pass_url": "APPLE_PASS_URL_GOES_HERE",
+    },
+}
+RESPONSE_LOGIN_ERROR_422 = {"errors": {"invalid_email_password": ["Sorry, Invalid Email/Password."]}}
+RESPONSE_LOGIN_ERROR_412 = {
+    "errors": {
+        "invalid_signature": [
+            "Signature doesn't match. See https://developers.punchh.com/docs/dev-portal-mobile/17c2f8eb39142-generating-x-pch-digest-header-for-mobile-ap-is"
+        ]
+    }
 }
 
 
@@ -465,3 +527,98 @@ class TestTGIFridays(unittest.TestCase):
             self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 1
+
+    @responses.activate
+    @mock.patch("app.agents.tgifridays.signal", autospec=True)
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_success(self, mock_base_signal, mock_tgifridays_signal) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.tgi_fridays.base_url}api2/mobile/users/login",
+            json=RESPONSE_LOGIN,
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
+            json=RESPONSE_GET_USER_INFORMATION,
+            status=200,
+        )
+        self.tgi_fridays.login()
+
+        assert len(responses.calls._calls) == 2
+        assert responses.calls._calls[0].response.json() == RESPONSE_LOGIN
+        assert responses.calls._calls[1].response.json() == RESPONSE_GET_USER_INFORMATION
+
+        request = responses.calls._calls[0].request
+        assert list(
+            map(
+                request.headers.get,
+                ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
+            )
+        ) == [
+            "bink",
+            "application/json",
+            "356a4d07a634113157f73ece6196d060b27d6f7b56c58dba6f897e24dc2742c9",
+            "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
+        ]
+        assert (
+            request.body == '{"client": "client_id", "user": {"email": "johnsmith@test.com", "password": "password"}}'
+        )
+
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+            mock.call("record-http-request"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-success")]
+
+    @responses.activate
+    @mock.patch("app.agents.tgifridays.signal", autospec=True)
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_fail_422(self, mock_base_signal, mock_tgifridays_signal) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.tgi_fridays.base_url}api2/mobile/users/login",
+            json=RESPONSE_LOGIN_ERROR_422,
+            status=422,
+        )
+
+        with self.assertRaises(StatusLoginFailedError):
+            self.tgi_fridays.login()
+
+        assert len(responses.calls._calls) == 1
+
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+            mock.call("request-fail"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-fail")]
+        pass
+
+    @responses.activate
+    @mock.patch("app.agents.tgifridays.signal", autospec=True)
+    @mock.patch("app.agents.base.signal", autospec=True)
+    def test_login_fail_412(self, mock_base_signal, mock_tgifridays_signal) -> None:
+        responses.add(
+            responses.POST,
+            f"{self.tgi_fridays.base_url}api2/mobile/users/login",
+            json=RESPONSE_LOGIN_ERROR_412,
+            status=412,
+        )
+
+        with self.assertRaises(UnknownError):
+            self.tgi_fridays.login()
+
+        assert len(responses.calls._calls) == 1
+
+        assert mock_base_signal.call_args_list == [
+            mock.call("send-audit-request"),
+            mock.call("send-audit-response"),
+            mock.call("record-http-request"),
+            mock.call("request-fail"),
+        ]
+        assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-fail")]

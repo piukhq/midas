@@ -6,6 +6,8 @@ from typing import Optional
 from urllib.parse import urljoin
 
 from blinker import signal
+from requests import HTTPError
+from requests.models import Response
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent
@@ -16,6 +18,8 @@ from app.exceptions import (
     BaseError,
     NoSuchRecordError,
 )
+from app.encryption import hash_ids
+from app.exceptions import AccountAlreadyExistsError, BaseError, NoSuchRecordError, StatusLoginFailedError, UnknownError
 from app.reporting import get_logger
 
 RETRY_LIMIT = 3
@@ -114,6 +118,7 @@ class TGIFridays(BaseAgent):
 
     def login(self) -> None:
         if not self.user_info.get("from_join"):
+            self.errors = {StatusLoginFailedError: [422], UnknownError: [400, 401, 412]}
             uri = "api2/mobile/users/login"
             payload = {
                 "client": self.secrets["client_id"],
@@ -123,7 +128,15 @@ class TGIFridays(BaseAgent):
                 },
             }
             self._update_headers(uri, payload)
-            resp = self.make_request(urljoin(self.base_url, uri), method="post", audit=True, data=json.dumps(payload))
+            try:
+                resp = self.make_request(
+                    urljoin(self.base_url, uri), method="post", audit=True, data=json.dumps(payload)
+                )
+                signal("log-in-success").send(self, slug=self.scheme_slug)
+            except BaseError as ex:
+                signal("log-in-fail").send(self, slug=self.scheme_slug)
+                error_code = ex.exception.response.status_code if ex.exception.response is not None else ex.code
+                self.handle_error_codes(error_code)
             self.identifier = {"merchant_identifier": resp.json()["user"]["user_id"]}
             self.credentials.update(self.identifier)
 
