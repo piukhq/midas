@@ -13,6 +13,7 @@ from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
 from app.exceptions import AccountAlreadyExistsError, BaseError, NoSuchRecordError, StatusLoginFailedError, UnknownError
 from app.reporting import get_logger
+from app.scheme_account import JourneyTypes
 
 RETRY_LIMIT = 3
 
@@ -108,7 +109,7 @@ class TGIFridays(BaseAgent):
         self.credentials.update(self.identifier)
 
     def login(self) -> None:
-        if not self.user_info.get("from_join"):
+        if self.user_info["journey_type"] == JourneyTypes.ADD:
             self.errors = {StatusLoginFailedError: [422], UnknownError: [400, 401, 412]}
             uri = "api2/mobile/users/login"
             payload = {
