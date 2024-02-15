@@ -402,7 +402,6 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
 
         assert self.tgi_fridays.identifier == {
-            "card_number": "4219ccc6-33bc-46f4-a1a9-996a2b3dc53e",
             "merchant_identifier": 111111111,
         }
 

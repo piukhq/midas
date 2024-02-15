@@ -66,20 +66,6 @@ class TGIFridays(BaseAgent):
             }
         )
 
-    def _get_user_information(self) -> dict:
-        admin_key = self._get_vault_secrets(["tgi-fridays-admin-key"])[0]
-        self.headers.update(
-            {
-                "Authorization": f"Bearer {admin_key}",
-            }
-        )
-        resp = self.make_request(
-            urljoin(self.base_url, "api2/dashboard/users/info"),
-            method="get",
-            json={"user_id": self.credentials["merchant_identifier"]},
-        )
-        return resp.json()
-
     def join(self) -> None:
         self.errors = {
             AccountAlreadyExistsError: [422],
