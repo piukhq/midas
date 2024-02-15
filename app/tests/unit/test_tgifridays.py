@@ -401,10 +401,6 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert self.tgi_fridays.identifier == {"merchant_identifier": 111111111}
         assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
 
-        assert self.tgi_fridays.identifier == {
-            "merchant_identifier": 111111111,
-        }
-
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
     @mock.patch("app.agents.base.signal", autospec=True)
