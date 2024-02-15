@@ -18,4 +18,5 @@ AGENTS = {
     "bpl-cortado": "bpl.Bpl",
     "bpl-viator": "bpl.Bpl",
     "stonegate": "stonegate.Stonegate",
+    "tgi-fridays": "tgifridays.TGIFridays",
 }

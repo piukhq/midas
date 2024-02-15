@@ -96,7 +96,7 @@ class BaseAgent(object):
 
         self.session = requests_retry_session(retries=self.max_retries)
         self.headers: dict[str, str] = {}
-        self.errors: dict[Exception, int] = {}
+        self.errors: dict[type[BaseError], list[int]] = {}
         self.integration_service = ""
         self.outbound_auth_service: int = Configuration.OAUTH_SECURITY
         self.audit_config: dict[str, Any] = {}
@@ -137,7 +137,7 @@ class BaseAgent(object):
         )
 
     @staticmethod
-    def get_audit_payload(kwargs, url):
+    def get_audit_payload(kwargs, url) -> dict:
         """
         Instead of changing Atlas and releasing 2 repos make agent
         modifications by overriding this method. Ensure you don't
@@ -146,7 +146,11 @@ class BaseAgent(object):
         if "json" in kwargs:
             return kwargs["json"]
         elif "data" in kwargs:
-            return kwargs["data"]
+            data = kwargs["data"]
+            if isinstance(data, dict):
+                return data
+            else:
+                return json.loads(data)
         else:
             data = urlsplit(url).query
             return {k: v[0] if len(v) == 1 else v for k, v in parse_qs(data).items()}

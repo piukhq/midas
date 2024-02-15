@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 import arrow
 import httpretty
+import pytest
 from soteria.configuration import Configuration
 
 from app.agents.base import BaseAgent, create_error_response
@@ -16,6 +17,18 @@ class TestBase(TestCase):
         response_json = create_error_response("NOT_SENT", "This is a test error")
 
         self.assertIn("NOT_SENT", response_json)
+
+    def mock_base_agent(self):
+        user_info = {
+            "scheme_account_id": 194,
+            "status": "",
+            "channel": "com.bink.wallet",
+            "journey_type": JourneyTypes.JOIN,
+            "credentials": {},
+        }
+        with mock.patch("app.agents.base.Configuration"):
+            base_agent = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        return base_agent
 
     @mock.patch("app.agents.base.Configuration")
     @mock.patch.object(BaseAgent, "join")
@@ -33,21 +46,14 @@ class TestBase(TestCase):
         self.assertTrue(mocked_join.called)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.requests_retry.Retry")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry, mock_config):
+    def test_make_request_fail_with_agenterror_calls_signals(self, mock_signal, mock_retry):
         """
         Check that correct params are passed to the signals for an unsuccessful (AgentError) request
         """
         # GIVEN
-        user_info = {
-            "scheme_account_id": 194,
-            "status": "",
-            "channel": "com.bink.wallet",
-            "journey_type": JourneyTypes.LINK.value,
-        }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        m = self.mock_base_agent()
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -88,20 +94,13 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal, mock_config):
+    def test_make_request_fail_with_loginerror_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (LoginError) request
         """
         # GIVEN
-        user_info = {
-            "scheme_account_id": 194,
-            "status": "",
-            "channel": "com.bink.wallet",
-            "journey_type": JourneyTypes.LINK.value,
-        }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        m = self.mock_base_agent()
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -133,20 +132,13 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_timeout_calls_signals(self, mock_signal, mock_config):
+    def test_make_request_fail_with_timeout_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (Timeout) request
         """
         # GIVEN
-        user_info = {
-            "scheme_account_id": 194,
-            "status": "",
-            "channel": "com.bink.wallet",
-            "journey_type": JourneyTypes.LINK.value,
-        }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        m = self.mock_base_agent()
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -187,20 +179,13 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal, mock_config):
+    def test_make_request_fail_with_unauthorized_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (unauthorized) request
         """
         # GIVEN
-        user_info = {
-            "scheme_account_id": 194,
-            "status": "",
-            "channel": "com.bink.wallet",
-            "journey_type": JourneyTypes.LINK.value,
-        }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        m = self.mock_base_agent()
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -241,20 +226,13 @@ class TestBase(TestCase):
         mock_signal.assert_has_calls(expected_calls)
 
     @httpretty.activate
-    @mock.patch("app.agents.base.Configuration")
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal, mock_config):
+    def test_make_request_fail_with_forbidden_calls_signals(self, mock_signal):
         """
         Check that correct params are passed to the signals for an unsuccessful (forbidden) request
         """
         # GIVEN
-        user_info = {
-            "scheme_account_id": 194,
-            "status": "",
-            "channel": "com.bink.wallet",
-            "journey_type": JourneyTypes.LINK.value,
-        }
-        m = BaseAgent(0, user_info, Configuration.JOIN_HANDLER, "test-agent")
+        m = self.mock_base_agent()
         m.base_url = "http://fake.com"
         ctcid = "54321"
         api_path = "/api/Contact/AddMemberNumber"
@@ -286,19 +264,8 @@ class TestBase(TestCase):
         # THEN
         mock_signal.assert_has_calls(expected_calls)
 
-    @mock.patch("app.agents.base.Configuration")
-    def test_handle_errors_raises_exception(self, mock_config):
-        agent = BaseAgent(
-            retry_count=0,
-            user_info={
-                "scheme_account_id": 194,
-                "status": "",
-                "channel": "com.bink.wallet",
-                "journey_type": JourneyTypes.LINK.value,
-            },
-            config_handler_type=Configuration.JOIN_HANDLER,
-            scheme_slug="test-agent",
-        )
+    def test_handle_errors_raises_exception(self):
+        agent = self.mock_base_agent()
         agent.errors = {
             GeneralError: "GENERAL_ERROR",
         }
@@ -307,19 +274,8 @@ class TestBase(TestCase):
         self.assertEqual("General error", e.exception.name)
         self.assertEqual(439, e.exception.code)
 
-    @mock.patch("app.agents.base.Configuration")
-    def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self, mock_config):
-        agent = BaseAgent(
-            retry_count=0,
-            user_info={
-                "scheme_account_id": 194,
-                "status": "",
-                "channel": "com.bink.wallet",
-                "journey_type": JourneyTypes.LINK.value,
-            },
-            config_handler_type=Configuration.JOIN_HANDLER,
-            scheme_slug="test-agent",
-        )
+    def test_handle_errors_raises_exception_if_not_in_agent_self_errors(self):
+        agent = self.mock_base_agent()
         agent.errors = {
             GeneralError: "GENERAL_ERROR",
         }
@@ -328,24 +284,12 @@ class TestBase(TestCase):
         self.assertEqual("Unknown error", e.exception.name)
         self.assertEqual(520, e.exception.code)
 
-    @mock.patch("app.agents.base.Configuration")
-    def test_token_store_legacy_token_with_timestamp_as_list(self, mock_config):
+    def test_token_store_legacy_token_with_timestamp_as_list(self):
         """
         Some old Iceland tokens stored in the redis cache contained a timestamp value in a list
         This test checks that we can obtain the timestamp from the list without raising a TypeError
         """
-        base_agent = BaseAgent(
-            retry_count=0,
-            user_info={
-                "scheme_account_id": 194,
-                "status": "",
-                "channel": "com.bink.wallet",
-                "journey_type": JourneyTypes.LINK.value,
-            },
-            config_handler_type=Configuration.UPDATE_HANDLER,
-            scheme_slug="test-agent",
-        )
-
+        base_agent = self.mock_base_agent()
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
 
@@ -355,19 +299,8 @@ class TestBase(TestCase):
 
         self.assertTrue(result)
 
-    @mock.patch("app.agents.base.Configuration")
-    def test_token_is_valid_success(self, mock_config):
-        base_agent = BaseAgent(
-            retry_count=0,
-            user_info={
-                "scheme_account_id": 194,
-                "status": "",
-                "channel": "com.bink.wallet",
-                "journey_type": JourneyTypes.LINK.value,
-            },
-            config_handler_type=Configuration.UPDATE_HANDLER,
-            scheme_slug="test-agent",
-        )
+    def test_token_is_valid_success(self):
+        base_agent = self.mock_base_agent()
         base_agent.oauth_token_timeout = 3599
         current_timestamp = arrow.utcnow().int_timestamp
         cached_token = {"iceland_bonus_card_access_token": "abcde12345fghij", "timestamp": current_timestamp - 1000}
@@ -376,19 +309,8 @@ class TestBase(TestCase):
 
         self.assertTrue(result)
 
-    @mock.patch("app.agents.base.Configuration")
-    def test_remove_unique_data_from_endpoint(self, endpoint):
-        base_agent = BaseAgent(
-            retry_count=0,
-            user_info={
-                "scheme_account_id": 194,
-                "status": "",
-                "channel": "com.bink.wallet",
-                "journey_type": JourneyTypes.LINK.value,
-            },
-            config_handler_type=Configuration.UPDATE_HANDLER,
-            scheme_slug="test-agent",
-        )
+    def test_remove_unique_data_from_endpoint(self):
+        base_agent = self.mock_base_agent()
         unique_data = "1234567"
         endpoint = f"/loyalty/viator/accounts/{unique_data}"
         expected = "/loyalty/viator/accounts/unique-data"
@@ -396,3 +318,105 @@ class TestBase(TestCase):
         result = base_agent._remove_unique_data_in_path(endpoint, unique_data)
 
         self.assertEqual(result, expected)
+
+    def test_get_audit_payload_json(self) -> None:
+        kwargs = {
+            "json": {
+                "client": "client_id",
+                "user": {
+                    "first_name": "John",
+                    "last_name": "Smith",
+                    "email": "johnsmith@test.com",
+                    "password": "password",
+                    "password_confirmation": "password",
+                    "marketing_email_subscription": "true",
+                },
+            }
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_json_str(self) -> None:
+        kwargs = {
+            "data": '{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
+            '"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
+            '"marketing_email_subscription": "true"}}'
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_data_dict(self) -> None:
+        kwargs = {
+            "data": {
+                "client": "client_id",
+                "user": {
+                    "first_name": "John",
+                    "last_name": "Smith",
+                    "email": "johnsmith@test.com",
+                    "password": "password",
+                    "password_confirmation": "password",
+                    "marketing_email_subscription": "true",
+                },
+            }
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_bytes(self) -> None:
+        kwargs = {
+            "data": b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": '
+            b'"johnsmith@test.com", "password": "password", "password_confirmation": "password", '
+            b'"marketing_email_subscription": "true"}}'
+        }
+        base_agent = self.mock_base_agent()
+        data = base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
+        assert data == {
+            "client": "client_id",
+            "user": {
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "johnsmith@test.com",
+                "password": "password",
+                "password_confirmation": "password",
+                "marketing_email_subscription": "true",
+            },
+        }
+
+    def test_get_audit_payload_tuple(self) -> None:
+        kwargs = {"data": ("the", "wrong", "format")}
+        base_agent = self.mock_base_agent()
+        with pytest.raises(TypeError):
+            base_agent.get_audit_payload(kwargs, "http://bink_test_endpoint.com")
