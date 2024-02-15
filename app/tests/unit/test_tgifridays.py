@@ -2,6 +2,7 @@ import unittest
 from decimal import Decimal
 from unittest import mock
 
+import pytest
 import responses
 from soteria.configuration import Configuration
 
@@ -267,12 +268,12 @@ class TestTGIFridays(unittest.TestCase):
             json=RESPONSE_GET_USER_INFORMATION,
             status=200,
         )
-        self.credentials["merchant_identifier"] = "111111111"
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
         resp = self.tgi_fridays._get_user_information()
 
         assert resp == RESPONSE_GET_USER_INFORMATION
         assert responses.calls._calls[0].request.headers["Authorization"] == "Bearer admin_key"
-        assert responses.calls._calls[0].request.body == b'{"user_id": "111111111"}'
+        assert responses.calls._calls[0].request.body == b'{"user_id": 111111111}'
 
         mock_base_signal.call_args_list = [
             mock.call("send-audit-request"),
@@ -329,9 +330,8 @@ class TestTGIFridays(unittest.TestCase):
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
-        assert self.tgi_fridays.identifier == {
-            "merchant_identifier": 111111111,
-        }
+        assert self.tgi_fridays.identifier == {"merchant_identifier": 111111111}
+        assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
 
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
@@ -341,15 +341,14 @@ class TestTGIFridays(unittest.TestCase):
         mock_base_signal,
         mock_tgifridays_signal,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
             responses.POST,
-            url,
+            url=f"{self.tgi_fridays.base_url}api2/mobile/users",
             json=RESPONSE_SIGN_UP_REGISTER_ERROR_422_DEVICE_ALREADY_SHARED,
             status=422,
         )
 
-        with self.assertRaises(AccountAlreadyExistsError):
+        with pytest.raises(AccountAlreadyExistsError):
             self.tgi_fridays.join()
 
         assert mock_base_signal.call_args_list == [
@@ -371,15 +370,14 @@ class TestTGIFridays(unittest.TestCase):
         mock_base_signal,
         mock_tgifridays_signal,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/mobile/users"
         responses.add(
             responses.POST,
-            url,
+            url=f"{self.tgi_fridays.base_url}api2/mobile/users",
             json=RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL,
             status=422,
         )
 
-        with self.assertRaises(AccountAlreadyExistsError):
+        with pytest.raises(AccountAlreadyExistsError):
             self.tgi_fridays.join()
 
         assert mock_base_signal.call_args_list == [
@@ -395,19 +393,19 @@ class TestTGIFridays(unittest.TestCase):
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_success(
+    def test_balance_from_join_success(
         self,
         mock_base_signal,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
-            url,
+            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
             json=RESPONSE_GET_USER_INFORMATION,
             status=200,
         )
 
-        self.credentials["merchant_identifier"] = "111111111"
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+        self.tgi_fridays.user_info["from_join"] = True
         self.tgi_fridays.login()
         balance = self.tgi_fridays.balance()
 
@@ -425,40 +423,40 @@ class TestTGIFridays(unittest.TestCase):
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_401(
+    def test_balance_from_join_401(
         self,
         mock_base_signal,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
-            url,
+            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
             status=401,
         )
 
-        self.credentials["merchant_identifier"] = "111111111"
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+        self.tgi_fridays.user_info["from_join"] = True
 
-        with self.assertRaises(UnknownError):
+        with pytest.raises(UnknownError):
             self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 1
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_422(
+    def test_balance_from_join_422(
         self,
         mock_base_signal,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
         responses.add(
             responses.GET,
-            url,
+            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
             status=404,
         )
 
-        self.credentials["merchant_identifier"] = "111111111"
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+        self.tgi_fridays.user_info["from_join"] = True
 
-        with self.assertRaises(NoSuchRecordError):
+        with pytest.raises(NoSuchRecordError):
             self.tgi_fridays.login()
 
         assert len(responses.calls._calls) == 1
