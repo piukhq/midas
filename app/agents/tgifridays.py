@@ -27,6 +27,9 @@ class TGIFridays(BaseAgent):
         self.credentials = self.user_info["credentials"]
         self.secrets = self.config.security_credentials["outbound"]["credentials"][0]["value"]
         self._points_balance = Decimal("0")
+        self.audit_config = {
+            "audit_sensitive_keys": ["client", "password_confirmation"],
+        }
 
     @staticmethod
     def _generate_signature(uri: str, body: dict, secret: str) -> str:
