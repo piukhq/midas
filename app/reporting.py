@@ -59,7 +59,6 @@ def sanitise_json(data: MutableMapping, sensitive_keys: list):
             data[k] = sanitise_json(v, sensitive_keys)
         # if `k` isn't sensitive but it is a list, sanitise all mappings in that list.
         elif isinstance(v, list):
-            # data[k] = [sanitise_json(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
             data[k] = []
             for item in v:
                 if isinstance(item, MutableMapping):
