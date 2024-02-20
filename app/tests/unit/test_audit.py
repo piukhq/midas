@@ -45,6 +45,7 @@ class TestAudit(unittest.TestCase):
                     "pw": "1234567890",
                     "another safe one": "i'll still be around",
                 },
+                "just a string",
             ],
         }
         expected = {
@@ -63,6 +64,7 @@ class TestAudit(unittest.TestCase):
                     "pw": standin,
                     "another safe one": "i'll still be around",
                 },
+                "just a string",
             ],
         }
 

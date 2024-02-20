@@ -59,7 +59,15 @@ def sanitise_json(data: MutableMapping, sensitive_keys: list):
             data[k] = sanitise_json(v, sensitive_keys)
         # if `k` isn't sensitive but it is a list, sanitise all mappings in that list.
         elif isinstance(v, list):
-            data[k] = [sanitise_json(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
+            # data[k] = [sanitise_json(item, sensitive_keys) for item in v if isinstance(item, MutableMapping)]
+            data[k] = []
+            for item in v:
+                if isinstance(item, MutableMapping):
+                    data[k].append(sanitise_json(item, sensitive_keys))
+                else:
+                    # Make sure that there is no sensitive info in this list!
+                    # Override get_audit_payload in the agent if there is.
+                    data[k].append(item)
     return data
 
 
