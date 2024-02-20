@@ -1,6 +1,6 @@
 import json
 import unittest
-from copy import copy, deepcopy
+from copy import copy
 from decimal import Decimal
 from unittest import mock
 
@@ -412,7 +412,7 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert sign_up_call.response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
         audit_response_call = responses.calls._calls[2]
-        sensored_response_sign_up = deepcopy(RESPONSE_SIGN_UP_REGISTER)
+        sensored_response_sign_up = copy(RESPONSE_SIGN_UP_REGISTER)
         sensored_response_sign_up["access_token"]["token"] = "********"  # type:ignore
         assert json.loads(audit_response_call.request.body)["audit_logs"][0]["payload"] == sensored_response_sign_up  # type:ignore
 
@@ -604,7 +604,7 @@ class TestTGIFridaysLogin(unittest.TestCase):
         assert login_call.response.json() == RESPONSE_LOGIN  # type:ignore
 
         audit_response_call = responses.calls._calls[2]
-        sensored_response_login = deepcopy(RESPONSE_LOGIN)
+        sensored_response_login = copy(RESPONSE_LOGIN)
         sensored_response_login["access_token"]["token"] = "********"  # type:ignore
         assert json.loads(audit_response_call.request.body)["audit_logs"][0]["payload"] == sensored_response_login  # type:ignore
 
