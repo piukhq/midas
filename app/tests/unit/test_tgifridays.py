@@ -532,7 +532,7 @@ class TestTGIFridaysJoin(unittest.TestCase):
 
 class TestTGIFridaysLogin(unittest.TestCase):
     def setUp(self):
-        self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.ADD)
+        self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.LINK)
 
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)

@@ -95,7 +95,7 @@ class TGIFridays(BaseAgent):
         self.credentials.update(self.identifier)
 
     def login(self) -> None:
-        if self.user_info["journey_type"] == JourneyTypes.ADD:
+        if self.user_info["journey_type"] == JourneyTypes.LINK:
             self.errors = {StatusLoginFailedError: [422], UnknownError: [400, 401, 412]}
             uri = "api2/mobile/users/login"
             payload = {
