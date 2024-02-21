@@ -283,8 +283,6 @@ RESPONSE_LOGIN_ERROR_412 = {
     }
 }
 
-settings.PUSH_PROMETHEUS_METRICS = False
-
 
 def tgi_fridays(journey_type):
     with mock.patch("app.agents.base.Configuration") as mock_configuration:
@@ -361,6 +359,7 @@ class TestTGIFridaysJoin(unittest.TestCase):
     def test_join_happy_path(
         self,
     ) -> None:
+        settings.PUSH_PROMETHEUS_METRICS = False
         responses.add(
             responses.POST,
             f"{settings.ATLAS_URL}/audit/membership/",
@@ -556,6 +555,7 @@ class TestTGIFridaysLogin(unittest.TestCase):
     def test_login_success(
         self,
     ) -> None:
+        settings.PUSH_PROMETHEUS_METRICS = False
         responses.add(
             responses.POST,
             f"{settings.ATLAS_URL}/audit/membership/",

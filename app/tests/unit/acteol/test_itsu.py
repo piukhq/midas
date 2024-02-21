@@ -263,6 +263,11 @@ class TestItsu(unittest.TestCase):
     @patch("app.agents.itsu.signal", autospec=True)
     @patch("app.agents.itsu.Itsu.authenticate")
     def test_login_invalid_card_number(self, mock_authenticate, mock_signal, mock_requests_retry_session):
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=f"{settings.ATLAS_URL}/audit/membership/",
+            status=HTTPStatus.OK,
+        )
         mock_authenticate.return_value = self.mock_token
         self.itsu.credentials = {"card_number": "12345"}
         httpretty.register_uri(

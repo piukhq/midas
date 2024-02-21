@@ -11,6 +11,7 @@ import httpretty
 import pytest
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.acteol import Wasabi
 from app.agents.schemas import Balance, Transaction, Voucher
 from app.exceptions import (
@@ -396,6 +397,11 @@ class TestWasabi(unittest.TestCase):
             httpretty.POST,
             api_url,
             responses=[httpretty.Response(body=json.dumps({"CtcID": zero_ctcid}))],
+            status=HTTPStatus.OK,
+        )
+        httpretty.register_uri(
+            httpretty.POST,
+            uri=f"{settings.ATLAS_URL}/audit/membership/",
             status=HTTPStatus.OK,
         )
         # WHEN

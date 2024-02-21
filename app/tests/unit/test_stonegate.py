@@ -8,6 +8,7 @@ import httpretty
 import pytest
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.stonegate import Stonegate
 from app.exceptions import AccountAlreadyExistsError, JoinError
 from app.scheme_account import JourneyTypes
@@ -150,11 +151,14 @@ def stonegate():
 @mock.patch("app.agents.stonegate.Stonegate.authenticate")
 @mock.patch("app.agents.stonegate.signal", autospec=True)
 def test_create_account_200(mock_signal, mock_authenticate, stonegate):
-    details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
-    export_url = urljoin(stonegate.base_url, "api/Customer/Post")
     httpretty.register_uri(
         httpretty.POST,
-        uri=details_url,
+        uri=f"{settings.ATLAS_URL}/audit/membership/",
+        status=HTTPStatus.OK,
+    )
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails"),
         status=HTTPStatus.OK,
         responses=[
             httpretty.Response(
@@ -165,7 +169,7 @@ def test_create_account_200(mock_signal, mock_authenticate, stonegate):
     )
     httpretty.register_uri(
         httpretty.POST,
-        uri=export_url,
+        uri=urljoin(stonegate.base_url, "api/Customer/Post"),
         status=HTTPStatus.OK,
         responses=[
             httpretty.Response(
@@ -186,6 +190,11 @@ def test_create_account_200(mock_signal, mock_authenticate, stonegate):
 @mock.patch("app.agents.stonegate.Stonegate.authenticate")
 @mock.patch("app.agents.stonegate.signal", autospec=True)
 def test_create_account_already_exists(mock_signal, mock_authenticate, mock_handle_error, stonegate):
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=f"{settings.ATLAS_URL}/audit/membership/",
+        status=HTTPStatus.OK,
+    )
     details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
     httpretty.register_uri(
         httpretty.POST,
@@ -208,6 +217,11 @@ def test_create_account_already_exists(mock_signal, mock_authenticate, mock_hand
 @mock.patch("app.agents.stonegate.Stonegate.authenticate")
 @mock.patch("app.agents.stonegate.signal", autospec=True)
 def test_create_account_fails_generic_exception(mock_signal, mock_authenticate, mock_handle_error, stonegate):
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=f"{settings.ATLAS_URL}/audit/membership/",
+        status=HTTPStatus.OK,
+    )
     details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
     httpretty.register_uri(
         httpretty.POST,
@@ -230,6 +244,11 @@ def test_create_account_fails_generic_exception(mock_signal, mock_authenticate, 
 @mock.patch("app.agents.stonegate.Stonegate.authenticate")
 @mock.patch("app.agents.stonegate.signal", autospec=True)
 def test_create_account_no_member_number_returned(mock_signal, mock_authenticate, mock_handle_error, stonegate):
+    httpretty.register_uri(
+        httpretty.POST,
+        uri=f"{settings.ATLAS_URL}/audit/membership/",
+        status=HTTPStatus.OK,
+    )
     details_url = urljoin(stonegate.base_url, "api/Customer/FindCustomerDetails")
     export_url = urljoin(stonegate.base_url, "api/Customer/Post")
     httpretty.register_uri(
