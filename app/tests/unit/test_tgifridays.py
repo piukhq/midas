@@ -1,3 +1,4 @@
+import json
 import unittest
 from copy import copy
 from decimal import Decimal
@@ -10,7 +11,12 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
-from app.exceptions import AccountAlreadyExistsError, NoSuchRecordError, UnknownError, StatusLoginFailedError
+from app.exceptions import (
+    AccountAlreadyExistsError,
+    NoSuchRecordError,
+    StatusLoginFailedError,
+    UnknownError,
+)
 from app.scheme_account import JourneyTypes
 
 CREDENTIALS = {
@@ -277,6 +283,8 @@ RESPONSE_LOGIN_ERROR_412 = {
     }
 }
 
+settings.PUSH_PROMETHEUS_METRICS = False
+
 
 def tgi_fridays(journey_type):
     with mock.patch("app.agents.base.Configuration") as mock_configuration:
@@ -350,38 +358,43 @@ class TestTGIFridaysJoin(unittest.TestCase):
         ]
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.signal", autospec=True)
-    @mock.patch("app.agents.base.signal", autospec=True)
     def test_join_happy_path(
         self,
-        mock_base_signal,
-        mock_tgifridays_signal,
     ) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=200,
+        )
         responses.add(
             responses.POST,
             f"{self.tgi_fridays.base_url}api2/mobile/users",
             json=RESPONSE_SIGN_UP_REGISTER,
             status=200,
         )
-        responses.add(
-            responses.PUT,
-            f"{settings.HERMES_URL}/schemes/accounts/{self.tgi_fridays.user_info['scheme_account_id']}/credentials",
-            status=200,
-        )
 
         self.tgi_fridays.join()
 
-        assert mock_base_signal.call_args_list == [
-            mock.call("send-audit-request"),
-            mock.call("send-audit-response"),
-            mock.call("record-http-request"),
-        ]
-        assert mock_tgifridays_signal.call_args_list == [mock.call("join-success")]
+        assert len(responses.calls._calls) == 3
 
-        request = responses.calls._calls[0].request
+        audit_request_call = responses.calls._calls[0]
+        assert json.loads(audit_request_call.request.body)["audit_logs"][0]["payload"] == {  # type:ignore
+            "client": "********",
+            "url": "http://fake.com/api2/mobile/users",
+            "user": {
+                "email": "johnsmith@test.com",
+                "first_name": "John",
+                "last_name": "Smith",
+                "marketing_email_subscription": True,
+                "password": "********",
+                "password_confirmation": "********",
+            },
+        }
+
+        sign_up_call = responses.calls._calls[1]
         assert list(
             map(
-                request.headers.get,
+                sign_up_call.request.headers.get,
                 ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
             )
         ) == [
@@ -391,12 +404,17 @@ class TestTGIFridaysJoin(unittest.TestCase):
             "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
         ]
         assert (
-            request.body
-            == b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", "email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", "marketing_email_subscription": true}}'
+            sign_up_call.request.body
+            == b'{"client": "client_id", "user": {"first_name": "John", "last_name": "Smith", '
+            b'"email": "johnsmith@test.com", "password": "password", "password_confirmation": "password", '
+            b'"marketing_email_subscription": true}}'
         )
+        assert sign_up_call.response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
 
-        assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER  # type:ignore
+        audit_response_call = responses.calls._calls[2]
+        sensored_response_sign_up = copy(RESPONSE_SIGN_UP_REGISTER)
+        sensored_response_sign_up["access_token"]["token"] = "********"  # type:ignore
+        assert json.loads(audit_response_call.request.body)["audit_logs"][0]["payload"] == sensored_response_sign_up  # type:ignore
 
         assert self.tgi_fridays.identifier == {"merchant_identifier": 111111111}
         assert self.tgi_fridays.credentials["merchant_identifier"] == 111111111
@@ -535,9 +553,14 @@ class TestTGIFridaysLogin(unittest.TestCase):
         self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.LINK)
 
     @responses.activate
-    @mock.patch("app.agents.tgifridays.signal", autospec=True)
-    @mock.patch("app.agents.base.signal", autospec=True)
-    def test_login_success(self, mock_base_signal, mock_tgifridays_signal) -> None:
+    def test_login_success(
+        self,
+    ) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.ATLAS_URL}/audit/membership/",
+            status=200,
+        )
         responses.add(
             responses.POST,
             f"{self.tgi_fridays.base_url}api2/mobile/users/login",
@@ -553,14 +576,19 @@ class TestTGIFridaysLogin(unittest.TestCase):
 
         self.tgi_fridays.login()
 
-        assert len(responses.calls._calls) == 2
-        assert responses.calls._calls[0].response.json() == RESPONSE_LOGIN  # type:ignore
-        assert responses.calls._calls[1].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
+        assert len(responses.calls._calls) == 4
 
-        request = responses.calls._calls[0].request
+        audit_request_call = responses.calls._calls[0]
+        assert json.loads(audit_request_call.request.body)["audit_logs"][0]["payload"] == {  # type:ignore
+            "client": "********",
+            "user": {"email": "johnsmith@test.com", "password": "********"},
+            "url": "http://fake.com/api2/mobile/users/login",
+        }
+
+        login_call = responses.calls._calls[1]
         assert list(
             map(
-                request.headers.get,
+                login_call.request.headers.get,
                 ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
             )
         ) == [
@@ -570,16 +598,19 @@ class TestTGIFridaysLogin(unittest.TestCase):
             "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
         ]
         assert (
-            request.body == '{"client": "client_id", "user": {"email": "johnsmith@test.com", "password": "password"}}'
+            login_call.request.body
+            == '{"client": "client_id", "user": {"email": "johnsmith@test.com", "password": "password"}}'
         )
+        assert login_call.response.json() == RESPONSE_LOGIN  # type:ignore
 
-        assert mock_base_signal.call_args_list == [
-            mock.call("send-audit-request"),
-            mock.call("send-audit-response"),
-            mock.call("record-http-request"),
-            mock.call("record-http-request"),
-        ]
-        assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-success")]
+        audit_response_call = responses.calls._calls[2]
+        sensored_response_login = copy(RESPONSE_LOGIN)
+        sensored_response_login["access_token"]["token"] = "********"  # type:ignore
+        assert json.loads(audit_response_call.request.body)["audit_logs"][0]["payload"] == sensored_response_login  # type:ignore
+
+        user_info_call = responses.calls._calls[3]
+        assert user_info_call.request.body == b'{"user_id": 111111111}'
+        assert user_info_call.response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
