@@ -11,12 +11,7 @@ from soteria.configuration import Configuration
 import settings
 from app.agents.schemas import Balance
 from app.agents.tgifridays import TGIFridays
-from app.exceptions import (
-    AccountAlreadyExistsError,
-    NoSuchRecordError,
-    StatusLoginFailedError,
-    UnknownError,
-)
+from app.exceptions import AccountAlreadyExistsError, StatusLoginFailedError, UnknownError
 from app.scheme_account import JourneyTypes
 
 CREDENTIALS = {
@@ -506,46 +501,6 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
-    @responses.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_from_join_401(
-        self,
-        mock_base_signal,
-    ) -> None:
-        responses.add(
-            responses.GET,
-            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
-            status=401,
-        )
-
-        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
-        self.tgi_fridays.user_info["from_join"] = True
-
-        with pytest.raises(UnknownError):
-            self.tgi_fridays.login()
-
-        assert len(responses.calls._calls) == 1
-
-    @responses.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_from_join_422(
-        self,
-        mock_base_signal,
-    ) -> None:
-        responses.add(
-            responses.GET,
-            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
-            status=404,
-        )
-
-        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
-        self.tgi_fridays.user_info["from_join"] = True
-
-        with pytest.raises(NoSuchRecordError):
-            self.tgi_fridays.login()
-
-        assert len(responses.calls._calls) == 1
-
 
 class TestTGIFridaysLogin(unittest.TestCase):
     def setUp(self):
@@ -567,16 +522,10 @@ class TestTGIFridaysLogin(unittest.TestCase):
             json=RESPONSE_LOGIN,
             status=200,
         )
-        responses.add(
-            responses.GET,
-            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
-            json=RESPONSE_GET_USER_INFORMATION,
-            status=200,
-        )
 
         self.tgi_fridays.login()
 
-        assert len(responses.calls._calls) == 4
+        assert len(responses.calls._calls) == 3
 
         audit_request_call = responses.calls._calls[0]
         assert json.loads(audit_request_call.request.body)["audit_logs"][0]["payload"] == {  # type:ignore
@@ -607,10 +556,6 @@ class TestTGIFridaysLogin(unittest.TestCase):
         sensored_response_login = copy(RESPONSE_LOGIN)
         sensored_response_login["access_token"]["token"] = "********"  # type:ignore
         assert json.loads(audit_response_call.request.body)["audit_logs"][0]["payload"] == sensored_response_login  # type:ignore
-
-        user_info_call = responses.calls._calls[3]
-        assert user_info_call.request.body == b'{"user_id": 111111111}'
-        assert user_info_call.response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
     @responses.activate
     @mock.patch("app.agents.tgifridays.signal", autospec=True)
@@ -662,13 +607,13 @@ class TestTGIFridaysLogin(unittest.TestCase):
         assert mock_tgifridays_signal.call_args_list == [mock.call("log-in-fail")]
 
 
-class TestTGIFridaysView(unittest.TestCase):
+class TestTGIFridaysBalance(unittest.TestCase):
     def setUp(self):
         self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.UPDATE)
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_view_success(
+    def test_balance_success(
         self,
         mock_base_signal,
     ) -> None:
@@ -680,7 +625,6 @@ class TestTGIFridaysView(unittest.TestCase):
         )
 
         self.tgi_fridays.credentials["merchant_identifier"] = 111111111
-        self.tgi_fridays.login()
         balance = self.tgi_fridays.balance()
 
         assert balance == Balance(
@@ -697,7 +641,7 @@ class TestTGIFridaysView(unittest.TestCase):
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)
-    def test_view_404(
+    def test_balance_404(
         self,
         mock_base_signal,
     ) -> None:
@@ -710,6 +654,6 @@ class TestTGIFridaysView(unittest.TestCase):
         self.tgi_fridays.credentials["merchant_identifier"] = 111111111
 
         with pytest.raises(UnknownError):
-            self.tgi_fridays.login()
+            self.tgi_fridays.balance()
 
         assert len(responses.calls._calls) == 1
