@@ -129,7 +129,7 @@ RESPONSE_GET_USER_INFORMATION = {
         "net_balance": 2,
         "net_debits": 0,
         "pending_points": 0,
-        "points_balance": 0,
+        "points_balance": 25,
         "signup_anniversary_day": "04/04",
         "total_credits": 15,
         "total_debits": "0.0",
@@ -471,36 +471,6 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_SIGN_UP_REGISTER_ERROR_422_EMAIL  # type:ignore
 
-    @responses.activate
-    @mock.patch("app.agents.base.signal", autospec=True)
-    def test_balance_from_join_success(
-        self,
-        mock_base_signal,
-    ) -> None:
-        responses.add(
-            responses.GET,
-            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
-            json=RESPONSE_GET_USER_INFORMATION,
-            status=200,
-        )
-
-        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
-        self.tgi_fridays.user_info["from_join"] = True
-        self.tgi_fridays.login()
-        balance = self.tgi_fridays.balance()
-
-        assert balance == Balance(
-            points=Decimal("0"),
-            value=Decimal("0"),
-            value_label="",
-            reward_tier=0,
-            balance=None,
-            vouchers=[],
-        )
-
-        assert len(responses.calls._calls) == 1
-        assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
-
 
 class TestTGIFridaysLogin(unittest.TestCase):
     def setUp(self):
@@ -628,8 +598,8 @@ class TestTGIFridaysBalance(unittest.TestCase):
         balance = self.tgi_fridays.balance()
 
         assert balance == Balance(
-            points=Decimal("0"),
-            value=Decimal("0"),
+            points=Decimal("25"),
+            value=Decimal("25"),
             value_label="",
             reward_tier=0,
             balance=None,
@@ -638,6 +608,23 @@ class TestTGIFridaysBalance(unittest.TestCase):
 
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
+
+    def test_balance_from_join_success(
+        self,
+    ) -> None:
+        self.tgi_fridays.credentials["merchant_identifier"] = 111111111
+        self.tgi_fridays.user_info["from_join"] = True
+        self.tgi_fridays.login()
+        balance = self.tgi_fridays.balance()
+
+        assert balance == Balance(
+            points=Decimal("0"),
+            value=Decimal("0"),
+            value_label="",
+            reward_tier=0,
+            balance=None,
+            vouchers=[],
+        )
 
     @responses.activate
     @mock.patch("app.agents.base.signal", autospec=True)

@@ -121,8 +121,11 @@ class TGIFridays(BaseAgent):
             self.credentials.update(self.identifier)
 
     def balance(self) -> Optional[Balance]:
-        user_information = self._get_user_information()
-        points_balance = Decimal(user_information["balance"]["points_balance"])
+        if self.user_info.get("from_join"):
+            points_balance = Decimal("0")
+        else:
+            user_information = self._get_user_information()
+            points_balance = Decimal(user_information["balance"]["points_balance"])
         return Balance(
             points=points_balance,
             value=points_balance,
