@@ -25,6 +25,5 @@ COPY --from=build /src/wsgi.py .
 COPY --from=build /src/consumer.py .
 COPY --from=build /src/retry_worker.py .
 
-ENTRYPOINT [ "linkerd-await", "--" ]
 CMD [ "gunicorn", "--workers=2", "--threads=2", "--error-logfile=-", "--logger-class=gunicorn_log_filter.Logger", \
     "--access-logfile=-", "--bind=0.0.0.0:9000", "wsgi:app" ]
