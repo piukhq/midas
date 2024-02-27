@@ -26,7 +26,6 @@ class TGIFridays(BaseAgent):
         self.base_url = self.config.merchant_url
         self.credentials = self.user_info["credentials"]
         self.secrets = self.config.security_credentials["outbound"]["credentials"][0]["value"]
-        self._points_balance = Decimal("0")
         self.audit_config = {
             "audit_sensitive_keys": ["client", "password_confirmation"],
         }
@@ -121,13 +120,15 @@ class TGIFridays(BaseAgent):
             self.identifier = {"merchant_identifier": resp.json()["user"]["user_id"]}
             self.credentials.update(self.identifier)
 
-        user_information = self._get_user_information()
-        self._points_balance = Decimal(user_information["balance"]["points_balance"])
-
     def balance(self) -> Optional[Balance]:
+        if self.user_info.get("from_join"):
+            points_balance = Decimal("0")
+        else:
+            user_information = self._get_user_information()
+            points_balance = Decimal(user_information["balance"]["points_balance"])
         return Balance(
-            points=self._points_balance,
-            value=self._points_balance,
+            points=points_balance,
+            value=points_balance,
             value_label="",
             vouchers=[],
         )
