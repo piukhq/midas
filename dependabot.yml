@@ -1,0 +1,7 @@
+registries:
+  azure-devops:
+    type: python-index
+    url: ${{secrets.AZURE_DEVOPS_URL}}
+    username: jeff
+    password: ${{secrets.AZURE_DEVOPS_PAT}}
+    replaces-base: true
