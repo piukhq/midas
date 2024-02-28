@@ -1,0 +1,15 @@
+version: 2
+registries:
+  azure-devops:
+    type: python-index
+    url: ${{secrets.AZURE_DEVOPS_URL}}
+    token: ${{secrets.AZURE_DEVOPS_PAT}}
+    replaces-base: true
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    assignees:
+      - backwardspy
+      - Mick-Cadac
