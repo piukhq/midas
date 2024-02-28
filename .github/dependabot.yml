@@ -10,6 +10,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    registries:
+      - azure-devops
     assignees:
       - backwardspy
       - Mick-Cadac
