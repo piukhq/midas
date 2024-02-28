@@ -2,7 +2,7 @@ version: 2
 registries:
   azure-devops:
     type: python-index
-    url: ${{secrets.AZURE_DEVOPS_URL}}
+    url: "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple/"
     token: ${{secrets.AZURE_DEVOPS_PAT}}
     replaces-base: true
 updates:
