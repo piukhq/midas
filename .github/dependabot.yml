@@ -3,7 +3,7 @@ registries:
   azure-devops:
     type: python-index
     url: "https://pkgs.dev.azure.com/binkhq/_packaging/binkhq/pypi/simple/"
-    token: ${{secrets.AZURE_DEVOPS_PAT}}
+    token: PAT:${{secrets.AZURE_DEVOPS_PAT}}
     replaces-base: true
 updates:
   - package-ecosystem: "pip"
