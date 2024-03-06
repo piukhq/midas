@@ -1,21 +1,19 @@
 from __future__ import with_statement
 
-import os
-import sys
 from logging.config import fileConfig
 
 from sqlalchemy import create_engine
 
 from alembic import context
 
-sys.path.append(os.getcwd())
+config = context.config
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 import settings  # noqa
 from app.db import Base  # noqa
 from app.models import *  # noqa
-
-# setup default sqlalchemy configuration (loggers et cetera.)
-fileConfig(context.config.config_file_name)
 
 # custom declarative base metadata used in both migration methods below.
 target_metadata = Base.metadata
