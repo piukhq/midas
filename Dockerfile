@@ -19,7 +19,6 @@ WORKDIR /app
 COPY --from=build /src/dist/*.whl .
 RUN pip install *.whl && rm *.whl
 
-COPY --from=build /src/alembic/ ./alembic/
 COPY --from=build /src/alembic.ini .
 COPY --from=build /src/wsgi.py .
 COPY --from=build /src/consumer.py .
