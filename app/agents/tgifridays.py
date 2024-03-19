@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 from decimal import Decimal
+from functools import cache
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -70,6 +71,7 @@ class TGIFridays(BaseAgent):
             }
         )
 
+    @cache
     def dashboard_url(self):
         # The dashboard url is used for balance requests
         config = Configuration(
