@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 from blinker import signal
 from soteria.configuration import Configuration
 
+import settings
 from app.agents.base import BaseAgent
 from app.agents.schemas import Balance, Transaction
 from app.encryption import hash_ids
@@ -23,6 +24,7 @@ log = get_logger("tgi-fridays")
 class TGIFridays(BaseAgent):
     def __init__(self, retry_count, user_info, scheme_slug=None):
         super().__init__(retry_count, user_info, Configuration.JOIN_HANDLER, scheme_slug=scheme_slug)
+        # self.base_url -s the mobile api url required for join and add
         self.base_url = self.config.merchant_url
         self.credentials = self.user_info["credentials"]
         self.secrets = self.config.security_credentials["outbound"]["credentials"][0]["value"]
@@ -48,7 +50,7 @@ class TGIFridays(BaseAgent):
 
         try:
             resp = self.make_request(
-                urljoin(self.base_url, "api2/dashboard/users/info"),
+                urljoin(self.dashboard_url(), "api2/dashboard/users/info"),
                 method="get",
                 json={"user_id": self.credentials["merchant_identifier"]},
             )
@@ -67,6 +69,19 @@ class TGIFridays(BaseAgent):
                 "x-pch-digest": self._generate_signature(uri, payload, self.secrets["secret"]),
             }
         )
+
+    def dashboard_url(self):
+        # The dashboard url is used for balance requests
+        config = Configuration(
+            "tgi-fridays-dashboard",
+            Configuration.JOIN_HANDLER,
+            settings.VAULT_URL,
+            settings.VAULT_TOKEN,
+            settings.CONFIG_SERVICE_URL,
+            settings.AZURE_AAD_TENANT_ID,
+        )
+        # The join task instantiates the class with Acteol config; in case we need them, will not overwrite with pepper
+        return config.merchant_url
 
     def join(self) -> None:
         self.errors = {

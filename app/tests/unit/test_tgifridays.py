@@ -325,12 +325,14 @@ class TestTGIFridaysJoin(unittest.TestCase):
         assert self.tgi_fridays._generate_punchh_app_device_id() == "e25vrke74gx9mwqpz0g6pjy38zo1dq0l"
 
     @responses.activate
+    @mock.patch.object(TGIFridays, "dashboard_url", return_value="https://dashboard-api.test.com/")
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_get_user_information(
         self,
         mock_base_signal,
+        mock_dashboard_url,
     ) -> None:
-        url = f"{self.tgi_fridays.base_url}api2/dashboard/users/info"
+        url = "https://dashboard-api.test.com/api2/dashboard/users/info"
         responses.add(
             responses.GET,
             url,
@@ -349,6 +351,8 @@ class TestTGIFridaysJoin(unittest.TestCase):
             mock.call("send-audit-response"),
             mock.call("record-http-request"),
         ]
+
+        mock_dashboard_url.assert_called_once()
 
     @responses.activate
     def test_join_happy_path(
@@ -582,14 +586,16 @@ class TestTGIFridaysBalance(unittest.TestCase):
         self.tgi_fridays = tgi_fridays(journey_type=JourneyTypes.UPDATE)
 
     @responses.activate
+    @mock.patch.object(TGIFridays, "dashboard_url", return_value="https://dashboard-api.test.com/")
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_balance_success(
         self,
         mock_base_signal,
+        mock_dashboard_url,
     ) -> None:
         responses.add(
             responses.GET,
-            url=f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
+            url="https://dashboard-api.test.com/api2/dashboard/users/info",
             json=RESPONSE_GET_USER_INFORMATION,
             status=200,
         )
@@ -609,6 +615,8 @@ class TestTGIFridaysBalance(unittest.TestCase):
         assert len(responses.calls._calls) == 1
         assert responses.calls._calls[0].response.json() == RESPONSE_GET_USER_INFORMATION  # type:ignore
 
+        mock_dashboard_url.assert_called_once()
+
     def test_balance_from_join_success(
         self,
     ) -> None:
@@ -627,14 +635,16 @@ class TestTGIFridaysBalance(unittest.TestCase):
         )
 
     @responses.activate
+    @mock.patch.object(TGIFridays, "dashboard_url", return_value="https://dashboard-api.test.com/")
     @mock.patch("app.agents.base.signal", autospec=True)
     def test_balance_404(
         self,
         mock_base_signal,
+        mock_dashboard_url,
     ) -> None:
         responses.add(
             responses.GET,
-            f"{self.tgi_fridays.base_url}api2/dashboard/users/info",
+            "https://dashboard-api.test.com/api2/dashboard/users/info",
             status=401,
         )
 
@@ -644,3 +654,5 @@ class TestTGIFridaysBalance(unittest.TestCase):
             self.tgi_fridays.balance()
 
         assert len(responses.calls._calls) == 1
+
+        mock_dashboard_url.assert_called_once()
