@@ -84,7 +84,7 @@ class Squaremeal(BaseAgent):
     def _update_newsletters(self, user_id, consents):
         newsletter_optin = consents[0]["value"]
         user_choice = "true" if newsletter_optin else "false"
-        url = "{}update/newsletters/{}".format(self.base_url, user_id)
+        url = f"{self.base_url}update/newsletters/{user_id}"
         payload = [{"Newsletter": "Weekly restaurants and bars news", "Subscription": user_choice}]
         try:
             self.make_request(url, unique_data=user_id, method="put", json=payload)

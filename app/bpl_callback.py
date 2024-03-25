@@ -26,13 +26,13 @@ def _nop_decorator(*args, **kwargs):
 class JoinCallbackBpl(Resource):
     @view_session
     def post(self, scheme_slug, *, session: db.Session):
-        log.debug("Callback POST request received for scheme {}".format(scheme_slug))
+        log.debug(f"Callback POST request received for scheme {scheme_slug}")
         data = json.loads(request.get_data())
         self.process_join_callback(scheme_slug, data, session)
         return create_response({"success": True})
 
     def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session):
-        log.debug("{} received a callback".format(scheme_slug))
+        log.debug(f"{scheme_slug} received a callback")
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]
 
@@ -67,7 +67,7 @@ class JoinCallbackBpl(Resource):
 
 
 def update_hermes(data, scheme_account_id: int, bink_user_id: str):
-    log.debug("Updating scheme account {} in Hermes".format(scheme_account_id))
+    log.debug(f"Updating scheme account {scheme_account_id} in Hermes")
     identifier = {
         "card_number": data["account_number"],
         "merchant_identifier": data["UUID"],
@@ -77,7 +77,7 @@ def update_hermes(data, scheme_account_id: int, bink_user_id: str):
     headers["bink-user-id"] = bink_user_id
 
     requests.put(
-        "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
+        f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials",
         data=identifier_data,
         headers=headers,
     )

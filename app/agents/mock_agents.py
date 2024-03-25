@@ -231,7 +231,7 @@ class MockAgentIce(MockedMiner):
         return Balance(
             points=self.user_info["points"],
             value=value,
-            value_label="£{}".format(value),
+            value_label=f"£{value}",
         )
 
     def transactions(self) -> list[Transaction]:

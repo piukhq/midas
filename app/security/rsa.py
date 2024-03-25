@@ -28,7 +28,7 @@ class RSA(BaseSecurity):
 
         encoded_request = {
             "json": json.loads(json_data),
-            "headers": {"Authorization": "Signature {}".format(signature), "X-REQ-TIMESTAMP": timestamp},
+            "headers": {"Authorization": f"Signature {signature}", "X-REQ-TIMESTAMP": timestamp},
         }
         return encoded_request
 
@@ -57,7 +57,7 @@ class RSA(BaseSecurity):
 
         self._validate_timestamp(timestamp)
 
-        json_data_with_timestamp = "{}{}".format(json_data, timestamp)
+        json_data_with_timestamp = f"{json_data}{timestamp}"
         try:
             key = CRYPTO_RSA.importKey(self._get_key("merchant_public_key", self.credentials["inbound"]["credentials"]))
         except KeyError as e:
