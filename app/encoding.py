@@ -6,7 +6,7 @@ import arrow
 
 
 class JsonEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj) -> str | float:
         date_format = "YYYY-MM-DD HH:mm:ssZZ"
 
         if isinstance(obj, arrow.Arrow):

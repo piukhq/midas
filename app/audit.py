@@ -83,7 +83,7 @@ class AuditLogger:
         signal("send-audit-response").connect(self.send_response_audit_log)
 
     @staticmethod
-    def get_rpc_mapped_payload(rpc_mapping, params, audit_log_type):
+    def get_rpc_mapped_payload(rpc_mapping, params, audit_log_type) -> dict:
         mapped_payload = {}
         for key, val in rpc_mapping[audit_log_type.value].items():
             try:
