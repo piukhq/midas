@@ -31,7 +31,7 @@ class JoinCallbackBpl(Resource):
         self.process_join_callback(scheme_slug, data, session)
         return create_response({"success": True})
 
-    def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session):
+    def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session) -> None:
         log.debug("{} received a callback".format(scheme_slug))
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]

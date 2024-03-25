@@ -138,7 +138,7 @@ class AuditLogger:
         record_uid: str,
         channel: str,
         audit_config: dict,
-    ):
+    ) -> None:
         timestamp = arrow.utcnow().int_timestamp
         handler_type_str = Configuration.handler_type_as_str(handler_type)
         try:
@@ -170,7 +170,7 @@ class AuditLogger:
         )
         self.send_to_atlas(response_audit_log, audit_config)
 
-    def send_to_atlas(self, audit_log, audit_config):
+    def send_to_atlas(self, audit_log, audit_config) -> None:
         if not settings.AUDIT_EXPORTS:
             log.warning("Atlas audit exports are disabled.")
             return
