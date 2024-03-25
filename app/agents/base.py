@@ -340,13 +340,7 @@ class BaseAgent(object):
         hashed_transactions: list[Transaction] = []
 
         for transaction in transactions:
-            s = "{0}{1}{2}{3}{4}".format(
-                transaction.date,
-                transaction.description,
-                transaction.points,
-                self.scheme_id,
-                transaction.location if transaction.location is not None else "",
-            )
+            s = f'{transaction.date}{transaction.description}{transaction.points}{self.scheme_id}{transaction.location if transaction.location is not None else ""}'
 
             # identical hashes get sequentially indexed to make them unique.
             index = count[s]
