@@ -105,7 +105,7 @@ def update_pending_join_account(
         "user_info": user_info,
     }
     response = requests.post(
-        "{}/schemes/accounts/{}/status".format(settings.HERMES_URL, scheme_account_id),
+        f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/status",
         data=json.dumps(data, cls=JsonEncoder),
         headers=headers,
     )
@@ -114,7 +114,7 @@ def update_pending_join_account(
     remove_pending_consents(consent_ids, headers)
 
     requests.delete(
-        "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
+        f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials",
         data=json.dumps(delete_data, cls=JsonEncoder),
         headers=headers,
     )
@@ -136,14 +136,14 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
         "user_info": user_info,
     }
     requests.post(
-        "{}/schemes/accounts/{}/status".format(settings.HERMES_URL, scheme_account_id),
+        f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/status",
         data=json.dumps(status_data, cls=JsonEncoder),
         headers=headers,
     )
 
     question_data = {"property_list": ["link_questions"]}
     requests.delete(
-        "{}/schemes/accounts/{}/credentials".format(settings.HERMES_URL, scheme_account_id),
+        f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}/credentials",
         data=json.dumps(question_data, cls=JsonEncoder),
         headers=headers,
     )
@@ -156,7 +156,7 @@ def update_pending_link_account(user_info, tid, error=None, message=None, scheme
 def remove_pending_consents(consent_ids, headers):
     data = json.dumps({"status": ConsentStatus.FAILED}, cls=JsonEncoder)
     for consent_id in consent_ids:
-        requests.put("{}/schemes/user_consent/{}".format(settings.HERMES_URL, consent_id), data=data, headers=headers)
+        requests.put(f"{settings.HERMES_URL}/schemes/user_consent/{consent_id}", data=data, headers=headers)
 
 
 def delete_scheme_account(tid, scheme_account_id, bink_user_id):
@@ -165,4 +165,4 @@ def delete_scheme_account(tid, scheme_account_id, bink_user_id):
         headers["bink-user-id"] = str(bink_user_id)
 
     log.debug(f"Delete request for {scheme_account_id}")
-    requests.delete("{}/schemes/accounts/{}".format(settings.HERMES_URL, scheme_account_id), headers=headers)
+    requests.delete(f"{settings.HERMES_URL}/schemes/accounts/{scheme_account_id}", headers=headers)

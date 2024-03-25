@@ -253,7 +253,7 @@ class Iceland(BaseAgent):
         return Balance(
             points=amount,
             value=amount,
-            value_label="£{}".format(amount),
+            value_label=f"£{amount}",
         )
 
     def transactions(self) -> list[Transaction]:

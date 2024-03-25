@@ -40,7 +40,7 @@ def send_balance_to_hades(balance_item: dict, tid: str) -> None:
     if "vouchers" in item:
         del item["vouchers"]
 
-    post("{}/balance".format(HADES_URL), item, tid)
+    post(f"{HADES_URL}/balance", item, tid)
 
 
 def transactions(transactions_items, scheme_account_id, user_set, tid):
@@ -51,7 +51,7 @@ def transactions(transactions_items, scheme_account_id, user_set, tid):
         transaction_item["scheme_account_id"] = scheme_account_id
         transaction_item["user_set"] = user_set
 
-    post("{}/transactions".format(HADES_URL), transactions_items, tid)
+    post(f"{HADES_URL}/transactions", transactions_items, tid)
 
     return transactions_items
 
@@ -65,7 +65,7 @@ def balance(balance_item, scheme_account_id, user_set, tid):
 
 def status(scheme_account_id, status, tid, user_info, journey=None):
     data = {"status": status, "journey": journey, "user_info": user_info}
-    post("{}/schemes/accounts/{}/status".format(HERMES_URL, scheme_account_id), data, tid)
+    post(f"{HERMES_URL}/schemes/accounts/{scheme_account_id}/status", data, tid)
     return status
 
 
@@ -99,4 +99,4 @@ def minify_number(n):
         else:
             break
 
-    return "{0}{1}".format(total, units[count - 1])
+    return f"{total}{units[count - 1]}"

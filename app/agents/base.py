@@ -340,18 +340,13 @@ class BaseAgent(object):
         hashed_transactions: list[Transaction] = []
 
         for transaction in transactions:
-            s = "{0}{1}{2}{3}{4}".format(
-                transaction.date,
-                transaction.description,
-                transaction.points,
-                self.scheme_id,
-                transaction.location if transaction.location is not None else "",
-            )
+            s = (f"{transaction.date}{transaction.description}{transaction.points}{self.scheme_id}"
+                 f"{transaction.location if transaction.location is not None else ""}")
 
             # identical hashes get sequentially indexed to make them unique.
             index = count[s]
             count[s] += 1
-            s = "{0}{1}".format(s, index)
+            s = f"{s}{index}"
 
             data = transaction._asdict()
             data["hash"] = hashlib.md5(s.encode("utf-8")).hexdigest()
@@ -369,7 +364,7 @@ class BaseAgent(object):
     def format_label(count, noun, plural_suffix="s", include_zero_items=False):
         if count == 0 and not include_zero_items:
             return ""
-        return "{} {}".format(count, noun + pluralise(count, plural_suffix))
+        return f"{count} {noun + pluralise(count, plural_suffix)}"
 
     # Expects a list of tuples (point threshold, reward string) sorted by threshold from highest to lowest.
     @staticmethod

@@ -154,7 +154,7 @@ class TestBaseSecurity(unittest.TestCase):
         json_data = {"key": "value"}
         json_with_timestamp, current_time = self.base_security._add_timestamp(json_data)
         self.assertEqual(int(time.time()), current_time)
-        self.assertEqual("{}{}".format(json_data, current_time), json_with_timestamp)
+        self.assertEqual(f"{json_data}{current_time}", json_with_timestamp)
 
     def test_get_key(self):
         credentials_list = [{"credential_type": "some_type", "value": "key-123"}]

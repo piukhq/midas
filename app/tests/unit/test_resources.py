@@ -177,9 +177,7 @@ class TestResources(TestCase):
         mock_publish_balance.return_value = {"user_id": 2, "scheme_account_id": 4, "bink_user_id": 777}
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}&bink_user_id={3}".format(
-            credentials, 1, 2, 777
-        )
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}&bink_user_id={777}"
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -200,7 +198,7 @@ class TestResources(TestCase):
         mock_publish_balance.return_value = None
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}"
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account.called)
@@ -220,7 +218,7 @@ class TestResources(TestCase):
         mock_publish_balance.side_effect = Exception("test error")
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}"
         response = self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -239,7 +237,7 @@ class TestResources(TestCase):
         mock_publish_transactions.return_value = [{"points": Decimal("10.00")}]
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
+        url = f"/bpl-trenette/transactions?credentials={credentials}&scheme_account_id={3}&user_id={5}"
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -262,7 +260,7 @@ class TestResources(TestCase):
         mock_publish_transactions.return_value = None
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
+        url = f"/bpl-trenette/transactions?credentials={credentials}&scheme_account_id={3}&user_id={5}"
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -278,7 +276,7 @@ class TestResources(TestCase):
         mock_publish_transactions.side_effect = Exception("test error")
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
+        url = f"/bpl-trenette/transactions?credentials={credentials}&scheme_account_id={3}&user_id={5}"
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -296,7 +294,7 @@ class TestResources(TestCase):
         mock_publish_transactions.side_effect = StatusLoginFailedError()
         mock_get_aes_key.return_value = local_aes_key.encode()
         credentials = encrypted_credentials()
-        url = "/bpl-trenette/transactions?credentials={0}&scheme_account_id={1}&user_id={2}".format(credentials, 3, 5)
+        url = f"/bpl-trenette/transactions?credentials={credentials}&scheme_account_id={3}&user_id={5}"
         response = self.client.get(url)
 
         self.assertTrue(mock_agent_login.called)
@@ -327,7 +325,7 @@ class TestResources(TestCase):
         test_creds = json.dumps({"username": "NZ57271", "password": "d4Hgvf47"})
         aes_cipher = AESCipher(local_aes_key.encode())
         credentials = aes_cipher.encrypt(test_creds).decode("utf-8")
-        url = "/bad-agent-key/balance?credentials={}&scheme_account_id=1&user_set=1".format(credentials)
+        url = f"/bad-agent-key/balance?credentials={credentials}&scheme_account_id=1&user_set=1"
         user_info = {
             "credentials": {"username": "NZ57271", "password": "d4Hgvf47"},
             "status": None,
@@ -604,7 +602,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}"
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)
@@ -633,7 +631,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}"
         self.client.get(url)
 
         self.assertTrue(mock_login.called)
@@ -881,7 +879,7 @@ class TestResources(TestCase):
         aes = AESCipher(local_aes_key.encode())
         credentials = aes.encrypt(json.dumps(credentials)).decode()
 
-        url = "/bpl-trenette/balance?credentials={0}&user_set={1}&scheme_account_id={2}".format(credentials, 1, 2)
+        url = f"/bpl-trenette/balance?credentials={credentials}&user_set={1}&scheme_account_id={2}"
         self.client.get(url)
 
         self.assertTrue(mock_update_pending_join_account)

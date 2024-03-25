@@ -18,10 +18,10 @@ class OAuth(BaseSecurity):
 
             request_data = {
                 "json": json.loads(json_data),
-                "headers": {"Authorization": "{} {}".format(credentials["prefix"], response_json["access_token"])},
+                "headers": {"Authorization": f"{credentials["prefix"]} {response_json["access_token"]}"},
             }
         except requests.RequestException as e:
-            sentry_sdk.capture_message("Failed request to get oauth token from {}. exception: {}".format(url, e))
+            sentry_sdk.capture_message(f"Failed request to get oauth token from {url}. exception: {e}")
             raise ServiceConnectionError(exception=e) from e
         except (KeyError, IndexError) as e:
             raise ConfigurationError(exception=e) from e

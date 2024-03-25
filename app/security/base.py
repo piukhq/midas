@@ -34,7 +34,7 @@ class BaseSecurity:
     def _add_timestamp(json_data):
         """Appends a timestamp to a json string."""
         current_time = int(time.time())
-        json_with_timestamp = "{}{}".format(json_data, current_time)
+        json_with_timestamp = f"{json_data}{current_time}"
         return json_with_timestamp, current_time
 
     @staticmethod
@@ -42,4 +42,4 @@ class BaseSecurity:
         for item in credentials_list:
             if item["credential_type"] == key_type:
                 return item["value"]
-        raise KeyError("{} not in credentials".format(key_type))
+        raise KeyError(f"{key_type} not in credentials")

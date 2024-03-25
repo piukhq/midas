@@ -186,7 +186,7 @@ class TestIceland(TestCase):
         expected_result = Balance(
             points=amount,
             value=amount,
-            value_label="£{}".format(amount),
+            value_label=f"£{amount}",
         )
 
         self.assertEqual(self.iceland.balance(), expected_result)
@@ -1673,7 +1673,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_decode.return_value = json_data_with_bad_record_uid
 
         headers = {
-            "Authorization": "Signature {}".format(self.signature),
+            "Authorization": f"Signature {self.signature}",
         }
 
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
@@ -1696,7 +1696,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_RSA_decode.return_value = self.json_data
         mock_get_task.side_effect = NoSuchRecordError()
 
-        headers = {"Authorization": "Signature {}".format(self.signature)}
+        headers = {"Authorization": f"Signature {self.signature}"}
 
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
@@ -1713,7 +1713,7 @@ class TestIcelandEndToEnd(FlaskTestCase):
         mock_config.return_value = self.config
         mock_decode.return_value = self.json_data
 
-        headers = {"Authorization": "Signature {}".format(self.signature)}
+        headers = {"Authorization": f"Signature {self.signature}"}
 
         response = self.client.post("/join/merchant/iceland-bonus-card", headers=headers)
 
