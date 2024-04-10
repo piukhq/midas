@@ -396,7 +396,7 @@ class TestTGIFridaysJoin(unittest.TestCase):
                 ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
             )
         ) == [
-            "bink",
+            "Bank App Loyalty",
             "application/json",
             "b028e9f3d60e161d6514c6d58c75638717b016c611f469a36027096c6247b557",
             "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
@@ -515,7 +515,7 @@ class TestTGIFridaysLogin(unittest.TestCase):
                 ["User-Agent", "Content-Type", "x-pch-digest", "punchh-app-device-id"],
             )
         ) == [
-            "bink",
+            "Bank App Loyalty",
             "application/json",
             "356a4d07a634113157f73ece6196d060b27d6f7b56c58dba6f897e24dc2742c9",
             "e25vrke74gx9mwqpz0g6pjy38zo1dq0l",
