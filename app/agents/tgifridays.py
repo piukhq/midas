@@ -65,7 +65,7 @@ class TGIFridays(BaseAgent):
         self.headers.update(
             {
                 "Content-Type": "application/json",
-                "User-Agent": "bink",
+                "User-Agent": "Bank App Loyalty",
                 "punchh-app-device-id": self._generate_punchh_app_device_id(),
                 "x-pch-digest": self._generate_signature(uri, payload, self.secrets["secret"]),
             }
