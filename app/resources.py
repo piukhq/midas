@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import olympus_messaging
 import requests
-from flask import make_response, request
+from flask import make_response, request, wrappers
 from flask_restful import Resource, abort
 from flask_restful.utils.cors import crossdomain
 from werkzeug.exceptions import NotFound
@@ -117,7 +117,7 @@ class Balance(Resource):
 
 
 class Join(Resource):
-    def post(self, scheme_slug):
+    def post(self, scheme_slug) -> wrappers.Response:
         data = request.get_json()
         scheme_account_id = str(data["scheme_account_id"])
 
@@ -141,7 +141,7 @@ class Join(Resource):
 
 
 class Transactions(Resource):
-    def get(self, scheme_slug):
+    def get(self, scheme_slug) -> wrappers.Response:
         agent_class = get_agent_class(scheme_slug)
         user_set = get_user_set_from_request(request.args)
         if not user_set:
@@ -180,7 +180,7 @@ class Transactions(Resource):
 class AccountOverview(Resource):
     """Return both a users balance and latest transaction for a specific agent"""
 
-    def get(self, scheme_slug):
+    def get(self, scheme_slug) -> wrappers.Response:
         agent_class = get_agent_class(scheme_slug)
         user_set = get_user_set_from_request(request.args)
         user_info = {
@@ -218,7 +218,7 @@ class TestResults(Resource):
     """
 
     @crossdomain(origin="*")
-    def get(self):
+    def get(self) -> wrappers.Response:
         with open(settings.JUNIT_XML_FILENAME) as xml:
             response = make_response(xml.read(), 200)
         response.headers["Content-Type"] = "text/xml"
@@ -226,7 +226,7 @@ class TestResults(Resource):
 
 
 class AgentQuestions(Resource):
-    def post(self):
+    def post(self) -> dict:
         scheme_slug = request.form["scheme_slug"]
 
         questions = {}
@@ -238,18 +238,18 @@ class AgentQuestions(Resource):
         return agent.update_questions(questions)
 
 
-def decrypt_credentials(credentials):
+def decrypt_credentials(credentials) -> dict:
     aes = AESCipher(get_aes_key("aes-keys"))
     return json.loads(aes.decrypt(credentials.replace(" ", "+")))
 
 
-def create_response(response_data):
+def create_response(response_data) -> wrappers.Response:
     response = make_response(json.dumps(response_data, cls=JsonEncoder), 200)
     response.headers["Content-Type"] = "application/json"
     return response
 
 
-def get_hades_balance(scheme_account_id):
+def get_hades_balance(scheme_account_id) -> dict:
     resp = requests.get(
         settings.HADES_URL + "/balances/scheme_account/" + str(scheme_account_id),
         headers={"Authorization": "Token " + settings.SERVICE_API_KEY},
@@ -265,7 +265,7 @@ def get_hades_balance(scheme_account_id):
         raise UnknownError(message="Empty response getting previous balance")
 
 
-def get_user_set_from_request(request_args):
+def get_user_set_from_request(request_args) -> str | None:
     try:
         return request_args.get("user_set") or str(request_args["user_id"])
     except KeyError:

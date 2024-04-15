@@ -14,7 +14,7 @@ audit_logger = AuditLogger()
 log = get_logger("api")
 
 
-def create_app(config_name="settings"):
+def create_app(config_name="settings") -> Flask:
     from app.urls import api
 
     app = Flask("core")

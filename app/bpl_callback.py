@@ -2,7 +2,7 @@ import json
 import typing as t
 
 import requests
-from flask import request
+from flask import request, wrappers
 from flask_restful import Resource
 
 import settings
@@ -25,13 +25,13 @@ def _nop_decorator(*args, **kwargs):
 
 class JoinCallbackBpl(Resource):
     @view_session
-    def post(self, scheme_slug, *, session: db.Session):
+    def post(self, scheme_slug, *, session: db.Session) -> wrappers.Response:
         log.debug("Callback POST request received for scheme {}".format(scheme_slug))
         data = json.loads(request.get_data())
         self.process_join_callback(scheme_slug, data, session)
         return create_response({"success": True})
 
-    def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session):
+    def process_join_callback(self, scheme_slug: str, data: dict, session: db.Session) -> None:
         log.debug("{} received a callback".format(scheme_slug))
         decoded_scheme_account = hash_ids.decode(data["third_party_identifier"])
         scheme_account_id = decoded_scheme_account[0]
@@ -66,7 +66,7 @@ class JoinCallbackBpl(Resource):
         delete_task(session, retry_task)
 
 
-def update_hermes(data, scheme_account_id: int, bink_user_id: str):
+def update_hermes(data, scheme_account_id: int, bink_user_id: str) -> None:
     log.debug("Updating scheme account {} in Hermes".format(scheme_account_id))
     identifier = {
         "card_number": data["account_number"],
